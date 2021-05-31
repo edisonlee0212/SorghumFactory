@@ -24,8 +24,8 @@ add_subdirectory(${3RD_PARTY_DIR})
 # RayMLVQ
 # ------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
-file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
-
+#file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
+set(RAYMLVQ_SOURCES_LOCAL "src/lib/RayMLVQ.cpp")
 add_library(rayMLVQ
 	SHARED
 	${RAYMLVQ_SOURCES_LOCAL}
@@ -73,26 +73,10 @@ elseif (UNIX AND NOT APPLE)
 elseif (APPLE)
 endif ()
 
-# Compiler-specific compile flags
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-	message(STATUS "Setting G++ flags")
-	# G++
-	target_compile_options(rayMLVQ PRIVATE -Wall -Wextra)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-	message(STATUS "Setting MSVC flags")
-	# MSVC
-	target_compile_options(rayMLVQ PRIVATE /EHsc /W2 /c)
-	
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
-	message(STATUS "Setting Clang flags")
-	# Activate all clang warnings except those that don't really affect much
-	#target_compile_options(uniengine PRIVATE -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-newline-eof -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-constant-conversion)
-endif ()
-
 # ------------------------------------------------------------------
 # Sorghum Factory - Provides models for ray tracer.
 # ------------------------------------------------------------------
-file(GLOB SORGHUM_FACTORY_SOURCES_LOCAL "src/core/*.cpp")
+set(SORGHUM_FACTORY_SOURCES_LOCAL src/core/SorghumFactory.cpp)
 
 add_library(sorghumfactory
     ${SORGHUM_FACTORY_SOURCES_LOCAL}
@@ -128,7 +112,16 @@ target_link_libraries(sorghumMLVQ
 	rayMLVQ
 	sorghumfactory
 	)
-#file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-#set(RAYMLVQ_INCLUDES ${RAYMLVQ_INCLUDES_LOCAL} PARENT_SCOPE)
-#set(RAYMLVQ_PCH ${RAYMLVQ_PCH_LOCAL} PARENT_SCOPE)
+if (WIN32)
+	add_custom_command(
+			TARGET sorghumMLVQ
+			POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy
+			"${CMAKE_CURRENT_BINARY_DIR}/3rdParty/UniEngine-dev/uniengine.dll"
+			$<TARGET_FILE_DIR:sorghumMLVQ>
+	)
+	#file(COPY ${CMAKE_CURRENT_BINARY_DIR}/3rdParty/UniEngine-dev/uniengine.dll DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+elseif (UNIX AND NOT APPLE)
+endif()
+set(RAYMLVQ_INCLUDES ${RAYMLVQ_INCLUDES_LOCAL} PARENT_SCOPE)
+set(RAYMLVQ_PCH ${RAYMLVQ_PCH_LOCAL} PARENT_SCOPE)

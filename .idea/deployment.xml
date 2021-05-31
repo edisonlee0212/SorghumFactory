@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="Remote Host (ac979759-f878-4140-b412-c5db7df61c67)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/RayMLVQ" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-visual-studio" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-remote-host" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-visual-studio" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-remote-host" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
