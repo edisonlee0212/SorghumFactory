@@ -20,15 +20,24 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(${3RD_PARTY_DIR})
 
+
+include(${CMAKE_MODULE_PATH}/configure_build_type.cmake)
+include(${CMAKE_MODULE_PATH}/configure_optix.cmake)
+mark_as_advanced(CUDA_SDK_ROOT_DIR)
+
+include_directories(${OptiX_INCLUDE})
+
 # ------------------------------------------------------------------
 # RayMLVQ
 # ------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
-#file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
-set(RAYMLVQ_SOURCES_LOCAL "src/lib/RayMLVQ.cpp")
+
+file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
 add_library(rayMLVQ
 	SHARED
 	${RAYMLVQ_SOURCES_LOCAL}
+	${CMAKE_MODULE_PATH}/configure_optix.cmake
+	${CMAKE_MODULE_PATH}/FindOptiX.cmake
 	)
 set(RAYMLVQ_PCH_LOCAL 
 	${UNIENGINE_PCH}
@@ -41,9 +50,15 @@ generate_export_header(rayMLVQ
 	BASE_NAME RAYMLVQ
 	EXPORT_MACRO_NAME RAYMLVQ_API
 	)
+
+message(STATUS OptiX_INCLUDE:${OptiX_INCLUDE})
+message(STATUS CUDA_LIBRARIES:${CUDA_LIBRARIES})
+message(STATUS CUDA_CUDA_LIBRARY:${CUDA_CUDA_LIBRARY})
 # Linker settings for all platforms
 target_link_libraries(rayMLVQ
 	uniengine
+	${CUDA_LIBRARIES}
+	${CUDA_CUDA_LIBRARY}
 	)
 
 set(RAYMLVQ_INCLUDES_LOCAL
@@ -64,6 +79,7 @@ if (WIN32)
 		PRIVATE 
 		RAYMLVQ_EXPORTS
 		)
+	set (CUDA_PROPAGATE_HOST_FLAGS ON)
 elseif (UNIX AND NOT APPLE)
 	if (${CMAKE_BUILD_TYPE} STREQUAL Release)
 		set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -76,19 +92,18 @@ endif ()
 # ------------------------------------------------------------------
 # Sorghum Factory - Provides models for ray tracer.
 # ------------------------------------------------------------------
-set(SORGHUM_FACTORY_SOURCES_LOCAL src/core/SorghumFactory.cpp)
-
+file(GLOB SORGHUM_FACTORY_SOURCES_LOCAL "src/core/*.cpp")
 add_library(sorghumfactory
-    ${SORGHUM_FACTORY_SOURCES_LOCAL}
+	${SORGHUM_FACTORY_SOURCES_LOCAL}
 )
 target_precompile_headers(sorghumfactory
 	PRIVATE
 	${RAYMLVQ_PCH_LOCAL}
 	)
 target_include_directories(sorghumfactory
-    PUBLIC
+	PUBLIC
 	${RAYMLVQ_INCLUDES_LOCAL}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/core
+	${CMAKE_CURRENT_SOURCE_DIR}/include/core
 )
 target_link_libraries(sorghumfactory
 	rayMLVQ
@@ -120,7 +135,6 @@ if (WIN32)
 			"${CMAKE_CURRENT_BINARY_DIR}/3rdParty/UniEngine-dev/uniengine.dll"
 			$<TARGET_FILE_DIR:sorghumMLVQ>
 	)
-	#file(COPY ${CMAKE_CURRENT_BINARY_DIR}/3rdParty/UniEngine-dev/uniengine.dll DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 elseif (UNIX AND NOT APPLE)
 endif()
 set(RAYMLVQ_INCLUDES ${RAYMLVQ_INCLUDES_LOCAL} PARENT_SCOPE)
