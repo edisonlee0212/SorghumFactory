@@ -32,20 +32,21 @@ include_directories(${OptiX_INCLUDE})
 # ------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
 
+file(GLOB RAYMLVQ_PTX_SOURCES_CODE_LOCAL "src/lib/*.cu")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${UNIENGINE_INCLUDES})
+cuda_compile_and_embed(RAYMLVQ_PTX_SOURCES_LOCAL ${RAYMLVQ_PTX_SOURCES_CODE_LOCAL})
+
 file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
 add_library(rayMLVQ
 	SHARED
+	${RAYMLVQ_PTX_SOURCES_LOCAL}
 	${RAYMLVQ_SOURCES_LOCAL}
 	${CMAKE_MODULE_PATH}/configure_optix.cmake
 	${CMAKE_MODULE_PATH}/FindOptiX.cmake
 	)
-set(RAYMLVQ_PCH_LOCAL 
-	${UNIENGINE_PCH}
-	${CMAKE_CURRENT_SOURCE_DIR}/include/lib/RayMLVQ-pch.hpp)
-target_precompile_headers(rayMLVQ
-	PRIVATE
-	${RAYMLVQ_PCH_LOCAL}
-	)
+
 generate_export_header(rayMLVQ
 	BASE_NAME RAYMLVQ
 	EXPORT_MACRO_NAME RAYMLVQ_API
@@ -60,7 +61,7 @@ target_link_libraries(rayMLVQ
 	${CUDA_LIBRARIES}
 	${CUDA_CUDA_LIBRARY}
 	)
-
+message(STATUS UNIENGINE_INCLUDES:${UNIENGINE_INCLUDES})
 set(RAYMLVQ_INCLUDES_LOCAL
 	${CMAKE_CURRENT_SOURCE_DIR}/include/lib
 	${UNIENGINE_INCLUDES}
@@ -120,7 +121,7 @@ target_include_directories(sorghumMLVQ
 
 target_precompile_headers(sorghumMLVQ
 	PRIVATE
-	${RAYMLVQ_PCH_LOCAL}
+	${UNIENGINE_PCH}
 	)
 
 target_link_libraries(sorghumMLVQ
