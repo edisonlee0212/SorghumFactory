@@ -6,7 +6,7 @@
 #include <LaunchParams.hpp>
 #include <LinearCongruenceGenerator.hpp>
 
-namespace Cuda {
+namespace RayMLVQ {
 	typedef LinearCongruenceGenerator<16> Random;
 #pragma region Data
 	/*! launch parameters in constant memory, filled in by optix upon

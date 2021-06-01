@@ -2,7 +2,7 @@
 #include <CUDAModule.hpp>
 #include <glm/glm.hpp>
 
-namespace Cuda {
+namespace RayMLVQ {
 	enum class DebugRenderingRayType
 	{
 		RadianceRayType,

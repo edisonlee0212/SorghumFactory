@@ -1,7 +1,7 @@
 #pragma once
 #include <LaunchParams.hpp>
 #include <Optix7.hpp>
-namespace Cuda
+namespace RayMLVQ
 {
 	/*! SBT record for a raygen program */
 	struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) DebugRenderingRayGenRecord

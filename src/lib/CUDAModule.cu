@@ -13,12 +13,8 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-using namespace Cuda;
-#ifdef __INTELLISENSE__
-template<class T>
-void surf2Dwrite(T data, cudaSurfaceObject_t surfObj, int x, int y,
-	cudaSurfaceBoundaryMode boundaryMode = cudaBoundaryModeTrap);
-#endif
+using namespace RayMLVQ;
+
 __global__ void IlluminationResetKernel(int size, glm::vec3* directions, float* illuminations)
 {
 	const int idx = threadIdx.x + blockIdx.x * blockDim.x;

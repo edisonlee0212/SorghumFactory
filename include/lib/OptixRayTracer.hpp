@@ -6,7 +6,7 @@
 #include <cuda.h>
 #include <vector>
 #include <glm/glm.hpp>
-namespace Cuda {
+namespace RayMLVQ {
 	enum PipelineType
 	{
 		DebugRendering,

@@ -7,12 +7,15 @@
 #include <stdexcept>
 
 #include <glm/glm.hpp>
-CUdeviceptr Cuda::CudaBuffer::DevicePointer() const
+
+using namespace RayMLVQ;
+
+CUdeviceptr CudaBuffer::DevicePointer() const
 {
 	return reinterpret_cast<CUdeviceptr>(m_dPtr);
 }
 
-void Cuda::CudaBuffer::Resize(const size_t& size)
+void CudaBuffer::Resize(const size_t& size)
 {
 	if (this->m_sizeInBytes == size) return;
 	Free();
@@ -20,7 +23,7 @@ void Cuda::CudaBuffer::Resize(const size_t& size)
 	CUDA_CHECK(Malloc(&m_dPtr, m_sizeInBytes));
 }
 
-void Cuda::CudaBuffer::Free()
+void CudaBuffer::Free()
 {
 	if(m_dPtr == nullptr) return;
 	CUDA_CHECK(Free(m_dPtr));
@@ -28,13 +31,13 @@ void Cuda::CudaBuffer::Free()
 	m_sizeInBytes = 0;
 }
 
-void Cuda::CudaBuffer::Upload(void* t, const size_t& size, const size_t& count)
+void CudaBuffer::Upload(void* t, const size_t& size, const size_t& count)
 {
 	Resize(count * size);
 	CUDA_CHECK(Memcpy(m_dPtr, t, count * size, cudaMemcpyHostToDevice));
 }
 
-void Cuda::CudaBuffer::Download(void* t, const size_t& size, const size_t& count) const
+void CudaBuffer::Download(void* t, const size_t& size, const size_t& count) const
 {
 	CUDA_CHECK(Memcpy(t, m_dPtr, count * size, cudaMemcpyDeviceToHost));
 }

@@ -7,13 +7,13 @@
 #include <cuda_gl_interop.h>
 #include <RayRecords.hpp>
 
-
-void Cuda::OptixRayTracer::SetStatusChanged(const bool& value)
+using namespace RayMLVQ;
+void OptixRayTracer::SetStatusChanged(const bool& value)
 {
 	m_statusChanged = value;
 }
 
-bool Cuda::OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
+bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
 	if (!m_hasAccelerationStructure) return false;
@@ -135,7 +135,7 @@ bool Cuda::OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& pro
 	return true;
 }
 
-void Cuda::OptixRayTracer::EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes)
+void OptixRayTracer::EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes)
 {
 	if (!m_hasAccelerationStructure) return;
 	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
@@ -176,7 +176,7 @@ void Cuda::OptixRayTracer::EstimateIllumination(const size_t& size, const Illumi
 	}
 }
 
-Cuda::OptixRayTracer::OptixRayTracer()
+OptixRayTracer::OptixRayTracer()
 {
 	m_debugRenderingPipeline.m_launchParams.m_frame.m_frameId = 0;
 	//std::cout << "#Optix: creating optix context ..." << std::endl;
@@ -196,13 +196,13 @@ Cuda::OptixRayTracer::OptixRayTracer()
 	std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
 }
 
-void Cuda::OptixRayTracer::SetSkylightSize(const float& value)
+void OptixRayTracer::SetSkylightSize(const float& value)
 {
 	m_debugRenderingPipeline.m_launchParams.m_skylight.m_lightSize = value;
 	m_statusChanged = true;
 }
 
-void Cuda::OptixRayTracer::SetSkylightDir(const glm::vec3& value)
+void OptixRayTracer::SetSkylightDir(const glm::vec3& value)
 {
 	m_debugRenderingPipeline.m_launchParams.m_skylight.m_direction = value;
 	m_statusChanged = true;
@@ -216,7 +216,7 @@ static void context_log_cb(const unsigned int level,
 	fprintf(stderr, "[%2d][%12s]: %s\n", static_cast<int>(level), tag, message);
 }
 
-void Cuda::OptixRayTracer::CreateContext()
+void OptixRayTracer::CreateContext()
 {
 	// for this sample, do everything on one device
 	const int deviceID = 0;
@@ -231,7 +231,7 @@ void Cuda::OptixRayTracer::CreateContext()
 	(m_optixContext, context_log_cb, nullptr, 4));
 }
 
-void Cuda::OptixRayTracer::CreateModule()
+void OptixRayTracer::CreateModule()
 {
 	{
 		m_debugRenderingPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
@@ -293,7 +293,7 @@ void Cuda::OptixRayTracer::CreateModule()
 	}
 }
 
-void Cuda::OptixRayTracer::CreateRayGenPrograms()
+void OptixRayTracer::CreateRayGenPrograms()
 {
 	{
 		m_debugRenderingPipeline.m_rayGenProgramGroups.resize(1);
@@ -333,7 +333,7 @@ void Cuda::OptixRayTracer::CreateRayGenPrograms()
 	}
 }
 
-void Cuda::OptixRayTracer::CreateMissPrograms()
+void OptixRayTracer::CreateMissPrograms()
 {
 	{
 		m_debugRenderingPipeline.m_missProgramGroups.resize(static_cast<int>(DebugRenderingRayType::RayTypeCount));
@@ -397,7 +397,7 @@ void Cuda::OptixRayTracer::CreateMissPrograms()
 	}
 }
 
-void Cuda::OptixRayTracer::CreateHitGroupPrograms()
+void OptixRayTracer::CreateHitGroupPrograms()
 {
 	{
 		m_debugRenderingPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(DebugRenderingRayType::RayTypeCount));
@@ -466,7 +466,7 @@ void Cuda::OptixRayTracer::CreateHitGroupPrograms()
 	}
 }
 
-void Cuda::OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
+void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 {
 	for (auto& i : m_vertexBuffer) i.Free();
 	for (auto& i : m_indexBuffer) i.Free();
@@ -607,13 +607,13 @@ void Cuda::OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>&
 	m_hasAccelerationStructure = true;
 }
 
-void Cuda::OptixRayTracer::SetAccumulate(const bool& value)
+void OptixRayTracer::SetAccumulate(const bool& value)
 {
 	m_accumulate = value;
 	m_statusChanged = true;
 }
 
-void Cuda::OptixRayTracer::CreatePipeline()
+void OptixRayTracer::CreatePipeline()
 {
 	{
 		std::vector<OptixProgramGroup> programGroups;
@@ -691,7 +691,7 @@ void Cuda::OptixRayTracer::CreatePipeline()
 	}
 }
 
-void Cuda::OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::vector<std::pair<unsigned, cudaTextureObject_t>>& boundTextures, std::vector<cudaGraphicsResource_t>& boundResources)
+void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::vector<std::pair<unsigned, cudaTextureObject_t>>& boundTextures, std::vector<cudaGraphicsResource_t>& boundResources)
 {
 	{
 		// ------------------------------------------------------------------

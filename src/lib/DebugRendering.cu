@@ -8,7 +8,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
-namespace Cuda {
+namespace RayMLVQ {
 	extern "C" __constant__ DebugRenderingLaunchParams debugRenderingLaunchParams;
 	struct DebugRenderingRayData {
 		unsigned m_hitCount;

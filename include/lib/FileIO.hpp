@@ -1,7 +1,7 @@
 #pragma once
 #include <raymlvq_export.h>
 #include <sstream>
-namespace Cuda {
+namespace RayMLVQ {
 	class RAYMLVQ_API FileIO
 	{
 	public:

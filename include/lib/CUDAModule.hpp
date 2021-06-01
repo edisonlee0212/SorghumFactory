@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 struct cudaGraphicsResource;
-namespace Cuda {
+namespace RayMLVQ {
 	struct RAYMLVQ_API Camera {
 		bool m_modified = false;
 		float m_fov = 60;

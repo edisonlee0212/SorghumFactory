@@ -3,7 +3,7 @@
 #include <vector>
 
 
-namespace Cuda
+namespace RayMLVQ
 {
 	/*! simple 24-bit linear congruence generator */
 	template<unsigned int N = 16>

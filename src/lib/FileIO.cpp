@@ -2,7 +2,8 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
-std::string Cuda::FileIO::LoadFileAsString(const std::string& path)
+using namespace RayMLVQ;
+std::string FileIO::LoadFileAsString(const std::string& path)
 {
 	std::ifstream file;
 	file.exceptions(std::ifstream::failbit | std::ifstream::badbit);

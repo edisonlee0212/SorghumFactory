@@ -2,7 +2,7 @@
 #include <Optix7.hpp>
 #include <LaunchParams.hpp>
 #include <RayTracerUtilities.cuh>
-namespace Cuda {
+namespace RayMLVQ {
 	extern "C" __constant__ IlluminationEstimationLaunchParams illuminationEstimationLaunchParams;
 	struct IlluminationEstimationRayData {
 		unsigned m_hitCount = 0;

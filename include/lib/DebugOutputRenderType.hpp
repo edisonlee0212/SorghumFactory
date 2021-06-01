@@ -1,5 +1,5 @@
 #pragma once
-namespace Cuda {
+namespace RayMLVQ {
 	enum class DebugOutputRenderType
 	{
 		SoftShadow,
