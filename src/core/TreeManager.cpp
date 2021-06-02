@@ -720,18 +720,10 @@ void TreeManager::OnGui()
 			{
 				GenerateMeshForTree(PlantManager::GetInstance());
 			}
-			if (ImGui::Button("Serialize Scene"))
-			{
-				auto result = FileIO::SaveFile("Scene (*.xml)\0*.xml\0");
-				if (result.has_value())
+			FileIO::SaveFile("Save scene as XML", ".xml", [](const std::string& path)
 				{
-					const std::string path = result.value();
-					if (!path.empty())
-					{
-						SerializeScene(path);
-					}
-				}
-			}
+					SerializeScene(path);
+				});
 			const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 			if (ImGui::BeginPopupModal("New tree wizard", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -788,19 +780,12 @@ void TreeManager::OnGui()
 						}
 						ImGui::InputInt("New Tree Amount", &newTreeAmount);
 						if (newTreeAmount < 1) newTreeAmount = 1;
-						if (ImGui::Button("Import parameters for all"))
-						{
-							auto result = FileIO::OpenFile("Parameters (*.treeparam)\0*.treeparam\0");
-							if (result.has_value())
+						FileIO::OpenFile("Import parameters for all", ".treeparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newTreeParameters[0].Deserialize(path);
-									for (int i = 1; i < newTreeParameters.size(); i++) newTreeParameters[i] = newTreeParameters[0];
-								}
+								newTreeParameters[0].Deserialize(path);
+								for (int i = 1; i < newTreeParameters.size(); i++) newTreeParameters[i] = newTreeParameters[0];
 							}
-						}
+						);
 						ImGui::EndMenu();
 					}
 					ImGui::EndMenuBar();
@@ -839,30 +824,17 @@ void TreeManager::OnGui()
 				if (ImGui::BeginMenuBar())
 				{
 					if (ImGui::BeginMenu("Parameters")) {
-						if (ImGui::Button("Import parameters"))
-						{
-							auto result = FileIO::OpenFile("Parameters (*.treeparam)\0*.treeparam\0");
-							if (result.has_value())
+						FileIO::OpenFile("Import parameters", ".treeparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newTreeParameters[currentFocusedNewTreeIndex].Deserialize(path);
-								}
+								newTreeParameters[currentFocusedNewTreeIndex].Deserialize(path);
 							}
-						}
-						if (ImGui::Button("Export parameters"))
-						{
-							auto result = FileIO::SaveFile("Parameters (*.treeparam)\0*.treeparam\0");
-							if (result.has_value())
+						);
+						
+						FileIO::SaveFile("Export parameters", ".treeparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newTreeParameters[currentFocusedNewTreeIndex].Serialize(path);
-								}
+								newTreeParameters[currentFocusedNewTreeIndex].Serialize(path);
 							}
-						}
+						);
 						ImGui::EndMenu();
 					}
 					ImGui::EndMenuBar();

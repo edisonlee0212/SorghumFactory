@@ -420,45 +420,26 @@ void RadialBoundingVolume::OnGui()
 	{
 		FormEntity();
 	}
-	if (ImGui::Button("Save..."))
-	{
-		auto temp = FileIO::SaveFile("CakeTower (*.ct)\0*.ct\0");
-		if (temp.has_value()) {
-			const std::string path = temp.value();
-			if (!path.empty())
-			{
-				const std::string data = Save();
-				std::ofstream ofs;
-				ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
-				ofs.write(data.c_str(), data.length());
-				ofs.flush();
-				ofs.close();
-			}
-		}
-	}
-	if (ImGui::Button("Load..."))
-	{
-		auto temp = FileIO::OpenFile("CakeTower (*.ct)\0*.ct\0");
-		if (temp.has_value())
+	FileIO::SaveFile("Save RBV", ".rbv", [this](const std::string& path)
 		{
-			const std::string path = temp.value();
-			if (!path.empty())
-			{
-				Load(path);
-			}
+			const std::string data = Save();
+			std::ofstream ofs;
+			ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
+			ofs.write(data.c_str(), data.length());
+			ofs.flush();
+			ofs.close();
 		}
-	}
-	if (ImGui::Button("Save as OBJ"))
-	{
-		auto temp = FileIO::SaveFile("Model (*.obj)\0*.obj\0");
-		if (temp.has_value()) {
-			const std::string path = temp.value();
-			if (!path.empty())
-			{
-				ExportAsObj(path);
-			}
+	);
+	FileIO::OpenFile("Load RBV", ".rbv", [this](const std::string& path)
+		{
+			Load(path);
 		}
-	}
+	);
+	FileIO::SaveFile("Export RBV as OBJ", ".obj", [this](const std::string& path)
+		{
+			ExportAsObj(path);
+		}
+	);
 	if (m_display && m_meshGenerated)
 	{
 		for (auto& i : m_boundMeshes) {

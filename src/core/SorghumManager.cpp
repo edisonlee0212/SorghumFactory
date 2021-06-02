@@ -475,19 +475,12 @@ void SorghumManager::OnGui()
 						}
 						ImGui::InputInt("New sorghum amount", &newSorghumAmount);
 						if (newSorghumAmount < 1) newSorghumAmount = 1;
-						if (ImGui::Button("Import parameters for all"))
-						{
-							auto result = FileIO::OpenFile("Parameters (*.sorghumparam)\0*.sorghumparam\0");
-							if (result.has_value())
+						FileIO::OpenFile("Import parameters for all", ".sorghumparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newSorghumParameters[0].Deserialize(path);
-									for (int i = 1; i < newSorghumParameters.size(); i++) newSorghumParameters[i] = newSorghumParameters[0];
-								}
+								newSorghumParameters[0].Deserialize(path);
+								for (int i = 1; i < newSorghumParameters.size(); i++) newSorghumParameters[i] = newSorghumParameters[0];
 							}
-						}
+						);
 						ImGui::EndMenu();
 					}
 					ImGui::EndMenuBar();
@@ -526,30 +519,17 @@ void SorghumManager::OnGui()
 				if (ImGui::BeginMenuBar())
 				{
 					if (ImGui::BeginMenu("Parameters")) {
-						if (ImGui::Button("Import parameters"))
-						{
-							auto result = FileIO::OpenFile("Parameters (*.sorghumparam)\0*.sorghumparam\0");
-							if (result.has_value())
+						FileIO::OpenFile("Import parameters", ".treeparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newSorghumParameters[currentFocusedNewSorghumIndex].Deserialize(path);
-								}
+								newSorghumParameters[currentFocusedNewSorghumIndex].Deserialize(path);
 							}
-						}
-						if (ImGui::Button("Export parameters"))
-						{
-							auto result = FileIO::SaveFile("Parameters (*.sorghumparam)\0*.sorghumparam\0");
-							if (result.has_value())
+						);
+
+						FileIO::SaveFile("Export parameters", ".treeparam", [](const std::string& path)
 							{
-								const std::string path = result.value();
-								if (!path.empty())
-								{
-									newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(path);
-								}
+								newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(path);
 							}
-						}
+						);
 						ImGui::EndMenu();
 					}
 					ImGui::EndMenuBar();
@@ -626,18 +606,11 @@ void SorghumManager::OnGui()
 					if (rootInternode.IsValid()) EntityManager::DeleteEntity(rootInternode);
 				}
 			}
-			if (ImGui::Button("Export OBJ for all sorghums"))
-			{
-				auto result = FileIO::SaveFile("Model (*.obj)\0*.obj\0");
-				if (result.has_value())
+			FileIO::SaveFile("Export OBJ for all sorghums", ".obj", [](const std::string& path)
 				{
-					const std::string path = result.value();
-					if (!path.empty())
-					{
-						ExportAllSorghumsModel(path);
-					}
+					ExportAllSorghumsModel(path);
 				}
-			}
+			);
 			ImGui::EndMenu();
 		}
 		static bool opened = false;

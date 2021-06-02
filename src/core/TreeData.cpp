@@ -16,46 +16,32 @@ void TreeData::OnGui()
 	if (ImGui::TreeNodeEx("I/O"))
 	{
 		if (m_meshGenerated) {
-			if (ImGui::Button("Export Model")) {
-				auto result = FileIO::SaveFile("3D model (*.obj)\0*.obj\0");
-				if (result.has_value())
+			FileIO::SaveFile("Export OBJ", ".obj", [this](const std::string& path)
 				{
-					const std::string path = result.value();
-					if (!path.empty())
-					{
-						ExportModel(path);
-					}
+					ExportModel(path);
 				}
-			}
+			);
 		}
-		if (ImGui::Button("Export tree"))
-		{
-			auto result = FileIO::SaveFile("Tree (*.tree)\0*.tree\0");
-			if (result.has_value())
+		FileIO::SaveFile("Export xml graph", ".xml", [this](const std::string& path)
 			{
-				const std::string path = result.value();
-				if (!path.empty())
+				std::ofstream ofs;
+				ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
+				if (!ofs.is_open())
 				{
-					std::ofstream ofs;
-					ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
-					if (!ofs.is_open())
-					{
-						Debug::Error("Can't open file!");
-						return;
-					}
-					rapidxml::xml_document<> doc;
-					auto* type = doc.allocate_node(rapidxml::node_doctype, 0, "Tree");
-					doc.append_node(type);
-					auto* scene = doc.allocate_node(rapidxml::node_element, "Tree", "Tree");
-					doc.append_node(scene);
-					TreeManager::Serialize(GetOwner(), doc, scene);
-					ofs << doc;
-					ofs.flush();
-					ofs.close();
+					Debug::Error("Can't open file!");
+					return;
 				}
+				rapidxml::xml_document<> doc;
+				auto* type = doc.allocate_node(rapidxml::node_doctype, 0, "Tree");
+				doc.append_node(type);
+				auto* scene = doc.allocate_node(rapidxml::node_element, "Tree", "Tree");
+				doc.append_node(scene);
+				TreeManager::Serialize(GetOwner(), doc, scene);
+				ofs << doc;
+				ofs.flush();
+				ofs.close();
 			}
-		}
-
+		);
 	}
 	if (ImGui::TreeNodeEx("Runtime Data")) {
 		ImGui::Text(("MeshGenerated: " + std::string(m_meshGenerated ? "Yes" : "No")).c_str());
