@@ -101,7 +101,7 @@ namespace PlantFactory {
 		static void CollectEntities(std::vector<Entity>& entities, const Entity& walker);
 		static void CalculateIllumination(const RayMLVQ::IlluminationEstimationProperties& properties = RayMLVQ::IlluminationEstimationProperties());
 		static void GenerateLeavesForSorghum(PlantManager& manager);
-		static void FormCandidates(PlantManager& manager, Concurrency::concurrent_vector<InternodeCandidate>& candidates);
+		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
 		static void FormLeafNodes(PlantManager& plantManager);
 		static void RemoveInternodes(const Entity& sorghum);
 	};

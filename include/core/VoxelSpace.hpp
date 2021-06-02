@@ -1,12 +1,12 @@
 #pragma once
-#include <concurrent_vector.h>
 using namespace UniEngine;
 namespace PlantFactory {
 	struct Voxel
 	{
-		Concurrency::concurrent_vector<glm::vec3> m_positions;
-		Concurrency::concurrent_vector<Entity> m_owners;
-		Concurrency::concurrent_vector<Entity> m_internodes;
+		std::unique_ptr<std::mutex> m_mutex;
+		std::vector<glm::vec3> m_positions;
+		std::vector<Entity> m_owners;
+		std::vector<Entity> m_internodes;
 	};
 	struct Line
 	{

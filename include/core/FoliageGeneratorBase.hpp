@@ -4,9 +4,9 @@ using namespace UniEngine;
 namespace PlantFactory {
 	struct Branchlet
 	{
-		std::vector<InternodeRingSegment> Rings;
-		std::vector<glm::mat4> LeafLocalTransforms;
-		glm::vec3 Normal;
+		std::vector<InternodeRingSegment> m_rings;
+		std::vector<glm::mat4> m_leafLocalTransforms;
+		glm::vec3 m_normal;
 	};
 	class FoliageGeneratorBase : public PrivateComponentBase
 	{
@@ -16,25 +16,25 @@ namespace PlantFactory {
 
 	struct DefaultFoliageInfo : ComponentDataBase
 	{
-		glm::vec2 LeafSize = glm::vec2(0.1f);
-		float LeafIlluminationLimit = 0;
-		float LeafInhibitorFactor = 0;
-		bool IsBothSide = true;
-		int SideLeafAmount = 1;
-		float StartBendingAngle = 45;
-		float BendingAngleIncrement = 0;
-		float LeafPhotoTropism = 999.0f;
-		float LeafGravitropism = 1.0f;
-		float LeafDistance = 0;
+		glm::vec2 m_leafSize = glm::vec2(0.1f);
+		float m_leafIlluminationLimit = 0;
+		float m_leafInhibitorFactor = 0;
+		bool m_isBothSide = true;
+		int m_sideLeafAmount = 1;
+		float m_startBendingAngle = 45;
+		float m_bendingAngleIncrement = 0;
+		float m_leafPhotoTropism = 999.0f;
+		float m_leafGravitropism = 1.0f;
+		float m_leafDistance = 0;
 	};
 
 	class DefaultFoliageGenerator : public FoliageGeneratorBase
 	{
 		friend class TreeReconstructionSystem;
-		DefaultFoliageInfo _DefaultFoliageInfo;
-		EntityArchetype _Archetype;
-		static std::shared_ptr<Texture2D> _LeafSurfaceTex;
-		std::shared_ptr<Material> _LeafMaterial;
+		DefaultFoliageInfo m_defaultFoliageInfo;
+		EntityArchetype m_archetype;
+		static std::shared_ptr<Texture2D> m_leafSurfaceTex;
+		std::shared_ptr<Material> m_leafMaterial;
 		void GenerateLeaves(Entity& internode, glm::mat4& treeTransform, std::vector<glm::mat4>& leafTransforms, bool isLeft);
 	public:
 		DefaultFoliageGenerator();

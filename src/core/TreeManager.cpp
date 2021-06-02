@@ -1374,6 +1374,7 @@ void TreeManager::GenerateLeavesForTree(PlantManager& plantManager)
 	{
 		GetLeaves(plant).GetPrivateComponent<TreeLeaves>()->m_transforms.clear();
 	}
+	std::mutex mutex;
 	EntityManager::ForEach<GlobalTransform, InternodeInfo, InternodeStatistics, Illumination>(JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
 		[&](int index, Entity internode, GlobalTransform& globalTransform, InternodeInfo& internodeInfo, InternodeStatistics& internodeStatistics, Illumination& internodeIllumination)
 		{
@@ -1388,7 +1389,7 @@ void TreeManager::GenerateLeavesForTree(PlantManager& plantManager)
 			const glm::vec3 left = rotation * glm::vec3(1, 0, 0);
 			const glm::vec3 right = rotation * glm::vec3(-1, 0, 0);
 			const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
-
+			std::lock_guard lock(mutex);
 			for (int i = 0; i < manager.m_leafAmount; i++)
 			{
 				const auto transform = globalTransform.m_value *
@@ -1419,9 +1420,10 @@ void TreeManager::GenerateLeavesForTree(PlantManager& plantManager)
 }
 
 void TreeManager::FormCandidates(PlantManager& manager,
-	Concurrency::concurrent_vector<InternodeCandidate>& candidates)
+	std::vector<InternodeCandidate>& candidates)
 {
 	const float globalTime = manager.m_globalTime;
+	std::mutex mutex;
 	EntityManager::ForEach<GlobalTransform, Transform, InternodeInfo, InternodeGrowth, InternodeStatistics, Illumination>(JobManager::PrimaryWorkers(), PlantManager::GetInstance().m_internodeQuery,
 		[&, globalTime](int index, Entity internode, GlobalTransform& globalTransform, Transform& transform, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics, Illumination& internodeIllumination)
 		{
@@ -1525,6 +1527,7 @@ void TreeManager::FormCandidates(PlantManager& manager,
 				bud.m_currentResource += resourceParcel;
 				bud.m_resourceLog.push_back(resourceParcel);
 #pragma endregion
+				std::lock_guard lock(mutex);
 				candidates.push_back(std::move(candidate));
 #pragma endregion
 			}
@@ -1613,7 +1616,8 @@ void TreeManager::PruneTrees(PlantManager& manager, std::vector<Volume*>& obstac
 			rbvs[i] = GetRbv(manager.m_plants[i]).GetPrivateComponent<RadialBoundingVolume>().get();
 		}
 	}
-	Concurrency::concurrent_vector<Entity> cutOff;
+	std::vector<Entity> cutOff;
+	std::mutex mutex;
 	EntityManager::ForEach<GlobalTransform, InternodeInfo, Illumination, InternodeStatistics, InternodeGrowth>(JobManager::PrimaryWorkers(), manager.m_internodeQuery, [&](int index, Entity internode, GlobalTransform& globalTransform, InternodeInfo& internodeInfo, Illumination& illumination, InternodeStatistics& internodeStatistics, InternodeGrowth& internodeGrowth)
 		{
 			if (internodeInfo.m_plantType != PlantType::GeneralTree) return;
@@ -1623,6 +1627,7 @@ void TreeManager::PruneTrees(PlantManager& manager, std::vector<Volume*>& obstac
 			{
 				if (obstacle->InVolume(position))
 				{
+					std::lock_guard lock(mutex);
 					cutOff.push_back(internode);
 					return;
 				}
@@ -1636,10 +1641,12 @@ void TreeManager::PruneTrees(PlantManager& manager, std::vector<Volume*>& obstac
 				}
 			}
 			if (internodeInfo.m_order != 1 && internodeGrowth.m_distanceToRoot < distanceLimits[targetIndex]) {
+				std::lock_guard lock(mutex);
 				cutOff.push_back(internode);
 				return;
 			}
 			if (!rbvs[targetIndex]->InVolume(position)) {
+				std::lock_guard lock(mutex);
 				cutOff.push_back(internode);
 				return;
 			}
@@ -1649,16 +1656,19 @@ void TreeManager::PruneTrees(PlantManager& manager, std::vector<Volume*>& obstac
 			const float angle = avoidanceAngles[targetIndex];
 			if (angle > 0 && treeManager.m_voxelSpaceModule.HasObstacleConeSameOwner(angle, globalTransform.GetPosition() - direction * internodeLengths[targetIndex], direction, internodeInfo.m_plant, internode, EntityManager::GetParent(internode), internodeLengths[targetIndex]))
 			{
+				std::lock_guard lock(mutex);
 				cutOff.push_back(internode);
 				return;
 			}
 			if (treeManager.m_voxelSpaceModule.HasNeighborFromDifferentOwner(globalTransform.GetPosition(), internodeInfo.m_plant, treeManager.m_crownShynessDiameter))
 			{
+				std::lock_guard lock(mutex);
 				cutOff.push_back(internode);
 				return;
 			}
 			const float randomCutOffProb = glm::min(manager.m_deltaTime * randomCutOffMaxes[targetIndex], manager.m_deltaTime * randomCutOffs[targetIndex] + (manager.m_globalTime - internodeInfo.m_startGlobalTime) * randomCutOffAgeFactors[targetIndex]);
 			if (glm::linearRand(0.0f, 1.0f) < randomCutOffProb) {
+				std::lock_guard lock(mutex);
 				cutOff.push_back(internode);
 				return;
 			}
@@ -2238,7 +2248,7 @@ void TreeManager::Init()
 		}
 	);
 
-	plantManager.m_plantGrowthModels.insert_or_assign(PlantType::GeneralTree, [](PlantManager& manager, Concurrency::concurrent_vector<InternodeCandidate>& candidates)
+	plantManager.m_plantGrowthModels.insert_or_assign(PlantType::GeneralTree, [](PlantManager& manager, std::vector<InternodeCandidate>& candidates)
 		{
 			FormCandidates(manager, candidates);
 		}

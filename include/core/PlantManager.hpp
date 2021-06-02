@@ -188,7 +188,7 @@ namespace PlantFactory {
 	public:
 		std::map<PlantType, std::function<void(PlantManager& manager, std::vector<ResourceParcel>& resources)>>
 			m_plantResourceAllocators;
-		std::map<PlantType, std::function<void(PlantManager& manager, Concurrency::concurrent_vector<InternodeCandidate>& candidates)>>
+		std::map<PlantType, std::function<void(PlantManager& manager, std::vector<InternodeCandidate>& candidates)>>
 			m_plantGrowthModels;
 		std::map<PlantType, std::function<void(PlantManager& manager, std::vector<Volume*>& obstacles)>>
 			m_plantInternodePruners;
@@ -201,7 +201,7 @@ namespace PlantFactory {
 #pragma region Growth
 		static bool GrowAllPlants();
 		static bool GrowAllPlants(const unsigned& iterations);
-		static bool GrowCandidates(Concurrency::concurrent_vector<InternodeCandidate>& candidates);
+		static bool GrowCandidates(std::vector<InternodeCandidate>& candidates);
 		static void CalculateIlluminationForInternodes(PlantManager& manager);
 		static void CollectNutrient(std::vector<Entity>& trees, std::vector<ResourceParcel>& totalNutrients, std::vector<ResourceParcel>& nutrientsAvailable);
 		static void ApplyTropism(const glm::vec3& targetDir, float tropism, glm::vec3& front, glm::vec3& up);

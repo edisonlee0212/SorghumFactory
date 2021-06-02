@@ -143,7 +143,7 @@ namespace PlantFactory {
 		static void SimpleMeshGenerator(Entity& internode, std::vector<Vertex>& vertices, std::vector<unsigned>& indices, const glm::vec3& normal, float resolution, int parentStep = -1);
 		static void GenerateMeshForTree(PlantManager& manager);
 		static void GenerateLeavesForTree(PlantManager& plantManager);
-		static void FormCandidates(PlantManager& manager, Concurrency::concurrent_vector<InternodeCandidate>& candidates);
+		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
 		static float GetGrowthParameter(const GrowthParameterType& type, std::unique_ptr<TreeData>& treeData, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics);
 		static void PruneTrees(PlantManager& manager, std::vector<Volume*>& obstacles);
 		static void UpdateTreesMetaData(PlantManager& manager);

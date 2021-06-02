@@ -28,9 +28,7 @@ void PlantFactory::VoxelSpace::Reset()
 			line.m_voxels.resize(m_size.z);
 			for (auto& voxel : line.m_voxels)
 			{
-				voxel.m_positions = Concurrency::concurrent_vector<glm::vec3>();
-				voxel.m_owners = Concurrency::concurrent_vector<Entity>();
-				voxel.m_internodes = Concurrency::concurrent_vector<Entity>();
+				voxel.m_mutex = std::make_unique<std::mutex>();
 			}
 		}
 	}
@@ -41,6 +39,7 @@ void PlantFactory::VoxelSpace::Clear()
 	for (int i = 0; i < m_size.x; i++) for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
 	{
 		auto& voxel = m_layers[i][j][k];
+		std::lock_guard lock(*voxel.m_mutex.get());
 		voxel.m_positions.clear();
 		voxel.m_owners.clear();
 		voxel.m_internodes.clear();
@@ -63,6 +62,7 @@ void PlantFactory::VoxelSpace::Freeze()
 	for (int i = 0; i < m_size.x; i++)for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
 	{
 		auto& voxel = m_layers[i][j][k];
+		std::lock_guard lock(*voxel.m_mutex.get());
 		if (!voxel.m_owners.empty())
 		{
 			m_frozenVoxels.push_back(glm::translate(m_origin + glm::vec3(
@@ -100,6 +100,7 @@ void PlantFactory::VoxelSpace::SetOrigin(const glm::vec3& value)
 void PlantFactory::VoxelSpace::Push(const glm::vec3& position, const Entity& owner, const Entity& internode)
 {
 	auto& voxel = GetVoxel(position);
+	std::lock_guard lock(*voxel.m_mutex.get());
 	voxel.m_positions.push_back(position);
 	voxel.m_owners.push_back(owner);
 	voxel.m_internodes.push_back(internode);
@@ -107,7 +108,9 @@ void PlantFactory::VoxelSpace::Push(const glm::vec3& position, const Entity& own
 
 bool PlantFactory::VoxelSpace::HasVoxel(const glm::vec3& position)
 {
-	return !GetVoxel(position).m_owners.empty();
+	auto& voxel = GetVoxel(position);
+	std::lock_guard lock(*voxel.m_mutex.get());
+	return !voxel.m_owners.empty();
 }
 
 bool PlantFactory::VoxelSpace::HasNeighbor(const glm::vec3& position, float radius)
@@ -121,6 +124,7 @@ bool PlantFactory::VoxelSpace::HasNeighbor(const glm::vec3& position, float radi
 			{
 				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
 				auto& voxel = GetVoxel(tracePosition);
+				std::lock_guard lock(*voxel.m_mutex.get());
 				bool duplicate = false;
 				for (const auto* i : checkedVoxel)
 				{
@@ -154,6 +158,7 @@ bool PlantFactory::VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3& po
 			{
 				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
 				auto& voxel = GetVoxel(tracePosition);
+				std::lock_guard lock(*voxel.m_mutex.get());
 				bool duplicate = false;
 				for (const auto* i : checkedVoxel)
 				{
@@ -188,6 +193,7 @@ bool PlantFactory::VoxelSpace::HasNeighborFromSameOwner(const glm::vec3& positio
 			{
 				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
 				auto& voxel = GetVoxel(tracePosition);
+				std::lock_guard lock(*voxel.m_mutex.get());
 				bool duplicate = false;
 				for (const auto* i : checkedVoxel)
 				{
@@ -222,6 +228,7 @@ std::pair<bool, bool> PlantFactory::VoxelSpace::HasObstacleConeSphere(const floa
 			{
 				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
 				auto& voxel = GetVoxel(tracePosition);
+				std::lock_guard lock(*voxel.m_mutex.get());
 				bool duplicate = false;
 				for (const auto* i : checkedVoxel)
 				{
@@ -260,6 +267,7 @@ bool PlantFactory::VoxelSpace::HasObstacleConeSameOwner(const float& angle, cons
 			{
 				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
 				auto& voxel = GetVoxel(tracePosition);
+				std::lock_guard lock(*voxel.m_mutex.get());
 				bool duplicate = false;
 				for(const auto* i : checkedVoxel)
 				{

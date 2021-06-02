@@ -138,7 +138,7 @@ void SorghumManager::Init()
 	sorghumManager.m_instancedLeafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_instancedLeafMaterial->m_metallic = 0.0f;
 
-	PlantManager::GetInstance().m_plantGrowthModels.insert_or_assign(PlantType::Sorghum, [](PlantManager& manager, Concurrency::concurrent_vector<InternodeCandidate>& candidates)
+	PlantManager::GetInstance().m_plantGrowthModels.insert_or_assign(PlantType::Sorghum, [](PlantManager& manager, std::vector<InternodeCandidate>& candidates)
 		{
 			FormCandidates(manager, candidates);
 		}
@@ -961,10 +961,11 @@ void SorghumManager::GenerateLeavesForSorghum(PlantManager& manager)
 }
 
 void SorghumManager::FormCandidates(PlantManager& manager,
-	Concurrency::concurrent_vector<InternodeCandidate>& candidates)
+	std::vector<InternodeCandidate>& candidates)
 {
 	const float globalTime = manager.m_globalTime;
 	const float sphereSize = GetInstance().m_leafNodeSphereSize;
+	std::mutex mutex;
 	EntityManager::ForEach<GlobalTransform, Transform, InternodeInfo, InternodeGrowth, InternodeStatistics, Illumination>(JobManager::PrimaryWorkers(), PlantManager::GetInstance().m_internodeQuery,
 		[&, globalTime, sphereSize](int index, Entity internode, GlobalTransform& globalTransform, Transform& transform, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics, Illumination& internodeIllumination)
 		{
@@ -1028,6 +1029,7 @@ void SorghumManager::FormCandidates(PlantManager& manager,
 						* glm::mat4_cast(globalRotation) * glm::scale(glm::vec3(sphereSize));
 					leafCandidate.m_transform.m_value = glm::inverse(globalTransform.m_value) * leafCandidate.m_globalTransform.m_value;
 #pragma endregion
+					std::lock_guard lock(mutex);
 					candidates.push_back(std::move(leafCandidate));
 				}
 			}
@@ -1038,7 +1040,8 @@ void SorghumManager::FormCandidates(PlantManager& manager,
 void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 {
 	auto& manager = GetInstance();
-	Concurrency::concurrent_vector<std::pair<Entity, SorghumParameters>> candidates;
+	std::vector<std::pair<Entity, SorghumParameters>> candidates;
+	std::mutex mutex;
 	const float globalTime = plantManager.m_globalTime;
 	EntityManager::ForEach<GlobalTransform, Transform, InternodeInfo, InternodeGrowth, InternodeStatistics, Illumination>(JobManager::PrimaryWorkers(), PlantManager::GetInstance().m_internodeQuery,
 		[&, globalTime](int index, Entity internode, GlobalTransform& globalTransform, Transform& transform, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics, Illumination& internodeIllumination)
@@ -1048,6 +1051,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 			if (internodeInfo.m_order != 2) return;
 			auto& sorghumData = internodeInfo.m_plant.GetPrivateComponent<SorghumData>();
 			auto parameters = sorghumData->m_parameters;
+			std::lock_guard lock(mutex);
 			candidates.push_back(std::make_pair(internode, parameters));
 		}
 	);

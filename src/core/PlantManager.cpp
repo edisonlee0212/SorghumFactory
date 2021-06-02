@@ -3,8 +3,6 @@
 #include <CUDAModule.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
-#include <concurrent_vector.h>
-#include <Curve.hpp>
 #include <RayTracerMaterial.hpp>
 #include <SorghumManager.hpp>
 #include <TreeManager.hpp>
@@ -248,7 +246,7 @@ bool PlantManager::GrowAllPlants()
 	}
 
 	time = Application::EngineTime();
-	Concurrency::concurrent_vector<InternodeCandidate> candidates;
+	std::vector<InternodeCandidate> candidates;
 	for (auto& i : manager.m_plantGrowthModels)
 	{
 		i.second(manager, candidates);
@@ -295,7 +293,7 @@ bool PlantManager::GrowAllPlants(const unsigned& iterations)
 	return grew;
 }
 
-bool PlantManager::GrowCandidates(Concurrency::concurrent_vector<InternodeCandidate>& candidates)
+bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
 {
 	const float time = Application::EngineTime();
 	if (candidates.empty()) return false;

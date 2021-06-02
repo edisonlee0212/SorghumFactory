@@ -1,7 +1,7 @@
 #include <FoliageGeneratorBase.hpp>
 #include <PlantManager.hpp>
 using namespace PlantFactory;
-std::shared_ptr<Texture2D> DefaultFoliageGenerator::_LeafSurfaceTex = nullptr;
+std::shared_ptr<Texture2D> DefaultFoliageGenerator::m_leafSurfaceTex = nullptr;
 
 
 void DefaultFoliageGenerator::GenerateLeaves(Entity& internode, glm::mat4& treeTransform,
@@ -11,21 +11,21 @@ void DefaultFoliageGenerator::GenerateLeaves(Entity& internode, glm::mat4& treeT
 
 DefaultFoliageGenerator::DefaultFoliageGenerator()
 {
-	_DefaultFoliageInfo = DefaultFoliageInfo();
-	_Archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());
+	m_defaultFoliageInfo = DefaultFoliageInfo();
+	m_archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());
 
-	_LeafMaterial = std::make_shared<Material>();
-	_LeafMaterial->m_shininess = 32.0f;
-	_LeafMaterial->SetProgram(Default::GLPrograms::StandardInstancedProgram);
-	_LeafMaterial->m_alphaDiscardEnabled = true;
-	_LeafMaterial->m_alphaDiscardOffset = 0.1f;
-	_LeafMaterial->m_cullingMode = MaterialCullingMode::Off;
-	if (!_LeafSurfaceTex) _LeafSurfaceTex = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/Leaf/Pine/level0.png");
+	m_leafMaterial = std::make_shared<Material>();
+	m_leafMaterial->m_shininess = 32.0f;
+	m_leafMaterial->SetProgram(Default::GLPrograms::StandardInstancedProgram);
+	m_leafMaterial->m_alphaDiscardEnabled = true;
+	m_leafMaterial->m_alphaDiscardOffset = 0.1f;
+	m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
+	if (!m_leafSurfaceTex) m_leafSurfaceTex = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/Leaf/Pine/level0.png");
 	//_LeafMaterial->SetTexture(_LeafSurfaceTex);
-	_LeafMaterial->m_albedoColor = glm::normalize(glm::vec3(60.0f / 256.0f, 140.0f / 256.0f, 0.0f));
-	_LeafMaterial->m_metallic = 0.0f;
-	_LeafMaterial->m_roughness = 0.3f;
-	_LeafMaterial->m_ambientOcclusion = glm::linearRand(0.4f, 0.8f);
+	m_leafMaterial->m_albedoColor = glm::normalize(glm::vec3(60.0f / 256.0f, 140.0f / 256.0f, 0.0f));
+	m_leafMaterial->m_metallic = 0.0f;
+	m_leafMaterial->m_roughness = 0.3f;
+	m_leafMaterial->m_ambientOcclusion = glm::linearRand(0.4f, 0.8f);
 }
 
 void DefaultFoliageGenerator::Generate()
@@ -45,17 +45,17 @@ void DefaultFoliageGenerator::Generate()
 	);
 	if (!found)
 	{
-		foliageEntity = EntityManager::CreateEntity(_Archetype, "Foliage");
+		foliageEntity = EntityManager::CreateEntity(m_archetype, "Foliage");
 		EntityManager::SetParent(foliageEntity, tree);
 		auto particleSys = std::make_unique<Particles>();
-		particleSys->m_material = _LeafMaterial;
+		particleSys->m_material = m_leafMaterial;
 		particleSys->m_mesh = Default::Primitives::Quad;
 		particleSys->m_forwardRendering = false;
 		Transform transform;
 		transform.m_value = glm::translate(glm::vec3(0.0f)) * glm::scale(glm::vec3(1.0f));
 		foliageEntity.SetPrivateComponent(std::move(particleSys));
 		foliageEntity.SetComponentData(transform);
-		foliageEntity.SetComponentData(_DefaultFoliageInfo);
+		foliageEntity.SetComponentData(m_defaultFoliageInfo);
 	}
 	auto& particleSys = foliageEntity.GetPrivateComponent<Particles>();
 	particleSys->m_matrices.clear();
@@ -65,14 +65,14 @@ void DefaultFoliageGenerator::Generate()
 void DefaultFoliageGenerator::OnGui()
 {
 	if (ImGui::Button("Regenerate")) Generate();
-	ImGui::DragFloat2("Leaf Size XY", static_cast<float*>(static_cast<void*>(&_DefaultFoliageInfo.LeafSize)), 0.01f);
-	ImGui::DragFloat("LeafIlluminationLimit", &_DefaultFoliageInfo.LeafIlluminationLimit, 0.01f);
-	ImGui::DragFloat("LeafInhibitorFactor", &_DefaultFoliageInfo.LeafInhibitorFactor, 0.01f);
-	ImGui::Checkbox("IsBothSide", &_DefaultFoliageInfo.IsBothSide);
-	ImGui::DragInt("SideLeafAmount", &_DefaultFoliageInfo.SideLeafAmount, 0.01f);
-	ImGui::DragFloat("StartBendingAngle", &_DefaultFoliageInfo.StartBendingAngle, 0.01f);
-	ImGui::DragFloat("BendingAngleIncrement", &_DefaultFoliageInfo.BendingAngleIncrement, 0.01f);
-	ImGui::DragFloat("LeafPhotoTropism", &_DefaultFoliageInfo.LeafPhotoTropism, 0.01f);
-	ImGui::DragFloat("LeafGravitropism", &_DefaultFoliageInfo.LeafGravitropism, 0.01f);
-	ImGui::DragFloat("LeafDistance", &_DefaultFoliageInfo.LeafDistance, 0.01f);
+	ImGui::DragFloat2("Leaf Size XY", static_cast<float*>(static_cast<void*>(&m_defaultFoliageInfo.m_leafSize)), 0.01f);
+	ImGui::DragFloat("LeafIlluminationLimit", &m_defaultFoliageInfo.m_leafIlluminationLimit, 0.01f);
+	ImGui::DragFloat("LeafInhibitorFactor", &m_defaultFoliageInfo.m_leafInhibitorFactor, 0.01f);
+	ImGui::Checkbox("IsBothSide", &m_defaultFoliageInfo.m_isBothSide);
+	ImGui::DragInt("SideLeafAmount", &m_defaultFoliageInfo.m_sideLeafAmount, 0.01f);
+	ImGui::DragFloat("StartBendingAngle", &m_defaultFoliageInfo.m_startBendingAngle, 0.01f);
+	ImGui::DragFloat("BendingAngleIncrement", &m_defaultFoliageInfo.m_bendingAngleIncrement, 0.01f);
+	ImGui::DragFloat("LeafPhotoTropism", &m_defaultFoliageInfo.m_leafPhotoTropism, 0.01f);
+	ImGui::DragFloat("LeafGravitropism", &m_defaultFoliageInfo.m_leafGravitropism, 0.01f);
+	ImGui::DragFloat("LeafDistance", &m_defaultFoliageInfo.m_leafDistance, 0.01f);
 }
