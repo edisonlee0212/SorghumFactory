@@ -144,7 +144,7 @@ target_link_libraries(sorghumMLVQ
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-if(NOT ${PROJECT_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
+if(NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
 	if (WIN32)
 		add_custom_command(
 				TARGET rayMLVQ
