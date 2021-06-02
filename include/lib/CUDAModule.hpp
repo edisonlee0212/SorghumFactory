@@ -146,6 +146,5 @@ namespace RayMLVQ {
 		static bool RenderRayTracerDebugOutput(const DebugRenderingProperties& properties);
 		static void Terminate();
 		static void EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightProbe<float>>& lightProbes);
-		static void EstimateIlluminationShadowCone(const float& angleFactor, const float& factor, const int& size, glm::mat4* transforms, std::vector<glm::vec3>& directions, std::vector<float>& illuminations);
 	};
 }

@@ -32,16 +32,16 @@ include_directories(${OptiX_INCLUDE})
 # ------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB RAYMLVQ_PTX_SOURCES_CODE_LOCAL "src/lib/*.cu")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${UNIENGINE_INCLUDES})
-cuda_compile_and_embed(RAYMLVQ_PTX_SOURCES_LOCAL ${RAYMLVQ_PTX_SOURCES_CODE_LOCAL})
-
+cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/IlluminationEstimation.cu)
+cuda_compile_and_embed(DEBUG_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/DebugRendering.cu)
 file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
 add_library(rayMLVQ
 	SHARED
-	${RAYMLVQ_PTX_SOURCES_LOCAL}
+	${ILLUMINATION_ESTIMATION_PTX}
+	${DEBUG_RENDERING_PTX}
 	${RAYMLVQ_SOURCES_LOCAL}
 	${CMAKE_MODULE_PATH}/configure_optix.cmake
 	${CMAKE_MODULE_PATH}/FindOptiX.cmake
@@ -94,21 +94,31 @@ endif ()
 # Sorghum Factory - Provides models for ray tracer.
 # ------------------------------------------------------------------
 file(GLOB SORGHUM_FACTORY_SOURCES_LOCAL "src/core/*.cpp")
-add_library(sorghumfactory
+add_library(plantFactory
 	${SORGHUM_FACTORY_SOURCES_LOCAL}
 )
-target_precompile_headers(sorghumfactory
+
+set(RAYMLVQ_PCH_LOCAL 
+	${UNIENGINE_PCH}
+	${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
+	)
+
+target_precompile_headers(plantFactory
 	PRIVATE
 	${RAYMLVQ_PCH_LOCAL}
 	)
-target_include_directories(sorghumfactory
+target_include_directories(plantFactory
 	PUBLIC
 	${RAYMLVQ_INCLUDES_LOCAL}
 	${CMAKE_CURRENT_SOURCE_DIR}/include/core
 )
-target_link_libraries(sorghumfactory
+target_link_libraries(plantFactory
 	rayMLVQ
 	)
+
+set(SORGHUMMLVQ_RESOURCE_DIR_LOCAL ${CMAKE_CURRENT_SOURCE_DIR}/Resources/)
+set(SORGHUMMLVQ_RESOURCE_DEF SORGHUMMLVQ_RESOURCE_FOLDER=\"${SORGHUMMLVQ_RESOURCE_DIR_LOCAL}\")
+
 
 add_executable(sorghumMLVQ
 	src/app/sample-main.cpp
@@ -121,13 +131,19 @@ target_include_directories(sorghumMLVQ
 
 target_precompile_headers(sorghumMLVQ
 	PRIVATE
-	${UNIENGINE_PCH}
+	${RAYMLVQ_PCH_LOCAL}
 	)
-
+target_compile_definitions(sorghumMLVQ
+	PRIVATE
+	${SORGHUMMLVQ_RESOURCE_DEF}
+	)
 target_link_libraries(sorghumMLVQ
 	rayMLVQ
-	sorghumfactory
+	plantFactory
 	)
+
+file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 if (WIN32)
 	add_custom_command(
 			TARGET sorghumMLVQ

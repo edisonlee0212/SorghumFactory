@@ -1,0 +1,293 @@
+#include <VoxelSpace.hpp>
+#include <PlantManager.hpp>
+
+using namespace PlantFactory;
+
+PlantFactory::Voxel& PlantFactory::VoxelSpace::GetVoxel(const glm::vec3& position)
+{
+	const auto relativePosition = position - m_origin;
+	const int x = glm::floor(relativePosition.x / m_diameter);
+	const int y = glm::floor(relativePosition.y / m_diameter);
+	const int z = glm::floor(relativePosition.z / m_diameter);
+	if (x < 0 || y < 0 || z < 0 || x > m_size.x - 1 || y > m_size.y - 1 || z > m_size.z - 1)
+	{
+		Debug::Error("VoxelSpace: Out of bound!");
+		throw 1;
+	}
+	return m_layers[x].m_lines[y].m_voxels[z];
+}
+
+void PlantFactory::VoxelSpace::Reset()
+{
+	m_layers.resize(m_size.x);
+	for (auto& layer : m_layers)
+	{
+		layer.m_lines.resize(m_size.y);
+		for (auto& line : layer.m_lines)
+		{
+			line.m_voxels.resize(m_size.z);
+			for (auto& voxel : line.m_voxels)
+			{
+				voxel.m_positions = Concurrency::concurrent_vector<glm::vec3>();
+				voxel.m_owners = Concurrency::concurrent_vector<Entity>();
+				voxel.m_internodes = Concurrency::concurrent_vector<Entity>();
+			}
+		}
+	}
+}
+
+void PlantFactory::VoxelSpace::Clear()
+{
+	for (int i = 0; i < m_size.x; i++) for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
+	{
+		auto& voxel = m_layers[i][j][k];
+		voxel.m_positions.clear();
+		voxel.m_owners.clear();
+		voxel.m_internodes.clear();
+	}
+}
+
+void PlantFactory::VoxelSpace::OnGui()
+{
+	ImGui::Checkbox("Display voxels", &m_display);
+	if (m_display)
+	{
+		if (ImGui::Button("Freeze Voxel")) Freeze();
+		RenderManager::DrawGizmoMeshInstanced(Default::Primitives::Cube.get(), RenderManager::GetMainCamera(), glm::vec4(1, 1, 1, 0.5), m_frozenVoxels.data(), m_frozenVoxels.size());
+	}
+}
+
+void PlantFactory::VoxelSpace::Freeze()
+{
+	m_frozenVoxels.clear();
+	for (int i = 0; i < m_size.x; i++)for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
+	{
+		auto& voxel = m_layers[i][j][k];
+		if (!voxel.m_owners.empty())
+		{
+			m_frozenVoxels.push_back(glm::translate(m_origin + glm::vec3(
+				m_diameter * (0.5f + i),
+				m_diameter * (0.5f + j),
+				m_diameter * (0.5f + k)))
+				* glm::scale(glm::vec3(m_diameter / 2.0f)));
+		}
+	}
+}
+
+float PlantFactory::VoxelSpace::GetDiameter() const
+{
+	return m_diameter;
+}
+
+void PlantFactory::VoxelSpace::SetDiameter(const float& value)
+{
+	m_diameter = value;
+	Reset();
+}
+
+void PlantFactory::VoxelSpace::SetSize(const glm::ivec3& value)
+{
+	m_size = value;
+	Reset();
+}
+
+void PlantFactory::VoxelSpace::SetOrigin(const glm::vec3& value)
+{
+	m_origin = value;
+	Reset();
+}
+
+void PlantFactory::VoxelSpace::Push(const glm::vec3& position, const Entity& owner, const Entity& internode)
+{
+	auto& voxel = GetVoxel(position);
+	voxel.m_positions.push_back(position);
+	voxel.m_owners.push_back(owner);
+	voxel.m_internodes.push_back(internode);
+}
+
+bool PlantFactory::VoxelSpace::HasVoxel(const glm::vec3& position)
+{
+	return !GetVoxel(position).m_owners.empty();
+}
+
+bool PlantFactory::VoxelSpace::HasNeighbor(const glm::vec3& position, float radius)
+{
+	std::vector<Voxel*> checkedVoxel;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+				auto& voxel = GetVoxel(tracePosition);
+				bool duplicate = false;
+				for (const auto* i : checkedVoxel)
+				{
+					if (&voxel == i)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+				if (duplicate) continue;
+				checkedVoxel.push_back(&voxel);
+				for (const auto& p : voxel.m_positions)
+				{
+					const glm::vec3 vector = tracePosition - p;
+					if (vector.x * vector.x + vector.y * vector.y + vector.z * vector.z < radius * radius) return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool PlantFactory::VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3& position, const Entity& owner, float radius)
+{
+	std::vector<Voxel*> checkedVoxel;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+				auto& voxel = GetVoxel(tracePosition);
+				bool duplicate = false;
+				for (const auto* i : checkedVoxel)
+				{
+					if (&voxel == i)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+				if (duplicate) continue;
+				checkedVoxel.push_back(&voxel);
+				for (int i = 0; i < voxel.m_positions.size(); i++)
+				{
+					const glm::vec3 vector = tracePosition - voxel.m_positions[i];
+					if (owner != voxel.m_owners[i] && vector.x * vector.x + vector.y * vector.y + vector.z * vector.z < radius * radius) return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool PlantFactory::VoxelSpace::HasNeighborFromSameOwner(const glm::vec3& position, const Entity& owner,
+	float radius)
+{
+	std::vector<Voxel*> checkedVoxel;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+				auto& voxel = GetVoxel(tracePosition);
+				bool duplicate = false;
+				for (const auto* i : checkedVoxel)
+				{
+					if (&voxel == i)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+				if (duplicate) continue;
+				checkedVoxel.push_back(&voxel);
+				for (int i = 0; i < voxel.m_positions.size(); i++)
+				{
+					const glm::vec3 vector = tracePosition - voxel.m_positions[i];
+					if (owner == voxel.m_owners[i] && vector.x * vector.x + vector.y * vector.y + vector.z * vector.z < radius * radius) return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+std::pair<bool, bool> PlantFactory::VoxelSpace::HasObstacleConeSphere(const float& angle, const glm::vec3& position, const glm::vec3& direction,
+	const Entity& owner, float selfRadius, float globalRadius)
+{
+	std::vector<Voxel*> checkedVoxel;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			for (int k = -1; k <= 1; k++)
+			{
+				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+				auto& voxel = GetVoxel(tracePosition);
+				bool duplicate = false;
+				for (const auto* i : checkedVoxel)
+				{
+					if (&voxel == i)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+				if (duplicate) continue;
+				checkedVoxel.push_back(&voxel);
+				const float cosAngle = glm::cos(glm::radians(angle));
+				for (int p = 0; p < voxel.m_positions.size(); p++)
+				{
+					const float dot = glm::dot(glm::normalize(direction), glm::normalize(voxel.m_positions[p] - tracePosition));
+					const glm::vec3 vector = tracePosition - voxel.m_positions[p];
+					const float distance2 = vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
+					if (owner == voxel.m_owners[p] && distance2 < selfRadius * selfRadius && dot > cosAngle) return { true , false };
+					if (owner != voxel.m_owners[p] && distance2 < globalRadius * globalRadius) return { false , true };
+				}
+			}
+		}
+	}
+	return { false , false };
+}
+
+bool PlantFactory::VoxelSpace::HasObstacleConeSameOwner(const float& angle, const glm::vec3& position,
+	const glm::vec3& direction, const Entity& owner, const Entity& internode, const Entity& parent, float selfRadius)
+{
+	std::vector<Voxel*> checkedVoxel;
+	for(int i = -1; i <= 1; i++)
+	{
+		for(int j = -1; j <= 1; j++)
+		{
+			for(int k = -1; k <= 1; k++)
+			{
+				glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+				auto& voxel = GetVoxel(tracePosition);
+				bool duplicate = false;
+				for(const auto* i : checkedVoxel)
+				{
+					if(&voxel == i)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+				if (duplicate) continue;
+				checkedVoxel.push_back(&voxel);
+				const float cosAngle = glm::cos(glm::radians(angle));
+				for (int p = 0; p < voxel.m_positions.size(); p++)
+				{
+					const float dot = glm::dot(glm::normalize(direction), glm::normalize(voxel.m_positions[p] - tracePosition));
+					const glm::vec3 vector = tracePosition - voxel.m_positions[p];
+					const float distance2 = vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
+					const Entity compare = voxel.m_internodes[p];
+					if (parent != compare && internode != compare && owner == voxel.m_owners[p] && distance2 < selfRadius * selfRadius && dot > cosAngle)
+					{
+						if(internode.GetComponentData<InternodeInfo>().m_order > voxel.m_internodes[p].GetComponentData<InternodeInfo>().m_order)
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+

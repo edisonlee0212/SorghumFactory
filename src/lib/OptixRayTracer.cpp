@@ -1,6 +1,6 @@
 #include <OptixRayTracer.hpp>
 #include <optix_function_table_definition.h>
-#include <FileIO.hpp>
+#include <FileUtil.hpp>
 
 #include <glm/gtx/transform.hpp>
 #define GL_TEXTURE_CUBE_MAP 0x8513
@@ -8,6 +8,7 @@
 #include <RayRecords.hpp>
 
 using namespace RayMLVQ;
+
 void OptixRayTracer::SetStatusChanged(const bool& value)
 {
 	m_statusChanged = value;
@@ -231,6 +232,9 @@ void OptixRayTracer::CreateContext()
 	(m_optixContext, context_log_cb, nullptr, 4));
 }
 
+extern "C" char DEBUG_RENDERING_PTX[];
+extern "C" char ILLUMINATION_ESTIMATION_PTX[];
+
 void OptixRayTracer::CreateModule()
 {
 	{
@@ -248,7 +252,7 @@ void OptixRayTracer::CreateModule()
 
 		m_debugRenderingPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
 
-		const std::string ptxCode = FileIO::LoadFileAsString("../CUDAModule/DebugRendering.ptx");
+		const std::string ptxCode = DEBUG_RENDERING_PTX;
 
 		char log[2048];
 		size_t sizeof_log = sizeof(log);
@@ -277,7 +281,7 @@ void OptixRayTracer::CreateModule()
 
 		m_illuminationEstimationPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
 
-		const std::string ptxCode = FileIO::LoadFileAsString("../CUDAModule/IlluminationEstimation.ptx");
+		const std::string ptxCode = ILLUMINATION_ESTIMATION_PTX;
 
 		char log[2048];
 		size_t sizeof_log = sizeof(log);
