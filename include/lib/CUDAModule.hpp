@@ -2,7 +2,7 @@
 #include <raymlvq_export.h>
 #include <CUDABuffer.hpp>
 #include <DebugOutputRenderType.hpp>
-
+#include <memory>
 #include <iostream>
 #include <vector>
 #include <glm/glm.hpp>

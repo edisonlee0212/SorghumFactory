@@ -11,6 +11,9 @@ include(GenerateExportHeader)
 # ------------------------------------------------------------------
 # 3rd Party libraries
 # ------------------------------------------------------------------
+if(NOT WIN32)
+	set(OptiX_INSTALL_DIR "~/NVIDIA-OptiX-SDK-7.3.0-linux64-x86_64")
+endif()
 # We need a CMAKE_DIR with some code to find external dependencies
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
@@ -52,6 +55,10 @@ generate_export_header(rayMLVQ
 	EXPORT_MACRO_NAME RAYMLVQ_API
 	)
 
+if(NOT WIN32)
+	message(STATUS CUDALIB=${CUDA_TOOLKIT_ROOT_DIR})
+	set(CUDA_CUDA_LIBRARY ${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs)
+endif()
 message(STATUS OptiX_INCLUDE:${OptiX_INCLUDE})
 message(STATUS CUDA_LIBRARIES:${CUDA_LIBRARIES})
 message(STATUS CUDA_CUDA_LIBRARY:${CUDA_CUDA_LIBRARY})
@@ -63,6 +70,8 @@ target_link_libraries(rayMLVQ
 	)
 message(STATUS UNIENGINE_INCLUDES:${UNIENGINE_INCLUDES})
 set(RAYMLVQ_INCLUDES_LOCAL
+	${OptiX_INCLUDE}
+	${CUDA_TOOLKIT_ROOT_DIR}/include
 	${CMAKE_CURRENT_SOURCE_DIR}/include/lib
 	${UNIENGINE_INCLUDES}
 	${CMAKE_CURRENT_BINARY_DIR}
