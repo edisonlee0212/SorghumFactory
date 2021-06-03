@@ -1,7 +1,13 @@
 #pragma once
+#include <memory>
+#include <UniEngine-pch.hpp>
+#include <raymlvq_export.h>
+#include <Entity.hpp>
+#include <Texture2D.hpp>
+
 using namespace UniEngine;
-namespace PlantFactory {
-	class RayTracerMaterial :
+namespace RayMLVQ {
+	class RAYMLVQ_API RayTracerMaterial :
 		public PrivateComponentBase
 	{
 	public:

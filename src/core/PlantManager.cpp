@@ -3,10 +3,10 @@
 #include <CUDAModule.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
-#include <RayTracerMaterial.hpp>
 #include <SorghumManager.hpp>
 #include <TreeManager.hpp>
-
+#include <RayTracedRenderingSystem.hpp>
+#include <RayTracerMaterial.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -37,11 +37,7 @@ void InternodeData::OnGui()
 		ImGui::TreePop();
 	}
 }
-const char* DebugOutputRenderTypes[]{
-	"Shadow",
-	"Glass",
-	"BRDF"
-};
+
 
 void PlantManager::OnGui()
 {
@@ -93,129 +89,7 @@ void PlantManager::OnGui()
 
 	}
 	ImGui::End();
-	if (manager.m_rightMouseButtonHold && !InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT, WindowManager::GetWindow()))
-	{
-		manager.m_rightMouseButtonHold = false;
-		manager.m_startMouse = false;
-	}
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-	ImGui::Begin("Ray Tracer");
-	{
-		if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
-			if (ImGui::BeginMenuBar())
-			{
-				if (ImGui::BeginMenu("Settings"))
-				{
-					static float lightSize = 1.0f;
-					static glm::vec3 lightDir = glm::vec3(0, -1, 0);
-					ImGui::DragFloat("FOV", &manager.m_cameraFov, 1, 1, 120);
-					ImGui::Checkbox("Use Geometry normal", &manager.m_properties.m_useGeometryNormal);
-					ImGui::Checkbox("Accumulate", &manager.m_properties.m_accumulate);
-					ImGui::DragInt("bounce limit", &manager.m_properties.m_bounceLimit, 1, 1, 8);
-					ImGui::DragInt("pixel samples", &manager.m_properties.m_samplesPerPixel, 1, 1, 32);
-					ImGui::Checkbox("Use environmental map", &manager.m_properties.m_useEnvironmentalMap);
-					ImGui::DragFloat("Skylight intensity", &manager.m_properties.m_skylightIntensity, 0.01f, 0.0f, 5.0f);
-					ImGui::Combo("Render type", (int*)&manager.m_properties.m_debugRenderingType, DebugOutputRenderTypes, IM_ARRAYSIZE(DebugOutputRenderTypes));
-					switch (manager.m_properties.m_debugRenderingType)
-					{
-					case RayMLVQ::DebugOutputRenderType::SoftShadow:
-					{
-						ImGui::Text("Shadow softness");
-						if (ImGui::DragFloat("Shadow softness", &lightSize, 0.002f, 0.0f, 2.0f))
-						{
-							RayMLVQ::CudaModule::SetSkylightSize(lightSize);
-						}
-						ImGui::Text("Shadow direction");
-						if (ImGui::DragFloat3("Shadow dir", &lightDir.x, 0.002f, -7.0f, 7.0f))
-						{
-							RayMLVQ::CudaModule::SetSkylightDir(glm::normalize(lightDir));
-						}
-					}
-					break;
-					case RayMLVQ::DebugOutputRenderType::Glass:
-					{
-
-					}
-					break;
-					case RayMLVQ::DebugOutputRenderType::Brdf:
-					{
-
-					}
-					break;
-					default: break;
-					}
-					ImGui::EndMenu();
-				}
-				ImGui::EndMenuBar();
-			}
-			ImVec2 viewPortSize = ImGui::GetWindowSize();
-			viewPortSize.y -= 20;
-			if (viewPortSize.y < 0) viewPortSize.y = 0;
-			manager.m_rayTracerTestOutputSize = glm::ivec2(viewPortSize.x, viewPortSize.y);
-			if (manager.m_rendered) ImGui::Image(reinterpret_cast<ImTextureID>(manager.m_rayTracerTestOutput->Id()), viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
-			else ImGui::Text("No mesh in the scene!");
-			if (ImGui::IsWindowFocused())
-			{
-				const bool valid = true;
-				const glm::vec2 mousePosition = InputManager::GetMouseAbsolutePositionInternal(WindowManager::GetWindow());
-				if (valid) {
-					if (!manager.m_startMouse) {
-						manager.m_lastX = mousePosition.x;
-						manager.m_lastY = mousePosition.y;
-						manager.m_startMouse = true;
-					}
-					const float xOffset = mousePosition.x - manager.m_lastX;
-					const float yOffset = -mousePosition.y + manager.m_lastY;
-					manager.m_lastX = mousePosition.x;
-					manager.m_lastY = mousePosition.y;
-#pragma region Scene Camera Controller
-					if (!manager.m_rightMouseButtonHold && InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT, WindowManager::GetWindow())) {
-						manager.m_rightMouseButtonHold = true;
-					}
-					if (manager.m_rightMouseButtonHold && !EditorManager::GetInstance().m_lockCamera)
-					{
-						const glm::vec3 front = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(0, 0, -1);
-						glm::vec3 right;
-						right = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(1, 0, 0);
-						if (InputManager::GetKeyInternal(GLFW_KEY_W, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition += front * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
-						}
-						if (InputManager::GetKeyInternal(GLFW_KEY_S, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition -= front * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
-						}
-						if (InputManager::GetKeyInternal(GLFW_KEY_A, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition -= right * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
-						}
-						if (InputManager::GetKeyInternal(GLFW_KEY_D, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition += right * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
-						}
-						if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_SHIFT, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition.y += EditorManager::GetInstance().m_velocity * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime());
-						}
-						if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_CONTROL, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition.y -= EditorManager::GetInstance().m_velocity * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime());
-						}
-						if (xOffset != 0.0f || yOffset != 0.0f) {
-							EditorManager::GetInstance().m_sceneCameraYawAngle += xOffset * EditorManager::GetInstance().m_sensitivity;
-							EditorManager::GetInstance().m_sceneCameraPitchAngle += yOffset * EditorManager::GetInstance().m_sensitivity;
-							if (EditorManager::GetInstance().m_sceneCameraPitchAngle > 89.0f)
-								EditorManager::GetInstance().m_sceneCameraPitchAngle = 89.0f;
-							if (EditorManager::GetInstance().m_sceneCameraPitchAngle < -89.0f)
-								EditorManager::GetInstance().m_sceneCameraPitchAngle = -89.0f;
-
-							EditorManager::GetInstance().m_sceneCameraRotation = CameraComponent::ProcessMouseMovement(EditorManager::GetInstance().m_sceneCameraYawAngle, EditorManager::GetInstance().m_sceneCameraPitchAngle, false);
-						}
-					}
-#pragma endregion
-				}
-			}
-		}
-		ImGui::EndChild();
-		auto* window = ImGui::FindWindowByName("Ray Tracer");
-		manager.m_rayTracerDebugRenderingEnabled = !(window->Hidden && !window->Collapsed);
-	}
-	ImGui::End();
-	ImGui::PopStyleVar();
+	
 
 }
 #pragma endregion
@@ -322,7 +196,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 	if (manager.m_internodeTransforms.empty()) return;
 	const float time = Application::EngineTime();
 	//Upload geometries to OptiX.
-	UpdateDebugRenderOutputScene();
+	Application::GetCurrentWorld()->GetSystem<RayMLVQ::RayTracedRenderingSystem>()->UpdateDebugRenderOutputScene();
 	RayMLVQ::IlluminationEstimationProperties properties;
 	properties.m_bounceLimit = 1;
 	properties.m_numPointSamples = 1000;
@@ -424,153 +298,6 @@ Entity PlantManager::CreateCubeObstacle()
 	auto& volume = volumeEntity.GetPrivateComponent<CubeVolume>();
 	volume->ApplyMeshRendererBounds();
 	return volumeEntity;
-}
-
-void PlantManager::UpdateDebugRenderOutputScene()
-{
-	auto& manager = GetInstance();
-	if(!manager.m_rayTracerDebugRenderingEnabled) return;
-	bool needGeometryUpdate = false;
-	bool needSbtUpdate = false;
-	auto& meshesStorage = RayMLVQ::CudaModule::GetInstance().m_meshes;
-	for (auto& i : meshesStorage)
-	{
-		i.m_removeTag = true;
-	}
-	const auto* rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracerMaterial>();
-	if (rayTracerEntities)
-	{
-		for (auto entity : *rayTracerEntities) {
-			if (!entity.IsEnabled()) continue;
-			if (!entity.HasPrivateComponent<MeshRenderer>()) continue;
-			auto& rayTracerMaterial = entity.GetPrivateComponent<RayTracerMaterial>();
-			if (!rayTracerMaterial->IsEnabled()) continue;
-			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-			if (!meshRenderer->IsEnabled()) continue;
-			if (!meshRenderer->m_mesh || meshRenderer->m_mesh->UnsafeGetVertices().empty()) continue;
-			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
-			RayMLVQ::TriangleMesh newCudaTriangleMesh;
-			RayMLVQ::TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
-			bool needUpdate = false;
-			bool fromNew = true;
-			auto vertices = meshRenderer->m_mesh->UnsafeGetVertices();
-			auto triangles = meshRenderer->m_mesh->UnsafeGetTriangles();
-			bool needMaterialUpdate = false;
-			for (auto& i : meshesStorage)
-			{
-				if (entity.m_index == i.m_id && entity.m_version == i.m_version)
-				{
-					fromNew = false;
-					cudaTriangleMesh = &i;
-					i.m_removeTag = false;
-					if (globalTransform != i.m_globalTransform) needUpdate = true;
-					if (cudaTriangleMesh->m_vertices.size() != vertices.size())
-						needUpdate = true;
-					if (cudaTriangleMesh->m_color != meshRenderer->m_material->m_albedoColor
-						|| cudaTriangleMesh->m_metallic != (meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f))
-						|| cudaTriangleMesh->m_roughness != meshRenderer->m_material->m_roughness
-						)
-					{
-						needMaterialUpdate = true;
-					}
-
-				}
-			}
-			if (fromNew || needUpdate || needMaterialUpdate) {
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_color = meshRenderer->m_material->m_albedoColor;
-				cudaTriangleMesh->m_metallic = meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f);
-				cudaTriangleMesh->m_roughness = meshRenderer->m_material->m_roughness;
-				cudaTriangleMesh->m_id = entity.m_index;
-				cudaTriangleMesh->m_version = entity.m_version;
-				cudaTriangleMesh->m_normalTexture = 0;
-				cudaTriangleMesh->m_albedoTexture = 0;
-			}
-
-
-			if (rayTracerMaterial->m_albedoTexture && rayTracerMaterial->m_albedoTexture->Texture()->Id() != cudaTriangleMesh->m_albedoTexture)
-			{
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_albedoTexture = rayTracerMaterial->m_albedoTexture->Texture()->Id();
-			}
-			else if (!rayTracerMaterial->m_albedoTexture && cudaTriangleMesh->m_albedoTexture != 0)
-			{
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_albedoTexture = 0;
-			}
-			if (rayTracerMaterial->m_normalTexture && rayTracerMaterial->m_normalTexture->Texture()->Id() != cudaTriangleMesh->m_normalTexture)
-			{
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_normalTexture = rayTracerMaterial->m_normalTexture->Texture()->Id();
-			}
-			else if (!rayTracerMaterial->m_normalTexture && cudaTriangleMesh->m_normalTexture != 0)
-			{
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_normalTexture = 0;
-			}
-			if (cudaTriangleMesh->m_diffuseIntensity != rayTracerMaterial->m_diffuseIntensity)
-			{
-				needSbtUpdate = true;
-				cudaTriangleMesh->m_diffuseIntensity = rayTracerMaterial->m_diffuseIntensity;
-			}
-
-
-			if (fromNew || needUpdate) {
-				needGeometryUpdate = true;
-				cudaTriangleMesh->m_globalTransform = globalTransform;
-				cudaTriangleMesh->m_vertices.resize(vertices.size());
-				cudaTriangleMesh->m_vertexInfos.resize(vertices.size());
-				for (int index = 0; index < vertices.size(); index++)
-				{
-					cudaTriangleMesh->m_vertices[index] = globalTransform * glm::vec4(vertices[index].m_position, 1.0f);
-					cudaTriangleMesh->m_vertexInfos[index].m_normal = glm::normalize(glm::vec3(globalTransform * glm::vec4(vertices[index].m_normal, 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_tangent = glm::normalize(glm::vec3(globalTransform * glm::vec4(vertices[index].m_tangent, 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_texCoords = vertices[index].m_texCoords0;
-				}
-				cudaTriangleMesh->m_indices.clear();
-				cudaTriangleMesh->m_indices.insert(cudaTriangleMesh->m_indices.begin(), triangles.begin(), triangles.end());
-			}
-			if (fromNew && !cudaTriangleMesh->m_vertices.empty()) meshesStorage.push_back(std::move(newCudaTriangleMesh));
-		}
-	}else
-	{
-		for (int i = 0; i < meshesStorage.size(); i++)
-		{
-			meshesStorage[i].m_removeTag = true;
-		}
-	}
-	for (int i = 0; i < meshesStorage.size(); i++)
-	{
-		if (meshesStorage[i].m_removeTag && meshesStorage[i].m_id != 0)
-		{
-			meshesStorage.erase(meshesStorage.begin() + i);
-			i--;
-			needGeometryUpdate = true;
-		}
-	}
-	if (needGeometryUpdate && !meshesStorage.empty()) {
-		RayMLVQ::CudaModule::PrepareScene();
-		RayMLVQ::CudaModule::SetStatusChanged();
-	}
-	else if (needSbtUpdate)
-	{
-		RayMLVQ::CudaModule::SetStatusChanged();
-	}
-}
-
-void PlantManager::RenderRayTracerDebugOutput()
-{
-	UpdateDebugRenderOutputScene();
-	auto& manager = GetInstance();
-	auto& size = manager.m_rayTracerTestOutputSize;
-	manager.m_rayTracerTestOutput->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
-	manager.m_properties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
-	manager.m_properties.m_environmentalMapId = GetInstance().m_environmentalMap->Texture()->Id();
-	manager.m_properties.m_frameSize = size;
-	manager.m_properties.m_outputTextureId = manager.m_rayTracerTestOutput->Id();
-	manager.m_rendered = RayMLVQ::CudaModule::RenderRayTracerDebugOutput(
-		manager.m_properties
-	);
 }
 
 void PlantManager::DeleteAllPlants()
@@ -677,7 +404,7 @@ void PlantManager::Init()
 	manager.m_ground.SetComponentData(groundTransform);
 	manager.m_ground.SetComponentData(groundGlobalTransform);
 	manager.m_ground.SetStatic(true);
-	manager.m_ground.SetPrivateComponent(std::make_unique<RayTracerMaterial>());
+	manager.m_ground.SetPrivateComponent(std::make_unique<RayMLVQ::RayTracerMaterial>());
 
 	auto cubeVolume = std::make_unique<CubeVolume>();
 	cubeVolume->m_asObstacle = true;
@@ -685,20 +412,7 @@ void PlantManager::Init()
 	cubeVolume->m_minMaxBound.m_min = glm::vec3(-1000, -10.0f, -1000);
 	manager.m_ground.SetPrivateComponent(std::move(cubeVolume));
 #pragma endregion
-#pragma region Environmental map
-	{
-		const std::vector<std::string> facesPath
-		{
-			FileIO::GetResourcePath("Textures/Skyboxes/Default/posx.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negx.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/posy.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negy.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/posz.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negz.jpg"),
-		};
-		manager.m_environmentalMap = ResourceManager::LoadCubemap(false, facesPath, true);
-	}
-#pragma endregion
+
 #pragma region Mask material
 	std::string vertShaderCode = std::string("#version 460 core\n")
 		+ *Default::ShaderIncludes::Uniform +
@@ -815,27 +529,6 @@ void PlantManager::Init()
 		}
 	);
 #pragma endregion
-
-#pragma region Cuda and OptiX
-
-	RayMLVQ::CudaModule::Init();
-	EditorManager::RegisterPrivateComponentMenu<RayTracerMaterial>([](Entity owner)
-		{
-			if (owner.HasPrivateComponent<RayTracerMaterial>()) return;
-			if (ImGui::SmallButton("RayTracerMaterial"))
-			{
-				owner.SetPrivateComponent(std::make_unique<RayTracerMaterial>());
-			}
-		}
-	);
-	manager.m_rayTracerTestOutput = std::make_unique<OpenGLUtils::GLTexture2D>(0, GL_RGBA32F, 1, 1, false);
-	manager.m_rayTracerTestOutput->SetData(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0);
-	manager.m_rayTracerTestOutput->SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	manager.m_rayTracerTestOutput->SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	manager.m_rayTracerTestOutput->SetInt(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	manager.m_rayTracerTestOutput->SetInt(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#pragma endregion
-
 	manager.m_ready = true;
 	manager.m_globalTime = 0;
 
@@ -886,7 +579,6 @@ void PlantManager::Refresh()
 
 void PlantManager::End()
 {
-	RayMLVQ::CudaModule::Terminate();
 }
 
 #pragma endregion

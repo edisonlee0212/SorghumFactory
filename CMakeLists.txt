@@ -67,7 +67,10 @@ set(RAYMLVQ_INCLUDES_LOCAL
 	${UNIENGINE_INCLUDES}
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
-
+set(RAYMLVQ_PCH_LOCAL 
+	${UNIENGINE_PCH}
+	${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
+	)
 target_include_directories(rayMLVQ
 	PRIVATE
 	${RAYMLVQ_INCLUDES_LOCAL}
@@ -98,10 +101,7 @@ add_library(plantFactory
 	${SORGHUM_FACTORY_SOURCES_LOCAL}
 )
 
-set(RAYMLVQ_PCH_LOCAL 
-	${UNIENGINE_PCH}
-	${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
-	)
+
 
 target_precompile_headers(plantFactory
 	PRIVATE

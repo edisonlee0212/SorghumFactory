@@ -236,10 +236,7 @@ namespace PlantFactory {
 		std::vector<GlobalTransform> m_internodeTransforms;
 		
 		
-		std::unique_ptr<OpenGLUtils::GLTexture2D> m_rayTracerTestOutput;
-		glm::ivec2 m_rayTracerTestOutputSize = glm::ivec2(1024, 1024);
-		bool m_rendered = false;
-		std::shared_ptr<Cubemap> m_environmentalMap;
+		
 #pragma region Timers
 		float m_foliageGenerationTimer = 0;
 		float m_meshGenerationTimer = 0;
@@ -256,30 +253,13 @@ namespace PlantFactory {
 		
 		
 #pragma endregion
-#pragma region Rendering
-		RayMLVQ::DebugRenderingProperties m_properties;
-		float m_cameraFov = 60;
-		bool m_rayTracerDebugRenderingEnabled = true;
-		
 
-		float m_lastX = 0;
-		float m_lastY = 0;
-		float m_lastScrollY = 0;
-		bool m_startMouse = false;
-		bool m_startScroll = false;
-		bool m_rightMouseButtonHold = false;
-#pragma endregion
 #pragma endregion
 #pragma region Helpers
 		static Entity CreateCubeObstacle();
-		static void UpdateDebugRenderOutputScene();
-		
-		static void RenderRayTracerDebugOutput();
-		
 		static void DeleteAllPlants();
 		static Entity CreatePlant(const PlantType& type, const Transform& transform);
 		static Entity CreateInternode(const PlantType& type, const Entity& parentEntity);
-		
 		
 #pragma endregion
 #pragma region Runtime

@@ -1,10 +1,10 @@
 #include <RadialBoundingVolume.hpp>
 #include <PlantManager.hpp>
 #include <RayTracerMaterial.hpp>
-
+#include <OptixRayTracer.hpp>
 
 using namespace PlantFactory;
-
+using namespace RayMLVQ;
 glm::vec3 RadialBoundingVolume::GetRandomPoint()
 {
 	if(!m_meshGenerated) return glm::vec3(0);

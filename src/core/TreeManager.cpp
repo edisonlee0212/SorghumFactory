@@ -5,7 +5,7 @@
 #include <RayTracerMaterial.hpp>
 #include <TreeLeaves.hpp>
 
-
+using namespace RayMLVQ;
 using namespace PlantFactory;
 
 void TreeManager::ExportChains(int parentOrder, Entity internode, rapidxml::xml_node<>* chains,

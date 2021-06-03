@@ -4,7 +4,7 @@
 #include <TriangleIlluminationEstimator.hpp>
 
 using namespace PlantFactory;
-
+using namespace RayMLVQ;
 PlantNode::PlantNode(glm::vec3 position, float angle, float width, glm::vec3 axis, bool isLeaf)
 {
 	m_position = position;
