@@ -541,35 +541,36 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 
 	for (int meshID = 0; meshID < meshes.size(); meshID++) {
 		// upload the model to the device: the builder
-		TriangleMesh& model = meshes[meshID];
+		TriangleMesh& triangleMesh = meshes[meshID];
 		if (uploadVertices)
 		{
-			m_positionsBuffer[meshID].Upload(*model.m_positions);
-			m_tangentsBuffer[meshID].Upload(*model.m_tangents);
-			m_normalsBuffer[meshID].Upload(*model.m_normals);
-			m_transformedPositionsBuffer[meshID].Resize(model.m_positions->size() * sizeof(glm::vec3));
-			m_transformedNormalsBuffer[meshID].Resize(model.m_normals->size() * sizeof(glm::vec3));
-			m_transformedTangentsBuffer[meshID].Resize(model.m_tangents->size() * sizeof(glm::vec3));
+			m_positionsBuffer[meshID].Upload(*triangleMesh.m_positions);
+			m_tangentsBuffer[meshID].Upload(*triangleMesh.m_tangents);
+			m_normalsBuffer[meshID].Upload(*triangleMesh.m_normals);
+			m_transformedPositionsBuffer[meshID].Resize(triangleMesh.m_positions->size() * sizeof(glm::vec3));
+			m_transformedNormalsBuffer[meshID].Resize(triangleMesh.m_normals->size() * sizeof(glm::vec3));
+			m_transformedTangentsBuffer[meshID].Resize(triangleMesh.m_tangents->size() * sizeof(glm::vec3));
 		}
 
+		if (uploadVertices || triangleMesh.m_transformUpdateFlag) {
+			int blockSize = 0;      // The launch configurator returned block size 
+			int minGridSize = 0;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
+			int gridSize = 0;       // The actual grid size needed, based on input size
+			int size = triangleMesh.m_positions->size();
+			cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, ApplyTransformKernel, 0, size);
+			gridSize = (size + blockSize - 1) / blockSize;
+			ApplyTransformKernel << <gridSize, blockSize >> > (size, triangleMesh.m_globalTransform,
+				static_cast<glm::vec3*>(m_positionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_normalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_tangentsBuffer[meshID].m_dPtr),
+				static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedNormalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedTangentsBuffer[meshID].m_dPtr));
+			CUDA_SYNC_CHECK();
+		}
+		
+		triangleMesh.m_verticesUpdateFlag = false;
+		triangleMesh.m_transformUpdateFlag = false;
 
-		int blockSize = 0;      // The launch configurator returned block size 
-		int minGridSize = 0;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
-		int gridSize = 0;       // The actual grid size needed, based on input size
-		int size = model.m_positions->size();
-		cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, ApplyTransformKernel, 0, size);
-		gridSize = (size + blockSize - 1) / blockSize;
-		ApplyTransformKernel << <gridSize, blockSize >> > (size, model.m_globalTransform,
-			static_cast<glm::vec3*>(m_positionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_normalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_tangentsBuffer[meshID].m_dPtr),
-			static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedNormalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedTangentsBuffer[meshID].m_dPtr));
-		CUDA_SYNC_CHECK();
-
-		model.m_verticesUpdateFlag = false;
-		model.m_transformUpdateFlag = false;
-
-		m_texCoordsBuffer[meshID].Upload(*model.m_texCoords);
-		m_colorsBuffer[meshID].Upload(*model.m_colors);
-		m_trianglesBuffer[meshID].Upload(*model.m_triangles);
+		m_texCoordsBuffer[meshID].Upload(*triangleMesh.m_texCoords);
+		m_colorsBuffer[meshID].Upload(*triangleMesh.m_colors);
+		m_trianglesBuffer[meshID].Upload(*triangleMesh.m_triangles);
 		triangleInput[meshID] = {};
 		triangleInput[meshID].type
 			= OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
@@ -581,7 +582,7 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 
 		triangleInput[meshID].triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
 		triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(glm::vec3);
-		triangleInput[meshID].triangleArray.numVertices = static_cast<int>(model.m_positions->size());
+		triangleInput[meshID].triangleArray.numVertices = static_cast<int>(triangleMesh.m_positions->size());
 		triangleInput[meshID].triangleArray.vertexBuffers = &deviceVertexPositions[meshID];
 
 		//triangleInput[meshID].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_MATRIX_FLOAT12;
@@ -589,7 +590,7 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 
 		triangleInput[meshID].triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
 		triangleInput[meshID].triangleArray.indexStrideInBytes = sizeof(glm::uvec3);
-		triangleInput[meshID].triangleArray.numIndexTriplets = static_cast<int>(model.m_triangles->size());
+		triangleInput[meshID].triangleArray.numIndexTriplets = static_cast<int>(triangleMesh.m_triangles->size());
 		triangleInput[meshID].triangleArray.indexBuffer = deviceVertexTriangles[meshID];
 
 		triangleInputFlags[meshID] = 0;

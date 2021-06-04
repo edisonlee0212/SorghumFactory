@@ -172,7 +172,9 @@ void RayTracedRenderingSystem::UpdateScene() const
 					fromNew = false;
 					cudaTriangleMesh = &triangleMesh;
 					triangleMesh.m_removeTag = false;
-					if (globalTransform != triangleMesh.m_globalTransform) needTransformUpdate = true;
+					if (globalTransform != triangleMesh.m_globalTransform) {
+						needTransformUpdate = true;
+					}
 					if (cudaTriangleMesh->m_version != rayTracerMaterial->m_mesh->GetVersion())
 						needVerticesUpdate = true;
 					if (cudaTriangleMesh->m_surfaceColor != rayTracerMaterial->m_surfaceColor
@@ -258,7 +260,7 @@ void RayTracedRenderingSystem::UpdateScene() const
 			rebuildAccelerationStructure = true;
 		}
 	}
-	if (rebuildAccelerationStructure && !meshesStorage.empty()) {
+	if (rebuildAccelerationStructure) {
 		CudaModule::PrepareScene();
 		CudaModule::SetStatusChanged();
 	}
@@ -321,7 +323,9 @@ void RayTracedRenderingSystem::Update()
 	m_properties.m_environmentalMapId = m_environmentalMap->Texture()->Id();
 	m_properties.m_frameSize = size;
 	m_properties.m_outputTextureId = m_rayTracerTestOutput->Id();
-	m_rendered = CudaModule::RenderRayTracerDebugOutput(m_properties);
+	if (!CudaModule::GetInstance().m_meshes.empty()) {
+		m_rendered = CudaModule::RenderRayTracerDebugOutput(m_properties);
+	}
 }
 
 void RayTracedRenderingSystem::FixedUpdate()
