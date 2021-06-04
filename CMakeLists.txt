@@ -35,6 +35,8 @@ include_directories(${OptiX_INCLUDE})
 # ------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
 
+enable_language(CUDA)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${UNIENGINE_INCLUDES})
@@ -48,6 +50,7 @@ add_library(rayMLVQ
 	${RAYMLVQ_SOURCES_LOCAL}
 	${CMAKE_MODULE_PATH}/configure_optix.cmake
 	${CMAKE_MODULE_PATH}/FindOptiX.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/src/lib/OptixRayTracer.cu
 	)
 
 generate_export_header(rayMLVQ

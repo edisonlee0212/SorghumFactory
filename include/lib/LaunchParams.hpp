@@ -16,12 +16,15 @@ namespace RayMLVQ {
 	};
 	struct VertexInfo;
 	struct TriangleMeshSBTData {
-		glm::vec3  m_color;
-		glm::vec3* m_vertex;
-		glm::ivec3* m_index;
+		glm::vec3  m_surfaceColor;
+		glm::vec3* m_position;
+		glm::uvec3* m_triangle;
+		glm::vec3* m_normal;
+		glm::vec3* m_tangent;
+		glm::vec4* m_color;
+		glm::vec2* m_texCoord;
 		float m_roughness = 15;
 		float m_metallic = 0.5;
-		VertexInfo* m_vertexInfo;
 		cudaTextureObject_t m_albedoTexture;
 		cudaTextureObject_t m_normalTexture;
 		float m_diffuseIntensity;

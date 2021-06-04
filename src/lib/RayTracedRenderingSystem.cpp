@@ -167,23 +167,18 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
 			bool needUpdate = false;
 			bool fromNew = true;
-			auto& positions = meshRenderer->m_mesh->UnsafeGetVertexPositions();
-			auto& normals = meshRenderer->m_mesh->UnsafeGetVertexNormals();
-			auto& tangents = meshRenderer->m_mesh->UnsafeGetVertexTangents();
-			auto& texCoords = meshRenderer->m_mesh->UnsafeGetVertexTexCoords();
-			auto triangles = meshRenderer->m_mesh->UnsafeGetTriangles();
 			bool needMaterialUpdate = false;
-			for (auto& i : meshesStorage)
+			for (auto& triangleMesh : meshesStorage)
 			{
-				if (entity.m_index == i.m_id && entity.m_version == i.m_version)
+				if (triangleMesh.m_entityId == entity.m_index && triangleMesh.m_entityVersion == entity.m_version)
 				{
 					fromNew = false;
-					cudaTriangleMesh = &i;
-					i.m_removeTag = false;
-					if (globalTransform != i.m_globalTransform) needUpdate = true;
-					if (cudaTriangleMesh->m_vertices.size() != positions.size())
+					cudaTriangleMesh = &triangleMesh;
+					triangleMesh.m_removeTag = false;
+					if (globalTransform != triangleMesh.m_globalTransform) needUpdate = true;
+					if (cudaTriangleMesh->m_version != meshRenderer->m_mesh->GetVersion())
 						needUpdate = true;
-					if (cudaTriangleMesh->m_color != meshRenderer->m_material->m_albedoColor
+					if (cudaTriangleMesh->m_surfaceColor != meshRenderer->m_material->m_albedoColor
 						|| cudaTriangleMesh->m_metallic != (meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f))
 						|| cudaTriangleMesh->m_roughness != meshRenderer->m_material->m_roughness
 						)
@@ -194,13 +189,14 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			}
 			if (fromNew || needUpdate || needMaterialUpdate) {
 				needSbtUpdate = true;
-				cudaTriangleMesh->m_color = meshRenderer->m_material->m_albedoColor;
+				cudaTriangleMesh->m_surfaceColor = meshRenderer->m_material->m_albedoColor;
 				cudaTriangleMesh->m_metallic = meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f);
 				cudaTriangleMesh->m_roughness = meshRenderer->m_material->m_roughness;
-				cudaTriangleMesh->m_id = entity.m_index;
-				cudaTriangleMesh->m_version = entity.m_version;
+				cudaTriangleMesh->m_version = meshRenderer->m_mesh->GetVersion();
 				cudaTriangleMesh->m_normalTexture = 0;
 				cudaTriangleMesh->m_albedoTexture = 0;
+				cudaTriangleMesh->m_entityId = entity.m_index;
+				cudaTriangleMesh->m_entityVersion = entity.m_version;
 			}
 
 
@@ -234,19 +230,14 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			if (fromNew || needUpdate) {
 				needGeometryUpdate = true;
 				cudaTriangleMesh->m_globalTransform = globalTransform;
-				cudaTriangleMesh->m_vertices.resize(positions.size());
-				cudaTriangleMesh->m_vertexInfos.resize(positions.size());
-				for (int index = 0; index < positions.size(); index++)
-				{
-					cudaTriangleMesh->m_vertices[index] = globalTransform * glm::vec4(positions[index], 1.0f);
-					cudaTriangleMesh->m_vertexInfos[index].m_normal = glm::normalize(glm::vec3(globalTransform * glm::vec4(normals[index], 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_tangent = glm::normalize(glm::vec3(globalTransform * glm::vec4(tangents[index], 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_texCoords = texCoords[index];
-				}
-				cudaTriangleMesh->m_indices.clear();
-				cudaTriangleMesh->m_indices.insert(cudaTriangleMesh->m_indices.begin(), triangles.begin(), triangles.end());
+				cudaTriangleMesh->m_positions = &meshRenderer->m_mesh->UnsafeGetVertexPositions();
+				cudaTriangleMesh->m_normals = &meshRenderer->m_mesh->UnsafeGetVertexNormals();
+				cudaTriangleMesh->m_tangents = &meshRenderer->m_mesh->UnsafeGetVertexTangents();
+				cudaTriangleMesh->m_colors = &meshRenderer->m_mesh->UnsafeGetVertexColors();
+				cudaTriangleMesh->m_triangles = &meshRenderer->m_mesh->UnsafeGetTriangles();
+				cudaTriangleMesh->m_texCoords = &meshRenderer->m_mesh->UnsafeGetVertexTexCoords();
 			}
-			if (fromNew && !cudaTriangleMesh->m_vertices.empty()) meshesStorage.push_back(std::move(newCudaTriangleMesh));
+			if (fromNew) meshesStorage.push_back(std::move(newCudaTriangleMesh));
 		}
 	}
 	else
@@ -258,7 +249,7 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 	}
 	for (int i = 0; i < meshesStorage.size(); i++)
 	{
-		if (meshesStorage[i].m_removeTag && meshesStorage[i].m_id != 0)
+		if (meshesStorage[i].m_removeTag)
 		{
 			meshesStorage.erase(meshesStorage.begin() + i);
 			i--;

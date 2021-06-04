@@ -91,25 +91,21 @@ namespace RayMLVQ {
 		 */
 		T m_energy = 0;
 	};
-
 	
-	struct RAYMLVQ_API VertexInfo
-	{
-		glm::vec3 m_normal;
-		glm::vec2 m_texCoords;
-		glm::vec3 m_tangent;
-		glm::vec4 m_color;
-	};
-
 	struct RAYMLVQ_API TriangleMesh {
-		std::vector<glm::vec3> m_vertices;
-		std::vector<glm::uvec3> m_indices;
-		std::vector<VertexInfo> m_vertexInfos;
-		glm::vec3 m_color;
+		std::vector<glm::vec3>* m_positions;
+		std::vector<glm::vec3>* m_normals;
+		std::vector<glm::vec3>* m_tangents;
+		std::vector<glm::vec4>* m_colors;
+		std::vector<glm::uvec3>* m_triangles;
+		std::vector<glm::vec2>* m_texCoords;
+		
+		size_t m_version;
+		size_t m_entityId = 0;
+		size_t m_entityVersion = 0;
+		glm::vec3 m_surfaceColor;
 		float m_roughness;
 		float m_metallic;
-		unsigned m_id;
-		unsigned m_version;
 		bool m_removeTag = false;
 		glm::mat4 m_globalTransform;
 

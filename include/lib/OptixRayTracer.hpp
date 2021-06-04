@@ -99,11 +99,24 @@ namespace RayMLVQ {
 		bool m_hasAccelerationStructure = false;
 
 		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_vertexBuffer;
+		std::vector<CudaBuffer> m_positionsBuffer;
 		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_indexBuffer;
+		std::vector<CudaBuffer> m_normalsBuffer;
 		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_vertexInfoBuffer;
+		std::vector<CudaBuffer> m_tangentsBuffer;
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_transformedPositionsBuffer;
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_transformedNormalsBuffer;
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_transformedTangentsBuffer;
+		
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_trianglesBuffer;
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_texCoordsBuffer;
+		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_colorsBuffer;
 		//! buffer that keeps the (final, compacted) acceleration structure
 		CudaBuffer m_acceleratedStructuresBuffer;
 	};

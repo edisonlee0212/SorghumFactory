@@ -34,9 +34,10 @@ __global__ void LightProbeResetKernel(unsigned size, LightProbe<T>* lightProbes)
 	}
 }
 
+
+
 __global__ void IlluminationEstimationKernel(float angleFactor, float factor, int i, int size, glm::mat4* transforms, glm::vec3* directions, float* illuminations)
 {
-
 	const int idx = threadIdx.x + blockIdx.x * blockDim.x;
 	if (idx < size) {
 		const glm::vec3 receiverPosition = transforms[idx][3];
