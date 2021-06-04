@@ -8,9 +8,10 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <RayDataDefinations.hpp>
 namespace RayMLVQ {
-	extern "C" __constant__ DebugRenderingLaunchParams debugRenderingLaunchParams;
-	struct DebugRenderingRayData {
+	extern "C" __constant__ DefaultRenderingLaunchParams defaultRenderingLaunchParams;
+	struct DefaultRenderingRayData {
 		unsigned m_hitCount;
 		Random m_random;
 		glm::vec3 m_energy;
@@ -25,7 +26,7 @@ namespace RayMLVQ {
 	extern "C" __global__ void __closesthit__radiance()
 	{
 		const auto& sbtData
-			= *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
+			= *(const DefaultMaterial*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
 		const int primitiveId = optixGetPrimitiveIndex();
 		const glm::uvec3 index = sbtData.m_triangle[primitiveId];
@@ -36,7 +37,7 @@ namespace RayMLVQ {
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
 #pragma region Correct normals
-		if (!debugRenderingLaunchParams.m_debugRenderingProperties.m_useGeometryNormal)
+		if (!defaultRenderingLaunchParams.m_defaultRenderingProperties.m_useGeometryNormal)
 			normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_normal[index.x]
 			+ triangleBarycentricsInternal.x * sbtData.m_normal[index.y]
 			+ triangleBarycentricsInternal.y * sbtData.m_normal[index.z];
@@ -73,18 +74,18 @@ namespace RayMLVQ {
 			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * pointA
 			+ triangleBarycentricsInternal.x * pointB
 			+ triangleBarycentricsInternal.y * pointC;
-		DebugRenderingRayData& perRayData = *GetRayDataPointer<DebugRenderingRayData>();
+		DefaultRenderingRayData& perRayData = *GetRayDataPointer<DefaultRenderingRayData>();
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		// start with some ambient term
 		auto energy = glm::vec3(0.0f);
-		switch (debugRenderingLaunchParams.m_debugRenderingProperties.m_debugRenderingType)
+		switch (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_debugRenderingType)
 		{
-		case DebugOutputRenderType::SoftShadow:
+		case DefaultOutputRenderType::SoftShadow:
 		{
 			energy += glm::vec3(0.1f) + 0.2f * fabsf(glm::dot(normal, rayDirection)) * albedoColor;
 			// produce random light sample
-			const float lightSize = debugRenderingLaunchParams.m_skylight.m_lightSize;
-			glm::vec3 lightDir = -debugRenderingLaunchParams.m_skylight.m_direction + glm::vec3(perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f) * lightSize;
+			const float lightSize = defaultRenderingLaunchParams.m_skylight.m_lightSize;
+			glm::vec3 lightDir = -defaultRenderingLaunchParams.m_skylight.m_direction + glm::vec3(perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f) * lightSize;
 			auto origin = hitPoint + 1e-3f * normal;
 			float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 			// trace shadow ray:
@@ -95,7 +96,7 @@ namespace RayMLVQ {
 				uint32_t u0, u1;
 				PackRayDataPointer(&shadowRayData, u0, u1);
 				float3 newRayDirection = make_float3(lightDir.x, lightDir.y, lightDir.z);
-				optixTrace(debugRenderingLaunchParams.m_traversable,
+				optixTrace(defaultRenderingLaunchParams.m_traversable,
 					incidentRayOrigin,
 					newRayDirection,
 					1e-3f,      // tmin
@@ -109,23 +110,23 @@ namespace RayMLVQ {
 					| OPTIX_RAY_FLAG_DISABLE_ANYHIT
 					| OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
 					| OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-					static_cast<int>(DebugRenderingRayType::ShadowRayType),            // SBT offset
-					static_cast<int>(DebugRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(DebugRenderingRayType::ShadowRayType),            // missSBTIndex 
+					static_cast<int>(DefaultRenderingRayType::ShadowRayType),            // SBT offset
+					static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
+					static_cast<int>(DefaultRenderingRayType::ShadowRayType),            // missSBTIndex 
 					u0, u1);
 				energy
 					+= shadowRayData
-					* debugRenderingLaunchParams.m_debugRenderingProperties.m_skylightIntensity
+					* defaultRenderingLaunchParams.m_defaultRenderingProperties.m_skylightIntensity
 					* albedoColor
 					* NdotL;
 
 			}
 		}
 		break;
-		case DebugOutputRenderType::Glass:
+		case DefaultOutputRenderType::Glass:
 		{
 			perRayData.m_hitCount = hitCount;
-			if (perRayData.m_hitCount <= debugRenderingLaunchParams.m_debugRenderingProperties.m_bounceLimit) {
+			if (perRayData.m_hitCount <= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_bounceLimit) {
 				uint32_t u0, u1;
 				PackRayDataPointer(&perRayData, u0, u1);
 				glm::vec3 newRayDirection = Reflect(rayDirection, normal);
@@ -140,7 +141,7 @@ namespace RayMLVQ {
 				}
 				float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 				float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-				optixTrace(debugRenderingLaunchParams.m_traversable,
+				optixTrace(defaultRenderingLaunchParams.m_traversable,
 					incidentRayOrigin,
 					newRayDirectionInternal,
 					1e-3f,    // tmin
@@ -148,27 +149,27 @@ namespace RayMLVQ {
 					0.0f,   // rayTime
 					static_cast<OptixVisibilityMask>(255),
 					OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES | OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-					static_cast<int>(DebugRenderingRayType::RadianceRayType),             // SBT offset
-					static_cast<int>(DebugRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(DebugRenderingRayType::RadianceRayType),             // missSBTIndex
+					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
+					static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
+					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
 					u0, u1);
 				const auto cos = glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * sbtData.m_roughness + (1.0f - sbtData.m_roughness), 0.0f, 1.0f);
 				energy += cos * perRayData.m_energy;
 			}
 		}
 		break;
-		case DebugOutputRenderType::Brdf:
+		case DefaultOutputRenderType::Brdf:
 		{
 			uint32_t u0, u1;
 			PackRayDataPointer(&perRayData, u0, u1);
 			float metallic = sbtData.m_metallic;
 			float roughness = sbtData.m_roughness;
-			const auto scatterSamples = debugRenderingLaunchParams.m_debugRenderingProperties.m_samplesPerHit;
+			const auto scatterSamples = defaultRenderingLaunchParams.m_defaultRenderingProperties.m_samplesPerHit;
 			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 			{
 				perRayData.m_hitCount = hitCount;
 				perRayData.m_energy = glm::vec3(0.0f);
-				if (perRayData.m_hitCount <= debugRenderingLaunchParams.m_debugRenderingProperties.m_bounceLimit) {
+				if (perRayData.m_hitCount <= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_bounceLimit) {
 					energy = glm::vec3(0.0f);
 					float f = 1.0f;
 					if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
@@ -185,7 +186,7 @@ namespace RayMLVQ {
 					}
 					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-					optixTrace(debugRenderingLaunchParams.m_traversable,
+					optixTrace(defaultRenderingLaunchParams.m_traversable,
 						incidentRayOrigin,
 						newRayDirectionInternal,
 						1e-3f,    // tmin
@@ -193,9 +194,9 @@ namespace RayMLVQ {
 						0.0f,   // rayTime
 						static_cast<OptixVisibilityMask>(255),
 						OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-						static_cast<int>(DebugRenderingRayType::RadianceRayType),             // SBT offset
-						static_cast<int>(DebugRenderingRayType::RayTypeCount),               // SBT stride
-						static_cast<int>(DebugRenderingRayType::RadianceRayType),             // missSBTIndex
+						static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
+						static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
+						static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
 						u0, u1);
 					energy += albedoColor
 						* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
@@ -225,12 +226,12 @@ namespace RayMLVQ {
 #pragma region Miss functions
 	extern "C" __global__ void __miss__radiance()
 	{
-		DebugRenderingRayData& prd = *GetRayDataPointer<DebugRenderingRayData>();
+		DefaultRenderingRayData& prd = *GetRayDataPointer<DefaultRenderingRayData>();
 		const float3 rayDir = optixGetWorldRayDirection();
 		float4 environmentalLightColor = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
-		if (debugRenderingLaunchParams.m_debugRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(debugRenderingLaunchParams.m_skylight.m_environmentalMaps, rayDir);
+		if (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(defaultRenderingLaunchParams.m_skylight.m_environmentalMaps, rayDir);
 		prd.m_pixelAlbedo = prd.m_energy = glm::vec3(environmentalLightColor.x, environmentalLightColor.y, environmentalLightColor.z);
-		prd.m_energy *= debugRenderingLaunchParams.m_debugRenderingProperties.m_skylightIntensity;
+		prd.m_energy *= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_skylightIntensity;
 	}
 	extern "C" __global__ void __miss__shadow()
 	{
@@ -246,10 +247,10 @@ namespace RayMLVQ {
 		// compute a test pattern based on pixel ID
 		float ix = optixGetLaunchIndex().x;
 		float iy = optixGetLaunchIndex().y;
-		DebugRenderingRayData cameraRayData;
+		DefaultRenderingRayData cameraRayData;
 		cameraRayData.m_hitCount = 0;
-		cameraRayData.m_random.Init(ix + debugRenderingLaunchParams.m_debugRenderingProperties.m_frameSize.x * iy,
-			debugRenderingLaunchParams.m_frame.m_frameId);
+		cameraRayData.m_random.Init(ix + defaultRenderingLaunchParams.m_defaultRenderingProperties.m_frameSize.x * iy,
+			defaultRenderingLaunchParams.m_frame.m_frameId);
 		cameraRayData.m_energy = glm::vec3(0);
 		cameraRayData.m_pixelNormal = glm::vec3(0);
 		cameraRayData.m_pixelAlbedo = glm::vec3(0);
@@ -257,7 +258,7 @@ namespace RayMLVQ {
 		uint32_t u0, u1;
 		PackRayDataPointer(&cameraRayData, u0, u1);
 
-		const auto numPixelSamples = debugRenderingLaunchParams.m_debugRenderingProperties.m_samplesPerPixel;
+		const auto numPixelSamples = defaultRenderingLaunchParams.m_defaultRenderingProperties.m_samplesPerPixel;
 		auto pixelColor = glm::vec3(0.f);
 		auto pixelNormal = glm::vec3(0.f);
 		auto pixelAlbedo = glm::vec3(0.f);
@@ -270,14 +271,14 @@ namespace RayMLVQ {
 			// screen then the actual screen plane we should be using during
 			// rendering is slightly larger than [0,1]^2
 			glm::vec2 screen;
-			screen = glm::vec2(ix + cameraRayData.m_random(), iy + cameraRayData.m_random()) / glm::vec2(debugRenderingLaunchParams.m_debugRenderingProperties.m_frameSize);
-			glm::vec3 rayDir = glm::normalize(debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_direction
-				+ (screen.x - 0.5f) * debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_horizontal
-				+ (screen.y - 0.5f) * debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_vertical);
-			float3 rayOrigin = make_float3(debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_from.x, debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_from.y, debugRenderingLaunchParams.m_debugRenderingProperties.m_camera.m_from.z);
+			screen = glm::vec2(ix + cameraRayData.m_random(), iy + cameraRayData.m_random()) / glm::vec2(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_frameSize);
+			glm::vec3 rayDir = glm::normalize(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_direction
+				+ (screen.x - 0.5f) * defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_horizontal
+				+ (screen.y - 0.5f) * defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_vertical);
+			float3 rayOrigin = make_float3(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_from.x, defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_from.y, defaultRenderingLaunchParams.m_defaultRenderingProperties.m_camera.m_from.z);
 			float3 rayDirection = make_float3(rayDir.x, rayDir.y, rayDir.z);
 
-			optixTrace(debugRenderingLaunchParams.m_traversable,
+			optixTrace(defaultRenderingLaunchParams.m_traversable,
 				rayOrigin,
 				rayDirection,
 				0.f,    // tmin
@@ -285,9 +286,9 @@ namespace RayMLVQ {
 				0.0f,   // rayTime
 				static_cast<OptixVisibilityMask>(255),
 				OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-				static_cast<int>(DebugRenderingRayType::RadianceRayType),             // SBT offset
-				static_cast<int>(DebugRenderingRayType::RayTypeCount),               // SBT stride
-				static_cast<int>(DebugRenderingRayType::RadianceRayType),             // missSBTIndex
+				static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
+				static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
+				static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
 				u0, u1);
 			pixelColor += cameraRayData.m_energy;
 			pixelNormal += cameraRayData.m_pixelNormal;
@@ -299,19 +300,19 @@ namespace RayMLVQ {
 		}
 		glm::vec3 rgb(pixelColor / static_cast<float>(numPixelSamples));
 		// and write/accumulate to frame buffer ...
-		if (debugRenderingLaunchParams.m_frame.m_frameId > 1) {
+		if (defaultRenderingLaunchParams.m_frame.m_frameId > 1) {
 			float4 currentColor;
-			surf2Dread(&currentColor, debugRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+			surf2Dread(&currentColor, defaultRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
 			glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
-			rgb += static_cast<float>(debugRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
-			rgb /= static_cast<float>(debugRenderingLaunchParams.m_frame.m_frameId + 1);
+			rgb += static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
+			rgb /= static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId + 1);
 		}
 		float4 data = make_float4(rgb.r,
 			rgb.g,
 			rgb.b,
 			1.0f);
 		// and write to frame buffer ...
-		surf2Dwrite(data, debugRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+		surf2Dwrite(data, defaultRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
 	}
 #pragma endregion
 }

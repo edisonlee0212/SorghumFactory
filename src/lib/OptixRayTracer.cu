@@ -5,7 +5,7 @@
 #include <glm/gtx/transform.hpp>
 #define GL_TEXTURE_CUBE_MAP 0x8513
 #include <cuda_gl_interop.h>
-#include <RayRecords.hpp>
+#include <RayDataDefinations.hpp>
 
 using namespace RayMLVQ;
 
@@ -14,15 +14,15 @@ void OptixRayTracer::SetStatusChanged(const bool& value)
 	m_statusChanged = value;
 }
 
-bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
+bool OptixRayTracer::RenderDebugOutput(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
 	if (!m_hasAccelerationStructure) return false;
 	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
 	std::vector<cudaGraphicsResource_t> boundResources;
 	BuildShaderBindingTable(meshes, boundTextures, boundResources);
-	if (m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties.Changed(properties)) {
-		m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties = properties;
+	if (m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties.Changed(properties)) {
+		m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties = properties;
 		m_statusChanged = true;
 	}
 	if (!m_accumulate || m_statusChanged) {
@@ -40,7 +40,7 @@ bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& propertie
 	cudaArray_t environmentalMapNegZArray;
 	cudaGraphicsResource_t environmentalMapTexture;
 #pragma region Bind output texture as cudaSurface
-	CUDA_CHECK(GraphicsGLRegisterImage(&outputTexture, m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties.m_outputTextureId, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsNone));
+	CUDA_CHECK(GraphicsGLRegisterImage(&outputTexture, m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties.m_outputTextureId, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsNone));
 	CUDA_CHECK(GraphicsMapResources(1, &outputTexture, nullptr));
 	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&outputArray, outputTexture, 0, 0));
 	// Specify surface
@@ -53,7 +53,7 @@ bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& propertie
 	CUDA_CHECK(CreateSurfaceObject(&m_debugRenderingPipeline.m_launchParams.m_frame.m_outputTexture, &cudaResourceDesc));
 #pragma endregion
 #pragma region Bind environmental map as cudaTexture
-	CUDA_CHECK(GraphicsGLRegisterImage(&environmentalMapTexture, m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties.m_environmentalMapId, GL_TEXTURE_CUBE_MAP, cudaGraphicsRegisterFlagsNone));
+	CUDA_CHECK(GraphicsGLRegisterImage(&environmentalMapTexture, m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties.m_environmentalMapId, GL_TEXTURE_CUBE_MAP, cudaGraphicsRegisterFlagsNone));
 	CUDA_CHECK(GraphicsMapResources(1, &environmentalMapTexture, nullptr));
 	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapPosXArray, environmentalMapTexture, cudaGraphicsCubeFacePositiveX, 0));
 	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapNegXArray, environmentalMapTexture, cudaGraphicsCubeFaceNegativeX, 0));
@@ -98,8 +98,8 @@ bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& propertie
 		m_debugRenderingPipeline.m_launchParamsBuffer.m_sizeInBytes,
 		&m_debugRenderingPipeline.m_sbt,
 		/*! dimensions of the launch: */
-		m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties.m_frameSize.x,
-		m_debugRenderingPipeline.m_launchParams.m_debugRenderingProperties.m_frameSize.y,
+		m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties.m_frameSize.x,
+		m_debugRenderingPipeline.m_launchParams.m_defaultRenderingProperties.m_frameSize.y,
 		1
 	));
 #pragma endregion
@@ -145,7 +145,7 @@ void OptixRayTracer::EstimateIllumination(const size_t& size, const Illumination
 
 #pragma region Upload parameters
 	m_illuminationEstimationPipeline.m_launchParams.m_size = size;
-	m_illuminationEstimationPipeline.m_launchParams.m_illuminationEstimationProperties = properties;
+	m_illuminationEstimationPipeline.m_launchParams.m_defaultIlluminationEstimationProperties = properties;
 	m_illuminationEstimationPipeline.m_launchParams.m_lightProbes = reinterpret_cast<LightProbe<float>*>(lightProbes.DevicePointer());
 	m_illuminationEstimationPipeline.m_launchParamsBuffer.Upload(&m_illuminationEstimationPipeline.m_launchParams, 1);
 #pragma endregion
@@ -232,8 +232,10 @@ void OptixRayTracer::CreateContext()
 	(m_optixContext, context_log_cb, nullptr, 4));
 }
 
-extern "C" char DEBUG_RENDERING_PTX[];
+extern "C" char DEFAULT_RENDERING_PTX[];
 extern "C" char ILLUMINATION_ESTIMATION_PTX[];
+
+extern "C" char RAYMLVQ_RENDERING_PTX[];
 
 void OptixRayTracer::CreateModule()
 {
@@ -248,11 +250,11 @@ void OptixRayTracer::CreateModule()
 		m_debugRenderingPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
 		m_debugRenderingPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
 		m_debugRenderingPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-		m_debugRenderingPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "debugRenderingLaunchParams";
+		m_debugRenderingPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "defaultRenderingLaunchParams";
 
 		m_debugRenderingPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
 
-		const std::string ptxCode = DEBUG_RENDERING_PTX;
+		const std::string ptxCode = DEFAULT_RENDERING_PTX;
 
 		char log[2048];
 		size_t sizeof_log = sizeof(log);
@@ -277,7 +279,7 @@ void OptixRayTracer::CreateModule()
 		m_illuminationEstimationPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
 		m_illuminationEstimationPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
 		m_illuminationEstimationPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-		m_illuminationEstimationPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "illuminationEstimationLaunchParams";
+		m_illuminationEstimationPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "defaultIlluminationEstimationLaunchParams";
 
 		m_illuminationEstimationPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
 
@@ -292,6 +294,35 @@ void OptixRayTracer::CreateModule()
 			ptxCode.size(),
 			log, &sizeof_log,
 			&m_illuminationEstimationPipeline.m_module
+		));
+		if (sizeof_log > 1) std::cout << log << std::endl;
+	}
+	if(false){
+		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
+		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
+
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions = {};
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.usesMotionBlur = false;
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
+		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "rayMLVQRenderingLaunchParams";
+
+		m_rayMLVQRenderingPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
+
+		const std::string ptxCode = RAYMLVQ_RENDERING_PTX;
+
+		char log[2048];
+		size_t sizeof_log = sizeof(log);
+		OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
+			&m_rayMLVQRenderingPipeline.m_moduleCompileOptions,
+			&m_rayMLVQRenderingPipeline.m_pipelineCompileOptions,
+			ptxCode.c_str(),
+			ptxCode.size(),
+			log, &sizeof_log,
+			&m_rayMLVQRenderingPipeline.m_module
 		));
 		if (sizeof_log > 1) std::cout << log << std::endl;
 	}
@@ -340,7 +371,7 @@ void OptixRayTracer::CreateRayGenPrograms()
 void OptixRayTracer::CreateMissPrograms()
 {
 	{
-		m_debugRenderingPipeline.m_missProgramGroups.resize(static_cast<int>(DebugRenderingRayType::RayTypeCount));
+		m_debugRenderingPipeline.m_missProgramGroups.resize(static_cast<int>(DefaultRenderingRayType::RayTypeCount));
 		char log[2048];
 		size_t sizeofLog = sizeof(log);
 
@@ -359,7 +390,7 @@ void OptixRayTracer::CreateMissPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_debugRenderingPipeline.m_missProgramGroups[static_cast<int>(DebugRenderingRayType::RadianceRayType)]
+			&m_debugRenderingPipeline.m_missProgramGroups[static_cast<int>(DefaultRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 		// ------------------------------------------------------------------
@@ -371,12 +402,12 @@ void OptixRayTracer::CreateMissPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_debugRenderingPipeline.m_missProgramGroups[static_cast<int>(DebugRenderingRayType::ShadowRayType)]
+			&m_debugRenderingPipeline.m_missProgramGroups[static_cast<int>(DefaultRenderingRayType::ShadowRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
 	{
-		m_illuminationEstimationPipeline.m_missProgramGroups.resize(static_cast<int>(IlluminationEstimationRayType::RayTypeCount));
+		m_illuminationEstimationPipeline.m_missProgramGroups.resize(static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount));
 		char log[2048];
 		size_t sizeofLog = sizeof(log);
 
@@ -395,7 +426,7 @@ void OptixRayTracer::CreateMissPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_illuminationEstimationPipeline.m_missProgramGroups[static_cast<int>(IlluminationEstimationRayType::RadianceRayType)]
+			&m_illuminationEstimationPipeline.m_missProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -404,7 +435,7 @@ void OptixRayTracer::CreateMissPrograms()
 void OptixRayTracer::CreateHitGroupPrograms()
 {
 	{
-		m_debugRenderingPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(DebugRenderingRayType::RayTypeCount));
+		m_debugRenderingPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(DefaultRenderingRayType::RayTypeCount));
 		char log[2048];
 		size_t sizeofLog = sizeof(log);
 
@@ -423,7 +454,7 @@ void OptixRayTracer::CreateHitGroupPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_debugRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DebugRenderingRayType::RadianceRayType)]
+			&m_debugRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 
@@ -440,12 +471,12 @@ void OptixRayTracer::CreateHitGroupPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_debugRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DebugRenderingRayType::ShadowRayType)]
+			&m_debugRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultRenderingRayType::ShadowRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
 	{
-		m_illuminationEstimationPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(IlluminationEstimationRayType::RayTypeCount));
+		m_illuminationEstimationPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount));
 		char log[2048];
 		size_t sizeofLog = sizeof(log);
 
@@ -464,7 +495,7 @@ void OptixRayTracer::CreateHitGroupPrograms()
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_illuminationEstimationPipeline.m_hitGroupProgramGroups[static_cast<int>(IlluminationEstimationRayType::RadianceRayType)]
+			&m_illuminationEstimationPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -778,9 +809,9 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		// ------------------------------------------------------------------
 		// build raygen records
 		// ------------------------------------------------------------------
-		std::vector<DebugRenderingRayGenRecord> raygenRecords;
+		std::vector<DefaultRenderingRayGenRecord> raygenRecords;
 		for (int i = 0; i < m_debugRenderingPipeline.m_rayGenProgramGroups.size(); i++) {
-			DebugRenderingRayGenRecord rec;
+			DefaultRenderingRayGenRecord rec;
 			OPTIX_CHECK(optixSbtRecordPackHeader(m_debugRenderingPipeline.m_rayGenProgramGroups[i], &rec));
 			rec.m_data = nullptr; /* for now ... */
 			raygenRecords.push_back(rec);
@@ -791,16 +822,16 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		// ------------------------------------------------------------------
 		// build miss records
 		// ------------------------------------------------------------------
-		std::vector<DebugRenderingRayMissRecord> missRecords;
+		std::vector<DefaultRenderingRayMissRecord> missRecords;
 		for (int i = 0; i < m_debugRenderingPipeline.m_missProgramGroups.size(); i++) {
-			DebugRenderingRayMissRecord rec;
+			DefaultRenderingRayMissRecord rec;
 			OPTIX_CHECK(optixSbtRecordPackHeader(m_debugRenderingPipeline.m_missProgramGroups[i], &rec));
 			rec.m_data = nullptr; /* for now ... */
 			missRecords.push_back(rec);
 		}
 		m_debugRenderingPipeline.m_missRecordsBuffer.Upload(missRecords);
 		m_debugRenderingPipeline.m_sbt.missRecordBase = m_debugRenderingPipeline.m_missRecordsBuffer.DevicePointer();
-		m_debugRenderingPipeline.m_sbt.missRecordStrideInBytes = sizeof(DebugRenderingRayMissRecord);
+		m_debugRenderingPipeline.m_sbt.missRecordStrideInBytes = sizeof(DefaultRenderingRayMissRecord);
 		m_debugRenderingPipeline.m_sbt.missRecordCount = static_cast<int>(missRecords.size());
 
 		// ------------------------------------------------------------------
@@ -811,10 +842,10 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		// create a dummy one so the SBT doesn't have any null pointers
 		// (which the sanity checks in compilation would complain about)
 		const int numObjects = m_positionsBuffer.size();
-		std::vector<DebugRenderingRayHitRecord> hitGroupRecords;
+		std::vector<DefaultRenderingRayHitRecord> hitGroupRecords;
 		for (int i = 0; i < numObjects; i++) {
-			for (int rayID = 0; rayID < static_cast<int>(DebugRenderingRayType::RayTypeCount); rayID++) {
-				DebugRenderingRayHitRecord rec;
+			for (int rayID = 0; rayID < static_cast<int>(DefaultRenderingRayType::RayTypeCount); rayID++) {
+				DefaultRenderingRayHitRecord rec;
 				OPTIX_CHECK(optixSbtRecordPackHeader(m_debugRenderingPipeline.m_hitGroupProgramGroups[rayID], &rec));
 				rec.m_data.m_position = reinterpret_cast<glm::vec3*>(m_transformedPositionsBuffer[i].DevicePointer());
 				rec.m_data.m_triangle = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
@@ -906,16 +937,16 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		}
 		m_debugRenderingPipeline.m_hitGroupRecordsBuffer.Upload(hitGroupRecords);
 		m_debugRenderingPipeline.m_sbt.hitgroupRecordBase = m_debugRenderingPipeline.m_hitGroupRecordsBuffer.DevicePointer();
-		m_debugRenderingPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(DebugRenderingRayHitRecord);
+		m_debugRenderingPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(DefaultRenderingRayHitRecord);
 		m_debugRenderingPipeline.m_sbt.hitgroupRecordCount = static_cast<int>(hitGroupRecords.size());
 	}
 	{
 		// ------------------------------------------------------------------
 		// build raygen records
 		// ------------------------------------------------------------------
-		std::vector<IlluminationEstimationRayGenRecord> raygenRecords;
+		std::vector<DefaultIlluminationEstimationRayGenRecord> raygenRecords;
 		for (int i = 0; i < m_illuminationEstimationPipeline.m_rayGenProgramGroups.size(); i++) {
-			IlluminationEstimationRayGenRecord rec;
+			DefaultIlluminationEstimationRayGenRecord rec;
 			OPTIX_CHECK(optixSbtRecordPackHeader(m_illuminationEstimationPipeline.m_rayGenProgramGroups[i], &rec));
 			rec.m_data = nullptr; /* for now ... */
 			raygenRecords.push_back(rec);
@@ -926,16 +957,16 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		// ------------------------------------------------------------------
 		// build miss records
 		// ------------------------------------------------------------------
-		std::vector<IlluminationEstimationRayMissRecord> missRecords;
+		std::vector<DefaultIlluminationEstimationRayMissRecord> missRecords;
 		for (int i = 0; i < m_illuminationEstimationPipeline.m_missProgramGroups.size(); i++) {
-			IlluminationEstimationRayMissRecord rec;
+			DefaultIlluminationEstimationRayMissRecord rec;
 			OPTIX_CHECK(optixSbtRecordPackHeader(m_illuminationEstimationPipeline.m_missProgramGroups[i], &rec));
 			rec.m_data = nullptr; /* for now ... */
 			missRecords.push_back(rec);
 		}
 		m_illuminationEstimationPipeline.m_missRecordsBuffer.Upload(missRecords);
 		m_illuminationEstimationPipeline.m_sbt.missRecordBase = m_illuminationEstimationPipeline.m_missRecordsBuffer.DevicePointer();
-		m_illuminationEstimationPipeline.m_sbt.missRecordStrideInBytes = sizeof(IlluminationEstimationRayMissRecord);
+		m_illuminationEstimationPipeline.m_sbt.missRecordStrideInBytes = sizeof(DefaultIlluminationEstimationRayMissRecord);
 		m_illuminationEstimationPipeline.m_sbt.missRecordCount = static_cast<int>(missRecords.size());
 
 		// ------------------------------------------------------------------
@@ -946,10 +977,10 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		// create a dummy one so the SBT doesn't have any null pointers
 		// (which the sanity checks in compilation would complain about)
 		const int numObjects = m_positionsBuffer.size();
-		std::vector<IlluminationEstimationRayHitRecord> hitGroupRecords;
+		std::vector<DefaultIlluminationEstimationRayHitRecord> hitGroupRecords;
 		for (int i = 0; i < numObjects; i++) {
-			for (int rayID = 0; rayID < static_cast<int>(IlluminationEstimationRayType::RayTypeCount); rayID++) {
-				IlluminationEstimationRayHitRecord rec;
+			for (int rayID = 0; rayID < static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount); rayID++) {
+				DefaultIlluminationEstimationRayHitRecord rec;
 				OPTIX_CHECK(optixSbtRecordPackHeader(m_illuminationEstimationPipeline.m_hitGroupProgramGroups[rayID], &rec));
 				rec.m_data.m_position = reinterpret_cast<glm::vec3*>(m_transformedPositionsBuffer[i].DevicePointer());
 				rec.m_data.m_triangle = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
@@ -969,7 +1000,7 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 		}
 		m_illuminationEstimationPipeline.m_hitGroupRecordsBuffer.Upload(hitGroupRecords);
 		m_illuminationEstimationPipeline.m_sbt.hitgroupRecordBase = m_illuminationEstimationPipeline.m_hitGroupRecordsBuffer.DevicePointer();
-		m_illuminationEstimationPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(IlluminationEstimationRayHitRecord);
+		m_illuminationEstimationPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(DefaultIlluminationEstimationRayHitRecord);
 		m_illuminationEstimationPipeline.m_sbt.hitgroupRecordCount = static_cast<int>(hitGroupRecords.size());
 	}
 }

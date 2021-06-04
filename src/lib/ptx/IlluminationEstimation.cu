@@ -2,8 +2,9 @@
 #include <Optix7.hpp>
 #include <LaunchParams.hpp>
 #include <RayTracerUtilities.cuh>
+#include <RayDataDefinations.hpp>
 namespace RayMLVQ {
-	extern "C" __constant__ IlluminationEstimationLaunchParams illuminationEstimationLaunchParams;
+	extern "C" __constant__ DefaultIlluminationEstimationLaunchParams defaultIlluminationEstimationLaunchParams;
 	struct IlluminationEstimationRayData {
 		unsigned m_hitCount = 0;
 		Random m_random;
@@ -13,7 +14,7 @@ namespace RayMLVQ {
 	extern "C" __global__ void __closesthit__illuminationEstimation()
 	{
 		const auto& sbtData
-			= *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
+			= *(const DefaultMaterial*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
 		const int primitiveId = optixGetPrimitiveIndex();
 		const glm::uvec3 index = sbtData.m_triangle[primitiveId];
@@ -59,7 +60,7 @@ namespace RayMLVQ {
 		
 		IlluminationEstimationRayData& perRayData = *GetRayDataPointer<IlluminationEstimationRayData>();
 		auto energy = 0.0f;
-		const auto scatterSamples = illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_numScatterSamples;
+		const auto scatterSamples = defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_numScatterSamples;
 		uint32_t u0, u1;
 		PackRayDataPointer(&perRayData, u0, u1);
 		float metallic = sbtData.m_metallic;
@@ -69,7 +70,7 @@ namespace RayMLVQ {
 		{
 			perRayData.m_hitCount = hitCount;
 			perRayData.m_energy = 0;
-			if (perRayData.m_hitCount <= illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_bounceLimit) {
+			if (perRayData.m_hitCount <= defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_bounceLimit) {
 				float f = 1.0f;
 				if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
 				glm::vec3 reflected = Reflect(rayDirection, normal);
@@ -84,7 +85,7 @@ namespace RayMLVQ {
 				}
 				float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 				float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-				optixTrace(illuminationEstimationLaunchParams.m_traversable,
+				optixTrace(defaultIlluminationEstimationLaunchParams.m_traversable,
 					incidentRayOrigin,
 					newRayDirectionInternal,
 					0.0f,    // tmin
@@ -92,9 +93,9 @@ namespace RayMLVQ {
 					0.0f,   // rayTime
 					static_cast<OptixVisibilityMask>(255),
 					OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-					static_cast<int>(IlluminationEstimationRayType::RadianceRayType),             // SBT offset
-					static_cast<int>(IlluminationEstimationRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(IlluminationEstimationRayType::RadianceRayType),             // missSBTIndex
+					static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType),             // SBT offset
+					static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount),               // SBT stride
+					static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType),             // missSBTIndex
 					u0, u1);
 				energy += glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
 					* perRayData.m_energy;
@@ -115,22 +116,22 @@ namespace RayMLVQ {
 		IlluminationEstimationRayData& prd = *GetRayDataPointer<IlluminationEstimationRayData>();
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		const glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
-		prd.m_energy = illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_skylightPower;
+		prd.m_energy = defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_skylightPower;
 	}
 #pragma endregion
 #pragma region Main ray generation
 	extern "C" __global__ void __raygen__illuminationEstimation()
 	{
 		unsigned ix = optixGetLaunchIndex().x;
-		const auto numPointSamples = illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_numPointSamples;
-		const auto position = illuminationEstimationLaunchParams.m_lightProbes[ix].m_position;
-		const auto surfaceNormal = illuminationEstimationLaunchParams.m_lightProbes[ix].m_surfaceNormal;
-		const bool pushNormal = illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_pushNormal;
+		const auto numPointSamples = defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_numPointSamples;
+		const auto position = defaultIlluminationEstimationLaunchParams.m_lightProbes[ix].m_position;
+		const auto surfaceNormal = defaultIlluminationEstimationLaunchParams.m_lightProbes[ix].m_surfaceNormal;
+		const bool pushNormal = defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_pushNormal;
 		float pointEnergy = 0.0f;
 		auto pointDirection = glm::vec3(0.0f);
 
 		IlluminationEstimationRayData perRayData;
-		perRayData.m_random.Init(ix, illuminationEstimationLaunchParams.m_illuminationEstimationProperties.m_seed);
+		perRayData.m_random.Init(ix, defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_seed);
 		uint32_t u0, u1;
 		PackRayDataPointer(&perRayData, u0, u1);
 		for (int sampleID = 0; sampleID < numPointSamples; sampleID++)
@@ -151,7 +152,7 @@ namespace RayMLVQ {
 			}
 			float3 rayOriginInternal = make_float3(rayOrigin.x, rayOrigin.y, rayOrigin.z);
 			float3 rayDirection = make_float3(rayDir.x, rayDir.y, rayDir.z);
-			optixTrace(illuminationEstimationLaunchParams.m_traversable,
+			optixTrace(defaultIlluminationEstimationLaunchParams.m_traversable,
 				rayOriginInternal,
 				rayDirection,
 				1e-2f,    // tmin
@@ -159,16 +160,16 @@ namespace RayMLVQ {
 				0.0f,   // rayTime
 				static_cast<OptixVisibilityMask>(255),
 				OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-				static_cast<int>(IlluminationEstimationRayType::RadianceRayType),             // SBT offset
-				static_cast<int>(IlluminationEstimationRayType::RayTypeCount),               // SBT stride
-				static_cast<int>(IlluminationEstimationRayType::RadianceRayType),             // missSBTIndex
+				static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType),             // SBT offset
+				static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount),               // SBT stride
+				static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType),             // missSBTIndex
 				u0, u1);
 			pointEnergy += perRayData.m_energy;
 			pointDirection += rayDir * perRayData.m_energy;
 		}
 		if (pointEnergy != 0) {
-			illuminationEstimationLaunchParams.m_lightProbes[ix].m_energy = pointEnergy / numPointSamples;
-			illuminationEstimationLaunchParams.m_lightProbes[ix].m_direction = pointDirection / static_cast<float>(numPointSamples);
+			defaultIlluminationEstimationLaunchParams.m_lightProbes[ix].m_energy = pointEnergy / numPointSamples;
+			defaultIlluminationEstimationLaunchParams.m_lightProbes[ix].m_direction = pointDirection / static_cast<float>(numPointSamples);
 		}
 	}
 #pragma endregion

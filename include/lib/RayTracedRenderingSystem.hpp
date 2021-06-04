@@ -19,7 +19,7 @@ namespace RayMLVQ
 		void FixedUpdate() override;
 		void LateUpdate() override;
 #pragma region Rendering
-		DebugRenderingProperties m_properties;
+		DefaultRenderingProperties m_properties;
 		float m_cameraFov = 60;
 		bool m_rayTracerDebugRenderingEnabled = true;
 		float m_lastX = 0;

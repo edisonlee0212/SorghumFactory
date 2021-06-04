@@ -61,7 +61,7 @@ void CudaModule::PrepareScene()
 	GetInstance().m_optixRayTracer->BuildAccelerationStructure(GetInstance().m_meshes);
 }
 
-bool CudaModule::RenderRayTracerDebugOutput(const DebugRenderingProperties& properties)
+bool CudaModule::RenderRayTracerDebugOutput(const DefaultRenderingProperties& properties)
 {
 	auto& rayTracer = GetInstance().m_optixRayTracer;
 	return rayTracer->RenderDebugOutput(properties, GetInstance().m_meshes);

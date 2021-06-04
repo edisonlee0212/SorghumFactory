@@ -40,14 +40,23 @@ enable_language(CUDA)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${UNIENGINE_INCLUDES})
+
+cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/DefaultRendering.cu)
 cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/IlluminationEstimation.cu)
-cuda_compile_and_embed(DEBUG_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/DebugRendering.cu)
+
+cuda_compile_and_embed(RAYMLVQ_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/RayMLVQRendering.cu)
+
 file(GLOB RAYMLVQ_SOURCES_LOCAL "src/lib/*.cpp")
 file(GLOB RAYMLVQ_CUDA_SOURCES_LOCAL "src/lib/*.cu")
 add_library(rayMLVQ
 	SHARED
+	#Default
+	${DEFAULT_RENDERING_PTX}
 	${ILLUMINATION_ESTIMATION_PTX}
-	${DEBUG_RENDERING_PTX}
+	#RayMLVQ
+	${RAYMLVQ_RENDERING_PTX}
+
+	#C++
 	${RAYMLVQ_SOURCES_LOCAL}
 	${RAYMLVQ_CUDA_SOURCES_LOCAL}
 	${CMAKE_MODULE_PATH}/configure_optix.cmake

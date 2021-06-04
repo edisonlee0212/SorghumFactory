@@ -3,36 +3,30 @@
 #include <glm/glm.hpp>
 
 namespace RayMLVQ {
-	enum class DebugRenderingRayType
+	enum class DefaultRenderingRayType
 	{
 		RadianceRayType,
 		ShadowRayType,
 		RayTypeCount
 	};
-	enum class IlluminationEstimationRayType
+	enum class DefaultIlluminationEstimationRayType
 	{
 		RadianceRayType,
 		RayTypeCount
 	};
-	struct VertexInfo;
-	struct TriangleMeshSBTData {
-		glm::vec3  m_surfaceColor;
-		glm::vec3* m_position;
-		glm::uvec3* m_triangle;
-		glm::vec3* m_normal;
-		glm::vec3* m_tangent;
-		glm::vec4* m_color;
-		glm::vec2* m_texCoord;
-		float m_roughness = 15;
-		float m_metallic = 0.5;
-		cudaTextureObject_t m_albedoTexture;
-		cudaTextureObject_t m_normalTexture;
-		float m_diffuseIntensity;
-	};
 
-	struct DebugRenderingLaunchParams
+	enum class RayMLVQRenderingRayType
 	{
-		DebugRenderingProperties m_debugRenderingProperties;
+		RadianceRayType,
+		RayTypeCount
+	};
+	
+	struct VertexInfo;
+	
+
+	struct DefaultRenderingLaunchParams
+	{
+		DefaultRenderingProperties m_defaultRenderingProperties;
 		struct {
 			cudaSurfaceObject_t m_outputTexture;
 			size_t m_frameId;
@@ -45,11 +39,26 @@ namespace RayMLVQ {
 		OptixTraversableHandle m_traversable;
 	};
 
-	struct IlluminationEstimationLaunchParams
+	struct DefaultIlluminationEstimationLaunchParams
 	{
 		size_t m_size;
-		IlluminationEstimationProperties m_illuminationEstimationProperties;
+		IlluminationEstimationProperties m_defaultIlluminationEstimationProperties;
 		LightProbe<float>* m_lightProbes;
+		OptixTraversableHandle m_traversable;
+	};
+
+	struct RayMLVQRenderingLaunchParams
+	{
+		RayMLVQRenderingProperties m_rayMLVQRenderingProperties;
+		struct {
+			cudaSurfaceObject_t m_outputTexture;
+			size_t m_frameId;
+		} m_frame;
+		struct {
+			cudaTextureObject_t m_environmentalMaps[6];
+			float m_lightSize = 1.0f;
+			glm::vec3 m_direction = glm::vec3(0, -1, 0);
+		} m_skylight;
 		OptixTraversableHandle m_traversable;
 	};
 }

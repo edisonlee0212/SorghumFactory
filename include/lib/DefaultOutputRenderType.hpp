@@ -1,6 +1,6 @@
 #pragma once
 namespace RayMLVQ {
-	enum class DebugOutputRenderType
+	enum class DefaultOutputRenderType
 	{
 		SoftShadow,
 		Glass,

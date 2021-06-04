@@ -9,24 +9,23 @@
 namespace RayMLVQ {
 	enum PipelineType
 	{
-		DebugRendering,
+		DefaultRendering,
 		IlluminationEstimation,
-		IlluminationVisualization,
+		RayMLVQRendering,
+		
 		PipelineSize
 	};
 	
-	
-
 	template <typename LaunchParameter>
 	struct RayTracerPipeline
 	{
 		OptixModule                 m_module;
 		OptixModuleCompileOptions   m_moduleCompileOptions = {};
-		
+
 		OptixPipeline               m_pipeline;
 		OptixPipelineCompileOptions m_pipelineCompileOptions = {};
 		OptixPipelineLinkOptions    m_pipelineLinkOptions = {};
-		
+
 		std::vector<OptixProgramGroup> m_rayGenProgramGroups;
 		CudaBuffer m_rayGenRecordsBuffer;
 		std::vector<OptixProgramGroup> m_missProgramGroups;
@@ -38,14 +37,14 @@ namespace RayMLVQ {
 		LaunchParameter m_launchParams;
 		CudaBuffer   m_launchParamsBuffer;
 	};
-	
+
 	class OptixRayTracer
 	{
 	public:
 		// ------------------------------------------------------------------
 		// internal helper functions
 		// ------------------------------------------------------------------
-		[[nodiscard]] bool RenderDebugOutput(const DebugRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
+		[[nodiscard]] bool RenderDebugOutput(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
 		void EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes);
 		OptixRayTracer();
 		/*! build an acceleration structure for the given triangle mesh */
@@ -57,10 +56,25 @@ namespace RayMLVQ {
 		void SetSkylightDir(const glm::vec3& value);
 		void SetStatusChanged(const bool& value = true);
 	protected:
+#pragma region Device and context
+		/*! @{ CUDA device context and stream that optix pipeline will run
+			on, as well as device properties for this device */
+		CUcontext          m_cudaContext;
+		CUstream           m_stream;
+		cudaDeviceProp     m_deviceProps;
+		/*! @} */
+		//! the optix context that our pipeline will run in.
+		OptixDeviceContext m_optixContext;
+
 		/*! creates and configures a optix device context (in this simple
 		  example, only for the primary GPU device) */
 		void CreateContext();
-
+#pragma endregion
+#pragma region Pipeline setup
+		RayTracerPipeline<DefaultRenderingLaunchParams> m_debugRenderingPipeline;
+		RayTracerPipeline<DefaultIlluminationEstimationLaunchParams> m_illuminationEstimationPipeline;
+		RayTracerPipeline<RayMLVQRenderingLaunchParams> m_rayMLVQRenderingPipeline;
+		
 		/*! creates the module that contains all the programs we are going
 		  to use. in this simple example, we use a single module from a
 		  single .cu file, using a single embedded ptx string */
@@ -77,24 +91,11 @@ namespace RayMLVQ {
 
 		/*! assembles the full pipeline of all programs */
 		void CreatePipeline();
+#pragma endregion
 
-		
-		/*! @{ CUDA device context and stream that optix pipeline will run
-			on, as well as device properties for this device */
-		CUcontext          m_cudaContext;
-		CUstream           m_stream;
-		cudaDeviceProp     m_deviceProps;
-		/*! @} */
-
-		//! the optix context that our pipeline will run in.
-		OptixDeviceContext m_optixContext;
-
-		RayTracerPipeline<DebugRenderingLaunchParams> m_debugRenderingPipeline;
-		RayTracerPipeline<IlluminationEstimationLaunchParams> m_illuminationEstimationPipeline;
-		
 		bool m_accumulate = true;
 		bool m_statusChanged = false;
-		
+#pragma region Accleration structure
 		/*! check if we have build the acceleration structure. */
 		bool m_hasAccelerationStructure = false;
 
@@ -110,7 +111,7 @@ namespace RayMLVQ {
 		std::vector<CudaBuffer> m_transformedNormalsBuffer;
 		/*! one buffer per input mesh */
 		std::vector<CudaBuffer> m_transformedTangentsBuffer;
-		
+
 		/*! one buffer per input mesh */
 		std::vector<CudaBuffer> m_trianglesBuffer;
 		/*! one buffer per input mesh */
@@ -119,7 +120,8 @@ namespace RayMLVQ {
 		std::vector<CudaBuffer> m_colorsBuffer;
 		//! buffer that keeps the (final, compacted) acceleration structure
 		CudaBuffer m_acceleratedStructuresBuffer;
+#pragma endregion
 	};
 
-	
+
 }

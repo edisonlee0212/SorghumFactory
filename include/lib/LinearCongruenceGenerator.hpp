@@ -1,8 +1,6 @@
 #pragma once
 
 #include <vector>
-
-
 namespace RayMLVQ
 {
 	/*! simple 24-bit linear congruence generator */

@@ -41,7 +41,7 @@ void RayTracedRenderingSystem::OnGui()
 					ImGui::Combo("Render type", (int*)&m_properties.m_debugRenderingType, DebugOutputRenderTypes, IM_ARRAYSIZE(DebugOutputRenderTypes));
 					switch (m_properties.m_debugRenderingType)
 					{
-					case DebugOutputRenderType::SoftShadow:
+					case DefaultOutputRenderType::SoftShadow:
 					{
 						ImGui::Text("Shadow softness");
 						if (ImGui::DragFloat("Shadow softness", &lightSize, 0.002f, 0.0f, 2.0f))
@@ -55,12 +55,12 @@ void RayTracedRenderingSystem::OnGui()
 						}
 					}
 					break;
-					case DebugOutputRenderType::Glass:
+					case DefaultOutputRenderType::Glass:
 					{
 
 					}
 					break;
-					case DebugOutputRenderType::Brdf:
+					case DefaultOutputRenderType::Brdf:
 					{
 
 					}

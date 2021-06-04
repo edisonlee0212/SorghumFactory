@@ -1,7 +1,7 @@
 #pragma once
 #include <raymlvq_export.h>
 #include <CUDABuffer.hpp>
-#include <DebugOutputRenderType.hpp>
+#include <DefaultOutputRenderType.hpp>
 #include <memory>
 #include <iostream>
 #include <vector>
@@ -34,7 +34,7 @@ namespace RayMLVQ {
 		void Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size);
 	};
 	
-	struct RAYMLVQ_API DebugRenderingProperties
+	struct RAYMLVQ_API DefaultRenderingProperties
 	{
 		bool m_accumulate = true;
 		bool m_useEnvironmentalMap = false;
@@ -43,12 +43,12 @@ namespace RayMLVQ {
 		int m_samplesPerPixel = 1;
 		int m_samplesPerHit = 1;
 		bool m_useGeometryNormal = false;
-		DebugOutputRenderType m_debugRenderingType = DebugOutputRenderType::Brdf;
+		DefaultOutputRenderType m_debugRenderingType = DefaultOutputRenderType::Brdf;
 		Camera m_camera;
 		unsigned m_outputTextureId;
 		unsigned m_environmentalMapId;
 		glm::ivec2 m_frameSize;
-		[[nodiscard]] bool Changed(const DebugRenderingProperties& properties) const
+		[[nodiscard]] bool Changed(const DefaultRenderingProperties& properties) const
 		{
 			return
 				properties.m_accumulate != m_accumulate ||
@@ -72,6 +72,35 @@ namespace RayMLVQ {
 		int m_numScatterSamples = 10;
 		float m_skylightPower = 1.0f;
 		bool m_pushNormal = true;
+	};
+
+	struct RAYMLVQ_API RayMLVQRenderingProperties
+	{
+		bool m_accumulate = true;
+		bool m_useEnvironmentalMap = false;
+		float m_skylightIntensity = 0.8f;
+		int m_bounceLimit = 4;
+		int m_samplesPerPixel = 1;
+		int m_samplesPerHit = 1;
+		bool m_useGeometryNormal = false;
+		Camera m_camera;
+		unsigned m_outputTextureId;
+		unsigned m_environmentalMapId;
+		glm::ivec2 m_frameSize;
+		[[nodiscard]] bool Changed(const RayMLVQRenderingProperties& properties) const
+		{
+			return
+				properties.m_accumulate != m_accumulate ||
+				properties.m_useEnvironmentalMap != m_useEnvironmentalMap ||
+				properties.m_skylightIntensity != m_skylightIntensity ||
+				properties.m_bounceLimit != m_bounceLimit ||
+				properties.m_samplesPerPixel != m_samplesPerPixel ||
+				properties.m_useGeometryNormal != m_useGeometryNormal ||
+				properties.m_outputTextureId != m_outputTextureId ||
+				properties.m_environmentalMapId != m_environmentalMapId ||
+				properties.m_frameSize != m_frameSize ||
+				properties.m_camera != m_camera;
+		}
 	};
 	
 	template<typename T>
@@ -141,7 +170,7 @@ namespace RayMLVQ {
 		static CudaModule& GetInstance();
 		static void Init();
 		static void PrepareScene();
-		static bool RenderRayTracerDebugOutput(const DebugRenderingProperties& properties);
+		static bool RenderRayTracerDebugOutput(const DefaultRenderingProperties& properties);
 		static void Terminate();
 		static void EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightProbe<float>>& lightProbes);
 	};
