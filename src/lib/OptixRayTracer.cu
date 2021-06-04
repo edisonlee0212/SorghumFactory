@@ -122,12 +122,12 @@ bool OptixRayTracer::RenderDebugOutput(const DebugRenderingProperties& propertie
 	m_debugRenderingPipeline.m_launchParams.m_skylight.m_environmentalMaps[4] = 0;
 	CUDA_CHECK(DestroyTextureObject(m_debugRenderingPipeline.m_launchParams.m_skylight.m_environmentalMaps[5]));
 	m_debugRenderingPipeline.m_launchParams.m_skylight.m_environmentalMaps[5] = 0;
-	
+
 	CUDA_CHECK(GraphicsUnmapResources(1, &environmentalMapTexture, 0));
 	CUDA_CHECK(GraphicsUnregisterResource(environmentalMapTexture));
 #pragma endregion
 
-	for(int i = 0; i < boundResources.size(); i++)
+	for (int i = 0; i < boundResources.size(); i++)
 	{
 		CUDA_CHECK(DestroySurfaceObject(boundTextures[i].second));
 		CUDA_CHECK(GraphicsUnmapResources(1, &boundResources[i], 0));
@@ -150,7 +150,7 @@ void OptixRayTracer::EstimateIllumination(const size_t& size, const Illumination
 	m_illuminationEstimationPipeline.m_launchParamsBuffer.Upload(&m_illuminationEstimationPipeline.m_launchParams, 1);
 #pragma endregion
 #pragma endregion
-	if(size == 0)
+	if (size == 0)
 	{
 		std::cout << "Error!" << std::endl;
 		return;
@@ -210,9 +210,9 @@ void OptixRayTracer::SetSkylightDir(const glm::vec3& value)
 }
 
 static void context_log_cb(const unsigned int level,
-                           const char* tag,
-                           const char* message,
-                           void*)
+	const char* tag,
+	const char* message,
+	void*)
 {
 	fprintf(stderr, "[%2d][%12s]: %s\n", static_cast<int>(level), tag, message);
 }
@@ -486,36 +486,45 @@ __global__ void ApplyTransformKernel(
 
 void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 {
-	for (auto& i : m_positionsBuffer) i.Free();
-	for (auto& i : m_trianglesBuffer) i.Free();
-	for (auto& i : m_normalsBuffer) i.Free();
-	for (auto& i : m_tangentsBuffer) i.Free();
-	for (auto& i : m_colorsBuffer) i.Free();
-	for (auto& i : m_texCoordsBuffer) i.Free();
-	for (auto& i : m_transformedPositionsBuffer) i.Free();
-	for (auto& i : m_transformedNormalsBuffer) i.Free();
-	for (auto& i : m_transformedTangentsBuffer) i.Free();
-	
-	m_positionsBuffer.clear();
-	m_trianglesBuffer.clear();
-	m_normalsBuffer.clear();
-	m_tangentsBuffer.clear();
-	m_colorsBuffer.clear();
-	m_texCoordsBuffer.clear();
-	m_transformedPositionsBuffer.clear();
-	m_transformedNormalsBuffer.clear();
-	m_transformedTangentsBuffer.clear();
-	
-	m_positionsBuffer.resize(meshes.size());
-	m_trianglesBuffer.resize(meshes.size());
-	m_normalsBuffer.resize(meshes.size());
-	m_tangentsBuffer.resize(meshes.size());
-	m_colorsBuffer.resize(meshes.size());
-	m_texCoordsBuffer.resize(meshes.size());
-	m_transformedTangentsBuffer.resize(meshes.size());
-	m_transformedNormalsBuffer.resize(meshes.size());
-	m_transformedPositionsBuffer.resize(meshes.size());
-	
+	bool uploadVertices = false;
+	for (auto& i : meshes)
+	{
+		if (i.m_verticesUpdateFlag) {
+			uploadVertices = true;
+			break;
+		}
+	}
+	if (uploadVertices) {
+		for (auto& i : m_positionsBuffer) i.Free();
+		for (auto& i : m_trianglesBuffer) i.Free();
+		for (auto& i : m_normalsBuffer) i.Free();
+		for (auto& i : m_tangentsBuffer) i.Free();
+		for (auto& i : m_colorsBuffer) i.Free();
+		for (auto& i : m_texCoordsBuffer) i.Free();
+		for (auto& i : m_transformedPositionsBuffer) i.Free();
+		for (auto& i : m_transformedNormalsBuffer) i.Free();
+		for (auto& i : m_transformedTangentsBuffer) i.Free();
+
+		m_positionsBuffer.clear();
+		m_trianglesBuffer.clear();
+		m_normalsBuffer.clear();
+		m_tangentsBuffer.clear();
+		m_colorsBuffer.clear();
+		m_texCoordsBuffer.clear();
+		m_transformedPositionsBuffer.clear();
+		m_transformedNormalsBuffer.clear();
+		m_transformedTangentsBuffer.clear();
+
+		m_positionsBuffer.resize(meshes.size());
+		m_trianglesBuffer.resize(meshes.size());
+		m_normalsBuffer.resize(meshes.size());
+		m_tangentsBuffer.resize(meshes.size());
+		m_colorsBuffer.resize(meshes.size());
+		m_texCoordsBuffer.resize(meshes.size());
+		m_transformedTangentsBuffer.resize(meshes.size());
+		m_transformedNormalsBuffer.resize(meshes.size());
+		m_transformedPositionsBuffer.resize(meshes.size());
+	}
 	OptixTraversableHandle asHandle = 0;
 
 	// ==================================================================
@@ -530,19 +539,16 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 	for (int meshID = 0; meshID < meshes.size(); meshID++) {
 		// upload the model to the device: the builder
 		TriangleMesh& model = meshes[meshID];
-		m_positionsBuffer[meshID].Upload(*model.m_positions);
-		m_tangentsBuffer[meshID].Upload(*model.m_tangents);
-		m_normalsBuffer[meshID].Upload(*model.m_normals);
-		m_transformedPositionsBuffer[meshID].Resize(model.m_positions->size() * sizeof(glm::vec3));
-		m_transformedNormalsBuffer[meshID].Resize(model.m_normals->size() * sizeof(glm::vec3));
-		m_transformedTangentsBuffer[meshID].Resize(model.m_tangents->size() * sizeof(glm::vec3));
-		
-		m_texCoordsBuffer[meshID].Upload(*model.m_texCoords);
-		m_colorsBuffer[meshID].Upload(*model.m_colors);
-		m_trianglesBuffer[meshID].Upload(*model.m_triangles);
-		triangleInput[meshID] = {};
-		triangleInput[meshID].type
-			= OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+		if (uploadVertices)
+		{
+			m_positionsBuffer[meshID].Upload(*model.m_positions);
+			m_tangentsBuffer[meshID].Upload(*model.m_tangents);
+			m_normalsBuffer[meshID].Upload(*model.m_normals);
+			m_transformedPositionsBuffer[meshID].Resize(model.m_positions->size() * sizeof(glm::vec3));
+			m_transformedNormalsBuffer[meshID].Resize(model.m_normals->size() * sizeof(glm::vec3));
+			m_transformedTangentsBuffer[meshID].Resize(model.m_tangents->size() * sizeof(glm::vec3));
+		}
+
 
 		int blockSize = 0;      // The launch configurator returned block size 
 		int minGridSize = 0;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
@@ -550,17 +556,26 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 		int size = model.m_positions->size();
 		cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, ApplyTransformKernel, 0, size);
 		gridSize = (size + blockSize - 1) / blockSize;
-		ApplyTransformKernel << <gridSize, blockSize >> > (size, model.m_globalTransform, 
+		ApplyTransformKernel << <gridSize, blockSize >> > (size, model.m_globalTransform,
 			static_cast<glm::vec3*>(m_positionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_normalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_tangentsBuffer[meshID].m_dPtr),
-				static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedNormalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedTangentsBuffer[meshID].m_dPtr));
+			static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedNormalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedTangentsBuffer[meshID].m_dPtr));
 		CUDA_SYNC_CHECK();
 
-		
+		model.m_verticesUpdateFlag = false;
+		model.m_transformUpdateFlag = false;
+
+		m_texCoordsBuffer[meshID].Upload(*model.m_texCoords);
+		m_colorsBuffer[meshID].Upload(*model.m_colors);
+		m_trianglesBuffer[meshID].Upload(*model.m_triangles);
+		triangleInput[meshID] = {};
+		triangleInput[meshID].type
+			= OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+
 		// create local variables, because we need a *pointer* to the
 		// device pointers
 		deviceVertexPositions[meshID] = m_transformedPositionsBuffer[meshID].DevicePointer();
 		deviceVertexTriangles[meshID] = m_trianglesBuffer[meshID].DevicePointer();
-		
+
 		triangleInput[meshID].triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
 		triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(glm::vec3);
 		triangleInput[meshID].triangleArray.numVertices = static_cast<int>(model.m_positions->size());
@@ -568,7 +583,7 @@ void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshe
 
 		//triangleInput[meshID].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_MATRIX_FLOAT12;
 		//triangleInput[meshID].triangleArray.preTransform = deviceTransforms[meshID];
-		
+
 		triangleInput[meshID].triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
 		triangleInput[meshID].triangleArray.indexStrideInBytes = sizeof(glm::uvec3);
 		triangleInput[meshID].triangleArray.numIndexTriplets = static_cast<int>(model.m_triangles->size());
@@ -803,19 +818,19 @@ void OptixRayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, 
 				rec.m_data.m_tangent = reinterpret_cast<glm::vec3*>(m_transformedTangentsBuffer[i].DevicePointer());
 				rec.m_data.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
 				rec.m_data.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
-				
+
 				rec.m_data.m_surfaceColor = meshes[i].m_surfaceColor;
 				rec.m_data.m_roughness = meshes[i].m_roughness;
 				rec.m_data.m_metallic = meshes[i].m_metallic;
 				rec.m_data.m_albedoTexture = 0;
 				rec.m_data.m_normalTexture = 0;
 				rec.m_data.m_diffuseIntensity = meshes[i].m_diffuseIntensity;
-				if(meshes[i].m_albedoTexture != 0)
+				if (meshes[i].m_albedoTexture != 0)
 				{
 					bool duplicate = false;
-					for(auto& boundTexture : boundTextures)
+					for (auto& boundTexture : boundTextures)
 					{
-						if(boundTexture.first == meshes[i].m_albedoTexture)
+						if (boundTexture.first == meshes[i].m_albedoTexture)
 						{
 							rec.m_data.m_albedoTexture = boundTexture.second;
 							duplicate = true;

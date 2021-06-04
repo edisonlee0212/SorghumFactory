@@ -11,7 +11,7 @@ namespace RayMLVQ
 	{
 		void OnGui();
 	public:
-		void UpdateDebugRenderOutputScene();
+		void UpdateDebugRenderOutputScene() const;
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;

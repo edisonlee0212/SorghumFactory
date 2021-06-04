@@ -112,6 +112,9 @@ namespace RayMLVQ {
 		unsigned m_albedoTexture = 0;
 		unsigned m_normalTexture = 0;
 		float m_diffuseIntensity = 0;
+
+		bool m_verticesUpdateFlag = true;
+		bool m_transformUpdateFlag = true;
 	};
 	class OptixRayTracer;
 	class RAYMLVQ_API CudaModule {

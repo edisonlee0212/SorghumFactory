@@ -141,18 +141,17 @@ void RayTracedRenderingSystem::OnGui()
 	ImGui::PopStyleVar();
 }
 
-void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
+void RayTracedRenderingSystem::UpdateDebugRenderOutputScene() const
 {
 	if (!m_rayTracerDebugRenderingEnabled) return;
-	bool needGeometryUpdate = false;
-	bool needSbtUpdate = false;
+	bool rebuildAccelerationStructure = false;
+	bool updateShaderBindingTable = false;
 	auto& meshesStorage = CudaModule::GetInstance().m_meshes;
 	for (auto& i : meshesStorage)
 	{
 		i.m_removeTag = true;
 	}
-	const auto* rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracerMaterial>();
-	if (rayTracerEntities)
+	if (const auto * rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracerMaterial>(); rayTracerEntities)
 	{
 		for (auto entity : *rayTracerEntities) {
 			if (!entity.IsEnabled()) continue;
@@ -165,7 +164,8 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
 			TriangleMesh newCudaTriangleMesh;
 			TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
-			bool needUpdate = false;
+			bool needVerticesUpdate = false;
+			bool needTransformUpdate = false;
 			bool fromNew = true;
 			bool needMaterialUpdate = false;
 			for (auto& triangleMesh : meshesStorage)
@@ -175,9 +175,9 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 					fromNew = false;
 					cudaTriangleMesh = &triangleMesh;
 					triangleMesh.m_removeTag = false;
-					if (globalTransform != triangleMesh.m_globalTransform) needUpdate = true;
+					if (globalTransform != triangleMesh.m_globalTransform) needTransformUpdate = true;
 					if (cudaTriangleMesh->m_version != meshRenderer->m_mesh->GetVersion())
-						needUpdate = true;
+						needVerticesUpdate = true;
 					if (cudaTriangleMesh->m_surfaceColor != meshRenderer->m_material->m_albedoColor
 						|| cudaTriangleMesh->m_metallic != (meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f))
 						|| cudaTriangleMesh->m_roughness != meshRenderer->m_material->m_roughness
@@ -187,64 +187,69 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 					}
 				}
 			}
-			if (fromNew || needUpdate || needMaterialUpdate) {
-				needSbtUpdate = true;
+			cudaTriangleMesh->m_version = meshRenderer->m_mesh->GetVersion();
+			if (fromNew || needVerticesUpdate || needTransformUpdate || needMaterialUpdate) {
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_surfaceColor = meshRenderer->m_material->m_albedoColor;
 				cudaTriangleMesh->m_metallic = meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f);
 				cudaTriangleMesh->m_roughness = meshRenderer->m_material->m_roughness;
-				cudaTriangleMesh->m_version = meshRenderer->m_mesh->GetVersion();
 				cudaTriangleMesh->m_normalTexture = 0;
 				cudaTriangleMesh->m_albedoTexture = 0;
 				cudaTriangleMesh->m_entityId = entity.m_index;
 				cudaTriangleMesh->m_entityVersion = entity.m_version;
 			}
-
-
 			if (rayTracerMaterial->m_albedoTexture && rayTracerMaterial->m_albedoTexture->Texture()->Id() != cudaTriangleMesh->m_albedoTexture)
 			{
-				needSbtUpdate = true;
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_albedoTexture = rayTracerMaterial->m_albedoTexture->Texture()->Id();
 			}
 			else if (!rayTracerMaterial->m_albedoTexture && cudaTriangleMesh->m_albedoTexture != 0)
 			{
-				needSbtUpdate = true;
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_albedoTexture = 0;
 			}
 			if (rayTracerMaterial->m_normalTexture && rayTracerMaterial->m_normalTexture->Texture()->Id() != cudaTriangleMesh->m_normalTexture)
 			{
-				needSbtUpdate = true;
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_normalTexture = rayTracerMaterial->m_normalTexture->Texture()->Id();
 			}
 			else if (!rayTracerMaterial->m_normalTexture && cudaTriangleMesh->m_normalTexture != 0)
 			{
-				needSbtUpdate = true;
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_normalTexture = 0;
 			}
 			if (cudaTriangleMesh->m_diffuseIntensity != rayTracerMaterial->m_diffuseIntensity)
 			{
-				needSbtUpdate = true;
+				updateShaderBindingTable = true;
 				cudaTriangleMesh->m_diffuseIntensity = rayTracerMaterial->m_diffuseIntensity;
 			}
-
-
-			if (fromNew || needUpdate) {
-				needGeometryUpdate = true;
-				cudaTriangleMesh->m_globalTransform = globalTransform;
+			if (fromNew || needVerticesUpdate) {
+				rebuildAccelerationStructure = true;
+				cudaTriangleMesh->m_verticesUpdateFlag = true;
+				if (fromNew) {
+					cudaTriangleMesh->m_transformUpdateFlag = true;
+					cudaTriangleMesh->m_globalTransform = globalTransform;
+				}
 				cudaTriangleMesh->m_positions = &meshRenderer->m_mesh->UnsafeGetVertexPositions();
 				cudaTriangleMesh->m_normals = &meshRenderer->m_mesh->UnsafeGetVertexNormals();
 				cudaTriangleMesh->m_tangents = &meshRenderer->m_mesh->UnsafeGetVertexTangents();
 				cudaTriangleMesh->m_colors = &meshRenderer->m_mesh->UnsafeGetVertexColors();
 				cudaTriangleMesh->m_triangles = &meshRenderer->m_mesh->UnsafeGetTriangles();
 				cudaTriangleMesh->m_texCoords = &meshRenderer->m_mesh->UnsafeGetVertexTexCoords();
+			}else if(needTransformUpdate)
+			{
+				rebuildAccelerationStructure = true;
+				cudaTriangleMesh->m_globalTransform = globalTransform;
+				cudaTriangleMesh->m_transformUpdateFlag = true;
 			}
-			if (fromNew) meshesStorage.push_back(std::move(newCudaTriangleMesh));
+			if (fromNew) meshesStorage.push_back(newCudaTriangleMesh);
 		}
 	}
 	else
 	{
-		for (int i = 0; i < meshesStorage.size(); i++)
+		for (auto& i : meshesStorage)
 		{
-			meshesStorage[i].m_removeTag = true;
+			i.m_removeTag = true;
 		}
 	}
 	for (int i = 0; i < meshesStorage.size(); i++)
@@ -253,14 +258,14 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 		{
 			meshesStorage.erase(meshesStorage.begin() + i);
 			i--;
-			needGeometryUpdate = true;
+			rebuildAccelerationStructure = true;
 		}
 	}
-	if (needGeometryUpdate && !meshesStorage.empty()) {
+	if (rebuildAccelerationStructure && !meshesStorage.empty()) {
 		CudaModule::PrepareScene();
 		CudaModule::SetStatusChanged();
 	}
-	else if (needSbtUpdate)
+	else if (updateShaderBindingTable)
 	{
 		CudaModule::SetStatusChanged();
 	}
