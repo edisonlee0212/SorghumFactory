@@ -90,7 +90,11 @@ namespace RayMLVQ {
 		void CreateHitGroupPrograms();
 
 		/*! assembles the full pipeline of all programs */
-		void CreatePipeline();
+		void AssemblePipelines();
+		
+		template <typename LaunchParameter>
+		void AssemblePipeline(RayTracerPipeline<LaunchParameter> targetPipeline);
+		
 #pragma endregion
 
 		bool m_accumulate = true;
@@ -123,5 +127,43 @@ namespace RayMLVQ {
 #pragma endregion
 	};
 
+	template <typename LaunchParameter>
+	void OptixRayTracer::AssemblePipeline(RayTracerPipeline<LaunchParameter> targetPipeline)
+	{
+		std::vector<OptixProgramGroup> programGroups;
+		for (auto* pg : targetPipeline.m_rayGenProgramGroups)
+			programGroups.push_back(pg);
+		for (auto* pg : targetPipeline.m_missProgramGroups)
+			programGroups.push_back(pg);
+		for (auto* pg : targetPipeline.m_hitGroupProgramGroups)
+			programGroups.push_back(pg);
 
+		char log[2048];
+		size_t sizeofLog = sizeof(log);
+		OPTIX_CHECK(optixPipelineCreate(m_optixContext,
+			&targetPipeline.m_pipelineCompileOptions,
+			&targetPipeline.m_pipelineLinkOptions,
+			programGroups.data(),
+			static_cast<int>(programGroups.size()),
+			log, &sizeofLog,
+			&targetPipeline.m_pipeline
+		));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+
+		OPTIX_CHECK(optixPipelineSetStackSize
+		(/* [in] The pipeline to configure the stack size for */
+			targetPipeline.m_pipeline,
+			/* [in] The direct stack size requirement for direct
+			   callables invoked from IS or AH. */
+			2 * 1024,
+			/* [in] The direct stack size requirement for direct
+			   callables invoked from RG, MS, or CH.  */
+			2 * 1024,
+			/* [in] The continuation stack requirement. */
+			2 * 1024,
+			/* [in] The maximum depth of a traversable graph
+			   passed to trace. */
+			1));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+	}
 }

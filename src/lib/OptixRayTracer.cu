@@ -191,7 +191,7 @@ OptixRayTracer::OptixRayTracer()
 	//std::cout << "#Optix: creating hitgroup programs ..." << std::endl;
 	CreateHitGroupPrograms();
 	//std::cout << "#Optix: setting up optix pipeline ..." << std::endl;
-	CreatePipeline();
+	AssemblePipelines();
 
 	m_debugRenderingPipeline.m_launchParamsBuffer.Resize(sizeof(m_debugRenderingPipeline.m_launchParams));
 	std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
@@ -297,7 +297,7 @@ void OptixRayTracer::CreateModule()
 		));
 		if (sizeof_log > 1) std::cout << log << std::endl;
 	}
-	if(false){
+	{
 		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
 		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
@@ -366,6 +366,24 @@ void OptixRayTracer::CreateRayGenPrograms()
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
+	{
+		m_rayMLVQRenderingPipeline.m_rayGenProgramGroups.resize(1);
+		OptixProgramGroupOptions pgOptions = {};
+		OptixProgramGroupDesc pgDesc = {};
+		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+		pgDesc.raygen.module = m_rayMLVQRenderingPipeline.m_module;
+		pgDesc.raygen.entryFunctionName = "__raygen__renderFrame";
+		char log[2048];
+		size_t sizeofLog = sizeof(log);
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+			&pgDesc,
+			1,
+			&pgOptions,
+			log, &sizeofLog,
+			&m_rayMLVQRenderingPipeline.m_rayGenProgramGroups[0]
+		));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+	}
 }
 
 void OptixRayTracer::CreateMissPrograms()
@@ -427,6 +445,30 @@ void OptixRayTracer::CreateMissPrograms()
 			&pgOptions,
 			log, &sizeofLog,
 			&m_illuminationEstimationPipeline.m_missProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
+		));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+	}
+	{
+		m_rayMLVQRenderingPipeline.m_missProgramGroups.resize(static_cast<int>(RayMLVQRenderingRayType::RayTypeCount));
+		char log[2048];
+		size_t sizeofLog = sizeof(log);
+
+		OptixProgramGroupOptions pgOptions = {};
+		OptixProgramGroupDesc pgDesc = {};
+		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+		pgDesc.miss.module = m_rayMLVQRenderingPipeline.m_module;
+
+		// ------------------------------------------------------------------
+		// radiance rays
+		// ------------------------------------------------------------------
+		pgDesc.miss.entryFunctionName = "__miss__radiance";
+
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+			&pgDesc,
+			1,
+			&pgOptions,
+			log, &sizeofLog,
+			&m_rayMLVQRenderingPipeline.m_missProgramGroups[static_cast<int>(RayMLVQRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -496,6 +538,30 @@ void OptixRayTracer::CreateHitGroupPrograms()
 			&pgOptions,
 			log, &sizeofLog,
 			&m_illuminationEstimationPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
+		));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+	}
+	{
+		m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(RayMLVQRenderingRayType::RayTypeCount));
+		char log[2048];
+		size_t sizeofLog = sizeof(log);
+
+		OptixProgramGroupOptions pgOptions = {};
+		OptixProgramGroupDesc pgDesc = {};
+		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+		pgDesc.hitgroup.moduleCH = m_rayMLVQRenderingPipeline.m_module;
+		pgDesc.hitgroup.moduleAH = m_rayMLVQRenderingPipeline.m_module;
+		// -------------------------------------------------------
+		// radiance rays
+		// -------------------------------------------------------
+		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
+		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+			&pgDesc,
+			1,
+			&pgOptions,
+			log, &sizeofLog,
+			&m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(RayMLVQRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -725,8 +791,9 @@ void OptixRayTracer::SetAccumulate(const bool& value)
 	m_statusChanged = true;
 }
 
-void OptixRayTracer::CreatePipeline()
+void OptixRayTracer::AssemblePipelines()
 {
+	
 	{
 		std::vector<OptixProgramGroup> programGroups;
 		for (auto* pg : m_debugRenderingPipeline.m_rayGenProgramGroups)
@@ -788,6 +855,43 @@ void OptixRayTracer::CreatePipeline()
 		OPTIX_CHECK(optixPipelineSetStackSize
 		(/* [in] The pipeline to configure the stack size for */
 			m_illuminationEstimationPipeline.m_pipeline,
+			/* [in] The direct stack size requirement for direct
+			   callables invoked from IS or AH. */
+			2 * 1024,
+			/* [in] The direct stack size requirement for direct
+			   callables invoked from RG, MS, or CH.  */
+			2 * 1024,
+			/* [in] The continuation stack requirement. */
+			2 * 1024,
+			/* [in] The maximum depth of a traversable graph
+			   passed to trace. */
+			1));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+	}
+	{
+		std::vector<OptixProgramGroup> programGroups;
+		for (auto* pg : m_rayMLVQRenderingPipeline.m_rayGenProgramGroups)
+			programGroups.push_back(pg);
+		for (auto* pg : m_rayMLVQRenderingPipeline.m_missProgramGroups)
+			programGroups.push_back(pg);
+		for (auto* pg : m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups)
+			programGroups.push_back(pg);
+
+		char log[2048];
+		size_t sizeofLog = sizeof(log);
+		OPTIX_CHECK(optixPipelineCreate(m_optixContext,
+			&m_rayMLVQRenderingPipeline.m_pipelineCompileOptions,
+			&m_rayMLVQRenderingPipeline.m_pipelineLinkOptions,
+			programGroups.data(),
+			static_cast<int>(programGroups.size()),
+			log, &sizeofLog,
+			&m_rayMLVQRenderingPipeline.m_pipeline
+		));
+		if (sizeofLog > 1) std::cout << log << std::endl;
+
+		OPTIX_CHECK(optixPipelineSetStackSize
+		(/* [in] The pipeline to configure the stack size for */
+			m_rayMLVQRenderingPipeline.m_pipeline,
 			/* [in] The direct stack size requirement for direct
 			   callables invoked from IS or AH. */
 			2 * 1024,
