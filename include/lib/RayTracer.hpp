@@ -18,20 +18,21 @@ namespace RayMLVQ {
 	
 	struct RayTracerPipeline
 	{
-		OptixModule                 m_module;
-		OptixModuleCompileOptions   m_moduleCompileOptions = {};
+		std::string						m_launchParamsName;
+		OptixModule						m_module;
+		OptixModuleCompileOptions		m_moduleCompileOptions = {};
 
-		OptixPipeline               m_pipeline;
-		OptixPipelineCompileOptions m_pipelineCompileOptions = {};
-		OptixPipelineLinkOptions    m_pipelineLinkOptions = {};
+		OptixPipeline					m_pipeline;
+		OptixPipelineCompileOptions		m_pipelineCompileOptions = {};
+		OptixPipelineLinkOptions		m_pipelineLinkOptions = {};
 
-		std::vector<OptixProgramGroup> m_rayGenProgramGroups;
-		CudaBuffer m_rayGenRecordsBuffer;
-		std::vector<OptixProgramGroup> m_missProgramGroups;
-		CudaBuffer m_missRecordsBuffer;
-		std::vector<OptixProgramGroup> m_hitGroupProgramGroups;
-		CudaBuffer m_hitGroupRecordsBuffer;
-		OptixShaderBindingTable m_sbt = {};
+		std::vector<OptixProgramGroup>	m_rayGenProgramGroups;
+		CudaBuffer						m_rayGenRecordsBuffer;
+		std::vector<OptixProgramGroup>	m_missProgramGroups;
+		CudaBuffer						m_missRecordsBuffer;
+		std::vector<OptixProgramGroup>	m_hitGroupProgramGroups;
+		CudaBuffer						m_hitGroupRecordsBuffer;
+		OptixShaderBindingTable			m_sbt = {};
 	};
 
 	class RayTracer
@@ -83,7 +84,7 @@ namespace RayMLVQ {
 		/*! creates the module that contains all the programs we are going
 		  to use. in this simple example, we use a single module from a
 		  single .cu file, using a single embedded ptx string */
-		void CreateModule();
+		void CreateModules();
 
 		/*! does all setup for the rayGen program(s) we are going to use */
 		void CreateRayGenPrograms();
@@ -97,8 +98,9 @@ namespace RayMLVQ {
 		/*! assembles the full pipeline of all programs */
 		void AssemblePipelines();
 
-		void AssemblePipeline(RayTracerPipeline& targetPipeline);
-		
+		void CreateRayGenProgram(RayTracerPipeline& targetPipeline, char entryFunctionName[]) const;
+		void CreateModule(RayTracerPipeline& targetPipeline, char ptxCode[], char launchParamsName[]) const;
+		void AssemblePipeline(RayTracerPipeline& targetPipeline) const;
 #pragma endregion
 
 		bool m_accumulate = true;

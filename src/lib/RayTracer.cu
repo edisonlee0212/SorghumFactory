@@ -183,7 +183,7 @@ RayTracer::RayTracer()
 	//std::cout << "#Optix: creating optix context ..." << std::endl;
 	CreateContext();
 	//std::cout << "#Optix: setting up module ..." << std::endl;
-	CreateModule();
+	CreateModules();
 	//std::cout << "#Optix: creating raygen programs ..." << std::endl;
 	CreateRayGenPrograms();
 	//std::cout << "#Optix: creating miss programs ..." << std::endl;
@@ -237,153 +237,18 @@ extern "C" char ILLUMINATION_ESTIMATION_PTX[];
 
 extern "C" char RAYMLVQ_RENDERING_PTX[];
 
-void RayTracer::CreateModule()
+void RayTracer::CreateModules()
 {
-	{
-		m_defaultRenderingPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
-		m_defaultRenderingPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
-		m_defaultRenderingPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
-
-		m_defaultRenderingPipeline.m_pipelineCompileOptions = {};
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.usesMotionBlur = false;
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-		m_defaultRenderingPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "defaultRenderingLaunchParams";
-
-		m_defaultRenderingPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
-
-		const std::string ptxCode = DEFAULT_RENDERING_PTX;
-
-		char log[2048];
-		size_t sizeof_log = sizeof(log);
-		OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
-			&m_defaultRenderingPipeline.m_moduleCompileOptions,
-			&m_defaultRenderingPipeline.m_pipelineCompileOptions,
-			ptxCode.c_str(),
-			ptxCode.size(),
-			log, &sizeof_log,
-			&m_defaultRenderingPipeline.m_module
-		));
-		if (sizeof_log > 1) std::cout << log << std::endl;
-	}
-	{
-		m_defaultIlluminationEstimationPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
-		m_defaultIlluminationEstimationPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
-		m_defaultIlluminationEstimationPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
-
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions = {};
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.usesMotionBlur = false;
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-		m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "defaultIlluminationEstimationLaunchParams";
-
-		m_defaultIlluminationEstimationPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
-
-		const std::string ptxCode = ILLUMINATION_ESTIMATION_PTX;
-
-		char log[2048];
-		size_t sizeof_log = sizeof(log);
-		OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
-			&m_defaultIlluminationEstimationPipeline.m_moduleCompileOptions,
-			&m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions,
-			ptxCode.c_str(),
-			ptxCode.size(),
-			log, &sizeof_log,
-			&m_defaultIlluminationEstimationPipeline.m_module
-		));
-		if (sizeof_log > 1) std::cout << log << std::endl;
-	}
-	{
-		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
-		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
-		m_rayMLVQRenderingPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
-
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions = {};
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.usesMotionBlur = false;
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-		m_rayMLVQRenderingPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = "rayMLVQRenderingLaunchParams";
-
-		m_rayMLVQRenderingPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
-
-		const std::string ptxCode = RAYMLVQ_RENDERING_PTX;
-
-		char log[2048];
-		size_t sizeof_log = sizeof(log);
-		OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
-			&m_rayMLVQRenderingPipeline.m_moduleCompileOptions,
-			&m_rayMLVQRenderingPipeline.m_pipelineCompileOptions,
-			ptxCode.c_str(),
-			ptxCode.size(),
-			log, &sizeof_log,
-			&m_rayMLVQRenderingPipeline.m_module
-		));
-		if (sizeof_log > 1) std::cout << log << std::endl;
-	}
+	CreateModule(m_defaultRenderingPipeline, DEFAULT_RENDERING_PTX, "defaultRenderingLaunchParams");
+	CreateModule(m_defaultIlluminationEstimationPipeline, ILLUMINATION_ESTIMATION_PTX, "defaultIlluminationEstimationLaunchParams");
+	CreateModule(m_rayMLVQRenderingPipeline, RAYMLVQ_RENDERING_PTX, "rayMLVQRenderingLaunchParams");
 }
 
 void RayTracer::CreateRayGenPrograms()
 {
-	{
-		m_defaultRenderingPipeline.m_rayGenProgramGroups.resize(1);
-		OptixProgramGroupOptions pgOptions = {};
-		OptixProgramGroupDesc pgDesc = {};
-		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-		pgDesc.raygen.module = m_defaultRenderingPipeline.m_module;
-		pgDesc.raygen.entryFunctionName = "__raygen__renderFrame";
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
-			&pgDesc,
-			1,
-			&pgOptions,
-			log, &sizeofLog,
-			&m_defaultRenderingPipeline.m_rayGenProgramGroups[0]
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
-	{
-		m_defaultIlluminationEstimationPipeline.m_rayGenProgramGroups.resize(1);
-		OptixProgramGroupOptions pgOptions = {};
-		OptixProgramGroupDesc pgDesc = {};
-		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-		pgDesc.raygen.module = m_defaultIlluminationEstimationPipeline.m_module;
-		pgDesc.raygen.entryFunctionName = "__raygen__illuminationEstimation";
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
-			&pgDesc,
-			1,
-			&pgOptions,
-			log, &sizeofLog,
-			&m_defaultIlluminationEstimationPipeline.m_rayGenProgramGroups[0]
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
-	{
-		m_rayMLVQRenderingPipeline.m_rayGenProgramGroups.resize(1);
-		OptixProgramGroupOptions pgOptions = {};
-		OptixProgramGroupDesc pgDesc = {};
-		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-		pgDesc.raygen.module = m_rayMLVQRenderingPipeline.m_module;
-		pgDesc.raygen.entryFunctionName = "__raygen__renderFrame";
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
-			&pgDesc,
-			1,
-			&pgOptions,
-			log, &sizeofLog,
-			&m_rayMLVQRenderingPipeline.m_rayGenProgramGroups[0]
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
+	CreateRayGenProgram(m_defaultRenderingPipeline, "__raygen__renderFrame");
+	CreateRayGenProgram(m_defaultIlluminationEstimationPipeline, "__raygen__illuminationEstimation");
+	CreateRayGenProgram(m_rayMLVQRenderingPipeline, "__raygen__renderFrame");
 }
 
 void RayTracer::CreateMissPrograms()
@@ -793,129 +658,66 @@ void RayTracer::SetAccumulate(const bool& value)
 
 void RayTracer::AssemblePipelines()
 {
-	bool useTemplate = true;
-	if(useTemplate)
-	{
-		AssemblePipeline(m_defaultRenderingPipeline);
-		AssemblePipeline(m_defaultIlluminationEstimationPipeline);
-		AssemblePipeline(m_rayMLVQRenderingPipeline);
-	}
-	else {
-		{
-			std::vector<OptixProgramGroup> programGroups;
-			for (auto* pg : m_defaultRenderingPipeline.m_rayGenProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_defaultRenderingPipeline.m_missProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_defaultRenderingPipeline.m_hitGroupProgramGroups)
-				programGroups.push_back(pg);
-
-			char log[2048];
-			size_t sizeofLog = sizeof(log);
-			OPTIX_CHECK(optixPipelineCreate(m_optixContext,
-				&m_defaultRenderingPipeline.m_pipelineCompileOptions,
-				&m_defaultRenderingPipeline.m_pipelineLinkOptions,
-				programGroups.data(),
-				static_cast<int>(programGroups.size()),
-				log, &sizeofLog,
-				&m_defaultRenderingPipeline.m_pipeline
-			));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-
-			OPTIX_CHECK(optixPipelineSetStackSize
-			(/* [in] The pipeline to configure the stack size for */
-				m_defaultRenderingPipeline.m_pipeline,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from IS or AH. */
-				2 * 1024,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from RG, MS, or CH.  */
-				2 * 1024,
-				/* [in] The continuation stack requirement. */
-				2 * 1024,
-				/* [in] The maximum depth of a traversable graph
-				   passed to trace. */
-				1));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-		}
-		{
-			std::vector<OptixProgramGroup> programGroups;
-			for (auto* pg : m_defaultIlluminationEstimationPipeline.m_rayGenProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_defaultIlluminationEstimationPipeline.m_missProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_defaultIlluminationEstimationPipeline.m_hitGroupProgramGroups)
-				programGroups.push_back(pg);
-
-			char log[2048];
-			size_t sizeofLog = sizeof(log);
-			OPTIX_CHECK(optixPipelineCreate(m_optixContext,
-				&m_defaultIlluminationEstimationPipeline.m_pipelineCompileOptions,
-				&m_defaultIlluminationEstimationPipeline.m_pipelineLinkOptions,
-				programGroups.data(),
-				static_cast<int>(programGroups.size()),
-				log, &sizeofLog,
-				&m_defaultIlluminationEstimationPipeline.m_pipeline
-			));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-
-			OPTIX_CHECK(optixPipelineSetStackSize
-			(/* [in] The pipeline to configure the stack size for */
-				m_defaultIlluminationEstimationPipeline.m_pipeline,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from IS or AH. */
-				2 * 1024,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from RG, MS, or CH.  */
-				2 * 1024,
-				/* [in] The continuation stack requirement. */
-				2 * 1024,
-				/* [in] The maximum depth of a traversable graph
-				   passed to trace. */
-				1));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-		}
-		{
-			std::vector<OptixProgramGroup> programGroups;
-			for (auto* pg : m_rayMLVQRenderingPipeline.m_rayGenProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_rayMLVQRenderingPipeline.m_missProgramGroups)
-				programGroups.push_back(pg);
-			for (auto* pg : m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups)
-				programGroups.push_back(pg);
-
-			char log[2048];
-			size_t sizeofLog = sizeof(log);
-			OPTIX_CHECK(optixPipelineCreate(m_optixContext,
-				&m_rayMLVQRenderingPipeline.m_pipelineCompileOptions,
-				&m_rayMLVQRenderingPipeline.m_pipelineLinkOptions,
-				programGroups.data(),
-				static_cast<int>(programGroups.size()),
-				log, &sizeofLog,
-				&m_rayMLVQRenderingPipeline.m_pipeline
-			));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-
-			OPTIX_CHECK(optixPipelineSetStackSize
-			(/* [in] The pipeline to configure the stack size for */
-				m_rayMLVQRenderingPipeline.m_pipeline,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from IS or AH. */
-				2 * 1024,
-				/* [in] The direct stack size requirement for direct
-				   callables invoked from RG, MS, or CH.  */
-				2 * 1024,
-				/* [in] The continuation stack requirement. */
-				2 * 1024,
-				/* [in] The maximum depth of a traversable graph
-				   passed to trace. */
-				1));
-			if (sizeofLog > 1) std::cout << log << std::endl;
-		}
-	}
+	AssemblePipeline(m_defaultRenderingPipeline);
+	AssemblePipeline(m_defaultIlluminationEstimationPipeline);
+	AssemblePipeline(m_rayMLVQRenderingPipeline);
 }
 
-void RayTracer::AssemblePipeline(RayTracerPipeline& targetPipeline)
+void RayTracer::CreateRayGenProgram(RayTracerPipeline& targetPipeline, char entryFunctionName[]) const
+{
+	targetPipeline.m_rayGenProgramGroups.resize(1);
+	OptixProgramGroupOptions pgOptions = {};
+	OptixProgramGroupDesc pgDesc = {};
+	pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+	pgDesc.raygen.module = targetPipeline.m_module;
+	pgDesc.raygen.entryFunctionName = entryFunctionName;
+	char log[2048];
+	size_t sizeofLog = sizeof(log);
+	OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		&pgDesc,
+		1,
+		&pgOptions,
+		log, &sizeofLog,
+		&targetPipeline.m_rayGenProgramGroups[0]
+	));
+	if (sizeofLog > 1) std::cout << log << std::endl;
+}
+
+void RayTracer::CreateModule(RayTracerPipeline& targetPipeline, char ptxCode[],
+                             char launchParamsName[]) const
+{
+	targetPipeline.m_launchParamsName = launchParamsName;
+
+	targetPipeline.m_moduleCompileOptions.maxRegisterCount = 50;
+	targetPipeline.m_moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+	targetPipeline.m_moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
+
+	targetPipeline.m_pipelineCompileOptions = {};
+	targetPipeline.m_pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
+	targetPipeline.m_pipelineCompileOptions.usesMotionBlur = false;
+	targetPipeline.m_pipelineCompileOptions.numPayloadValues = 2;
+	targetPipeline.m_pipelineCompileOptions.numAttributeValues = 2;
+	targetPipeline.m_pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
+	targetPipeline.m_pipelineCompileOptions.pipelineLaunchParamsVariableName = launchParamsName;
+
+	targetPipeline.m_pipelineLinkOptions.maxTraceDepth = 31;
+
+	const std::string code = ptxCode;
+
+	char log[2048];
+	size_t sizeof_log = sizeof(log);
+	OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
+		&targetPipeline.m_moduleCompileOptions,
+		&targetPipeline.m_pipelineCompileOptions,
+		code.c_str(),
+		code.size(),
+		log, &sizeof_log,
+		&targetPipeline.m_module
+	));
+	if (sizeof_log > 1) std::cout << log << std::endl;
+}
+
+void RayTracer::AssemblePipeline(RayTracerPipeline& targetPipeline) const
 {
 	std::vector<OptixProgramGroup> programGroups;
 	for (auto* pg : targetPipeline.m_rayGenProgramGroups)
