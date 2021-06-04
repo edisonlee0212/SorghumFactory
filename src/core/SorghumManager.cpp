@@ -310,7 +310,7 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 					const auto position = segment.GetPoint((j - step) * angleStep);
 					archetype.m_position = glm::vec3(position.x, position.y, position.z);
 					float yPos = (i < stemSegmentCount) ? yStemStep * i : 0.5f + yLeafStep * (i - stemSegmentCount + 1);
-					archetype.m_texCoords0 = glm::vec2(j * xStep, yPos);
+					archetype.m_texCoords = glm::vec2(j * xStep, yPos);
 					spline->m_vertices.push_back(archetype);
 				}
 				if (i != 0) {
@@ -338,7 +338,7 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 				if (!child.HasPrivateComponent<Spline>()) return;
 				auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(child);
 				auto& spline = EntityManager::GetPrivateComponent<Spline>(child);
-				meshRenderer->m_mesh->SetVertices(17, spline->m_vertices, spline->m_indices, true);
+				meshRenderer->m_mesh->SetVertices(17, spline->m_vertices, spline->m_indices);
 			}
 		);
 		if (plant.HasPrivateComponent<SorghumData>())plant.GetPrivateComponent<SorghumData>()->m_meshGenerated = true;
@@ -694,9 +694,9 @@ void SorghumManager::ExportSorghum(const Entity& sorghum, std::ofstream& of, uns
 void SorghumManager::ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
 	std::ofstream& of, unsigned& startIndex)
 {
-	if (!mesh->UnsafeGetVertices().empty() && !mesh->UnsafeGetTriangles().empty())
+	if (!mesh->UnsafeGetTriangles().empty())
 	{
-		std::string header = "#Vertices: " + std::to_string(mesh->UnsafeGetVertices().size()) + ", tris: " + std::to_string(mesh->UnsafeGetTriangles().size() / 3);
+		std::string header = "#Vertices: " + std::to_string(mesh->GetVerticesAmount()) + ", tris: " + std::to_string(mesh->GetTriangleAmount());
 		header += "\n";
 		of.write(header.c_str(), header.size());
 		of.flush();
@@ -711,25 +711,27 @@ void SorghumManager::ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> m
 		std::string data;
 #pragma region Data collection
 
-		for (const auto& vertex : mesh->UnsafeGetVertices()) {
-			data += "v " + std::to_string(vertex.m_position.x + position.x)
-				+ " " + std::to_string(vertex.m_position.y + position.y)
-				+ " " + std::to_string(vertex.m_position.z + position.z)
-				+ " " + std::to_string(vertex.m_color.x)
-				+ " " + std::to_string(vertex.m_color.y)
-				+ " " + std::to_string(vertex.m_color.z)
+		for (auto i = 0; i < mesh->UnsafeGetVertexPositions().size(); i++) {
+			auto& vertexPosition = mesh->UnsafeGetVertexPositions().at(i);
+			auto& color = mesh->UnsafeGetVertexColors().at(i);
+			data += "v " + std::to_string(vertexPosition.x + position.x)
+				+ " " + std::to_string(vertexPosition.y + position.y)
+				+ " " + std::to_string(vertexPosition.z + position.z)
+				+ " " + std::to_string(color.x)
+				+ " " + std::to_string(color.y)
+				+ " " + std::to_string(color.z)
 				+ "\n";
 		}
-		for (const auto& vertex : mesh->UnsafeGetVertices()) {
-			data += "vn " + std::to_string(vertex.m_normal.x)
-				+ " " + std::to_string(vertex.m_normal.y)
-				+ " " + std::to_string(vertex.m_normal.z)
+		for (const auto& normal : mesh->UnsafeGetVertexNormals()) {
+			data += "vn " + std::to_string(normal.x)
+				+ " " + std::to_string(normal.y)
+				+ " " + std::to_string(normal.z)
 				+ "\n";
 		}
 
-		for (const auto& vertex : mesh->UnsafeGetVertices()) {
-			data += "vt " + std::to_string(vertex.m_texCoords0.x)
-				+ " " + std::to_string(vertex.m_texCoords0.y)
+		for (const auto& texCoord : mesh->UnsafeGetVertexTexCoords()) {
+			data += "vt " + std::to_string(texCoord.x)
+				+ " " + std::to_string(texCoord.y)
 				+ "\n";
 		}
 		//data += "s off\n";
@@ -745,7 +747,7 @@ void SorghumManager::ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> m
 				+ " " + std::to_string(f3) + "/" + std::to_string(f3) + "/" + std::to_string(f3)
 				+ "\n";
 		}
-		startIndex += mesh->UnsafeGetVertices().size();
+		startIndex += mesh->GetVerticesAmount();
 #pragma endregion
 		of.write(data.c_str(), data.size());
 		of.flush();

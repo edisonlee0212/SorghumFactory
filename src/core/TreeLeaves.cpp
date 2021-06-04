@@ -10,24 +10,24 @@ void TreeLeaves::OnGui()
 void TreeLeaves::FormMesh()
 {
 	auto quadMesh = Default::Primitives::Quad;
-	auto& quadVertices = quadMesh->UnsafeGetVertices();
 	auto& quadTriangles = quadMesh->UnsafeGetTriangles();
+	auto quadVerticesSize = quadMesh->GetVerticesAmount();
 	size_t offset = 0;
 	std::vector<Vertex> vertices;
 	std::vector<glm::uvec3> triangles;
 	bool fromNew = true;
 
-	vertices.resize(m_transforms.size() * quadVertices.size());
+	vertices.resize(m_transforms.size() * quadVerticesSize);
 	triangles.resize(m_transforms.size() * quadTriangles.size());
 	size_t vi = 0;
 	size_t ii = 0;
 	for (auto& matrix : m_transforms)
 	{
-		for (const auto& vertex : quadVertices) {
-			vertices[vi].m_position = matrix * glm::vec4(vertex.m_position, 1.0f);
-			vertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(vertex.m_normal, 0.0f)));
-			vertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(vertex.m_tangent, 0.0f)));
-			vertices[vi].m_texCoords0 = vertex.m_texCoords0;
+		for (auto i = 0; i < quadMesh->GetVerticesAmount(); i++) {
+			vertices[vi].m_position = matrix * glm::vec4(quadMesh->UnsafeGetVertexPositions()[i], 1.0f);
+			vertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexNormals()[i], 0.0f)));
+			vertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexTangents()[i], 0.0f)));
+			vertices[vi].m_texCoords = quadMesh->UnsafeGetVertexTexCoords()[i];
 			vi++;
 		}
 		for (auto triangle : quadTriangles)
@@ -38,10 +38,10 @@ void TreeLeaves::FormMesh()
 			triangles[ii] = triangle;
 			ii++;
 		}
-		offset += quadVertices.size();
+		offset += quadVerticesSize;
 	}
 	auto& meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
 	std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-	mesh->SetVertices(17, vertices, triangles, true);
+	mesh->SetVertices(17, vertices, triangles);
 	meshRenderer->m_mesh = mesh;
 }

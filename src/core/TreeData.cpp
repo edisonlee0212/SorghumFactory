@@ -60,14 +60,11 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 {
 	auto mesh = EntityManager::GetPrivateComponent<MeshRenderer>(GetOwner())->m_mesh;
 	if (!mesh) return;
-	auto vertices = mesh->UnsafeGetVertices();
-	auto triangles = mesh->UnsafeGetTriangles();
-
-	if (vertices.empty()) {
+	if (mesh->GetVerticesAmount() == 0) {
 		Debug::Log("Mesh not generated!");
 		return;
 	}
-
+	auto triangles = mesh->UnsafeGetTriangles();
 	std::ofstream of;
 	of.open(filename.c_str(), std::ofstream::out | std::ofstream::trunc);
 	if (of.is_open())
@@ -79,10 +76,10 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 		std::string branchletIndices;
 		std::string leafIndices;
 #pragma region Data collection
-		for (const auto& vertex : vertices) {
-			branchVertices += "v " + std::to_string(vertex.m_position.x)
-				+ " " + std::to_string(vertex.m_position.y)
-				+ " " + std::to_string(vertex.m_position.z)
+		for (const auto& position : mesh->UnsafeGetVertexPositions()) {
+			branchVertices += "v " + std::to_string(position.x)
+				+ " " + std::to_string(position.y)
+				+ " " + std::to_string(position.z)
 				+ "\n";
 		}
 		for (int i = 0; i < triangles.size(); i++) {
@@ -93,8 +90,7 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 				+ "\n";
 		}
 #pragma endregion
-		size_t branchVerticesSize = vertices.size();
-		
+		size_t branchVerticesSize = mesh->GetVerticesAmount();
 		if (includeFoliage)
 		{
 			Entity foliageEntity;
@@ -140,14 +136,13 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 			if (foliageEntity.HasPrivateComponent<MeshRenderer>())
 			{
 				mesh = EntityManager::GetPrivateComponent<MeshRenderer>(foliageEntity)->m_mesh;
-				vertices = mesh->UnsafeGetVertices();
 				triangles = mesh->UnsafeGetTriangles();
-				branchletVerticesSize += vertices.size();
+				branchletVerticesSize += mesh->GetVerticesAmount();
 #pragma region Data collection
-				for (const auto& vertex : vertices) {
-					branchletVertices += "v " + std::to_string(vertex.m_position.x)
-						+ " " + std::to_string(vertex.m_position.y)
-						+ " " + std::to_string(vertex.m_position.z)
+				for (const auto& position : mesh->UnsafeGetVertexPositions()) {
+					branchletVertices += "v " + std::to_string(position.x)
+						+ " " + std::to_string(position.y)
+						+ " " + std::to_string(position.z)
 						+ "\n";
 				}
 				for (auto triangle : triangles)
@@ -164,14 +159,13 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 			{
 				auto& particles = EntityManager::GetPrivateComponent<Particles>(foliageEntity);
 				mesh = particles->m_mesh;
-				vertices = mesh->UnsafeGetVertices();
 				triangles = mesh->UnsafeGetTriangles();
 				auto& matrices = particles->m_matrices;
 				size_t offset = 0;
 				for (auto& matrix : matrices)
 				{
-					for (const auto& vertex : vertices) {
-						glm::vec3 position = matrix * glm::vec4(vertex.m_position, 1);
+					for (const auto& vertexPosition : mesh->UnsafeGetVertexPositions()) {
+						glm::vec3 position = matrix * glm::vec4(vertexPosition, 1);
 						leafVertices += "v " + std::to_string(position.x)
 							+ " " + std::to_string(position.y)
 							+ " " + std::to_string(position.z)
@@ -187,7 +181,7 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 							+ " " + std::to_string(triangle.z + offset + branchVerticesSize + branchletVerticesSize + 1)
 							+ "\n";
 					}
-					offset += vertices.size();
+					offset += mesh->GetVerticesAmount();
 				}
 			}
 		}

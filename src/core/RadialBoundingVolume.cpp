@@ -71,16 +71,16 @@ void RadialBoundingVolume::GenerateMesh()
 					glm::vec3 position = glm::normalize(glm::vec3(x, 0.0f, z)) * m_cakeTiers[tierIndex][sliceIndex].m_maxDistance;
 					position.y = currentHeight;
 					vertices[levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_position = position;
-					vertices[levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_texCoords0 = glm::vec2((float)levelStep / (totalLevelStep - 1), (float)angleStep / (totalAngleStep - 1));
+					vertices[levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_texCoords = glm::vec2((float)levelStep / (totalLevelStep - 1), (float)angleStep / (totalAngleStep - 1));
 					vertices[levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_normal = glm::normalize(position);
 					vertices[totalLevelStep * m_sectorAmount * totalAngleStep + levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_position = position;
-					vertices[totalLevelStep * m_sectorAmount * totalAngleStep + levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_texCoords0 = glm::vec2((float)levelStep / (totalLevelStep - 1), (float)angleStep / (totalAngleStep - 1));
+					vertices[totalLevelStep * m_sectorAmount * totalAngleStep + levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_texCoords = glm::vec2((float)levelStep / (totalLevelStep - 1), (float)angleStep / (totalAngleStep - 1));
 					vertices[totalLevelStep * m_sectorAmount * totalAngleStep + levelStep * totalAngleStep * m_sectorAmount + actualAngleStep].m_normal = glm::vec3(0, levelStep == 0 ? -1 : 1, 0);
 				}
 			}
 			vertices[vertices.size() - totalLevelStep + levelStep].m_position = glm::vec3(0, currentHeight, 0);
 			vertices[vertices.size() - totalLevelStep + levelStep].m_normal = glm::vec3(0, levelStep == 0 ? -1 : 1, 0);
-			vertices[vertices.size() - totalLevelStep + levelStep].m_texCoords0 = glm::vec2(0.0f);
+			vertices[vertices.size() - totalLevelStep + levelStep].m_texCoords = glm::vec2(0.0f);
 		}
 		for (int levelStep = 0; levelStep < totalLevelStep - 1; levelStep++)
 		{
@@ -210,10 +210,10 @@ void RadialBoundingVolume::ExportAsObj(const std::string& filename)
 		int offset = 1;
 #pragma region Data collection
 		for (auto& mesh : meshes) {
-			for (const auto& vertex : mesh->UnsafeGetVertices()) {
-				data += "v " + std::to_string(vertex.m_position.x)
-					+ " " + std::to_string(-vertex.m_position.y)
-					+ " " + std::to_string(vertex.m_position.z)
+			for (const auto& position : mesh->UnsafeGetVertexPositions()) {
+				data += "v " + std::to_string(position.x)
+					+ " " + std::to_string(-position.y)
+					+ " " + std::to_string(position.z)
 					+ "\n";
 			}
 		}
@@ -230,7 +230,7 @@ void RadialBoundingVolume::ExportAsObj(const std::string& filename)
 					+ " " + std::to_string(f3)
 					+ "\n";
 			}
-			offset += mesh->UnsafeGetVertices().size();
+			offset += mesh->GetVerticesAmount();
 		}
 #pragma endregion
 		of.write(data.c_str(), data.size());

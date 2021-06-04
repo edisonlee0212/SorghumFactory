@@ -1169,7 +1169,7 @@ void TreeManager::SimpleMeshGenerator(Entity& internode, std::vector<Vertex>& ve
 	for (int i = 0; i < pStep; i++) {
 		archetype.m_position = list->m_rings.at(0).GetPoint(newNormalDir, angleStep * i, true);
 		const float x = i < pStep / 2 ? i * textureXStep : (pStep - i) * textureXStep;
-		archetype.m_texCoords0 = glm::vec2(x, 0.0f);
+		archetype.m_texCoords = glm::vec2(x, 0.0f);
 		vertices.push_back(archetype);
 	}
 	std::vector<float> angles;
@@ -1236,7 +1236,7 @@ void TreeManager::SimpleMeshGenerator(Entity& internode, std::vector<Vertex>& ve
 			archetype.m_position = list->m_rings.at(ringIndex).GetPoint(newNormalDir, angleStep * i, false);
 			const auto x = i < (step / 2) ? i * textureXStep : (step - i) * textureXStep;
 			const auto y = ringIndex % 2 == 0 ? 1.0f : 0.0f;
-			archetype.m_texCoords0 = glm::vec2(x, y);
+			archetype.m_texCoords = glm::vec2(x, y);
 			vertices.push_back(archetype);
 		}
 		if (ringIndex != 0) {
@@ -1360,7 +1360,7 @@ void TreeManager::GenerateMeshForTree(PlantManager& manager)
 			if (EntityManager::GetChildrenAmount(rootInternode) != 0) {
 				SimpleMeshGenerator(EntityManager::GetChildren(rootInternode).at(0), vertices, indices, glm::vec3(0, 0, 1), treeManager.m_meshResolution);
 				meshRenderer->m_mesh = std::make_shared<Mesh>();
-				meshRenderer->m_mesh->SetVertices(17, vertices, indices, true);
+				meshRenderer->m_mesh->SetVertices(17, vertices, indices);
 				treeData->m_meshGenerated = true;
 			}
 		}

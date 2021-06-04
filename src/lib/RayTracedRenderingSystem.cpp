@@ -161,13 +161,16 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			if (!rayTracerMaterial->IsEnabled()) continue;
 			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
 			if (!meshRenderer->IsEnabled()) continue;
-			if (!meshRenderer->m_mesh || meshRenderer->m_mesh->UnsafeGetVertices().empty()) continue;
+			if (!meshRenderer->m_mesh || meshRenderer->m_mesh->UnsafeGetVertexPositions().empty()) continue;
 			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
 			TriangleMesh newCudaTriangleMesh;
 			TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
 			bool needUpdate = false;
 			bool fromNew = true;
-			auto vertices = meshRenderer->m_mesh->UnsafeGetVertices();
+			auto& positions = meshRenderer->m_mesh->UnsafeGetVertexPositions();
+			auto& normals = meshRenderer->m_mesh->UnsafeGetVertexNormals();
+			auto& tangents = meshRenderer->m_mesh->UnsafeGetVertexTangents();
+			auto& texCoords = meshRenderer->m_mesh->UnsafeGetVertexTexCoords();
 			auto triangles = meshRenderer->m_mesh->UnsafeGetTriangles();
 			bool needMaterialUpdate = false;
 			for (auto& i : meshesStorage)
@@ -178,7 +181,7 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 					cudaTriangleMesh = &i;
 					i.m_removeTag = false;
 					if (globalTransform != i.m_globalTransform) needUpdate = true;
-					if (cudaTriangleMesh->m_vertices.size() != vertices.size())
+					if (cudaTriangleMesh->m_vertices.size() != positions.size())
 						needUpdate = true;
 					if (cudaTriangleMesh->m_color != meshRenderer->m_material->m_albedoColor
 						|| cudaTriangleMesh->m_metallic != (meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f))
@@ -187,7 +190,6 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 					{
 						needMaterialUpdate = true;
 					}
-
 				}
 			}
 			if (fromNew || needUpdate || needMaterialUpdate) {
@@ -232,14 +234,14 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene()
 			if (fromNew || needUpdate) {
 				needGeometryUpdate = true;
 				cudaTriangleMesh->m_globalTransform = globalTransform;
-				cudaTriangleMesh->m_vertices.resize(vertices.size());
-				cudaTriangleMesh->m_vertexInfos.resize(vertices.size());
-				for (int index = 0; index < vertices.size(); index++)
+				cudaTriangleMesh->m_vertices.resize(positions.size());
+				cudaTriangleMesh->m_vertexInfos.resize(positions.size());
+				for (int index = 0; index < positions.size(); index++)
 				{
-					cudaTriangleMesh->m_vertices[index] = globalTransform * glm::vec4(vertices[index].m_position, 1.0f);
-					cudaTriangleMesh->m_vertexInfos[index].m_normal = glm::normalize(glm::vec3(globalTransform * glm::vec4(vertices[index].m_normal, 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_tangent = glm::normalize(glm::vec3(globalTransform * glm::vec4(vertices[index].m_tangent, 0.0f)));
-					cudaTriangleMesh->m_vertexInfos[index].m_texCoords = vertices[index].m_texCoords0;
+					cudaTriangleMesh->m_vertices[index] = globalTransform * glm::vec4(positions[index], 1.0f);
+					cudaTriangleMesh->m_vertexInfos[index].m_normal = glm::normalize(glm::vec3(globalTransform * glm::vec4(normals[index], 0.0f)));
+					cudaTriangleMesh->m_vertexInfos[index].m_tangent = glm::normalize(glm::vec3(globalTransform * glm::vec4(tangents[index], 0.0f)));
+					cudaTriangleMesh->m_vertexInfos[index].m_texCoords = texCoords[index];
 				}
 				cudaTriangleMesh->m_indices.clear();
 				cudaTriangleMesh->m_indices.insert(cudaTriangleMesh->m_indices.begin(), triangles.begin(), triangles.end());
