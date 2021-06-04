@@ -487,11 +487,14 @@ __global__ void ApplyTransformKernel(
 void OptixRayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 {
 	bool uploadVertices = false;
-	for (auto& i : meshes)
-	{
-		if (i.m_verticesUpdateFlag) {
-			uploadVertices = true;
-			break;
+	if (m_positionsBuffer.size() != meshes.size()) uploadVertices = true;
+	else {
+		for (auto& i : meshes)
+		{
+			if (i.m_verticesUpdateFlag) {
+				uploadVertices = true;
+				break;
+			}
 		}
 	}
 	if (uploadVertices) {

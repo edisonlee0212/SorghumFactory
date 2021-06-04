@@ -3,7 +3,7 @@
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
 #include <PlantManager.hpp>
-#include <RayTracerMaterial.hpp>
+#include <RayTracedRenderer.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
 	struct LeafInfo : ComponentDataBase {

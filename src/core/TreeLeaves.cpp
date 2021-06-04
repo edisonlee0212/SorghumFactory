@@ -41,7 +41,6 @@ void TreeLeaves::FormMesh()
 		offset += quadVerticesSize;
 	}
 	auto& meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
-	std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+	auto& mesh = meshRenderer->m_mesh;
 	mesh->SetVertices(17, vertices, triangles);
-	meshRenderer->m_mesh = mesh;
 }

@@ -193,11 +193,13 @@ Entity SorghumManager::CreateSorghumLeaf(const Entity& plantEntity)
 	auto mmc = std::make_unique<MeshRenderer>();
 	mmc->m_material = GetInstance().m_leafMaterial;
 	mmc->m_mesh = std::make_shared<Mesh>();
-	EntityManager::SetPrivateComponent(entity, std::move(mmc));
-
-	auto rtt = std::make_unique<RayTracerMaterial>();
+	
+	auto rtt = std::make_unique<RayTracedRenderer>();
+	rtt->m_mesh = mmc->m_mesh;
 	rtt->m_albedoTexture = GetInstance().m_leafSurfaceTexture;
 	if (GetInstance().m_leafNormalTexture) rtt->m_normalTexture = GetInstance().m_leafNormalTexture;
+
+	entity.SetPrivateComponent(std::move(mmc));
 	entity.SetPrivateComponent(std::move(rtt));
 	return entity;
 }
@@ -671,6 +673,8 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 				auto& newMeshRenderer = newChild.GetPrivateComponent<MeshRenderer>();
 				auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(child);
 				newMeshRenderer->m_mesh = meshRenderer->m_mesh;
+				auto& newRayTracedRenderer = newChild.GetPrivateComponent<RayTracedRenderer>();
+				newRayTracedRenderer->m_mesh = meshRenderer->m_mesh;
 			});
 		EntityManager::SetParent(sorghum, parent, false);
 	}

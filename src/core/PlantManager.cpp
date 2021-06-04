@@ -6,7 +6,7 @@
 #include <SorghumManager.hpp>
 #include <TreeManager.hpp>
 #include <RayTracedRenderingSystem.hpp>
-#include <RayTracerMaterial.hpp>
+#include <RayTracedRenderer.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -196,7 +196,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 	if (manager.m_internodeTransforms.empty()) return;
 	const float time = Application::EngineTime();
 	//Upload geometries to OptiX.
-	Application::GetCurrentWorld()->GetSystem<RayMLVQ::RayTracedRenderingSystem>()->UpdateDebugRenderOutputScene();
+	Application::GetCurrentWorld()->GetSystem<RayMLVQ::RayTracedRenderingSystem>()->UpdateScene();
 	RayMLVQ::IlluminationEstimationProperties properties;
 	properties.m_bounceLimit = 1;
 	properties.m_numPointSamples = 1000;
@@ -404,8 +404,9 @@ void PlantManager::Init()
 	manager.m_ground.SetComponentData(groundTransform);
 	manager.m_ground.SetComponentData(groundGlobalTransform);
 	manager.m_ground.SetStatic(true);
-	manager.m_ground.SetPrivateComponent(std::make_unique<RayMLVQ::RayTracerMaterial>());
-
+	manager.m_ground.SetPrivateComponent(std::make_unique<RayMLVQ::RayTracedRenderer>());
+	manager.m_ground.GetPrivateComponent<RayMLVQ::RayTracedRenderer>()->SyncWithMeshRenderer();
+	
 	auto cubeVolume = std::make_unique<CubeVolume>();
 	cubeVolume->m_asObstacle = true;
 	cubeVolume->m_minMaxBound.m_max = glm::vec3(1000, -0.1f, 1000);

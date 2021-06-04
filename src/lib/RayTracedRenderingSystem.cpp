@@ -1,5 +1,5 @@
 #include <RayTracedRenderingSystem.hpp>
-#include <RayTracerMaterial.hpp>
+#include <RayTracedRenderer.hpp>
 #include <InputManager.hpp>
 #include <WindowManager.hpp>
 #include <EditorManager.hpp>
@@ -141,7 +141,7 @@ void RayTracedRenderingSystem::OnGui()
 	ImGui::PopStyleVar();
 }
 
-void RayTracedRenderingSystem::UpdateDebugRenderOutputScene() const
+void RayTracedRenderingSystem::UpdateScene() const
 {
 	if (!m_rayTracerDebugRenderingEnabled) return;
 	bool rebuildAccelerationStructure = false;
@@ -151,16 +151,13 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene() const
 	{
 		i.m_removeTag = true;
 	}
-	if (const auto * rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracerMaterial>(); rayTracerEntities)
+	if (const auto * rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracedRenderer>(); rayTracerEntities)
 	{
 		for (auto entity : *rayTracerEntities) {
 			if (!entity.IsEnabled()) continue;
-			if (!entity.HasPrivateComponent<MeshRenderer>()) continue;
-			auto& rayTracerMaterial = entity.GetPrivateComponent<RayTracerMaterial>();
+			auto& rayTracerMaterial = entity.GetPrivateComponent<RayTracedRenderer>();
 			if (!rayTracerMaterial->IsEnabled()) continue;
-			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-			if (!meshRenderer->IsEnabled()) continue;
-			if (!meshRenderer->m_mesh || meshRenderer->m_mesh->UnsafeGetVertexPositions().empty()) continue;
+			if (!rayTracerMaterial->m_mesh || rayTracerMaterial->m_mesh->UnsafeGetVertexPositions().empty()) continue;
 			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
 			TriangleMesh newCudaTriangleMesh;
 			TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
@@ -176,23 +173,23 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene() const
 					cudaTriangleMesh = &triangleMesh;
 					triangleMesh.m_removeTag = false;
 					if (globalTransform != triangleMesh.m_globalTransform) needTransformUpdate = true;
-					if (cudaTriangleMesh->m_version != meshRenderer->m_mesh->GetVersion())
+					if (cudaTriangleMesh->m_version != rayTracerMaterial->m_mesh->GetVersion())
 						needVerticesUpdate = true;
-					if (cudaTriangleMesh->m_surfaceColor != meshRenderer->m_material->m_albedoColor
-						|| cudaTriangleMesh->m_metallic != (meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f))
-						|| cudaTriangleMesh->m_roughness != meshRenderer->m_material->m_roughness
+					if (cudaTriangleMesh->m_surfaceColor != rayTracerMaterial->m_surfaceColor
+						|| cudaTriangleMesh->m_metallic != (rayTracerMaterial->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracerMaterial->m_metallic, 3.0f))
+						|| cudaTriangleMesh->m_roughness != rayTracerMaterial->m_roughness
 						)
 					{
 						needMaterialUpdate = true;
 					}
 				}
 			}
-			cudaTriangleMesh->m_version = meshRenderer->m_mesh->GetVersion();
+			cudaTriangleMesh->m_version = rayTracerMaterial->m_mesh->GetVersion();
 			if (fromNew || needVerticesUpdate || needTransformUpdate || needMaterialUpdate) {
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_surfaceColor = meshRenderer->m_material->m_albedoColor;
-				cudaTriangleMesh->m_metallic = meshRenderer->m_material->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - meshRenderer->m_material->m_metallic, 3.0f);
-				cudaTriangleMesh->m_roughness = meshRenderer->m_material->m_roughness;
+				cudaTriangleMesh->m_surfaceColor = rayTracerMaterial->m_surfaceColor;
+				cudaTriangleMesh->m_metallic = rayTracerMaterial->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracerMaterial->m_metallic, 3.0f);
+				cudaTriangleMesh->m_roughness = rayTracerMaterial->m_roughness;
 				cudaTriangleMesh->m_normalTexture = 0;
 				cudaTriangleMesh->m_albedoTexture = 0;
 				cudaTriangleMesh->m_entityId = entity.m_index;
@@ -230,12 +227,12 @@ void RayTracedRenderingSystem::UpdateDebugRenderOutputScene() const
 					cudaTriangleMesh->m_transformUpdateFlag = true;
 					cudaTriangleMesh->m_globalTransform = globalTransform;
 				}
-				cudaTriangleMesh->m_positions = &meshRenderer->m_mesh->UnsafeGetVertexPositions();
-				cudaTriangleMesh->m_normals = &meshRenderer->m_mesh->UnsafeGetVertexNormals();
-				cudaTriangleMesh->m_tangents = &meshRenderer->m_mesh->UnsafeGetVertexTangents();
-				cudaTriangleMesh->m_colors = &meshRenderer->m_mesh->UnsafeGetVertexColors();
-				cudaTriangleMesh->m_triangles = &meshRenderer->m_mesh->UnsafeGetTriangles();
-				cudaTriangleMesh->m_texCoords = &meshRenderer->m_mesh->UnsafeGetVertexTexCoords();
+				cudaTriangleMesh->m_positions = &rayTracerMaterial->m_mesh->UnsafeGetVertexPositions();
+				cudaTriangleMesh->m_normals = &rayTracerMaterial->m_mesh->UnsafeGetVertexNormals();
+				cudaTriangleMesh->m_tangents = &rayTracerMaterial->m_mesh->UnsafeGetVertexTangents();
+				cudaTriangleMesh->m_colors = &rayTracerMaterial->m_mesh->UnsafeGetVertexColors();
+				cudaTriangleMesh->m_triangles = &rayTracerMaterial->m_mesh->UnsafeGetTriangles();
+				cudaTriangleMesh->m_texCoords = &rayTracerMaterial->m_mesh->UnsafeGetVertexTexCoords();
 			}else if(needTransformUpdate)
 			{
 				rebuildAccelerationStructure = true;
@@ -288,12 +285,12 @@ void RayTracedRenderingSystem::OnCreate()
 	}
 #pragma endregion
 	CudaModule::Init();
-	EditorManager::RegisterPrivateComponentMenu<RayTracerMaterial>([](Entity owner)
+	EditorManager::RegisterPrivateComponentMenu<RayTracedRenderer>([](Entity owner)
 		{
-			if (owner.HasPrivateComponent<RayTracerMaterial>()) return;
+			if (owner.HasPrivateComponent<RayTracedRenderer>()) return;
 			if (ImGui::SmallButton("RayTracerMaterial"))
 			{
-				owner.SetPrivateComponent(std::make_unique<RayTracerMaterial>());
+				owner.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
 			}
 		}
 	);
@@ -317,7 +314,7 @@ void RayTracedRenderingSystem::PreUpdate()
 
 void RayTracedRenderingSystem::Update()
 {
-	UpdateDebugRenderOutputScene();
+	UpdateScene();
 	auto& size = m_rayTracerTestOutputSize;
 	m_rayTracerTestOutput->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
 	m_properties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);

@@ -2,7 +2,7 @@
 #include <CubeVolume.hpp>
 #include <Curve.hpp>
 #include <RadialBoundingVolume.hpp>
-#include <RayTracerMaterial.hpp>
+#include <RayTracedRenderer.hpp>
 #include <TreeLeaves.hpp>
 
 using namespace RayMLVQ;
@@ -88,14 +88,16 @@ Entity TreeManager::GetLeaves(const Entity& tree)
 		EntityManager::SetParent(leaves, tree);
 		leaves.SetPrivateComponent(std::make_unique<TreeLeaves>());
 		leaves.SetPrivateComponent(std::make_unique<MeshRenderer>());
-		leaves.SetPrivateComponent(std::make_unique<RayTracerMaterial>());
+		leaves.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
 		auto& meshRenderer = leaves.GetPrivateComponent<MeshRenderer>();
-		auto& rayTracerMaterial = leaves.GetPrivateComponent<RayTracerMaterial>();
+		auto& rayTracerMaterial = leaves.GetPrivateComponent<RayTracedRenderer>();
 		meshRenderer->m_material = ResourceManager::LoadMaterial(true, Default::GLPrograms::StandardProgram);
 		meshRenderer->m_material->m_name = "Leaves mat";
 		meshRenderer->m_material->m_roughness = 0.0f;
 		meshRenderer->m_material->m_metallic = 0.7f;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
+		meshRenderer->m_mesh = std::make_shared<Mesh>();
+		rayTracerMaterial->SyncWithMeshRenderer();
 	}
 	return retVal;
 }
@@ -653,15 +655,17 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	material->SetTexture(manager.m_defaultBranchNormalTexture);
 	material->SetTexture(manager.m_defaultBranchAlbedoTexture);
 	auto meshRenderer = std::make_unique<MeshRenderer>();
+	meshRenderer->m_mesh = std::make_shared<Mesh>();
 	meshRenderer->m_material = std::move(material);
-	EntityManager::SetPrivateComponent(plant, std::move(meshRenderer));
+	
 
-	auto rtt = std::make_unique<RayTracerMaterial>();
+	auto rtt = std::make_unique<RayTracedRenderer>();
 	rtt->m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
 	rtt->m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
-
+	rtt->m_mesh = meshRenderer->m_mesh;
+	
+	plant.SetPrivateComponent(std::move(meshRenderer));
 	plant.SetPrivateComponent(std::move(rtt));
-
 	auto& treeData = plant.GetPrivateComponent<TreeData>();
 	treeData->m_parameters = TreeParameters();
 	return plant;
@@ -1351,15 +1355,12 @@ void TreeManager::GenerateMeshForTree(PlantManager& manager)
 		if (!plant.HasPrivateComponent<MeshRenderer>() || !plant.HasPrivateComponent<TreeData>()) continue;
 		auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(plant);
 		auto& treeData = EntityManager::GetPrivateComponent<TreeData>(plant);
-		std::vector<Vertex> vertices;
-		std::vector<unsigned> indices;
-
-		Entity rootInternode = GetRootInternode(plant);
-		if (!rootInternode.IsNull())
+		if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull())
 		{
 			if (EntityManager::GetChildrenAmount(rootInternode) != 0) {
+				std::vector<unsigned> indices;
+				std::vector<Vertex> vertices;
 				SimpleMeshGenerator(EntityManager::GetChildren(rootInternode).at(0), vertices, indices, glm::vec3(0, 0, 1), treeManager.m_meshResolution);
-				meshRenderer->m_mesh = std::make_shared<Mesh>();
 				meshRenderer->m_mesh->SetVertices(17, vertices, indices);
 				treeData->m_meshGenerated = true;
 			}

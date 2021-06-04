@@ -1,6 +1,6 @@
 #include <RadialBoundingVolume.hpp>
 #include <PlantManager.hpp>
-#include <RayTracerMaterial.hpp>
+#include <RayTracedRenderer.hpp>
 #include <OptixRayTracer.hpp>
 
 using namespace PlantFactory;
@@ -152,8 +152,9 @@ void RadialBoundingVolume::FormEntity()
 		mmc->m_forwardRendering = false;
 		mmc->m_mesh = m_boundMeshes[i];
 		slice.SetPrivateComponent(std::move(mmc));
-		slice.SetPrivateComponent(std::make_unique<RayTracerMaterial>());
+		slice.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
 		EntityManager::SetParent(slice, GetOwner(), false);
+		slice.GetPrivateComponent<RayTracedRenderer>()->SyncWithMeshRenderer();
 	}
 }
 
