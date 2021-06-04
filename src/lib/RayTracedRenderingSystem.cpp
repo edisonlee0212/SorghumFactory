@@ -6,7 +6,7 @@
 #include <ResourceManager.hpp>
 #include <MeshRenderer.hpp>
 #include <Cubemap.hpp>
-#include <OptixRayTracer.hpp>
+#include <RayTracer.hpp>
 using namespace RayMLVQ;
 const char* DebugOutputRenderTypes[]{
 	"Shadow",

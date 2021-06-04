@@ -1,7 +1,7 @@
 #include <RadialBoundingVolume.hpp>
 #include <PlantManager.hpp>
 #include <RayTracedRenderer.hpp>
-#include <OptixRayTracer.hpp>
+#include <RayTracer.hpp>
 
 using namespace PlantFactory;
 using namespace RayMLVQ;

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <CUDAModule.hpp>
 #include <Optix7.hpp>
-#include <OptixRayTracer.hpp>
+#include <RayTracer.hpp>
 #include <cuda_gl_interop.h>
 #include <cuda.h>
 #include <sstream>
@@ -51,7 +51,7 @@ void CudaModule::Init()
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	CUDA_CHECK(SetDevice(0));
 	OPTIX_CHECK(optixInitWithHandle(&GetInstance().m_optixHandle));
-	GetInstance().m_optixRayTracer = std::make_unique<OptixRayTracer>();
+	GetInstance().m_optixRayTracer = std::make_unique<RayTracer>();
 	GetInstance().m_initialized = true;
 }
 

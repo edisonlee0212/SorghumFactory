@@ -145,7 +145,7 @@ namespace RayMLVQ {
 		bool m_verticesUpdateFlag = true;
 		bool m_transformUpdateFlag = true;
 	};
-	class OptixRayTracer;
+	class RayTracer;
 	class RAYMLVQ_API CudaModule {
 #pragma region Class related
 		CudaModule() = default;
@@ -160,7 +160,7 @@ namespace RayMLVQ {
 		CudaBuffer m_deviceTransforms;
 		CudaBuffer m_deviceDirections;
 		CudaBuffer m_deviceIntensities;
-		std::unique_ptr<OptixRayTracer> m_optixRayTracer;
+		std::unique_ptr<RayTracer> m_optixRayTracer;
 	public:
 		static void SetStatusChanged(const bool& value = true);
 		static void SetSkylightSize(const float& value);

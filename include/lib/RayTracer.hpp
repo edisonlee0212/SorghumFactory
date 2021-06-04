@@ -16,7 +16,6 @@ namespace RayMLVQ {
 		PipelineSize
 	};
 	
-	template <typename LaunchParameter>
 	struct RayTracerPipeline
 	{
 		OptixModule                 m_module;
@@ -33,12 +32,9 @@ namespace RayMLVQ {
 		std::vector<OptixProgramGroup> m_hitGroupProgramGroups;
 		CudaBuffer m_hitGroupRecordsBuffer;
 		OptixShaderBindingTable m_sbt = {};
-
-		LaunchParameter m_launchParams;
-		CudaBuffer   m_launchParamsBuffer;
 	};
 
-	class OptixRayTracer
+	class RayTracer
 	{
 	public:
 		// ------------------------------------------------------------------
@@ -46,7 +42,7 @@ namespace RayMLVQ {
 		// ------------------------------------------------------------------
 		[[nodiscard]] bool RenderDebugOutput(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
 		void EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes);
-		OptixRayTracer();
+		RayTracer();
 		/*! build an acceleration structure for the given triangle mesh */
 		void BuildAccelerationStructure(std::vector<TriangleMesh>& meshes);
 		/*! constructs the shader binding table */
@@ -71,9 +67,18 @@ namespace RayMLVQ {
 		void CreateContext();
 #pragma endregion
 #pragma region Pipeline setup
-		RayTracerPipeline<DefaultRenderingLaunchParams> m_debugRenderingPipeline;
-		RayTracerPipeline<DefaultIlluminationEstimationLaunchParams> m_illuminationEstimationPipeline;
-		RayTracerPipeline<RayMLVQRenderingLaunchParams> m_rayMLVQRenderingPipeline;
+
+		DefaultRenderingLaunchParams m_defaultRenderingLaunchParams;
+		DefaultIlluminationEstimationLaunchParams m_defaultIlluminationEstimationLaunchParams;
+		RayMLVQRenderingLaunchParams m_rayMLVQRenderingLaunchParams;
+
+		CudaBuffer m_defaultRenderingLaunchParamsBuffer;
+		CudaBuffer m_defaultIlluminationEstimationLaunchParamsBuffer;
+		CudaBuffer m_rayMLVQRenderingLaunchParamsBuffer;
+		
+		RayTracerPipeline m_defaultRenderingPipeline;
+		RayTracerPipeline m_defaultIlluminationEstimationPipeline;
+		RayTracerPipeline m_rayMLVQRenderingPipeline;
 		
 		/*! creates the module that contains all the programs we are going
 		  to use. in this simple example, we use a single module from a
@@ -91,9 +96,8 @@ namespace RayMLVQ {
 
 		/*! assembles the full pipeline of all programs */
 		void AssemblePipelines();
-		
-		template <typename LaunchParameter>
-		void AssemblePipeline(RayTracerPipeline<LaunchParameter> targetPipeline);
+
+		void AssemblePipeline(RayTracerPipeline& targetPipeline);
 		
 #pragma endregion
 
@@ -127,43 +131,6 @@ namespace RayMLVQ {
 #pragma endregion
 	};
 
-	template <typename LaunchParameter>
-	void OptixRayTracer::AssemblePipeline(RayTracerPipeline<LaunchParameter> targetPipeline)
-	{
-		std::vector<OptixProgramGroup> programGroups;
-		for (auto* pg : targetPipeline.m_rayGenProgramGroups)
-			programGroups.push_back(pg);
-		for (auto* pg : targetPipeline.m_missProgramGroups)
-			programGroups.push_back(pg);
-		for (auto* pg : targetPipeline.m_hitGroupProgramGroups)
-			programGroups.push_back(pg);
 
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-		OPTIX_CHECK(optixPipelineCreate(m_optixContext,
-			&targetPipeline.m_pipelineCompileOptions,
-			&targetPipeline.m_pipelineLinkOptions,
-			programGroups.data(),
-			static_cast<int>(programGroups.size()),
-			log, &sizeofLog,
-			&targetPipeline.m_pipeline
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-
-		OPTIX_CHECK(optixPipelineSetStackSize
-		(/* [in] The pipeline to configure the stack size for */
-			targetPipeline.m_pipeline,
-			/* [in] The direct stack size requirement for direct
-			   callables invoked from IS or AH. */
-			2 * 1024,
-			/* [in] The direct stack size requirement for direct
-			   callables invoked from RG, MS, or CH.  */
-			2 * 1024,
-			/* [in] The continuation stack requirement. */
-			2 * 1024,
-			/* [in] The maximum depth of a traversable graph
-			   passed to trace. */
-			1));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
+	
 }

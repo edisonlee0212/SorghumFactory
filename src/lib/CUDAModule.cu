@@ -1,7 +1,7 @@
 ﻿#include <cstdio>
 #include <CUDAModule.hpp>
 #include <Optix7.hpp>
-#include <OptixRayTracer.hpp>
+#include <RayTracer.hpp>
 #include <cuda_gl_interop.h>
 #include <cuda.h>
 #include <sstream>
