@@ -52,9 +52,4 @@ namespace RayMLVQ {
 		LightProbe<float>* m_lightProbes;
 		OptixTraversableHandle m_traversable;
 	};
-
-	struct IlluminationVisualizationLaunchParams
-	{
-		int m_bounceLimit = 4;
-	};
 }
