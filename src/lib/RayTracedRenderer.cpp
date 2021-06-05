@@ -10,6 +10,7 @@ void RayTracedRenderer::OnGui()
 	ImGui::DragFloat("Transparency##RayTracedRenderer", &m_transparency, 0.01f, 0.0f, 1.0f);
 	ImGui::DragFloat("Diffuse intensity##RayTracedRenderer", &m_diffuseIntensity, 0.01f, 0.0f, 100.0f);
 	ImGui::ColorEdit3("Surface Color##RayTracedRenderer", &m_surfaceColor.x);
+	ImGui::Checkbox("MLVQ##RayTracedRenderer", &m_enableMLVQ);
 	EditorManager::DragAndDrop(m_mesh);
 	if (m_mesh)
 	{

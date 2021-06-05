@@ -20,6 +20,7 @@ namespace RayMLVQ {
 		std::shared_ptr<Mesh> m_mesh;
 		std::shared_ptr<Texture2D> m_albedoTexture;
 		std::shared_ptr<Texture2D> m_normalTexture;
+		bool m_enableMLVQ = false;
 		void OnGui() override;
 		void SyncWithMeshRenderer();
 	};

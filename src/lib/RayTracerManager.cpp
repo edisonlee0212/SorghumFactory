@@ -12,98 +12,100 @@ void RayTracerManager::UpdateScene() const
 	{
 		i.m_removeTag = true;
 	}
-	if (const auto* rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracedRenderer>(); rayTracerEntities)
+	if (const auto* rayTracedEntities = EntityManager::GetPrivateComponentOwnersList<RayTracedRenderer>(); rayTracedEntities)
 	{
-		for (auto entity : *rayTracerEntities) {
+		for (auto entity : *rayTracedEntities) {
 			if (!entity.IsEnabled()) continue;
-			auto& rayTracerMaterial = entity.GetPrivateComponent<RayTracedRenderer>();
-			if (!rayTracerMaterial->IsEnabled()) continue;
-			if (!rayTracerMaterial->m_mesh || rayTracerMaterial->m_mesh->UnsafeGetVertexPositions().empty()) continue;
+			auto& rayTracedRenderer = entity.GetPrivateComponent<RayTracedRenderer>();
+			if (!rayTracedRenderer->IsEnabled()) continue;
+			if (!rayTracedRenderer->m_mesh || rayTracedRenderer->m_mesh->UnsafeGetVertexPositions().empty()) continue;
 			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
-			RayTracerInstance newCudaTriangleMesh;
-			RayTracerInstance* cudaTriangleMesh = &newCudaTriangleMesh;
+			RayTracerInstance newRayTracerInstance;
+			RayTracerInstance* rayTracerInstance = &newRayTracerInstance;
 			bool needVerticesUpdate = false;
 			bool needTransformUpdate = false;
 			bool fromNew = true;
 			bool needMaterialUpdate = false;
-			for (auto& triangleMesh : meshesStorage)
+			for (auto& currentRayTracerInstance : meshesStorage)
 			{
-				if (triangleMesh.m_entityId == entity.m_index && triangleMesh.m_entityVersion == entity.m_version)
+				if (currentRayTracerInstance.m_entityId == entity.m_index && currentRayTracerInstance.m_entityVersion == entity.m_version)
 				{
 					fromNew = false;
-					cudaTriangleMesh = &triangleMesh;
-					triangleMesh.m_removeTag = false;
-					if (globalTransform != triangleMesh.m_globalTransform) {
+					rayTracerInstance = &currentRayTracerInstance;
+					currentRayTracerInstance.m_removeTag = false;
+					if (globalTransform != currentRayTracerInstance.m_globalTransform) {
 						needTransformUpdate = true;
 					}
-					if (cudaTriangleMesh->m_version != rayTracerMaterial->m_mesh->GetVersion())
+					if (rayTracerInstance->m_version != rayTracedRenderer->m_mesh->GetVersion())
 						needVerticesUpdate = true;
-					if (cudaTriangleMesh->m_surfaceColor != rayTracerMaterial->m_surfaceColor
-						|| cudaTriangleMesh->m_metallic != (rayTracerMaterial->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracerMaterial->m_metallic, 3.0f))
-						|| cudaTriangleMesh->m_roughness != rayTracerMaterial->m_roughness
+					if (rayTracerInstance->m_surfaceColor != rayTracedRenderer->m_surfaceColor
+						|| rayTracerInstance->m_metallic != (rayTracedRenderer->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic, 3.0f))
+						|| rayTracerInstance->m_roughness != rayTracedRenderer->m_roughness
+						|| rayTracerInstance->m_enableMLVQ != rayTracedRenderer->m_enableMLVQ
 						)
 					{
 						needMaterialUpdate = true;
 					}
 				}
 			}
-			cudaTriangleMesh->m_version = rayTracerMaterial->m_mesh->GetVersion();
+			rayTracerInstance->m_version = rayTracedRenderer->m_mesh->GetVersion();
 			if (fromNew || needVerticesUpdate || needTransformUpdate || needMaterialUpdate) {
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_surfaceColor = rayTracerMaterial->m_surfaceColor;
-				cudaTriangleMesh->m_metallic = rayTracerMaterial->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracerMaterial->m_metallic, 3.0f);
-				cudaTriangleMesh->m_roughness = rayTracerMaterial->m_roughness;
-				cudaTriangleMesh->m_normalTexture = 0;
-				cudaTriangleMesh->m_albedoTexture = 0;
-				cudaTriangleMesh->m_entityId = entity.m_index;
-				cudaTriangleMesh->m_entityVersion = entity.m_version;
+				rayTracerInstance->m_surfaceColor = rayTracedRenderer->m_surfaceColor;
+				rayTracerInstance->m_metallic = rayTracedRenderer->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic, 3.0f);
+				rayTracerInstance->m_roughness = rayTracedRenderer->m_roughness;
+				rayTracerInstance->m_enableMLVQ = rayTracedRenderer->m_enableMLVQ;
+				rayTracerInstance->m_normalTexture = 0;
+				rayTracerInstance->m_albedoTexture = 0;
+				rayTracerInstance->m_entityId = entity.m_index;
+				rayTracerInstance->m_entityVersion = entity.m_version;
 			}
-			if (rayTracerMaterial->m_albedoTexture && rayTracerMaterial->m_albedoTexture->Texture()->Id() != cudaTriangleMesh->m_albedoTexture)
+			if (rayTracedRenderer->m_albedoTexture && rayTracedRenderer->m_albedoTexture->Texture()->Id() != rayTracerInstance->m_albedoTexture)
 			{
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_albedoTexture = rayTracerMaterial->m_albedoTexture->Texture()->Id();
+				rayTracerInstance->m_albedoTexture = rayTracedRenderer->m_albedoTexture->Texture()->Id();
 			}
-			else if (!rayTracerMaterial->m_albedoTexture && cudaTriangleMesh->m_albedoTexture != 0)
+			else if (!rayTracedRenderer->m_albedoTexture && rayTracerInstance->m_albedoTexture != 0)
 			{
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_albedoTexture = 0;
+				rayTracerInstance->m_albedoTexture = 0;
 			}
-			if (rayTracerMaterial->m_normalTexture && rayTracerMaterial->m_normalTexture->Texture()->Id() != cudaTriangleMesh->m_normalTexture)
+			if (rayTracedRenderer->m_normalTexture && rayTracedRenderer->m_normalTexture->Texture()->Id() != rayTracerInstance->m_normalTexture)
 			{
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_normalTexture = rayTracerMaterial->m_normalTexture->Texture()->Id();
+				rayTracerInstance->m_normalTexture = rayTracedRenderer->m_normalTexture->Texture()->Id();
 			}
-			else if (!rayTracerMaterial->m_normalTexture && cudaTriangleMesh->m_normalTexture != 0)
+			else if (!rayTracedRenderer->m_normalTexture && rayTracerInstance->m_normalTexture != 0)
 			{
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_normalTexture = 0;
+				rayTracerInstance->m_normalTexture = 0;
 			}
-			if (cudaTriangleMesh->m_diffuseIntensity != rayTracerMaterial->m_diffuseIntensity)
+			if (rayTracerInstance->m_diffuseIntensity != rayTracedRenderer->m_diffuseIntensity)
 			{
 				updateShaderBindingTable = true;
-				cudaTriangleMesh->m_diffuseIntensity = rayTracerMaterial->m_diffuseIntensity;
+				rayTracerInstance->m_diffuseIntensity = rayTracedRenderer->m_diffuseIntensity;
 			}
 			if (fromNew || needVerticesUpdate) {
 				rebuildAccelerationStructure = true;
-				cudaTriangleMesh->m_verticesUpdateFlag = true;
+				rayTracerInstance->m_verticesUpdateFlag = true;
 				if (fromNew) {
-					cudaTriangleMesh->m_transformUpdateFlag = true;
-					cudaTriangleMesh->m_globalTransform = globalTransform;
+					rayTracerInstance->m_transformUpdateFlag = true;
+					rayTracerInstance->m_globalTransform = globalTransform;
 				}
-				cudaTriangleMesh->m_positions = &rayTracerMaterial->m_mesh->UnsafeGetVertexPositions();
-				cudaTriangleMesh->m_normals = &rayTracerMaterial->m_mesh->UnsafeGetVertexNormals();
-				cudaTriangleMesh->m_tangents = &rayTracerMaterial->m_mesh->UnsafeGetVertexTangents();
-				cudaTriangleMesh->m_colors = &rayTracerMaterial->m_mesh->UnsafeGetVertexColors();
-				cudaTriangleMesh->m_triangles = &rayTracerMaterial->m_mesh->UnsafeGetTriangles();
-				cudaTriangleMesh->m_texCoords = &rayTracerMaterial->m_mesh->UnsafeGetVertexTexCoords();
+				rayTracerInstance->m_positions = &rayTracedRenderer->m_mesh->UnsafeGetVertexPositions();
+				rayTracerInstance->m_normals = &rayTracedRenderer->m_mesh->UnsafeGetVertexNormals();
+				rayTracerInstance->m_tangents = &rayTracedRenderer->m_mesh->UnsafeGetVertexTangents();
+				rayTracerInstance->m_colors = &rayTracedRenderer->m_mesh->UnsafeGetVertexColors();
+				rayTracerInstance->m_triangles = &rayTracedRenderer->m_mesh->UnsafeGetTriangles();
+				rayTracerInstance->m_texCoords = &rayTracedRenderer->m_mesh->UnsafeGetVertexTexCoords();
 			}
 			else if (needTransformUpdate)
 			{
 				rebuildAccelerationStructure = true;
-				cudaTriangleMesh->m_globalTransform = globalTransform;
-				cudaTriangleMesh->m_transformUpdateFlag = true;
+				rayTracerInstance->m_globalTransform = globalTransform;
+				rayTracerInstance->m_transformUpdateFlag = true;
 			}
-			if (fromNew) meshesStorage.push_back(newCudaTriangleMesh);
+			if (fromNew) meshesStorage.push_back(newRayTracerInstance);
 		}
 	}
 	else
