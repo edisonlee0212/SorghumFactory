@@ -12,7 +12,7 @@
 #include <RayDataDefinations.hpp>
 
 namespace RayMLVQ {
-	extern "C" __constant__ RayMLVQRenderingLaunchParams rayMLVQLaunchParams;
+	extern "C" __constant__ RayMLVQRenderingLaunchParams rayMLVQRenderingLaunchParams;
 	struct RayMLVQRenderingRayData{
 		unsigned m_hitCount;
 		Random m_random;
@@ -35,7 +35,7 @@ namespace RayMLVQ {
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
 #pragma region Correct normals
-		if (!rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_useGeometryNormal)
+		if (!rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_useGeometryNormal)
 			normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_normal[index.x]
 			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_normal[index.y]
 			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_normal[index.z];
@@ -76,12 +76,12 @@ namespace RayMLVQ {
 		PackRayDataPointer(&perRayData, u0, u1);
 		float metallic = sbtData.m_material.m_metallic;
 		float roughness = sbtData.m_material.m_roughness;
-		const auto scatterSamples = rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerHit;
+		const auto scatterSamples = rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerHit;
 		for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 		{
 			perRayData.m_hitCount = hitCount;
 			perRayData.m_energy = glm::vec3(0.0f);
-			if (perRayData.m_hitCount <= rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_bounceLimit) {
+			if (perRayData.m_hitCount <= rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_bounceLimit) {
 				energy = glm::vec3(0.0f);
 				float f = 1.0f;
 				if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
@@ -98,7 +98,7 @@ namespace RayMLVQ {
 				}
 				float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 				float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-				optixTrace(rayMLVQLaunchParams.m_traversable,
+				optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
 					incidentRayOrigin,
 					newRayDirectionInternal,
 					1e-3f,    // tmin
@@ -106,9 +106,9 @@ namespace RayMLVQ {
 					0.0f,   // rayTime
 					static_cast<OptixVisibilityMask>(255),
 					OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
-					static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
+					static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // SBT offset
+					static_cast<int>(RayMLVQRenderingRayType::RayTypeCount),               // SBT stride
+					static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // missSBTIndex
 					u0, u1);
 				energy += albedoColor
 					* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
@@ -137,9 +137,9 @@ namespace RayMLVQ {
 		RayMLVQRenderingRayData& prd = *GetRayDataPointer<RayMLVQRenderingRayData>();
 		const float3 rayDir = optixGetWorldRayDirection();
 		float4 environmentalLightColor = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
-		if (rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(rayMLVQLaunchParams.m_skylight.m_environmentalMaps, rayDir);
+		if (rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps, rayDir);
 		prd.m_pixelAlbedo = prd.m_energy = glm::vec3(environmentalLightColor.x, environmentalLightColor.y, environmentalLightColor.z);
-		prd.m_energy *= rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_skylightIntensity;
+		prd.m_energy *= rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_skylightIntensity;
 	}
 	
 #pragma endregion
@@ -151,8 +151,8 @@ namespace RayMLVQ {
 		float iy = optixGetLaunchIndex().y;
 		RayMLVQRenderingRayData cameraRayData;
 		cameraRayData.m_hitCount = 0;
-		cameraRayData.m_random.Init(ix + rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x * iy,
-			rayMLVQLaunchParams.m_frame.m_frameId);
+		cameraRayData.m_random.Init(ix + rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x * iy,
+			rayMLVQRenderingLaunchParams.m_frame.m_frameId);
 		cameraRayData.m_energy = glm::vec3(0);
 		cameraRayData.m_pixelNormal = glm::vec3(0);
 		cameraRayData.m_pixelAlbedo = glm::vec3(0);
@@ -160,7 +160,7 @@ namespace RayMLVQ {
 		uint32_t u0, u1;
 		PackRayDataPointer(&cameraRayData, u0, u1);
 
-		const auto numPixelSamples = rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerPixel;
+		const auto numPixelSamples = rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerPixel;
 		auto pixelColor = glm::vec3(0.f);
 		auto pixelNormal = glm::vec3(0.f);
 		auto pixelAlbedo = glm::vec3(0.f);
@@ -173,14 +173,14 @@ namespace RayMLVQ {
 			// screen then the actual screen plane we should be using during
 			// rendering is slightly larger than [0,1]^2
 			glm::vec2 screen;
-			screen = glm::vec2(ix + cameraRayData.m_random(), iy + cameraRayData.m_random()) / glm::vec2(rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_frameSize);
-			glm::vec3 rayDir = glm::normalize(rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_direction
-				+ (screen.x - 0.5f) * rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_horizontal
-				+ (screen.y - 0.5f) * rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_vertical);
-			float3 rayOrigin = make_float3(rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.x, rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.y, rayMLVQLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.z);
+			screen = glm::vec2(ix + cameraRayData.m_random(), iy + cameraRayData.m_random()) / glm::vec2(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize);
+			glm::vec3 rayDir = glm::normalize(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_direction
+				+ (screen.x - 0.5f) * rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_horizontal
+				+ (screen.y - 0.5f) * rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_vertical);
+			float3 rayOrigin = make_float3(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.x, rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.y, rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.z);
 			float3 rayDirection = make_float3(rayDir.x, rayDir.y, rayDir.z);
 
-			optixTrace(rayMLVQLaunchParams.m_traversable,
+			optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
 				rayOrigin,
 				rayDirection,
 				0.f,    // tmin
@@ -202,19 +202,19 @@ namespace RayMLVQ {
 		}
 		glm::vec3 rgb(pixelColor / static_cast<float>(numPixelSamples));
 		// and write/accumulate to frame buffer ...
-		if (rayMLVQLaunchParams.m_frame.m_frameId > 1) {
+		if (rayMLVQRenderingLaunchParams.m_frame.m_frameId > 1) {
 			float4 currentColor;
-			surf2Dread(&currentColor, rayMLVQLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+			surf2Dread(&currentColor, rayMLVQRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
 			glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
-			rgb += static_cast<float>(rayMLVQLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
-			rgb /= static_cast<float>(rayMLVQLaunchParams.m_frame.m_frameId + 1);
+			rgb += static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
+			rgb /= static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId + 1);
 		}
 		float4 data = make_float4(rgb.r,
 			rgb.g,
 			rgb.b,
 			1.0f);
 		// and write to frame buffer ...
-		surf2Dwrite(data, rayMLVQLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+		surf2Dwrite(data, rayMLVQRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
 	}
 #pragma endregion
 }

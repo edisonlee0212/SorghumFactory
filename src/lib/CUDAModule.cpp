@@ -61,10 +61,16 @@ void CudaModule::PrepareScene()
 	GetInstance().m_optixRayTracer->BuildAccelerationStructure(GetInstance().m_meshes);
 }
 
-bool CudaModule::RenderRayTracerDebugOutput(const DefaultRenderingProperties& properties)
+bool CudaModule::RenderDefault(const DefaultRenderingProperties& properties)
 {
 	auto& rayTracer = GetInstance().m_optixRayTracer;
 	return rayTracer->RenderDefault(properties, GetInstance().m_meshes);
+}
+
+bool CudaModule::RenderRayMLVQ(const RayMLVQRenderingProperties& properties)
+{
+	auto& rayTracer = GetInstance().m_optixRayTracer;
+	return rayTracer->RenderRayMLVQ(properties, GetInstance().m_meshes);
 }
 
 void CudaModule::Terminate()

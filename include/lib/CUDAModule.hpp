@@ -172,7 +172,8 @@ namespace RayMLVQ {
 		static CudaModule& GetInstance();
 		static void Init();
 		static void PrepareScene();
-		static bool RenderRayTracerDebugOutput(const DefaultRenderingProperties& properties);
+		static bool RenderDefault(const DefaultRenderingProperties& properties);
+		static bool RenderRayMLVQ(const RayMLVQRenderingProperties& properties);
 		static void Terminate();
 		static void EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightProbe<float>>& lightProbes);
 	};

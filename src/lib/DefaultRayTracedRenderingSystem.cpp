@@ -1,4 +1,4 @@
-#include <RayTracedRenderingSystem.hpp>
+#include <DefaultRayTracedRenderingSystem.hpp>
 #include <RayTracedRenderer.hpp>
 #include <InputManager.hpp>
 #include <WindowManager.hpp>
@@ -14,7 +14,7 @@ const char* DebugOutputRenderTypes[]{
 	"BRDF"
 };
 
-void RayTracedRenderingSystem::OnGui()
+void DefaultRayTracedRenderingSystem::OnGui()
 {
 	if (m_rightMouseButtonHold && !InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT, WindowManager::GetWindow()))
 	{
@@ -74,8 +74,8 @@ void RayTracedRenderingSystem::OnGui()
 			ImVec2 viewPortSize = ImGui::GetWindowSize();
 			viewPortSize.y -= 20;
 			if (viewPortSize.y < 0) viewPortSize.y = 0;
-			m_rayTracerTestOutputSize = glm::ivec2(viewPortSize.x, viewPortSize.y);
-			if (m_rendered) ImGui::Image(reinterpret_cast<ImTextureID>(m_rayTracerTestOutput->Id()), viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
+			m_outputSize = glm::ivec2(viewPortSize.x, viewPortSize.y);
+			if (m_rendered) ImGui::Image(reinterpret_cast<ImTextureID>(m_output->Id()), viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
 			else ImGui::Text("No mesh in the scene!");
 			if (ImGui::IsWindowFocused())
 			{
@@ -135,15 +135,15 @@ void RayTracedRenderingSystem::OnGui()
 		}
 		ImGui::EndChild();
 		auto* window = ImGui::FindWindowByName("Ray Tracer");
-		m_rayTracerDebugRenderingEnabled = !(window->Hidden && !window->Collapsed);
+		m_renderingEnabled = !(window->Hidden && !window->Collapsed);
 	}
 	ImGui::End();
 	ImGui::PopStyleVar();
 }
 
-void RayTracedRenderingSystem::UpdateScene() const
+void DefaultRayTracedRenderingSystem::UpdateScene() const
 {
-	if (!m_rayTracerDebugRenderingEnabled) return;
+	if (!m_renderingEnabled) return;
 	bool rebuildAccelerationStructure = false;
 	bool updateShaderBindingTable = false;
 	auto& meshesStorage = CudaModule::GetInstance().m_meshes;
@@ -151,7 +151,7 @@ void RayTracedRenderingSystem::UpdateScene() const
 	{
 		i.m_removeTag = true;
 	}
-	if (const auto * rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracedRenderer>(); rayTracerEntities)
+	if (const auto* rayTracerEntities = EntityManager::GetPrivateComponentOwnersList<RayTracedRenderer>(); rayTracerEntities)
 	{
 		for (auto entity : *rayTracerEntities) {
 			if (!entity.IsEnabled()) continue;
@@ -235,7 +235,8 @@ void RayTracedRenderingSystem::UpdateScene() const
 				cudaTriangleMesh->m_colors = &rayTracerMaterial->m_mesh->UnsafeGetVertexColors();
 				cudaTriangleMesh->m_triangles = &rayTracerMaterial->m_mesh->UnsafeGetTriangles();
 				cudaTriangleMesh->m_texCoords = &rayTracerMaterial->m_mesh->UnsafeGetVertexTexCoords();
-			}else if(needTransformUpdate)
+			}
+			else if (needTransformUpdate)
 			{
 				rebuildAccelerationStructure = true;
 				cudaTriangleMesh->m_globalTransform = globalTransform;
@@ -270,7 +271,7 @@ void RayTracedRenderingSystem::UpdateScene() const
 	}
 }
 
-void RayTracedRenderingSystem::OnCreate()
+void DefaultRayTracedRenderingSystem::OnCreate()
 {
 #pragma region Environmental map
 	{
@@ -296,43 +297,43 @@ void RayTracedRenderingSystem::OnCreate()
 			}
 		}
 	);
-	m_rayTracerTestOutput = std::make_unique<OpenGLUtils::GLTexture2D>(0, GL_RGBA32F, 1, 1, false);
-	m_rayTracerTestOutput->SetData(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0);
-	m_rayTracerTestOutput->SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	m_rayTracerTestOutput->SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	m_rayTracerTestOutput->SetInt(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	m_rayTracerTestOutput->SetInt(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	m_output = std::make_unique<OpenGLUtils::GLTexture2D>(0, GL_RGBA32F, 1, 1, false);
+	m_output->SetData(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0);
+	m_output->SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_output->SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	m_output->SetInt(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	m_output->SetInt(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	Enable();
 }
 
-void RayTracedRenderingSystem::OnDestroy()
+void DefaultRayTracedRenderingSystem::OnDestroy()
 {
 	CudaModule::Terminate();
 }
 
-void RayTracedRenderingSystem::PreUpdate()
+void DefaultRayTracedRenderingSystem::PreUpdate()
 {
 }
 
-void RayTracedRenderingSystem::Update()
+void DefaultRayTracedRenderingSystem::Update()
 {
 	UpdateScene();
-	auto& size = m_rayTracerTestOutputSize;
-	m_rayTracerTestOutput->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
+	auto& size = m_outputSize;
+	m_output->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
 	m_properties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
 	m_properties.m_environmentalMapId = m_environmentalMap->Texture()->Id();
 	m_properties.m_frameSize = size;
-	m_properties.m_outputTextureId = m_rayTracerTestOutput->Id();
+	m_properties.m_outputTextureId = m_output->Id();
 	if (!CudaModule::GetInstance().m_meshes.empty()) {
-		m_rendered = CudaModule::RenderRayTracerDebugOutput(m_properties);
+		m_rendered = CudaModule::RenderDefault(m_properties);
 	}
 }
 
-void RayTracedRenderingSystem::FixedUpdate()
+void DefaultRayTracedRenderingSystem::FixedUpdate()
 {
 }
 
-void RayTracedRenderingSystem::LateUpdate()
+void DefaultRayTracedRenderingSystem::LateUpdate()
 {
 	OnGui();
 }
