@@ -1,7 +1,6 @@
 #pragma once
 #include <raymlvq_export.h>
 #include <memory>
-#include <vector>
 #include <RayTracer.hpp>
 struct cudaGraphicsResource;
 namespace RayMLVQ {

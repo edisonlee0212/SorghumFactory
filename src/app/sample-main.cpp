@@ -9,8 +9,7 @@
 #include <TreeManager.hpp>
 #include <SorghumManager.hpp>
 #include <EditorManager.hpp>
-#include <DefaultRayTracedRenderingSystem.hpp>
-#include <RayMLVQRayTracedRenderingSystem.hpp>
+#include <RayTracerManager.hpp>
 using namespace PlantFactory;
 using namespace RayMLVQ;
 void EngineSetup();
@@ -20,18 +19,14 @@ int main()
 	PlantManager::Init();
 	SorghumManager::Init();
 	TreeManager::Init();
-
-	auto* rayTracedRenderingSystem = Application::GetCurrentWorld()->CreateSystem<DefaultRayTracedRenderingSystem>(SystemGroup::PresentationSystemGroup);
-	rayTracedRenderingSystem->Enable();
-
-	auto* rayMLVQRenderingSystem = Application::GetCurrentWorld()->CreateSystem<RayMLVQRayTracedRenderingSystem>(SystemGroup::PresentationSystemGroup);
-	rayMLVQRenderingSystem->Enable();
+	RayTracerManager::Init();
 #pragma region Engine Loop
 	Application::RegisterUpdateFunction([]()
 		{
 			PlantManager::Update();
 			SorghumManager::Update();
 			TreeManager::Update();
+			RayTracerManager::Update();
 		}
 	);
 	Application::RegisterLateUpdateFunction([]()
@@ -39,10 +34,12 @@ int main()
 			PlantManager::OnGui();
 			TreeManager::OnGui();
 			SorghumManager::OnGui();
+			RayTracerManager::OnGui();
 		}
 	);
 	Application::Run();
 #pragma endregion
+	RayTracerManager::End();
 	Application::End();
 }
 void EngineSetup()

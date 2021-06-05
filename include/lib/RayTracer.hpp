@@ -34,6 +34,7 @@ namespace RayMLVQ {
 		Glass,
 		Brdf
 	};
+	
 	struct RAYMLVQ_API DefaultRenderingProperties
 	{
 		bool m_accumulate = true;
@@ -66,6 +67,15 @@ namespace RayMLVQ {
 	};
 	struct RAYMLVQ_API IlluminationEstimationProperties
 	{
+		[[nodiscard]] bool Changed(const IlluminationEstimationProperties& properties) const
+		{
+			return properties.m_seed != m_seed ||
+				properties.m_bounceLimit != m_bounceLimit ||
+				properties.m_numPointSamples != m_numPointSamples ||
+				properties.m_numScatterSamples != m_numScatterSamples ||
+				properties.m_skylightPower != m_skylightPower ||
+				properties.m_pushNormal != m_pushNormal;
+		}
 		unsigned m_seed = 0;
 		int m_bounceLimit = 2;
 		int m_numPointSamples = 100;

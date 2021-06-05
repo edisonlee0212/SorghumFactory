@@ -5,7 +5,7 @@
 #include <Volume.hpp>
 #include <SorghumManager.hpp>
 #include <TreeManager.hpp>
-#include <DefaultRayTracedRenderingSystem.hpp>
+#include <RayTracerManager.hpp>
 #include <RayTracedRenderer.hpp>
 using namespace PlantFactory;
 
@@ -196,7 +196,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 	if (manager.m_internodeTransforms.empty()) return;
 	const float time = Application::EngineTime();
 	//Upload geometries to OptiX.
-	Application::GetCurrentWorld()->GetSystem<RayMLVQ::DefaultRayTracedRenderingSystem>()->UpdateScene();
+	RayMLVQ::RayTracerManager::GetInstance().UpdateScene();
 	RayMLVQ::IlluminationEstimationProperties properties;
 	properties.m_bounceLimit = 1;
 	properties.m_numPointSamples = 1000;
