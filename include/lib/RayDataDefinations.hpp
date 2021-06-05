@@ -3,14 +3,18 @@
 #include <Optix7.hpp>
 namespace RayMLVQ
 {
-	struct DefaultMaterial {
-		glm::vec3  m_surfaceColor;
+	struct Mesh
+	{
 		glm::vec3* m_position;
 		glm::uvec3* m_triangle;
 		glm::vec3* m_normal;
 		glm::vec3* m_tangent;
 		glm::vec4* m_color;
 		glm::vec2* m_texCoord;
+	};
+	
+	struct DefaultMaterial {
+		glm::vec3  m_surfaceColor;
 		float m_roughness = 15;
 		float m_metallic = 0.5;
 		cudaTextureObject_t m_albedoTexture;
@@ -19,18 +23,21 @@ namespace RayMLVQ
 	};
 
 	struct RayMLVQMaterial {
-		glm::vec3  m_surfaceColor;
-		glm::vec3* m_position;
-		glm::uvec3* m_triangle;
-		glm::vec3* m_normal;
-		glm::vec3* m_tangent;
-		glm::vec4* m_color;
-		glm::vec2* m_texCoord;
-		float m_roughness = 15;
-		float m_metallic = 0.5;
-		cudaTextureObject_t m_albedoTexture;
-		cudaTextureObject_t m_normalTexture;
-		float m_diffuseIntensity;
+		
+	};
+
+	struct DefaultSbtData
+	{
+		Mesh m_mesh;
+		DefaultMaterial m_material;
+	};
+
+	struct RayMLVQSbtData
+	{
+		Mesh m_mesh;
+		bool m_enableMLVQ;
+		DefaultMaterial m_material;
+		RayMLVQMaterial m_rayMlvqMaterial;
 	};
 	
 	/*! SBT record for a raygen program */
@@ -57,7 +64,7 @@ namespace RayMLVQ
 		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
 		// just a dummy value - later examples will use more interesting
 		// data here
-		DefaultMaterial m_data;
+		DefaultSbtData m_data;
 	};
 
 	/*! SBT record for a raygen program */
@@ -84,7 +91,7 @@ namespace RayMLVQ
 		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
 		// just a dummy value - later examples will use more interesting
 		// data here
-		DefaultMaterial m_data;
+		DefaultSbtData m_data;
 	};
 
 	/*! SBT record for a raygen program */
@@ -111,6 +118,6 @@ namespace RayMLVQ
 		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
 		// just a dummy value - later examples will use more interesting
 		// data here
-		RayMLVQMaterial m_data;
+		RayMLVQSbtData m_data;
 	};
 }

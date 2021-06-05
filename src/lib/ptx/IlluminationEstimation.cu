@@ -14,39 +14,39 @@ namespace RayMLVQ {
 	extern "C" __global__ void __closesthit__illuminationEstimation()
 	{
 		const auto& sbtData
-			= *(const DefaultMaterial*)optixGetSbtDataPointer();
+			= *(const DefaultSbtData*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
 		const int primitiveId = optixGetPrimitiveIndex();
-		const glm::uvec3 index = sbtData.m_triangle[primitiveId];
-		const glm::vec3 pointA = sbtData.m_position[index.x];
-		const glm::vec3 pointB = sbtData.m_position[index.y];
-		const glm::vec3 pointC = sbtData.m_position[index.z];
+		const glm::uvec3 index = sbtData.m_mesh.m_triangle[primitiveId];
+		const glm::vec3 pointA = sbtData.m_mesh.m_position[index.x];
+		const glm::vec3 pointB = sbtData.m_mesh.m_position[index.y];
+		const glm::vec3 pointC = sbtData.m_mesh.m_position[index.z];
 		glm::vec3 normal;
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
 #pragma region Normals
-		normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_normal[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_normal[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_normal[index.z];
+		normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_normal[index.x]
+			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_normal[index.y]
+			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_normal[index.z];
 #pragma endregion
 		//glm::vec3 albedoColor = sbtData.m_color;
 #pragma region Apply textures
 		const glm::vec2 tc
-			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_texCoord[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_texCoord[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_texCoord[index.z];
+			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_texCoord[index.x]
+			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_texCoord[index.y]
+			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_texCoord[index.z];
 		/*
 		if (sbtData.m_albedoTexture) {
 			float4 textureAlbedo = tex2D<float4>(sbtData.m_albedoTexture, tc.x, tc.y);
 			albedoColor = glm::vec3(textureAlbedo.x, textureAlbedo.y, textureAlbedo.z);
 		}
 		*/
-		if (sbtData.m_normalTexture)
+		if (sbtData.m_material.m_normalTexture)
 		{
-			float4 textureNormal = tex2D<float4>(sbtData.m_normalTexture, tc.x, tc.y);
-			glm::vec3 tangent = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_tangent[index.x]
-				+ triangleBarycentricsInternal.x * sbtData.m_tangent[index.y]
-				+ triangleBarycentricsInternal.y * sbtData.m_tangent[index.z];
+			float4 textureNormal = tex2D<float4>(sbtData.m_material.m_normalTexture, tc.x, tc.y);
+			glm::vec3 tangent = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_tangent[index.x]
+				+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_tangent[index.y]
+				+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_tangent[index.z];
 			glm::vec3 B = glm::cross(normal, tangent);
 			glm::mat3 TBN = glm::mat3(tangent, B, normal);
 			normal = glm::vec3(textureNormal.x, textureNormal.y, textureNormal.z) * 2.0f - glm::vec3(1.0f);
@@ -63,8 +63,8 @@ namespace RayMLVQ {
 		const auto scatterSamples = defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties.m_numScatterSamples;
 		uint32_t u0, u1;
 		PackRayDataPointer(&perRayData, u0, u1);
-		float metallic = sbtData.m_metallic;
-		float roughness = sbtData.m_roughness;
+		float metallic = sbtData.m_material.m_metallic;
+		float roughness = sbtData.m_material.m_roughness;
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 		{

@@ -64,7 +64,7 @@ void CudaModule::PrepareScene()
 bool CudaModule::RenderRayTracerDebugOutput(const DefaultRenderingProperties& properties)
 {
 	auto& rayTracer = GetInstance().m_optixRayTracer;
-	return rayTracer->RenderDebugOutput(properties, GetInstance().m_meshes);
+	return rayTracer->RenderDefault(properties, GetInstance().m_meshes);
 }
 
 void CudaModule::Terminate()

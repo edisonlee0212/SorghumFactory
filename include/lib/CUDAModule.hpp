@@ -144,6 +144,8 @@ namespace RayMLVQ {
 
 		bool m_verticesUpdateFlag = true;
 		bool m_transformUpdateFlag = true;
+
+		bool m_enableMLVQ = false;
 	};
 	class RayTracer;
 	class RAYMLVQ_API CudaModule {

@@ -41,7 +41,8 @@ namespace RayMLVQ {
 		// ------------------------------------------------------------------
 		// internal helper functions
 		// ------------------------------------------------------------------
-		[[nodiscard]] bool RenderDebugOutput(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
+		[[nodiscard]] bool RenderDefault(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
+		[[nodiscard]] bool RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std::vector<TriangleMesh>& meshes);
 		void EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes);
 		RayTracer();
 		/*! build an acceleration structure for the given triangle mesh */
