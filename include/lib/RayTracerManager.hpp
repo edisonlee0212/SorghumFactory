@@ -1,5 +1,5 @@
 #pragma once
-#include <raymlvq_export.h>
+#include <ray_tracer_facility_export.h>
 #include <CUDAModule.hpp>
 #include <UniEngine-pch.hpp>
 #include <memory>
@@ -13,7 +13,7 @@
 #include <MeshRenderer.hpp>
 #include <Cubemap.hpp>
 using namespace UniEngine;
-namespace RayMLVQ
+namespace RayTracerFacility
 {
 	class RayTracerRenderWindow
 	{
@@ -37,7 +37,7 @@ namespace RayMLVQ
 		void OnGui();
 	};
 
-	class RAYMLVQ_API RayTracerManager
+	class RAY_TRACER_FACILITY_API RayTracerManager
 	{
 	protected:
 #pragma region Class related

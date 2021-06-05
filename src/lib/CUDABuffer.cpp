@@ -8,7 +8,7 @@
 
 #include <glm/glm.hpp>
 
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 
 CUdeviceptr CudaBuffer::DevicePointer() const
 {

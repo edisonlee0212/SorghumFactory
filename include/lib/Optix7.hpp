@@ -1,5 +1,5 @@
 #pragma once
-#include <raymlvq_export.h>
+#include <ray_tracer_facility_export.h>
 #include <device_launch_parameters.h>
 #include <cuda_runtime.h>
 #include <optix.h>

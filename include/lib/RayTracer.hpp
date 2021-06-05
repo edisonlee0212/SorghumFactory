@@ -6,8 +6,8 @@
 #include <string>
 #include <glm/glm.hpp>
 
-namespace RayMLVQ {
-	struct RAYMLVQ_API Camera {
+namespace RayTracerFacility {
+	struct RAY_TRACER_FACILITY_API Camera {
 		bool m_modified = false;
 		float m_fov = 60;
 		/*! camera position - *from* where we are looking */
@@ -35,7 +35,7 @@ namespace RayMLVQ {
 		Brdf
 	};
 	
-	struct RAYMLVQ_API DefaultRenderingProperties
+	struct RAY_TRACER_FACILITY_API DefaultRenderingProperties
 	{
 		bool m_accumulate = true;
 		bool m_useEnvironmentalMap = false;
@@ -65,7 +65,7 @@ namespace RayMLVQ {
 				properties.m_camera != m_camera;
 		}
 	};
-	struct RAYMLVQ_API IlluminationEstimationProperties
+	struct RAY_TRACER_FACILITY_API IlluminationEstimationProperties
 	{
 		[[nodiscard]] bool Changed(const IlluminationEstimationProperties& properties) const
 		{
@@ -83,7 +83,7 @@ namespace RayMLVQ {
 		float m_skylightPower = 1.0f;
 		bool m_pushNormal = true;
 	};
-	struct RAYMLVQ_API RayMLVQRenderingProperties
+	struct RAY_TRACER_FACILITY_API RayMLVQRenderingProperties
 	{
 		bool m_accumulate = true;
 		bool m_useEnvironmentalMap = false;
@@ -150,7 +150,7 @@ namespace RayMLVQ {
 	};
 	
 	template<typename T>
-	struct RAYMLVQ_API LightProbe
+	struct RAY_TRACER_FACILITY_API LightProbe
 	{
 		glm::vec3 m_surfaceNormal;
 		/**
@@ -188,7 +188,7 @@ namespace RayMLVQ {
 		OptixTraversableHandle m_traversable;
 	};
 #pragma endregion
-	struct RAYMLVQ_API RayTracerInstance {
+	struct RAY_TRACER_FACILITY_API RayTracerInstance {
 		std::vector<glm::vec3>* m_positions;
 		std::vector<glm::vec3>* m_normals;
 		std::vector<glm::vec3>* m_tangents;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-namespace RayMLVQ
+namespace RayTracerFacility
 {
 	/*! simple 24-bit linear congruence generator */
 	template<unsigned int N = 16>

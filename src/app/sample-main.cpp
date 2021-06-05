@@ -11,7 +11,7 @@
 #include <EditorManager.hpp>
 #include <RayTracerManager.hpp>
 using namespace PlantFactory;
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 void EngineSetup();
 int main()
 {
@@ -44,7 +44,7 @@ int main()
 }
 void EngineSetup()
 {
-	FileIO::SetProjectPath(SORGHUMMLVQ_RESOURCE_FOLDER);
+	FileIO::SetProjectPath(PLANT_FACTORY_RESOURCE_FOLDER);
 	Application::Init();
 #pragma region Engine Setup
 #pragma region Global light settings

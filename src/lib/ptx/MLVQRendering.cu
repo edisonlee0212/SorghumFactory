@@ -10,7 +10,7 @@
 
 #include <RayDataDefinations.hpp>
 
-namespace RayMLVQ {
+namespace RayTracerFacility {
 	extern "C" __constant__ RayMLVQRenderingLaunchParams rayMLVQRenderingLaunchParams;
 	struct RayMLVQRenderingRayData{
 		unsigned m_hitCount;

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 std::string FileIO::LoadFileAsString(const std::string& path)
 {
 	std::ifstream file;

@@ -2,7 +2,7 @@
 #include <Optix7.hpp>
 #include <RayTracerUtilities.cuh>
 #include <RayDataDefinations.hpp>
-namespace RayMLVQ {
+namespace RayTracerFacility {
 	extern "C" __constant__ DefaultIlluminationEstimationLaunchParams defaultIlluminationEstimationLaunchParams;
 	struct IlluminationEstimationRayData {
 		unsigned m_hitCount = 0;

@@ -68,7 +68,7 @@ namespace PlantFactory {
 		std::vector<glm::mat4> m_probeTransforms;
 		std::vector<glm::vec4> m_probeColors;
 
-		RayMLVQ::IlluminationEstimationProperties m_properties;
+		RayTracerFacility::IlluminationEstimationProperties m_properties;
 		std::vector<Entity> m_processingEntities;
 		int m_processingIndex;
 		bool m_processing = false;
@@ -99,7 +99,7 @@ namespace PlantFactory {
 		static void ExportAllSorghumsModel(const std::string& filename);
 		static void RenderLightProbes();
 		static void CollectEntities(std::vector<Entity>& entities, const Entity& walker);
-		static void CalculateIllumination(const RayMLVQ::IlluminationEstimationProperties& properties = RayMLVQ::IlluminationEstimationProperties());
+		static void CalculateIllumination(const RayTracerFacility::IlluminationEstimationProperties& properties = RayTracerFacility::IlluminationEstimationProperties());
 		static void GenerateLeavesForSorghum(PlantManager& manager);
 		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
 		static void FormLeafNodes(PlantManager& plantManager);

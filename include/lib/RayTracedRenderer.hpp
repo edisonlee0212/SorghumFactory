@@ -1,14 +1,15 @@
 #pragma once
 #include <memory>
 #include <UniEngine-pch.hpp>
-#include <raymlvq_export.h>
+#include <ray_tracer_facility_export.h>
+
 #include <Entity.hpp>
 #include <Texture2D.hpp>
 #include <Mesh.hpp>
 
 using namespace UniEngine;
-namespace RayMLVQ {
-	class RAYMLVQ_API RayTracedRenderer :
+namespace RayTracerFacility {
+	class RAY_TRACER_FACILITY_API RayTracedRenderer :
 		public PrivateComponentBase
 	{
 	public:

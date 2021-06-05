@@ -1,10 +1,10 @@
 #pragma once
-#include <raymlvq_export.h>
+#include <ray_tracer_facility_export.h>
 #include <memory>
 #include <RayTracer.hpp>
 struct cudaGraphicsResource;
-namespace RayMLVQ {
-	class RAYMLVQ_API CudaModule {
+namespace RayTracerFacility {
+	class RAY_TRACER_FACILITY_API CudaModule {
 #pragma region Class related
 		CudaModule() = default;
 		CudaModule(CudaModule&&) = default;

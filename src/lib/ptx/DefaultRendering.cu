@@ -8,7 +8,7 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <RayDataDefinations.hpp>
-namespace RayMLVQ {
+namespace RayTracerFacility {
 	extern "C" __constant__ DefaultRenderingLaunchParams defaultRenderingLaunchParams;
 	struct DefaultRenderingRayData {
 		unsigned m_hitCount;

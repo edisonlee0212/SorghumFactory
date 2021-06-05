@@ -4,7 +4,7 @@
 #include <vector>
 
 struct cudaGraphicsResource;
-namespace RayMLVQ {
+namespace RayTracerFacility {
 	
 	/*! simple wrapper for creating, and managing a device-side CUDA
 		buffer */

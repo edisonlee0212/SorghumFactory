@@ -4,7 +4,7 @@
 #include <TriangleIlluminationEstimator.hpp>
 
 using namespace PlantFactory;
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 PlantNode::PlantNode(glm::vec3 position, float angle, float width, glm::vec3 axis, bool isLeaf)
 {
 	m_position = position;
@@ -412,7 +412,7 @@ void SorghumManager::OnGui()
 			ImGui::DragInt("Seed", &manager.m_seed);
 			if (ImGui::Button("Calculate illumination"))
 			{
-				RayMLVQ::IlluminationEstimationProperties properties;
+				IlluminationEstimationProperties properties;
 				properties.m_skylightPower = 1.0f;
 				properties.m_bounceLimit = 2;
 				properties.m_seed = glm::abs(manager.m_seed);
@@ -859,7 +859,7 @@ void SorghumManager::CollectEntities(std::vector<Entity>& entities, const Entity
 		});
 }
 
-void SorghumManager::CalculateIllumination(const RayMLVQ::IlluminationEstimationProperties& properties)
+void SorghumManager::CalculateIllumination(const IlluminationEstimationProperties& properties)
 {
 	auto& manager = GetInstance();
 	const auto* owners = EntityManager::GetPrivateComponentOwnersList<TriangleIlluminationEstimator>();

@@ -9,7 +9,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 
 std::unique_ptr<RayTracer>& CudaModule::GetRayTracer()
 {

@@ -4,7 +4,7 @@
 #include <RayTracer.hpp>
 
 using namespace PlantFactory;
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 glm::vec3 RadialBoundingVolume::GetRandomPoint()
 {
 	if(!m_meshGenerated) return glm::vec3(0);

@@ -9,11 +9,11 @@ namespace PlantFactory {
 		std::vector<glm::mat4> m_probeTransforms;
 		std::vector<glm::vec4> m_probeColors;
 		std::vector<float> m_triangleAreas;
-		std::vector<RayMLVQ::LightProbe<float>> m_lightProbes;
+		std::vector<RayTracerFacility::LightProbe<float>> m_lightProbes;
 		float m_totalArea = 0.0f;
 		float m_totalEnergy = 0.0f;
 		float m_radiantFlux = 0.0f;
 		void OnGui() override;
-		void CalculateIllumination(const RayMLVQ::IlluminationEstimationProperties& properties = RayMLVQ::IlluminationEstimationProperties());
+		void CalculateIllumination(const RayTracerFacility::IlluminationEstimationProperties& properties = RayTracerFacility::IlluminationEstimationProperties());
 	};
 }

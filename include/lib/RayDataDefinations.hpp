@@ -1,6 +1,6 @@
 #pragma once
 #include <Optix7.hpp>
-namespace RayMLVQ
+namespace RayTracerFacility
 {
 	struct Mesh
 	{

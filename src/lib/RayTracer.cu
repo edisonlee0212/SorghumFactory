@@ -11,7 +11,7 @@
 #include <iostream>
 #include <RayDataDefinations.hpp>
 
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 
 void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size)
 {
@@ -373,14 +373,13 @@ void RayTracer::CreateContext()
 
 extern "C" char DEFAULT_RENDERING_PTX[];
 extern "C" char ILLUMINATION_ESTIMATION_PTX[];
-
-extern "C" char RAYMLVQ_RENDERING_PTX[];
+extern "C" char MLVQ_RENDERING_PTX[];
 
 void RayTracer::CreateModules()
 {
 	CreateModule(m_defaultRenderingPipeline, DEFAULT_RENDERING_PTX, "defaultRenderingLaunchParams");
 	CreateModule(m_defaultIlluminationEstimationPipeline, ILLUMINATION_ESTIMATION_PTX, "defaultIlluminationEstimationLaunchParams");
-	CreateModule(m_rayMLVQRenderingPipeline, RAYMLVQ_RENDERING_PTX, "rayMLVQRenderingLaunchParams");
+	CreateModule(m_rayMLVQRenderingPipeline, MLVQ_RENDERING_PTX, "rayMLVQRenderingLaunchParams");
 }
 
 void RayTracer::CreateRayGenPrograms()

@@ -1,7 +1,7 @@
 #include <RayTracerManager.hpp>
 #include <RayTracedRenderer.hpp>
 
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 
 void RayTracerManager::UpdateScene() const
 {

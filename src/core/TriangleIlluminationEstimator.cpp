@@ -2,13 +2,13 @@
 #include <SorghumManager.hpp>
 
 using namespace PlantFactory;
-
+using namespace RayTracerFacility;
 void TriangleIlluminationEstimator::OnGui()
 {
 	ImGui::Text("Light probes size: %d", m_lightProbes.size());
 	if (ImGui::Button("Calculate illumination"))
 	{
-		RayMLVQ::IlluminationEstimationProperties properties;
+		IlluminationEstimationProperties properties;
 		properties.m_skylightPower = 0.7f;
 		properties.m_bounceLimit = 3;
 		properties.m_numPointSamples = 100;
@@ -21,7 +21,7 @@ void TriangleIlluminationEstimator::OnGui()
 }
 
 void TriangleIlluminationEstimator::CalculateIllumination(
-	const RayMLVQ::IlluminationEstimationProperties& properties)
+	const IlluminationEstimationProperties& properties)
 {
 #pragma region Prepare light probes;
 	m_lightProbes.clear();
@@ -48,7 +48,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 				const float area = glm::sqrt(p * (p - a) * (p - b) * (p - c));
 				m_triangleAreas.push_back(area);
 				m_totalArea += area;
-				RayMLVQ::LightProbe<float> lightProbe;
+				LightProbe<float> lightProbe;
 				lightProbe.m_direction = glm::vec3(0.0f);
 				lightProbe.m_energy = 0.0f;
 				lightProbe.m_surfaceNormal = glm::cross(positions[triangle.x] - positions[triangle.y], positions[triangle.y] - positions[triangle.z]);
@@ -60,7 +60,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 #pragma endregion
 #pragma region Illumination estimation
 	if (m_lightProbes.empty()) return;
-	RayMLVQ::CudaModule::EstimateIlluminationRayTracing(properties, m_lightProbes);
+	CudaModule::EstimateIlluminationRayTracing(properties, m_lightProbes);
 	m_probeTransforms.clear();
 	m_probeColors.clear();
 	m_totalEnergy = 0.0f;

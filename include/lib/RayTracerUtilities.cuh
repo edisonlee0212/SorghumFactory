@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace RayMLVQ
+namespace RayTracerFacility
 {
 	typedef LinearCongruenceGenerator<16> Random;
 #pragma region Data

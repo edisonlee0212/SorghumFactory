@@ -3,7 +3,7 @@
 
 using namespace PlantFactory;
 
-PlantFactory::Voxel& PlantFactory::VoxelSpace::GetVoxel(const glm::vec3& position)
+Voxel& VoxelSpace::GetVoxel(const glm::vec3& position)
 {
 	const auto relativePosition = position - m_origin;
 	const int x = glm::floor(relativePosition.x / m_diameter);
@@ -17,7 +17,7 @@ PlantFactory::Voxel& PlantFactory::VoxelSpace::GetVoxel(const glm::vec3& positio
 	return m_layers[x].m_lines[y].m_voxels[z];
 }
 
-void PlantFactory::VoxelSpace::Reset()
+void VoxelSpace::Reset()
 {
 	m_layers.resize(m_size.x);
 	for (auto& layer : m_layers)
@@ -34,7 +34,7 @@ void PlantFactory::VoxelSpace::Reset()
 	}
 }
 
-void PlantFactory::VoxelSpace::Clear()
+void VoxelSpace::Clear()
 {
 	for (int i = 0; i < m_size.x; i++) for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
 	{
@@ -46,7 +46,7 @@ void PlantFactory::VoxelSpace::Clear()
 	}
 }
 
-void PlantFactory::VoxelSpace::OnGui()
+void VoxelSpace::OnGui()
 {
 	ImGui::Checkbox("Display voxels", &m_display);
 	if (m_display)
@@ -56,7 +56,7 @@ void PlantFactory::VoxelSpace::OnGui()
 	}
 }
 
-void PlantFactory::VoxelSpace::Freeze()
+void VoxelSpace::Freeze()
 {
 	m_frozenVoxels.clear();
 	for (int i = 0; i < m_size.x; i++)for (int j = 0; j < m_size.y; j++)for (int k = 0; k < m_size.z; k++)
@@ -74,30 +74,30 @@ void PlantFactory::VoxelSpace::Freeze()
 	}
 }
 
-float PlantFactory::VoxelSpace::GetDiameter() const
+float VoxelSpace::GetDiameter() const
 {
 	return m_diameter;
 }
 
-void PlantFactory::VoxelSpace::SetDiameter(const float& value)
+void VoxelSpace::SetDiameter(const float& value)
 {
 	m_diameter = value;
 	Reset();
 }
 
-void PlantFactory::VoxelSpace::SetSize(const glm::ivec3& value)
+void VoxelSpace::SetSize(const glm::ivec3& value)
 {
 	m_size = value;
 	Reset();
 }
 
-void PlantFactory::VoxelSpace::SetOrigin(const glm::vec3& value)
+void VoxelSpace::SetOrigin(const glm::vec3& value)
 {
 	m_origin = value;
 	Reset();
 }
 
-void PlantFactory::VoxelSpace::Push(const glm::vec3& position, const Entity& owner, const Entity& internode)
+void VoxelSpace::Push(const glm::vec3& position, const Entity& owner, const Entity& internode)
 {
 	auto& voxel = GetVoxel(position);
 	std::lock_guard lock(*voxel.m_mutex.get());
@@ -106,14 +106,14 @@ void PlantFactory::VoxelSpace::Push(const glm::vec3& position, const Entity& own
 	voxel.m_internodes.push_back(internode);
 }
 
-bool PlantFactory::VoxelSpace::HasVoxel(const glm::vec3& position)
+bool VoxelSpace::HasVoxel(const glm::vec3& position)
 {
 	auto& voxel = GetVoxel(position);
 	std::lock_guard lock(*voxel.m_mutex.get());
 	return !voxel.m_owners.empty();
 }
 
-bool PlantFactory::VoxelSpace::HasNeighbor(const glm::vec3& position, float radius)
+bool VoxelSpace::HasNeighbor(const glm::vec3& position, float radius)
 {
 	std::vector<Voxel*> checkedVoxel;
 	for (int i = -1; i <= 1; i++)
@@ -147,7 +147,7 @@ bool PlantFactory::VoxelSpace::HasNeighbor(const glm::vec3& position, float radi
 	return false;
 }
 
-bool PlantFactory::VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3& position, const Entity& owner, float radius)
+bool VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3& position, const Entity& owner, float radius)
 {
 	std::vector<Voxel*> checkedVoxel;
 	for (int i = -1; i <= 1; i++)
@@ -181,7 +181,7 @@ bool PlantFactory::VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3& po
 	return false;
 }
 
-bool PlantFactory::VoxelSpace::HasNeighborFromSameOwner(const glm::vec3& position, const Entity& owner,
+bool VoxelSpace::HasNeighborFromSameOwner(const glm::vec3& position, const Entity& owner,
 	float radius)
 {
 	std::vector<Voxel*> checkedVoxel;
@@ -216,7 +216,7 @@ bool PlantFactory::VoxelSpace::HasNeighborFromSameOwner(const glm::vec3& positio
 	return false;
 }
 
-std::pair<bool, bool> PlantFactory::VoxelSpace::HasObstacleConeSphere(const float& angle, const glm::vec3& position, const glm::vec3& direction,
+std::pair<bool, bool> VoxelSpace::HasObstacleConeSphere(const float& angle, const glm::vec3& position, const glm::vec3& direction,
 	const Entity& owner, float selfRadius, float globalRadius)
 {
 	std::vector<Voxel*> checkedVoxel;
@@ -255,7 +255,7 @@ std::pair<bool, bool> PlantFactory::VoxelSpace::HasObstacleConeSphere(const floa
 	return { false , false };
 }
 
-bool PlantFactory::VoxelSpace::HasObstacleConeSameOwner(const float& angle, const glm::vec3& position,
+bool VoxelSpace::HasObstacleConeSameOwner(const float& angle, const glm::vec3& position,
 	const glm::vec3& direction, const Entity& owner, const Entity& internode, const Entity& parent, float selfRadius)
 {
 	std::vector<Voxel*> checkedVoxel;

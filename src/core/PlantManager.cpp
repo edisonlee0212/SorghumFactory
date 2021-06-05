@@ -196,15 +196,15 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 	if (manager.m_internodeTransforms.empty()) return;
 	const float time = Application::EngineTime();
 	//Upload geometries to OptiX.
-	RayMLVQ::RayTracerManager::GetInstance().UpdateScene();
-	RayMLVQ::IlluminationEstimationProperties properties;
+	RayTracerFacility::RayTracerManager::GetInstance().UpdateScene();
+	RayTracerFacility::IlluminationEstimationProperties properties;
 	properties.m_bounceLimit = 1;
 	properties.m_numPointSamples = 1000;
 	properties.m_numScatterSamples = 1;
 	properties.m_seed = glm::linearRand(16384, 32768);
 	properties.m_skylightPower = 1.0f;
 	properties.m_pushNormal = true;
-	std::vector<RayMLVQ::LightProbe<float>> lightProbes;
+	std::vector<RayTracerFacility::LightProbe<float>> lightProbes;
 	lightProbes.resize(manager.m_internodeQuery.GetEntityAmount());
 	EntityManager::ForEach<GlobalTransform>(JobManager::PrimaryWorkers(), manager.m_internodeQuery, [&](int i, Entity leafEntity, GlobalTransform& globalTransform)
 		{
@@ -213,7 +213,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 		}, false
 		);
 	if (lightProbes.empty()) return;
-	RayMLVQ::CudaModule::EstimateIlluminationRayTracing(properties, lightProbes);
+	RayTracerFacility::CudaModule::EstimateIlluminationRayTracing(properties, lightProbes);
 
 	EntityManager::ForEach<Illumination>(JobManager::PrimaryWorkers(), manager.m_internodeQuery, [&](int i, Entity leafEntity, Illumination& illumination)
 		{
@@ -404,8 +404,8 @@ void PlantManager::Init()
 	manager.m_ground.SetComponentData(groundTransform);
 	manager.m_ground.SetComponentData(groundGlobalTransform);
 	manager.m_ground.SetStatic(true);
-	manager.m_ground.SetPrivateComponent(std::make_unique<RayMLVQ::RayTracedRenderer>());
-	manager.m_ground.GetPrivateComponent<RayMLVQ::RayTracedRenderer>()->SyncWithMeshRenderer();
+	manager.m_ground.SetPrivateComponent(std::make_unique<RayTracerFacility::RayTracedRenderer>());
+	manager.m_ground.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>()->SyncWithMeshRenderer();
 	
 	auto cubeVolume = std::make_unique<CubeVolume>();
 	cubeVolume->m_asObstacle = true;

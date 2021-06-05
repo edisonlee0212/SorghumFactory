@@ -1,7 +1,7 @@
 #include <RayTracedRenderer.hpp>
 #include <EditorManager.hpp>
 #include <MeshRenderer.hpp>
-using namespace RayMLVQ;
+using namespace RayTracerFacility;
 using namespace UniEngine;
 void RayTracedRenderer::OnGui()
 {
