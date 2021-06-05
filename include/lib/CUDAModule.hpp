@@ -164,7 +164,6 @@ namespace RayMLVQ {
 		CudaBuffer m_deviceIntensities;
 		std::unique_ptr<RayTracer> m_optixRayTracer;
 	public:
-		static void SetStatusChanged(const bool& value = true);
 		static void SetSkylightSize(const float& value);
 		static void SetSkylightDir(const glm::vec3& value);
 		std::vector<TriangleMesh> m_meshes;
@@ -175,6 +174,7 @@ namespace RayMLVQ {
 		static bool RenderDefault(const DefaultRenderingProperties& properties);
 		static bool RenderRayMLVQ(const RayMLVQRenderingProperties& properties);
 		static void Terminate();
+		static void ClearAccumulate();
 		static void EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightProbe<float>>& lightProbes);
 	};
 }

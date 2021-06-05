@@ -25,11 +25,6 @@ void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const flo
 		= cosFovY * glm::normalize(glm::cross(m_horizontal, m_direction));
 }
 
-void CudaModule::SetStatusChanged(const bool& value)
-{
-	GetInstance().m_optixRayTracer->SetStatusChanged(value);
-}
-
 void CudaModule::SetSkylightSize(const float& value)
 {
 	GetInstance().m_optixRayTracer->SetSkylightSize(value);
@@ -79,6 +74,11 @@ void CudaModule::Terminate()
 	OPTIX_CHECK(optixUninitWithHandle(GetInstance().m_optixHandle));
 	CUDA_CHECK(DeviceReset());
 	GetInstance().m_initialized = false;
+}
+
+void CudaModule::ClearAccumulate()
+{
+	GetInstance().m_optixRayTracer->ClearAccumulate();
 }
 
 

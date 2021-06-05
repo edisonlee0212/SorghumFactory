@@ -263,11 +263,11 @@ void DefaultRayTracedRenderingSystem::UpdateScene() const
 	}
 	if (rebuildAccelerationStructure) {
 		CudaModule::PrepareScene();
-		CudaModule::SetStatusChanged();
+		CudaModule::ClearAccumulate();
 	}
 	else if (updateShaderBindingTable)
 	{
-		CudaModule::SetStatusChanged();
+		CudaModule::ClearAccumulate();
 	}
 }
 

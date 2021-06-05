@@ -9,11 +9,6 @@
 
 using namespace RayMLVQ;
 
-void RayTracer::SetStatusChanged(const bool& value)
-{
-	m_statusChanged = value;
-}
-
 bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
@@ -23,11 +18,11 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std:
 	BuildShaderBindingTable(meshes, boundTextures, boundResources);
 	if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties.Changed(properties)) {
 		m_defaultRenderingLaunchParams.m_defaultRenderingProperties = properties;
-		m_statusChanged = true;
+		m_defaultRenderingPipeline.m_statusChanged = true;
 	}
-	if (!m_accumulate || m_statusChanged) {
+	if (!m_defaultRenderingPipeline.m_accumulate || m_defaultRenderingPipeline.m_statusChanged) {
 		m_defaultRenderingLaunchParams.m_frame.m_frameId = 0;
-		m_statusChanged = false;
+		m_defaultRenderingPipeline.m_statusChanged = false;
 	}
 #pragma region Bind texture
 	cudaArray_t outputArray;
@@ -86,7 +81,7 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std:
 #pragma endregion
 #pragma endregion
 #pragma region Upload parameters
-	m_defaultRenderingLaunchParamsBuffer.Upload(&m_defaultRenderingLaunchParams, 1);
+	m_defaultRenderingPipeline.m_launchParamsBuffer.Upload(&m_defaultRenderingLaunchParams, 1);
 	m_defaultRenderingLaunchParams.m_frame.m_frameId++;
 #pragma endregion
 #pragma endregion
@@ -94,8 +89,8 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std:
 	OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
 		m_defaultRenderingPipeline.m_pipeline, m_stream,
 		/*! parameters and SBT */
-		m_defaultRenderingLaunchParamsBuffer.DevicePointer(),
-		m_defaultRenderingLaunchParamsBuffer.m_sizeInBytes,
+		m_defaultRenderingPipeline.m_launchParamsBuffer.DevicePointer(),
+		m_defaultRenderingPipeline.m_launchParamsBuffer.m_sizeInBytes,
 		&m_defaultRenderingPipeline.m_sbt,
 		/*! dimensions of the launch: */
 		m_defaultRenderingLaunchParams.m_defaultRenderingProperties.m_frameSize.x,
@@ -145,11 +140,11 @@ bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std:
 	BuildShaderBindingTable(meshes, boundTextures, boundResources);
 	if (m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.Changed(properties)) {
 		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties = properties;
-		m_statusChanged = true;
+		m_rayMLVQRenderingPipeline.m_statusChanged = true;
 	}
-	if (!m_accumulate || m_statusChanged) {
+	if (!m_rayMLVQRenderingPipeline.m_accumulate || m_rayMLVQRenderingPipeline.m_statusChanged) {
 		m_rayMLVQRenderingLaunchParams.m_frame.m_frameId = 0;
-		m_statusChanged = false;
+		m_rayMLVQRenderingPipeline.m_statusChanged = false;
 	}
 #pragma region Bind texture
 	cudaArray_t outputArray;
@@ -208,7 +203,7 @@ bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std:
 #pragma endregion
 #pragma endregion
 #pragma region Upload parameters
-	m_rayMLVQRenderingLaunchParamsBuffer.Upload(&m_rayMLVQRenderingLaunchParams, 1);
+	m_rayMLVQRenderingPipeline.m_launchParamsBuffer.Upload(&m_rayMLVQRenderingLaunchParams, 1);
 	m_rayMLVQRenderingLaunchParams.m_frame.m_frameId++;
 #pragma endregion
 #pragma endregion
@@ -216,8 +211,8 @@ bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std:
 	OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
 		m_rayMLVQRenderingPipeline.m_pipeline, m_stream,
 		/*! parameters and SBT */
-		m_rayMLVQRenderingLaunchParamsBuffer.DevicePointer(),
-		m_rayMLVQRenderingLaunchParamsBuffer.m_sizeInBytes,
+		m_rayMLVQRenderingPipeline.m_launchParamsBuffer.DevicePointer(),
+		m_rayMLVQRenderingPipeline.m_launchParamsBuffer.m_sizeInBytes,
 		&m_rayMLVQRenderingPipeline.m_sbt,
 		/*! dimensions of the launch: */
 		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x,
@@ -269,7 +264,7 @@ void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstim
 	m_defaultIlluminationEstimationLaunchParams.m_size = size;
 	m_defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties = properties;
 	m_defaultIlluminationEstimationLaunchParams.m_lightProbes = reinterpret_cast<LightProbe<float>*>(lightProbes.DevicePointer());
-	m_defaultIlluminationEstimationLaunchParamsBuffer.Upload(&m_defaultIlluminationEstimationLaunchParams, 1);
+	m_defaultIlluminationEstimationPipeline.m_launchParamsBuffer.Upload(&m_defaultIlluminationEstimationLaunchParams, 1);
 #pragma endregion
 #pragma endregion
 	if (size == 0)
@@ -281,8 +276,8 @@ void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstim
 	OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
 		m_defaultIlluminationEstimationPipeline.m_pipeline, m_stream,
 		/*! parameters and SBT */
-		m_defaultIlluminationEstimationLaunchParamsBuffer.DevicePointer(),
-		m_defaultIlluminationEstimationLaunchParamsBuffer.m_sizeInBytes,
+		m_defaultIlluminationEstimationPipeline.m_launchParamsBuffer.DevicePointer(),
+		m_defaultIlluminationEstimationPipeline.m_launchParamsBuffer.m_sizeInBytes,
 		&m_defaultIlluminationEstimationPipeline.m_sbt,
 		/*! dimensions of the launch: */
 		size,
@@ -315,26 +310,37 @@ RayTracer::RayTracer()
 	//std::cout << "#Optix: setting up optix pipeline ..." << std::endl;
 	AssemblePipelines();
 
-	m_defaultRenderingLaunchParamsBuffer.Resize(sizeof(m_defaultRenderingLaunchParams));
 	std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
 }
 
 void RayTracer::SetSkylightSize(const float& value)
 {
 	m_defaultRenderingLaunchParams.m_skylight.m_lightSize = value;
-	m_statusChanged = true;
+	m_defaultRenderingPipeline.m_statusChanged = true;
+	
+	m_rayMLVQRenderingLaunchParams.m_skylight.m_lightSize = value;
+	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 void RayTracer::SetSkylightDir(const glm::vec3& value)
 {
 	m_defaultRenderingLaunchParams.m_skylight.m_direction = value;
-	m_statusChanged = true;
+	m_defaultRenderingPipeline.m_statusChanged = true;
+	
+	m_rayMLVQRenderingLaunchParams.m_skylight.m_direction = value;
+	m_rayMLVQRenderingPipeline.m_statusChanged = true;
+}
+
+void RayTracer::ClearAccumulate()
+{
+	m_defaultRenderingPipeline.m_statusChanged = true;
+	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 static void context_log_cb(const unsigned int level,
-	const char* tag,
-	const char* message,
-	void*)
+                           const char* tag,
+                           const char* message,
+                           void*)
 {
 	fprintf(stderr, "[%2d][%12s]: %s\n", static_cast<int>(level), tag, message);
 }
@@ -768,14 +774,17 @@ void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 	compactedSizeBuffer.Free();
 
 	m_defaultRenderingLaunchParams.m_traversable = asHandle;
-	m_defaultRenderingLaunchParams.m_traversable = asHandle;
+	m_defaultIlluminationEstimationLaunchParams.m_traversable = asHandle;
+	m_rayMLVQRenderingLaunchParams.m_traversable = asHandle;
 	m_hasAccelerationStructure = true;
 }
 
 void RayTracer::SetAccumulate(const bool& value)
 {
-	m_accumulate = value;
-	m_statusChanged = true;
+	m_defaultRenderingPipeline.m_accumulate = value;
+	m_rayMLVQRenderingPipeline.m_accumulate = value;
+	m_defaultRenderingPipeline.m_statusChanged = true;
+	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 void RayTracer::AssemblePipelines()

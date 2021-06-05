@@ -33,6 +33,9 @@ namespace RayMLVQ {
 		std::vector<OptixProgramGroup>	m_hitGroupProgramGroups;
 		CudaBuffer						m_hitGroupRecordsBuffer;
 		OptixShaderBindingTable			m_sbt = {};
+		CudaBuffer						m_launchParamsBuffer;
+		bool							m_accumulate = true;
+		bool							m_statusChanged = false;
 	};
 
 	class RayTracer
@@ -52,7 +55,7 @@ namespace RayMLVQ {
 		void SetAccumulate(const bool& value);
 		void SetSkylightSize(const float& value);
 		void SetSkylightDir(const glm::vec3& value);
-		void SetStatusChanged(const bool& value = true);
+		void ClearAccumulate();
 	protected:
 #pragma region Device and context
 		/*! @{ CUDA device context and stream that optix pipeline will run
@@ -73,10 +76,6 @@ namespace RayMLVQ {
 		DefaultRenderingLaunchParams m_defaultRenderingLaunchParams;
 		DefaultIlluminationEstimationLaunchParams m_defaultIlluminationEstimationLaunchParams;
 		RayMLVQRenderingLaunchParams m_rayMLVQRenderingLaunchParams;
-
-		CudaBuffer m_defaultRenderingLaunchParamsBuffer;
-		CudaBuffer m_defaultIlluminationEstimationLaunchParamsBuffer;
-		CudaBuffer m_rayMLVQRenderingLaunchParamsBuffer;
 		
 		RayTracerPipeline m_defaultRenderingPipeline;
 		RayTracerPipeline m_defaultIlluminationEstimationPipeline;
@@ -104,8 +103,7 @@ namespace RayMLVQ {
 		void AssemblePipeline(RayTracerPipeline& targetPipeline) const;
 #pragma endregion
 
-		bool m_accumulate = true;
-		bool m_statusChanged = false;
+		
 #pragma region Accleration structure
 		/*! check if we have build the acceleration structure. */
 		bool m_hasAccelerationStructure = false;

@@ -25,7 +25,7 @@ int main()
 	rayTracedRenderingSystem->Enable();
 
 	auto* rayMLVQRenderingSystem = Application::GetCurrentWorld()->CreateSystem<RayMLVQRayTracedRenderingSystem>(SystemGroup::PresentationSystemGroup);
-	//rayMLVQRenderingSystem->Enable();
+	rayMLVQRenderingSystem->Enable();
 #pragma region Engine Loop
 	Application::RegisterUpdateFunction([]()
 		{
