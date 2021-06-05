@@ -1,21 +1,37 @@
 #include <RayTracer.hpp>
 #include <optix_function_table_definition.h>
 #include <FileUtil.hpp>
-
-#include <glm/gtx/transform.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/random.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #define GL_TEXTURE_CUBE_MAP 0x8513
 #include <cuda_gl_interop.h>
+#include <iostream>
 #include <RayDataDefinations.hpp>
 
 using namespace RayMLVQ;
 
-bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
+void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size)
+{
+	m_from = position;
+	m_direction = glm::normalize(rotation * glm::vec3(0, 0, -1));
+	const float cosFovY = glm::radians(fov * 0.5f);
+	const float aspect = static_cast<float>(size.x) / static_cast<float>(size.y);
+	m_horizontal
+		= cosFovY * aspect * glm::normalize(glm::cross(m_direction, rotation * glm::vec3(0, 1, 0)));
+	m_vertical
+		= cosFovY * glm::normalize(glm::cross(m_horizontal, m_direction));
+}
+
+bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
 	if (!m_hasAccelerationStructure) return false;
 	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
 	std::vector<cudaGraphicsResource_t> boundResources;
-	BuildShaderBindingTable(meshes, boundTextures, boundResources);
+	BuildShaderBindingTable(boundTextures, boundResources);
 	if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties.Changed(properties)) {
 		m_defaultRenderingLaunchParams.m_defaultRenderingProperties = properties;
 		m_defaultRenderingPipeline.m_statusChanged = true;
@@ -131,13 +147,13 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties, std:
 	return true;
 }
 
-bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std::vector<TriangleMesh>& meshes)
+bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
 	if (!m_hasAccelerationStructure) return false;
 	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
 	std::vector<cudaGraphicsResource_t> boundResources;
-	BuildShaderBindingTable(meshes, boundTextures, boundResources);
+	BuildShaderBindingTable(boundTextures, boundResources);
 	if (m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.Changed(properties)) {
 		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties = properties;
 		m_rayMLVQRenderingPipeline.m_statusChanged = true;
@@ -253,12 +269,12 @@ bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties, std:
 	return true;
 }
 
-void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes, std::vector<TriangleMesh>& meshes)
+void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes)
 {
 	if (!m_hasAccelerationStructure) return;
 	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
 	std::vector<cudaGraphicsResource_t> boundResources;
-	BuildShaderBindingTable(meshes, boundTextures, boundResources);
+	BuildShaderBindingTable(boundTextures, boundResources);
 
 #pragma region Upload parameters
 	m_defaultIlluminationEstimationLaunchParams.m_size = size;
@@ -317,18 +333,13 @@ void RayTracer::SetSkylightSize(const float& value)
 {
 	m_defaultRenderingLaunchParams.m_skylight.m_lightSize = value;
 	m_defaultRenderingPipeline.m_statusChanged = true;
-	
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_lightSize = value;
-	m_rayMLVQRenderingPipeline.m_statusChanged = true;
+
 }
 
 void RayTracer::SetSkylightDir(const glm::vec3& value)
 {
 	m_defaultRenderingLaunchParams.m_skylight.m_direction = value;
 	m_defaultRenderingPipeline.m_statusChanged = true;
-	
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_direction = value;
-	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 void RayTracer::ClearAccumulate()
@@ -355,9 +366,9 @@ void RayTracer::CreateContext()
 	const CUresult cuRes = cuCtxGetCurrent(&m_cudaContext);
 	if (cuRes != CUDA_SUCCESS)
 		fprintf(stderr, "Error querying current context: error code %d\n", cuRes);
-	OPTIX_CHECK(optixDeviceContextCreate(m_cudaContext, nullptr, &m_optixContext));
+	OPTIX_CHECK(optixDeviceContextCreate(m_cudaContext, nullptr, &m_optixDeviceContext));
 	OPTIX_CHECK(optixDeviceContextSetLogCallback
-	(m_optixContext, context_log_cb, nullptr, 4));
+	(m_optixDeviceContext, context_log_cb, nullptr, 4));
 }
 
 extern "C" char DEFAULT_RENDERING_PTX[];
@@ -396,7 +407,7 @@ void RayTracer::CreateMissPrograms()
 		// ------------------------------------------------------------------
 		pgDesc.miss.entryFunctionName = "__miss__radiance";
 
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -408,7 +419,7 @@ void RayTracer::CreateMissPrograms()
 		// shadow rays
 		// ------------------------------------------------------------------
 		pgDesc.miss.entryFunctionName = "__miss__shadow";
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -432,7 +443,7 @@ void RayTracer::CreateMissPrograms()
 		// ------------------------------------------------------------------
 		pgDesc.miss.entryFunctionName = "__miss__illuminationEstimation";
 
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -456,7 +467,7 @@ void RayTracer::CreateMissPrograms()
 		// ------------------------------------------------------------------
 		pgDesc.miss.entryFunctionName = "__miss__radiance";
 
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -484,7 +495,7 @@ void RayTracer::CreateHitGroupPrograms()
 		// -------------------------------------------------------
 		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
 		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -501,7 +512,7 @@ void RayTracer::CreateHitGroupPrograms()
 		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__shadow";
 		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__shadow";
 
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -525,7 +536,7 @@ void RayTracer::CreateHitGroupPrograms()
 		// -------------------------------------------------------
 		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__illuminationEstimation";
 		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__illuminationEstimation";
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -549,7 +560,7 @@ void RayTracer::CreateHitGroupPrograms()
 		// -------------------------------------------------------
 		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
 		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
@@ -574,12 +585,12 @@ __global__ void ApplyTransformKernel(
 	}
 }
 
-void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
+void RayTracer::BuildAccelerationStructure()
 {
 	bool uploadVertices = false;
-	if (m_positionsBuffer.size() != meshes.size()) uploadVertices = true;
+	if (m_positionsBuffer.size() != m_instances.size()) uploadVertices = true;
 	else {
-		for (auto& i : meshes)
+		for (auto& i : m_instances)
 		{
 			if (i.m_verticesUpdateFlag) {
 				uploadVertices = true;
@@ -608,30 +619,30 @@ void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 		m_transformedNormalsBuffer.clear();
 		m_transformedTangentsBuffer.clear();
 
-		m_positionsBuffer.resize(meshes.size());
-		m_trianglesBuffer.resize(meshes.size());
-		m_normalsBuffer.resize(meshes.size());
-		m_tangentsBuffer.resize(meshes.size());
-		m_colorsBuffer.resize(meshes.size());
-		m_texCoordsBuffer.resize(meshes.size());
-		m_transformedTangentsBuffer.resize(meshes.size());
-		m_transformedNormalsBuffer.resize(meshes.size());
-		m_transformedPositionsBuffer.resize(meshes.size());
+		m_positionsBuffer.resize(m_instances.size());
+		m_trianglesBuffer.resize(m_instances.size());
+		m_normalsBuffer.resize(m_instances.size());
+		m_tangentsBuffer.resize(m_instances.size());
+		m_colorsBuffer.resize(m_instances.size());
+		m_texCoordsBuffer.resize(m_instances.size());
+		m_transformedTangentsBuffer.resize(m_instances.size());
+		m_transformedNormalsBuffer.resize(m_instances.size());
+		m_transformedPositionsBuffer.resize(m_instances.size());
 	}
 	OptixTraversableHandle asHandle = 0;
 
 	// ==================================================================
 	// triangle inputs
 	// ==================================================================
-	std::vector<OptixBuildInput> triangleInput(meshes.size());
-	std::vector<CUdeviceptr> deviceVertexPositions(meshes.size());
-	std::vector<CUdeviceptr> deviceVertexTriangles(meshes.size());
-	std::vector<CUdeviceptr> deviceTransforms(meshes.size());
-	std::vector<uint32_t> triangleInputFlags(meshes.size());
+	std::vector<OptixBuildInput> triangleInput(m_instances.size());
+	std::vector<CUdeviceptr> deviceVertexPositions(m_instances.size());
+	std::vector<CUdeviceptr> deviceVertexTriangles(m_instances.size());
+	std::vector<CUdeviceptr> deviceTransforms(m_instances.size());
+	std::vector<uint32_t> triangleInputFlags(m_instances.size());
 
-	for (int meshID = 0; meshID < meshes.size(); meshID++) {
+	for (int meshID = 0; meshID < m_instances.size(); meshID++) {
 		// upload the model to the device: the builder
-		TriangleMesh& triangleMesh = meshes[meshID];
+		RayTracerInstance& triangleMesh = m_instances[meshID];
 		if (uploadVertices)
 		{
 			m_positionsBuffer[meshID].Upload(*triangleMesh.m_positions);
@@ -706,10 +717,10 @@ void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 
 	OptixAccelBufferSizes blasBufferSizes;
 	OPTIX_CHECK(optixAccelComputeMemoryUsage
-	(m_optixContext,
+	(m_optixDeviceContext,
 		&accelerateOptions,
 		triangleInput.data(),
-		static_cast<int>(meshes.size()),  // num_build_inputs
+		static_cast<int>(m_instances.size()),  // num_build_inputs
 		&blasBufferSizes
 	));
 
@@ -734,11 +745,11 @@ void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 	CudaBuffer outputBuffer;
 	outputBuffer.Resize(blasBufferSizes.outputSizeInBytes);
 
-	OPTIX_CHECK(optixAccelBuild(m_optixContext,
+	OPTIX_CHECK(optixAccelBuild(m_optixDeviceContext,
 		/* stream */nullptr,
 		&accelerateOptions,
 		triangleInput.data(),
-		static_cast<int>(meshes.size()),
+		static_cast<int>(m_instances.size()),
 		tempBuffer.DevicePointer(),
 		tempBuffer.m_sizeInBytes,
 
@@ -758,7 +769,7 @@ void RayTracer::BuildAccelerationStructure(std::vector<TriangleMesh>& meshes)
 	compactedSizeBuffer.Download(&compactedSize, 1);
 
 	m_acceleratedStructuresBuffer.Resize(compactedSize);
-	OPTIX_CHECK(optixAccelCompact(m_optixContext,
+	OPTIX_CHECK(optixAccelCompact(m_optixDeviceContext,
 		/*stream:*/nullptr,
 		asHandle,
 		m_acceleratedStructuresBuffer.DevicePointer(),
@@ -804,7 +815,7 @@ void RayTracer::CreateRayGenProgram(RayTracerPipeline& targetPipeline, char entr
 	pgDesc.raygen.entryFunctionName = entryFunctionName;
 	char log[2048];
 	size_t sizeofLog = sizeof(log);
-	OPTIX_CHECK(optixProgramGroupCreate(m_optixContext,
+	OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 		&pgDesc,
 		1,
 		&pgOptions,
@@ -837,7 +848,7 @@ void RayTracer::CreateModule(RayTracerPipeline& targetPipeline, char ptxCode[],
 
 	char log[2048];
 	size_t sizeof_log = sizeof(log);
-	OPTIX_CHECK(optixModuleCreateFromPTX(m_optixContext,
+	OPTIX_CHECK(optixModuleCreateFromPTX(m_optixDeviceContext,
 		&targetPipeline.m_moduleCompileOptions,
 		&targetPipeline.m_pipelineCompileOptions,
 		code.c_str(),
@@ -860,7 +871,7 @@ void RayTracer::AssemblePipeline(RayTracerPipeline& targetPipeline) const
 
 	char log[2048];
 	size_t sizeofLog = sizeof(log);
-	OPTIX_CHECK(optixPipelineCreate(m_optixContext,
+	OPTIX_CHECK(optixPipelineCreate(m_optixDeviceContext,
 		&targetPipeline.m_pipelineCompileOptions,
 		&targetPipeline.m_pipelineLinkOptions,
 		programGroups.data(),
@@ -887,7 +898,7 @@ void RayTracer::AssemblePipeline(RayTracerPipeline& targetPipeline) const
 	if (sizeofLog > 1) std::cout << log << std::endl;
 }
 
-void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::vector<std::pair<unsigned, cudaTextureObject_t>>& boundTextures, std::vector<cudaGraphicsResource_t>& boundResources)
+void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaTextureObject_t>>& boundTextures, std::vector<cudaGraphicsResource_t>& boundResources)
 {
 	{
 		// ------------------------------------------------------------------
@@ -938,18 +949,18 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
 				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
 
-				rec.m_data.m_material.m_surfaceColor = meshes[i].m_surfaceColor;
-				rec.m_data.m_material.m_roughness = meshes[i].m_roughness;
-				rec.m_data.m_material.m_metallic = meshes[i].m_metallic;
+				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
+				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
+				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
 				rec.m_data.m_material.m_albedoTexture = 0;
 				rec.m_data.m_material.m_normalTexture = 0;
-				rec.m_data.m_material.m_diffuseIntensity = meshes[i].m_diffuseIntensity;
-				if (meshes[i].m_albedoTexture != 0)
+				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
+				if (m_instances[i].m_albedoTexture != 0)
 				{
 					bool duplicate = false;
 					for (auto& boundTexture : boundTextures)
 					{
-						if (boundTexture.first == meshes[i].m_albedoTexture)
+						if (boundTexture.first == m_instances[i].m_albedoTexture)
 						{
 							rec.m_data.m_material.m_albedoTexture = boundTexture.second;
 							duplicate = true;
@@ -960,7 +971,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 #pragma region Bind output texture
 						cudaArray_t textureArray;
 						cudaGraphicsResource_t graphicsResource;
-						CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, meshes[i].m_albedoTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
+						CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_albedoTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
 						CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
 						CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
 						struct cudaResourceDesc cudaResourceDesc;
@@ -977,15 +988,15 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 						CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_albedoTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
 #pragma endregion
 						boundResources.push_back(graphicsResource);
-						boundTextures.emplace_back(meshes[i].m_albedoTexture, rec.m_data.m_material.m_albedoTexture);
+						boundTextures.emplace_back(m_instances[i].m_albedoTexture, rec.m_data.m_material.m_albedoTexture);
 					}
 				}
-				if (meshes[i].m_normalTexture != 0)
+				if (m_instances[i].m_normalTexture != 0)
 				{
 					bool duplicate = false;
 					for (auto& boundTexture : boundTextures)
 					{
-						if (boundTexture.first == meshes[i].m_normalTexture)
+						if (boundTexture.first == m_instances[i].m_normalTexture)
 						{
 							rec.m_data.m_material.m_normalTexture = boundTexture.second;
 							duplicate = true;
@@ -996,7 +1007,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 #pragma region Bind output texture
 						cudaArray_t textureArray;
 						cudaGraphicsResource_t graphicsResource;
-						CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, meshes[i].m_normalTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
+						CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_normalTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
 						CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
 						CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
 						struct cudaResourceDesc cudaResourceDesc;
@@ -1013,7 +1024,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 						CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_normalTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
 #pragma endregion
 						boundResources.push_back(graphicsResource);
-						boundTextures.emplace_back(meshes[i].m_normalTexture, rec.m_data.m_material.m_normalTexture);
+						boundTextures.emplace_back(m_instances[i].m_normalTexture, rec.m_data.m_material.m_normalTexture);
 					}
 				}
 				hitGroupRecords.push_back(rec);
@@ -1073,12 +1084,12 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
 				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
 
-				rec.m_data.m_material.m_surfaceColor = meshes[i].m_surfaceColor;
-				rec.m_data.m_material.m_roughness = meshes[i].m_roughness;
-				rec.m_data.m_material.m_metallic = meshes[i].m_metallic;
+				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
+				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
+				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
 				rec.m_data.m_material.m_albedoTexture = 0;
 				rec.m_data.m_material.m_normalTexture = 0;
-				rec.m_data.m_material.m_diffuseIntensity = meshes[i].m_diffuseIntensity;
+				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 				hitGroupRecords.push_back(rec);
 			}
 		}
@@ -1135,24 +1146,24 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 				rec.m_data.m_mesh.m_tangent = reinterpret_cast<glm::vec3*>(m_transformedTangentsBuffer[i].DevicePointer());
 				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
 				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
-				rec.m_data.m_enableMLVQ = meshes[i].m_enableMLVQ;
-				if (meshes[i].m_enableMLVQ)
+				rec.m_data.m_enableMLVQ = m_instances[i].m_enableMLVQ;
+				if (m_instances[i].m_enableMLVQ)
 				{
 
 				}
 				else {
-					rec.m_data.m_material.m_surfaceColor = meshes[i].m_surfaceColor;
-					rec.m_data.m_material.m_roughness = meshes[i].m_roughness;
-					rec.m_data.m_material.m_metallic = meshes[i].m_metallic;
+					rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
+					rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
+					rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
 					rec.m_data.m_material.m_albedoTexture = 0;
 					rec.m_data.m_material.m_normalTexture = 0;
-					rec.m_data.m_material.m_diffuseIntensity = meshes[i].m_diffuseIntensity;
-					if (meshes[i].m_albedoTexture != 0)
+					rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
+					if (m_instances[i].m_albedoTexture != 0)
 					{
 						bool duplicate = false;
 						for (auto& boundTexture : boundTextures)
 						{
-							if (boundTexture.first == meshes[i].m_albedoTexture)
+							if (boundTexture.first == m_instances[i].m_albedoTexture)
 							{
 								rec.m_data.m_material.m_albedoTexture = boundTexture.second;
 								duplicate = true;
@@ -1163,7 +1174,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 #pragma region Bind output texture
 							cudaArray_t textureArray;
 							cudaGraphicsResource_t graphicsResource;
-							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, meshes[i].m_albedoTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
+							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_albedoTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
 							CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
 							CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
 							struct cudaResourceDesc cudaResourceDesc;
@@ -1180,15 +1191,15 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 							CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_albedoTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
 #pragma endregion
 							boundResources.push_back(graphicsResource);
-							boundTextures.emplace_back(meshes[i].m_albedoTexture, rec.m_data.m_material.m_albedoTexture);
+							boundTextures.emplace_back(m_instances[i].m_albedoTexture, rec.m_data.m_material.m_albedoTexture);
 						}
 					}
-					if (meshes[i].m_normalTexture != 0)
+					if (m_instances[i].m_normalTexture != 0)
 					{
 						bool duplicate = false;
 						for (auto& boundTexture : boundTextures)
 						{
-							if (boundTexture.first == meshes[i].m_normalTexture)
+							if (boundTexture.first == m_instances[i].m_normalTexture)
 							{
 								rec.m_data.m_material.m_normalTexture = boundTexture.second;
 								duplicate = true;
@@ -1199,7 +1210,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 #pragma region Bind output texture
 							cudaArray_t textureArray;
 							cudaGraphicsResource_t graphicsResource;
-							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, meshes[i].m_normalTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
+							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_normalTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
 							CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
 							CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
 							struct cudaResourceDesc cudaResourceDesc;
@@ -1216,7 +1227,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<TriangleMesh>& meshes, std::
 							CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_normalTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
 #pragma endregion
 							boundResources.push_back(graphicsResource);
-							boundTextures.emplace_back(meshes[i].m_normalTexture, rec.m_data.m_material.m_normalTexture);
+							boundTextures.emplace_back(m_instances[i].m_normalTexture, rec.m_data.m_material.m_normalTexture);
 						}
 					}
 				}

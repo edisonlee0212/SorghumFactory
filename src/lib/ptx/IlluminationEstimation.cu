@@ -1,6 +1,5 @@
 ﻿#include <CUDAModule.hpp>
 #include <Optix7.hpp>
-#include <LaunchParams.hpp>
 #include <RayTracerUtilities.cuh>
 #include <RayDataDefinations.hpp>
 namespace RayMLVQ {

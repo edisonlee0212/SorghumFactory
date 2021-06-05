@@ -46,26 +46,15 @@ void DefaultRayTracedRenderingSystem::OnGui()
 						ImGui::Text("Shadow softness");
 						if (ImGui::DragFloat("Shadow softness", &lightSize, 0.002f, 0.0f, 2.0f))
 						{
-							CudaModule::SetSkylightSize(lightSize);
+							CudaModule::GetRayTracer()->SetSkylightSize(lightSize);
 						}
 						ImGui::Text("Shadow direction");
 						if (ImGui::DragFloat3("Shadow dir", &lightDir.x, 0.002f, -7.0f, 7.0f))
 						{
-							CudaModule::SetSkylightDir(glm::normalize(lightDir));
+							CudaModule::GetRayTracer()->SetSkylightDir(glm::normalize(lightDir));
 						}
 					}
 					break;
-					case DefaultOutputRenderType::Glass:
-					{
-
-					}
-					break;
-					case DefaultOutputRenderType::Brdf:
-					{
-
-					}
-					break;
-					default: break;
 					}
 					ImGui::EndMenu();
 				}
@@ -146,7 +135,7 @@ void DefaultRayTracedRenderingSystem::UpdateScene() const
 	if (!m_renderingEnabled) return;
 	bool rebuildAccelerationStructure = false;
 	bool updateShaderBindingTable = false;
-	auto& meshesStorage = CudaModule::GetInstance().m_meshes;
+	auto& meshesStorage = CudaModule::GetRayTracer()->m_instances;
 	for (auto& i : meshesStorage)
 	{
 		i.m_removeTag = true;
@@ -159,8 +148,8 @@ void DefaultRayTracedRenderingSystem::UpdateScene() const
 			if (!rayTracerMaterial->IsEnabled()) continue;
 			if (!rayTracerMaterial->m_mesh || rayTracerMaterial->m_mesh->UnsafeGetVertexPositions().empty()) continue;
 			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
-			TriangleMesh newCudaTriangleMesh;
-			TriangleMesh* cudaTriangleMesh = &newCudaTriangleMesh;
+			RayTracerInstance newCudaTriangleMesh;
+			RayTracerInstance* cudaTriangleMesh = &newCudaTriangleMesh;
 			bool needVerticesUpdate = false;
 			bool needTransformUpdate = false;
 			bool fromNew = true;
@@ -261,13 +250,13 @@ void DefaultRayTracedRenderingSystem::UpdateScene() const
 			rebuildAccelerationStructure = true;
 		}
 	}
-	if (rebuildAccelerationStructure) {
-		CudaModule::PrepareScene();
-		CudaModule::ClearAccumulate();
+	if (rebuildAccelerationStructure && !meshesStorage.empty()) {
+		CudaModule::GetRayTracer()->BuildAccelerationStructure();
+		CudaModule::GetRayTracer()->ClearAccumulate();
 	}
 	else if (updateShaderBindingTable)
 	{
-		CudaModule::ClearAccumulate();
+		CudaModule::GetRayTracer()->ClearAccumulate();
 	}
 }
 
@@ -324,8 +313,8 @@ void DefaultRayTracedRenderingSystem::Update()
 	m_properties.m_environmentalMapId = m_environmentalMap->Texture()->Id();
 	m_properties.m_frameSize = size;
 	m_properties.m_outputTextureId = m_output->Id();
-	if (!CudaModule::GetInstance().m_meshes.empty()) {
-		m_rendered = CudaModule::RenderDefault(m_properties);
+	if (!CudaModule::GetRayTracer()->m_instances.empty()) {
+		m_rendered = CudaModule::GetRayTracer()->RenderDefault(m_properties);
 	}
 }
 

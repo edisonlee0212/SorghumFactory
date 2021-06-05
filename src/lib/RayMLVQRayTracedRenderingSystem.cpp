@@ -147,8 +147,8 @@ void RayMLVQRayTracedRenderingSystem::Update()
 	m_properties.m_environmentalMapId = m_environmentalMap->Texture()->Id();
 	m_properties.m_frameSize = size;
 	m_properties.m_outputTextureId = m_output->Id();
-	if (!CudaModule::GetInstance().m_meshes.empty()) {
-		m_rendered = CudaModule::RenderRayMLVQ(m_properties);
+	if (!CudaModule::GetRayTracer()->m_instances.empty()) {
+		m_rendered = CudaModule::GetRayTracer()->RenderRayMLVQ(m_properties);
 	}
 }
 

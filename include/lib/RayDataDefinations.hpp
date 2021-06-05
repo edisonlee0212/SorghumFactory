@@ -1,5 +1,4 @@
 #pragma once
-#include <LaunchParams.hpp>
 #include <Optix7.hpp>
 namespace RayMLVQ
 {
