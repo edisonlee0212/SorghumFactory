@@ -19,8 +19,6 @@ namespace RayTracerFacility
 	{
 	public:
 		std::string m_name;
-		
-		float m_cameraFov = 60;
 		bool m_renderingEnabled = true;
 		float m_lastX = 0;
 		float m_lastY = 0;
@@ -29,11 +27,12 @@ namespace RayTracerFacility
 		bool m_startScroll = false;
 		bool m_rightMouseButtonHold = false;
 
+		float m_resolutionMultiplier = 0.5f;
 		std::unique_ptr<OpenGLUtils::GLTexture2D> m_output;
 		glm::ivec2 m_outputSize = glm::ivec2(1024, 1024);
 		bool m_rendered = false;
 		void Init(const std::string& name);
-		void Resize();
+		[[nodiscard]] glm::ivec2 Resize() const;
 		void OnGui();
 	};
 

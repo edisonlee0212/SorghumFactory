@@ -64,6 +64,7 @@ namespace RayTracerFacility {
 				properties.m_frameSize != m_frameSize ||
 				properties.m_camera != m_camera;
 		}
+		void OnGui();
 	};
 	struct RAY_TRACER_FACILITY_API IlluminationEstimationProperties
 	{
@@ -110,6 +111,7 @@ namespace RayTracerFacility {
 				properties.m_frameSize != m_frameSize ||
 				properties.m_camera != m_camera;
 		}
+		void OnGui();
 	};
 
 

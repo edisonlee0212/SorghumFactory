@@ -188,24 +188,27 @@ void RayTracerManager::Update()
 {
 	auto& manager = GetInstance();
 	manager.UpdateScene();
-	auto& size = manager.m_defaultWindow.m_outputSize;
-	manager.m_defaultWindow.m_output->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
-	manager.m_defaultRenderingProperties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
-	manager.m_defaultRenderingProperties.m_environmentalMapId = manager.m_environmentalMap->Texture()->Id();
-	manager.m_defaultRenderingProperties.m_frameSize = size;
-	manager.m_defaultRenderingProperties.m_outputTextureId = manager.m_defaultWindow.m_output->Id();
-	if (!CudaModule::GetRayTracer()->m_instances.empty()) {
-		manager.m_defaultWindow.m_rendered = CudaModule::GetRayTracer()->RenderDefault(manager.m_defaultRenderingProperties);
+	
+	{
+		const auto size = manager.m_defaultWindow.Resize();
+		manager.m_defaultRenderingProperties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
+		manager.m_defaultRenderingProperties.m_environmentalMapId = manager.m_environmentalMap->Texture()->Id();
+		manager.m_defaultRenderingProperties.m_frameSize = size;
+		manager.m_defaultRenderingProperties.m_outputTextureId = manager.m_defaultWindow.m_output->Id();
+		if (!CudaModule::GetRayTracer()->m_instances.empty()) {
+			manager.m_defaultWindow.m_rendered = CudaModule::GetRayTracer()->RenderDefault(manager.m_defaultRenderingProperties);
+		}
 	}
-
-	size = manager.m_rayMLVQWindow.m_outputSize;
-	manager.m_rayMLVQWindow.m_output->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
-	manager.m_rayMLVQRenderingProperties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
-	manager.m_rayMLVQRenderingProperties.m_environmentalMapId = manager.m_environmentalMap->Texture()->Id();
-	manager.m_rayMLVQRenderingProperties.m_frameSize = size;
-	manager.m_rayMLVQRenderingProperties.m_outputTextureId = manager.m_rayMLVQWindow.m_output->Id();
-	if (!CudaModule::GetRayTracer()->m_instances.empty()) {
-		manager.m_rayMLVQWindow.m_rendered = CudaModule::GetRayTracer()->RenderRayMLVQ(manager.m_rayMLVQRenderingProperties);
+	
+	{
+		const auto size = manager.m_rayMLVQWindow.Resize();
+		manager.m_rayMLVQRenderingProperties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
+		manager.m_rayMLVQRenderingProperties.m_environmentalMapId = manager.m_environmentalMap->Texture()->Id();
+		manager.m_rayMLVQRenderingProperties.m_frameSize = size;
+		manager.m_rayMLVQRenderingProperties.m_outputTextureId = manager.m_rayMLVQWindow.m_output->Id();
+		if (!CudaModule::GetRayTracer()->m_instances.empty()) {
+			manager.m_rayMLVQWindow.m_rendered = CudaModule::GetRayTracer()->RenderRayMLVQ(manager.m_rayMLVQRenderingProperties);
+		}
 	}
 }
 
@@ -214,6 +217,8 @@ void RayTracerManager::OnGui()
 	auto& manager = GetInstance();
 	manager.m_defaultWindow.OnGui();
 	manager.m_rayMLVQWindow.OnGui();
+	manager.m_rayMLVQRenderingProperties.OnGui();
+	manager.m_defaultRenderingProperties.OnGui();
 }
 
 void RayTracerManager::End()
@@ -221,10 +226,13 @@ void RayTracerManager::End()
 	CudaModule::Terminate();
 }
 
-void RayTracerRenderWindow::Resize()
+glm::ivec2 RayTracerRenderWindow::Resize() const
 {
-	auto& size = m_outputSize;
-	m_output->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, size.x, size.y);
+	glm::ivec2 size = glm::vec2(m_outputSize) * m_resolutionMultiplier;
+	if (size.x < 1) size.x = 1;
+	if (size.y < 1) size.y = 1;
+	m_output->ReSize(0, GL_RGBA32F, GL_RGBA, GL_FLOAT, nullptr, size.x, size.y);
+	return size;
 }
 
 void RayTracerRenderWindow::OnGui()
@@ -238,23 +246,18 @@ void RayTracerRenderWindow::OnGui()
 	ImGui::Begin(m_name.c_str());
 	{
 		if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 5, 5 });
 			if (ImGui::BeginMenuBar())
 			{
 				if (ImGui::BeginMenu("Settings"))
 				{
-					/*
-					ImGui::DragFloat("FOV", &m_cameraFov, 1, 1, 120);
-					ImGui::Checkbox("Use Geometry normal", &renderingProperties.m_useGeometryNormal);
-					ImGui::Checkbox("Accumulate", &renderingProperties.m_accumulate);
-					ImGui::DragInt("bounce limit", &renderingProperties.m_bounceLimit, 1, 1, 8);
-					ImGui::DragInt("pixel samples", &renderingProperties.m_samplesPerPixel, 1, 1, 32);
-					ImGui::Checkbox("Use environmental map", &renderingProperties.m_useEnvironmentalMap);
-					ImGui::DragFloat("Skylight intensity", &renderingProperties.m_skylightIntensity, 0.01f, 0.0f, 5.0f);
-					*/
+					ImGui::DragFloat("Resolution multiplier", &m_resolutionMultiplier, 0.01f, 0.1f, 1.0f);
+					ImGui::DragFloat("FOV", &EditorManager::GetInstance().m_sceneCamera->m_fov, 1, 1, 120);
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenuBar();
 			}
+			ImGui::PopStyleVar();
 			ImVec2 viewPortSize = ImGui::GetWindowSize();
 			viewPortSize.y -= 20;
 			if (viewPortSize.y < 0) viewPortSize.y = 0;

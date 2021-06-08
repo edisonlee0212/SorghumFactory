@@ -11,6 +11,8 @@
 #include <iostream>
 #include <RayDataDefinations.hpp>
 
+#include "imgui.h"
+
 using namespace RayTracerFacility;
 
 void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size)
@@ -23,6 +25,56 @@ void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const flo
 		= cosFovY * aspect * glm::normalize(glm::cross(m_direction, rotation * glm::vec3(0, 1, 0)));
 	m_vertical
 		= cosFovY * glm::normalize(glm::cross(m_horizontal, m_direction));
+}
+
+void DefaultRenderingProperties::OnGui()
+{
+	ImGui::Begin("Ray:Default");
+	{
+		if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
+			if (ImGui::BeginMenuBar())
+			{
+				if (ImGui::BeginMenu("Settings"))
+				{
+					ImGui::Checkbox("Use Geometry normal", &m_useGeometryNormal);
+					ImGui::Checkbox("Accumulate", &m_accumulate);
+					ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
+					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
+					ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
+					ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+		}
+		ImGui::EndChild();
+	}
+	ImGui::End();
+}
+
+void RayMLVQRenderingProperties::OnGui()
+{
+	ImGui::Begin("Ray:MLVQ");
+	{
+		if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
+			if (ImGui::BeginMenuBar())
+			{
+				if (ImGui::BeginMenu("Settings"))
+				{
+					ImGui::Checkbox("Use Geometry normal", &m_useGeometryNormal);
+					ImGui::Checkbox("Accumulate", &m_accumulate);
+					ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
+					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
+					ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
+					ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+		}
+		ImGui::EndChild();
+	}
+	ImGui::End();
 }
 
 bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties)
