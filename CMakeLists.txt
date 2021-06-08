@@ -46,8 +46,14 @@ cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/s
 
 cuda_compile_and_embed(MLVQ_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/MLVQRendering.cu)
 
-file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL "src/lib/*.cpp")
-file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL "src/lib/*.cu")
+file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL 
+	"src/lib/*.cpp"
+	"src/lib/MLVQ/*.cpp"
+	)
+file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL 
+	"src/lib/*.cu"
+	"src/lib/MLVQ/*.cu"
+	)
 add_library(rayTracerFacility
 	SHARED
 	#Default
@@ -86,6 +92,7 @@ set(RAY_TRACER_FACILITY_INCLUDES_LOCAL
 	${OptiX_INCLUDE}
 	${CUDA_TOOLKIT_ROOT_DIR}/include
 	${CMAKE_CURRENT_SOURCE_DIR}/include/lib
+	${CMAKE_CURRENT_SOURCE_DIR}/include/lib/MLVQ
 	${UNIENGINE_INCLUDES}
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
