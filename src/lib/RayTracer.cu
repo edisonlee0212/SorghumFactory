@@ -36,7 +36,6 @@ void DefaultRenderingProperties::OnGui()
 			{
 				if (ImGui::BeginMenu("Settings"))
 				{
-					ImGui::Checkbox("Use Geometry normal", &m_useGeometryNormal);
 					ImGui::Checkbox("Accumulate", &m_accumulate);
 					ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
 					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
@@ -61,7 +60,6 @@ void RayMLVQRenderingProperties::OnGui()
 			{
 				if (ImGui::BeginMenu("Settings"))
 				{
-					ImGui::Checkbox("Use Geometry normal", &m_useGeometryNormal);
 					ImGui::Checkbox("Accumulate", &m_accumulate);
 					ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
 					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
@@ -1200,7 +1198,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_enableMLVQ = m_instances[i].m_enableMLVQ;
 				if (m_instances[i].m_enableMLVQ)
 				{
-
+					rec.m_data.m_rayMlvqMaterial = RayMLVQMaterial();
 				}
 				else {
 					rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;

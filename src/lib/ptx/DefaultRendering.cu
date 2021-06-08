@@ -28,51 +28,23 @@ namespace RayTracerFacility {
 			= *(const DefaultSbtData*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
 		const int primitiveId = optixGetPrimitiveIndex();
-		const glm::uvec3 index = sbtData.m_mesh.m_triangle[primitiveId];
-		const glm::vec3 pointA = sbtData.m_mesh.m_position[index.x];
-		const glm::vec3 pointB = sbtData.m_mesh.m_position[index.y];
-		const glm::vec3 pointC = sbtData.m_mesh.m_position[index.z];
-		glm::vec3 normal;
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
-#pragma region Correct normals
-		if (!defaultRenderingLaunchParams.m_defaultRenderingProperties.m_useGeometryNormal)
-			normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_normal[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_normal[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_normal[index.z];
+		auto indices = sbtData.m_mesh.GetIndices(primitiveId);
+		auto texCoord = sbtData.m_mesh.GetTexCoord(triangleBarycentricsInternal, indices);
+		auto normal = sbtData.m_mesh.GetNormal(triangleBarycentricsInternal, indices);
 		/*
 		if (glm::dot(rayDirection, normal) > 0.f) {
 			normal = -normal;
 		}
 		normal = glm::normalize(normal);
 		*/
-#pragma endregion
-		glm::vec3 albedoColor = sbtData.m_material.m_surfaceColor;
-#pragma region Apply textures
-		const glm::vec2 tc
-			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_texCoord[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_texCoord[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_texCoord[index.z];
-		if (sbtData.m_material.m_albedoTexture) {
-			float4 textureAlbedo = tex2D<float4>(sbtData.m_material.m_albedoTexture, tc.x, tc.y);
-			albedoColor = glm::vec3(textureAlbedo.x, textureAlbedo.y, textureAlbedo.z);
-		}
-		if(sbtData.m_material.m_normalTexture)
-		{
-			float4 textureNormal = tex2D<float4>(sbtData.m_material.m_normalTexture, tc.x, tc.y);
-			glm::vec3 tangent = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_tangent[index.x]
-				+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_tangent[index.y]
-				+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_tangent[index.z];
-			glm::vec3 B = glm::cross(normal, tangent);
-			glm::mat3 TBN = glm::mat3(tangent, B, normal);
-			normal = glm::vec3(textureNormal.x, textureNormal.y, textureNormal.z) * 2.0f - glm::vec3(1.0f);
-			normal = glm::normalize(TBN * normal);
-		}
-#pragma endregion
-		const glm::vec3 hitPoint
-			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * pointA
-			+ triangleBarycentricsInternal.x * pointB
-			+ triangleBarycentricsInternal.y * pointC;
+		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
+		glm::vec3 albedoColor = sbtData.m_material.GetAlbedo(texCoord);
+		sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
+
+		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
+		
 		DefaultRenderingRayData& perRayData = *GetRayDataPointer<DefaultRenderingRayData>();
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		// start with some ambient term

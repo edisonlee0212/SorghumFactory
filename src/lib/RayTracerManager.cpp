@@ -285,8 +285,7 @@ void RayTracerRenderWindow::OnGui()
 					if (m_rightMouseButtonHold && !EditorManager::GetInstance().m_lockCamera)
 					{
 						const glm::vec3 front = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(0, 0, -1);
-						glm::vec3 right;
-						right = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(1, 0, 0);
+						const glm::vec3 right = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(1, 0, 0);
 						if (InputManager::GetKeyInternal(GLFW_KEY_W, WindowManager::GetWindow())) {
 							EditorManager::GetInstance().m_sceneCameraPosition += front * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
 						}

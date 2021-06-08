@@ -26,102 +26,80 @@ namespace RayTracerFacility {
 			= *(const RayMLVQSbtData*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
 		const int primitiveId = optixGetPrimitiveIndex();
-		const glm::uvec3 index = sbtData.m_mesh.m_triangle[primitiveId];
-		const glm::vec3 pointA = sbtData.m_mesh.m_position[index.x];
-		const glm::vec3 pointB = sbtData.m_mesh.m_position[index.y];
-		const glm::vec3 pointC = sbtData.m_mesh.m_position[index.z];
-		glm::vec3 normal;
 		const float3 rayDirectionInternal = optixGetWorldRayDirection();
 		glm::vec3 rayDirection = glm::vec3(rayDirectionInternal.x, rayDirectionInternal.y, rayDirectionInternal.z);
-#pragma region Correct normals
-		if (!rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_useGeometryNormal)
-			normal = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_normal[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_normal[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_normal[index.z];
-#pragma endregion
-		glm::vec3 albedoColor = sbtData.m_material.m_surfaceColor;
-#pragma region Apply textures
-		const glm::vec2 tc
-			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_texCoord[index.x]
-			+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_texCoord[index.y]
-			+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_texCoord[index.z];
-		if (sbtData.m_material.m_albedoTexture) {
-			float4 textureAlbedo = tex2D<float4>(sbtData.m_material.m_albedoTexture, tc.x, tc.y);
-			albedoColor = glm::vec3(textureAlbedo.x, textureAlbedo.y, textureAlbedo.z);
-		}
-		if (sbtData.m_material.m_normalTexture)
-		{
-			float4 textureNormal = tex2D<float4>(sbtData.m_material.m_normalTexture, tc.x, tc.y);
-			glm::vec3 tangent = (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * sbtData.m_mesh.m_tangent[index.x]
-				+ triangleBarycentricsInternal.x * sbtData.m_mesh.m_tangent[index.y]
-				+ triangleBarycentricsInternal.y * sbtData.m_mesh.m_tangent[index.z];
-			glm::vec3 B = glm::cross(normal, tangent);
-			glm::mat3 TBN = glm::mat3(tangent, B, normal);
-			normal = glm::vec3(textureNormal.x, textureNormal.y, textureNormal.z) * 2.0f - glm::vec3(1.0f);
-			normal = glm::normalize(TBN * normal);
-		}
-#pragma endregion
-		const glm::vec3 hitPoint
-			= (1.f - triangleBarycentricsInternal.x - triangleBarycentricsInternal.y) * pointA
-			+ triangleBarycentricsInternal.x * pointB
-			+ triangleBarycentricsInternal.y * pointC;
-		RayMLVQRenderingRayData& perRayData = *GetRayDataPointer<RayMLVQRenderingRayData>();
-		unsigned hitCount = perRayData.m_hitCount + 1;
-		// start with some ambient term
-		auto energy = glm::vec3(0.0f);
+		auto indices = sbtData.m_mesh.GetIndices(primitiveId);
+		auto texCoord = sbtData.m_mesh.GetTexCoord(triangleBarycentricsInternal, indices);
+		auto normal = sbtData.m_mesh.GetNormal(triangleBarycentricsInternal, indices);
+		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
 
-
-		uint32_t u0, u1;
-		PackRayDataPointer(&perRayData, u0, u1);
-		float metallic = sbtData.m_material.m_metallic;
-		float roughness = sbtData.m_material.m_roughness;
-		const auto scatterSamples = rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerHit;
-		for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
+		if(sbtData.m_enableMLVQ)
 		{
-			perRayData.m_hitCount = hitCount;
-			perRayData.m_energy = glm::vec3(0.0f);
-			if (perRayData.m_hitCount <= rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_bounceLimit) {
-				energy = glm::vec3(0.0f);
-				float f = 1.0f;
-				if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
-				glm::vec3 reflected = Reflect(rayDirection, normal);
-				glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, metallic);
-				auto origin = hitPoint;
-				if (glm::dot(newRayDirection, normal) > 0.0f)
-				{
-					origin += normal * 1e-3f;
+			
+		}
+		else {
+			glm::vec3 albedoColor = sbtData.m_material.GetAlbedo(texCoord);
+			sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
+
+			auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
+
+			RayMLVQRenderingRayData& perRayData = *GetRayDataPointer<RayMLVQRenderingRayData>();
+			unsigned hitCount = perRayData.m_hitCount + 1;
+			// start with some ambient term
+			auto energy = glm::vec3(0.0f);
+
+			uint32_t u0, u1;
+			PackRayDataPointer(&perRayData, u0, u1);
+			float metallic = sbtData.m_material.m_metallic;
+			float roughness = sbtData.m_material.m_roughness;
+			const auto scatterSamples = rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerHit;
+			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
+			{
+				perRayData.m_hitCount = hitCount;
+				perRayData.m_energy = glm::vec3(0.0f);
+				if (perRayData.m_hitCount <= rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_bounceLimit) {
+					energy = glm::vec3(0.0f);
+					float f = 1.0f;
+					if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
+					glm::vec3 reflected = Reflect(rayDirection, normal);
+					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, metallic);
+					auto origin = hitPoint;
+					if (glm::dot(newRayDirection, normal) > 0.0f)
+					{
+						origin += normal * 1e-3f;
+					}
+					else
+					{
+						origin -= normal * 1e-3f;
+					}
+					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
+					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
+					optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
+						incidentRayOrigin,
+						newRayDirectionInternal,
+						1e-3f,    // tmin
+						1e20f,  // tmax
+						0.0f,   // rayTime
+						static_cast<OptixVisibilityMask>(255),
+						OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
+						static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // SBT offset
+						static_cast<int>(RayMLVQRenderingRayType::RayTypeCount),               // SBT stride
+						static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // missSBTIndex
+						u0, u1);
+					energy += albedoColor
+						* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
+						* perRayData.m_energy;
 				}
-				else
-				{
-					origin -= normal * 1e-3f;
-				}
-				float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
-				float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-				optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
-					incidentRayOrigin,
-					newRayDirectionInternal,
-					1e-3f,    // tmin
-					1e20f,  // tmax
-					0.0f,   // rayTime
-					static_cast<OptixVisibilityMask>(255),
-					OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-					static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // SBT offset
-					static_cast<int>(RayMLVQRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // missSBTIndex
-					u0, u1);
-				energy += albedoColor
-					* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
-					* perRayData.m_energy;
 			}
-		}
-		energy /= scatterSamples;
+			energy /= scatterSamples;
 
 
-		if (hitCount == 1) {
-			perRayData.m_pixelNormal = normal;
-			perRayData.m_pixelAlbedo = albedoColor;
+			if (hitCount == 1) {
+				perRayData.m_pixelNormal = normal;
+				perRayData.m_pixelAlbedo = albedoColor;
+			}
+			perRayData.m_energy = energy + sbtData.m_material.m_diffuseIntensity * albedoColor;
 		}
-		perRayData.m_energy = energy + sbtData.m_material.m_diffuseIntensity * albedoColor;
 	}
 #pragma endregion
 #pragma region Any hit functions

@@ -43,7 +43,6 @@ namespace RayTracerFacility {
 		int m_bounceLimit = 4;
 		int m_samplesPerPixel = 1;
 		int m_samplesPerHit = 1;
-		bool m_useGeometryNormal = false;
 		DefaultOutputRenderType m_debugRenderingType = DefaultOutputRenderType::Brdf;
 		Camera m_camera;
 		unsigned m_outputTextureId;
@@ -57,7 +56,6 @@ namespace RayTracerFacility {
 				properties.m_skylightIntensity != m_skylightIntensity ||
 				properties.m_bounceLimit != m_bounceLimit ||
 				properties.m_samplesPerPixel != m_samplesPerPixel ||
-				properties.m_useGeometryNormal != m_useGeometryNormal ||
 				properties.m_debugRenderingType != m_debugRenderingType ||
 				properties.m_outputTextureId != m_outputTextureId ||
 				properties.m_environmentalMapId != m_environmentalMapId ||
@@ -92,7 +90,6 @@ namespace RayTracerFacility {
 		int m_bounceLimit = 4;
 		int m_samplesPerPixel = 1;
 		int m_samplesPerHit = 1;
-		bool m_useGeometryNormal = false;
 		Camera m_camera;
 		unsigned m_outputTextureId;
 		unsigned m_environmentalMapId;
@@ -105,7 +102,6 @@ namespace RayTracerFacility {
 				properties.m_skylightIntensity != m_skylightIntensity ||
 				properties.m_bounceLimit != m_bounceLimit ||
 				properties.m_samplesPerPixel != m_samplesPerPixel ||
-				properties.m_useGeometryNormal != m_useGeometryNormal ||
 				properties.m_outputTextureId != m_outputTextureId ||
 				properties.m_environmentalMapId != m_environmentalMapId ||
 				properties.m_frameSize != m_frameSize ||
