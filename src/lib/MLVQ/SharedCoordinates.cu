@@ -1,4 +1,5 @@
 #include <SharedCoordinates.cuh>
+#include <glm/ext/scalar_constants.hpp>
 
 void RayTracerFacility::TSharedCoordinates::SetForAngleBetaDeg(float beta)
 {

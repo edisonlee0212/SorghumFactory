@@ -2,6 +2,7 @@
 #include <Optix7.hpp>
 #include <SharedCoordinates.cuh>
 #include <PDF3D.cuh>
+#include <glm/glm.hpp>
 namespace RayTracerFacility
 {
 	template<typename T>
@@ -21,7 +22,7 @@ namespace RayTracerFacility
 		int* m_pdf4DSlices;
 		float* m_pdf4DScale;
 		
-		CPDF3D<glm::vec3> m_pdf3;
+		CPDF3D<T> m_pdf3;
 
 		__device__
 		void GetVal(const int& pdf4DIndex, T& out, TSharedCoordinates& tc) const

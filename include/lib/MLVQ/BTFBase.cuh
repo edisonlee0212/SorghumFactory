@@ -15,7 +15,7 @@ namespace RayTracerFacility
 	public:
 		__device__
 		void GetValueDeg(const glm::uvec2& texCoord, const float& illuminationTheta, const float& illuminationPhi,
-		                 const float& viewTheta, const float& viewPhi, T& out)
+		                 const float& viewTheta, const float& viewPhi, T& out) const
 		{
 			if (illuminationTheta > 90.f || viewTheta > 90.f) {
 				out = T();

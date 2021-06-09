@@ -2,6 +2,7 @@
 #include <Optix7.hpp>
 #include <SharedCoordinates.cuh>
 #include <PDF4D.cuh>
+#include <glm/ext/scalar_constants.hpp>
 namespace RayTracerFacility
 {
 	template<typename T>
