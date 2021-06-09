@@ -32,5 +32,7 @@ namespace RayTracerFacility
 				out *= multi;
 			}
 		}
+		
+		
 	};
 }

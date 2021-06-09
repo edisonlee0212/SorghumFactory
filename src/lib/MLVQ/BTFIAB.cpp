@@ -1,7 +1,10 @@
 #include <BTFIAB.cuh>
-
+#include <functional>
+#include <filesystem>
+#include <FileIO.hpp>
 using namespace RayTracerFacility;
 
-void BTFIAB::Init(const std::string& parName)
+bool BTFIAB::Init(const std::string& parName)
 {
+	
 }
