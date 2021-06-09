@@ -1196,17 +1196,17 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
 				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
 				rec.m_data.m_enableMLVQ = m_instances[i].m_enableMLVQ;
+				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
+				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
+				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
+				rec.m_data.m_material.m_albedoTexture = 0;
+				rec.m_data.m_material.m_normalTexture = 0;
+				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 				if (m_instances[i].m_enableMLVQ)
 				{
-					rec.m_data.m_rayMlvqMaterial = RayMLVQMaterial();
+					rec.m_data.m_rayMlvqMaterial = RayMLVQMaterial<glm::vec3>();
 				}
 				else {
-					rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
-					rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
-					rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
-					rec.m_data.m_material.m_albedoTexture = 0;
-					rec.m_data.m_material.m_normalTexture = 0;
-					rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 					if (m_instances[i].m_albedoTexture != 0)
 					{
 						bool duplicate = false;

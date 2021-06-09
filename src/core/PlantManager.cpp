@@ -405,8 +405,9 @@ void PlantManager::Init()
 	manager.m_ground.SetComponentData(groundGlobalTransform);
 	manager.m_ground.SetStatic(true);
 	manager.m_ground.SetPrivateComponent(std::make_unique<RayTracerFacility::RayTracedRenderer>());
-	manager.m_ground.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>()->SyncWithMeshRenderer();
-	
+	auto& rayTracedRenderer = manager.m_ground.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
+	rayTracedRenderer->SyncWithMeshRenderer();
+	rayTracedRenderer->m_enableMLVQ = true;
 	auto cubeVolume = std::make_unique<CubeVolume>();
 	cubeVolume->m_asObstacle = true;
 	cubeVolume->m_minMaxBound.m_max = glm::vec3(1000, -0.1f, 1000);
