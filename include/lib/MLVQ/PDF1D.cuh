@@ -18,7 +18,7 @@ namespace RayTracerFacility
 		// when retrieving the data from the database
 
 		__device__
-			float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
+			virtual float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
 		{
 			assert((sliceIndex >= 0) && (sliceIndex < m_numOfPdf1D));
 #ifdef LINEAR_INTERPOLANT

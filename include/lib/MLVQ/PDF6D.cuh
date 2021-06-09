@@ -29,7 +29,7 @@ namespace RayTracerFacility
 		// the number of colors
 		int m_numOfColors;
 		__device__
-		void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
+			virtual void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
 			T& out, SharedCoordinates& tc) const
 		{
 			int x = texCoord.x;

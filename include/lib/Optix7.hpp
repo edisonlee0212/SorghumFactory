@@ -4,6 +4,9 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 #include <optix_stubs.h>
+#include <string>
+#include <iostream>
+#include <sstream>
 #define CUDA_CHECK(call)													\
 	{																		\
 		cudaError_t rc = cuda##call;										\

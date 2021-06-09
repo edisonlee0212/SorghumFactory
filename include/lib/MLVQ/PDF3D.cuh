@@ -25,7 +25,7 @@ namespace RayTracerFacility
 		// the database of 2D functions to which we point in the array PDF3Dslices
 		PDF2D<T>* m_pdf2;
 		__device__
-		void GetVal(const int& pdf3DIndex, T& out, SharedCoordinates& tc) const
+			virtual void GetVal(const int& pdf3DIndex, T& out, SharedCoordinates& tc) const
 		{
 			assert((pdf3DIndex >= 0) && (pdf3DIndex < m_numOfPdf3D));
 			const int i = tc.m_iTheta;

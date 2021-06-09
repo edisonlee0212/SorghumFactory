@@ -25,7 +25,7 @@ namespace RayTracerFacility
 		PDF3D<T> m_pdf3;
 
 		__device__
-		void GetVal(const int& pdf4DIndex, T& out, SharedCoordinates& tc) const
+			virtual void GetVal(const int& pdf4DIndex, T& out, SharedCoordinates& tc) const
 		{
 			const int i = tc.m_iPhi;
 			int i2 = i + 1;

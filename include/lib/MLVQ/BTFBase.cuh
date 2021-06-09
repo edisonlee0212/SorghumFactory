@@ -6,15 +6,14 @@
 namespace RayTracerFacility
 {
 	template <typename T>
-	class BtfBase
+	struct BtfBase
 	{
 		SharedCoordinates m_tcTemplate;
 		PDF6D<T> m_pdf6;
 		bool m_hdr = false;
 		float m_hdrValue = 1.0f;
-	public:
 		__device__
-		void GetValueDeg(const glm::uvec2& texCoord, const float& illuminationTheta, const float& illuminationPhi,
+		virtual void GetValueDeg(const glm::uvec2& texCoord, const float& illuminationTheta, const float& illuminationPhi,
 		                 const float& viewTheta, const float& viewPhi, T& out) const
 		{
 			if (illuminationTheta > 90.f || viewTheta > 90.f) {

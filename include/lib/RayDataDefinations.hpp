@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <Optix7.hpp>
-#include <BTFbase.cuh>
+#include <BTFIAB.cuh>
 namespace RayTracerFacility
 {
 	struct Mesh
@@ -76,9 +76,8 @@ namespace RayTracerFacility
 			normal = glm::normalize(TBN * normal);
 		}
 	};
-	template<typename T>
 	struct RayMLVQMaterial {
-		BtfBase<T> m_btf;
+		BTFIAB* m_btf;
 #pragma region Device functions
 		__device__
 			void ComputeAngles(const glm::vec3& direction, const glm::vec3& normal, const glm::vec3& tangent, float& theta, float& phi) const
@@ -111,13 +110,13 @@ namespace RayTracerFacility
 		}
 
 		__device__
-			void GetValue(const glm::uvec2 texCoord, const glm::vec3& viewDir, const glm::vec3& illuminationDir, const glm::vec3& normal, const glm::vec3 tangent, T& out) const
+			void GetValue(const glm::uvec2 texCoord, const glm::vec3& viewDir, const glm::vec3& illuminationDir, const glm::vec3& normal, const glm::vec3 tangent, glm::vec3& out) const
 		{
 			out = glm::vec3(1.0f);
 			float illuminationTheta, illuminationPhi, viewTheta, viewPhi;
 			ComputeAngles(viewDir, normal, tangent, viewTheta, viewPhi);
 			ComputeAngles(illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
-			m_btf.GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
+			m_btf->GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
 		}
 #pragma endregion
 	};
@@ -133,7 +132,7 @@ namespace RayTracerFacility
 		Mesh m_mesh;
 		bool m_enableMLVQ;
 		DefaultMaterial m_material;
-		RayMLVQMaterial<glm::vec3> m_rayMlvqMaterial;
+		RayMLVQMaterial m_rayMlvqMaterial;
 	};
 
 	/*! SBT record for a raygen program */

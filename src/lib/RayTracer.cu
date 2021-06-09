@@ -1,6 +1,5 @@
 #include <RayTracer.hpp>
 #include <optix_function_table_definition.h>
-#include <FileUtil.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -11,7 +10,10 @@
 #include <iostream>
 #include <RayDataDefinations.hpp>
 
-#include "imgui.h"
+#include <functional>
+#include <filesystem>
+#include <FileIO.hpp>
+#include <imgui.h>
 
 using namespace RayTracerFacility;
 
@@ -377,6 +379,18 @@ RayTracer::RayTracer()
 	AssemblePipelines();
 
 	std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
+
+	int btfAmount = 3;
+	m_btfs.resize(btfAmount);
+	m_btfsBuffer.resize(btfAmount);
+	m_btfs[0].Init(UniEngine::FileIO::GetProjectPath() + "btfs/fabric01");
+	m_btfs[1].Init(UniEngine::FileIO::GetProjectPath() + "btfs/alu");
+	m_btfs[2].Init(UniEngine::FileIO::GetProjectPath() + "btfs/corduroy");
+	for(int i = 0; i < btfAmount; i++)
+	{
+		m_btfsBuffer[i].Upload(&m_btfs[i], 1);
+	}
+	
 }
 
 void RayTracer::SetSkylightSize(const float& value)
@@ -1204,7 +1218,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 				if (m_instances[i].m_enableMLVQ)
 				{
-					rec.m_data.m_rayMlvqMaterial = RayMLVQMaterial<glm::vec3>();
+					rec.m_data.m_rayMlvqMaterial.m_btf = reinterpret_cast<BTFIAB*>(m_btfsBuffer[m_instances[i].m_mlvqMaterialIndex].DevicePointer());
 				}
 				else {
 					if (m_instances[i].m_albedoTexture != 0)
