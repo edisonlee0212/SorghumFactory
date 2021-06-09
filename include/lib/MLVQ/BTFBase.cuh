@@ -8,8 +8,8 @@ namespace RayTracerFacility
 	template <typename T>
 	class BtfBase
 	{
-		TSharedCoordinates m_tcTemplate;
-		CPDF6D<T> m_pdf6;
+		SharedCoordinates m_tcTemplate;
+		PDF6D<T> m_pdf6;
 		bool m_hdr = false;
 		float m_hdrValue = 1.0f;
 	public:
@@ -21,7 +21,7 @@ namespace RayTracerFacility
 				out = T();
 				return;
 			}
-			TSharedCoordinates tc(m_tcTemplate);
+			SharedCoordinates tc(m_tcTemplate);
 			// fast version, pre-computation of interpolation values only once
 			m_pdf6.GetValDeg2(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out, tc);
 

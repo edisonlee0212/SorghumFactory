@@ -6,7 +6,7 @@
 namespace RayTracerFacility
 {
 	template<typename T>
-	struct CPDF6D {
+	struct PDF6D {
 		int m_numOfRows;          //! no. of rows in spatial BTF index
 		int m_numOfCols;          //! no. of columns in spatial BTF index
 		int m_rowsOffset;       //! offset of the first row as we do not need to start from 0
@@ -14,7 +14,7 @@ namespace RayTracerFacility
 		int* m_pdf6DSlices;   //! planar index pointing on 4D PDF for individual pixels
 		float* m_pdf6DScale; //! corresponding normalization values
 		// the database of 4D functions to which we point in the array PDF6Dslices
-		CPDF4D<T> m_pdf4;
+		PDF4D<T> m_pdf4;
 		// The shared coordinates to be used for interpolation
 		// when retrieving the data from the database
 		// This is required for SSIM data precomputation
@@ -30,7 +30,7 @@ namespace RayTracerFacility
 		int m_numOfColors;
 		__device__
 		void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
-			T& out, TSharedCoordinates& tc) const
+			T& out, SharedCoordinates& tc) const
 		{
 			int x = texCoord.x;
 			int y = texCoord.y;

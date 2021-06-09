@@ -6,7 +6,7 @@
 namespace RayTracerFacility
 {
 	template<typename T>
-	struct CPDF4D {
+	struct PDF4D {
 		// the number of allocated 4D functions to be stored
 		int m_maxPdf4D;
 		// the used number of 4D functions
@@ -22,10 +22,10 @@ namespace RayTracerFacility
 		int* m_pdf4DSlices;
 		float* m_pdf4DScale;
 		
-		CPDF3D<T> m_pdf3;
+		PDF3D<T> m_pdf3;
 
 		__device__
-		void GetVal(const int& pdf4DIndex, T& out, TSharedCoordinates& tc) const
+		void GetVal(const int& pdf4DIndex, T& out, SharedCoordinates& tc) const
 		{
 			const int i = tc.m_iPhi;
 			int i2 = i + 1;

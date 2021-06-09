@@ -4,7 +4,7 @@
 #include <glm/ext/scalar_constants.hpp>
 namespace RayTracerFacility
 {
-	struct TSharedCoordinates
+	struct SharedCoordinates
 	{
 		// the values to be used for interpolation in beta coordinate
 		float* m_betaAngles; // the sequence of values used
@@ -62,8 +62,8 @@ namespace RayTracerFacility
 		bool m_hdrFlag;
 		bool m_codeBtfFlag;
 
-		TSharedCoordinates() {}
-		TSharedCoordinates(bool useCosBeta, int LengthOfSlice, float betaAnglesVals[]) {
+		SharedCoordinates() {}
+		SharedCoordinates(bool useCosBeta, int LengthOfSlice, float betaAnglesVals[]) {
 			this->m_useCosBeta = useCosBeta;
 			this->m_lengthOfSlice = LengthOfSlice;
 			this->m_betaAngles = new float[LengthOfSlice];
@@ -134,7 +134,7 @@ namespace RayTracerFacility
 
 	inline void ConvertThetaPhiToBetaAlpha(const float theta, const float phi,
 	                                       float& beta, float& alpha,
-	                                       const TSharedCoordinates& tc)
+	                                       const SharedCoordinates& tc)
 	{
 		if (tc.m_codeBtfFlag) {
 			const float x = cos(phi - tc.m_phi) * sin(theta);

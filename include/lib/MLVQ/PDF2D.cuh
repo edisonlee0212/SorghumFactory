@@ -4,7 +4,7 @@
 namespace RayTracerFacility
 {
 	template<typename T>
-	struct CPDF2D
+	struct PDF2D
 	{
 		// the number of allocated 2D functions to be stored
 		int m_maxPdf2D;
@@ -17,6 +17,6 @@ namespace RayTracerFacility
 		// The shared coordinates to be used for interpolation
 		// when retrieving the data from the database
 		__device__
-			virtual void GetVal(const int& pdf2DIndex, T& out, TSharedCoordinates& tc) const { out = T(); }
+			virtual void GetVal(const int& pdf2DIndex, T& out, SharedCoordinates& tc) const { out = T(); }
 	};
 }
