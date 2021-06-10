@@ -16,11 +16,25 @@ namespace RayTracerFacility
 		int m_maxPdf3D;       //! number of allocated 3D PDF indices
 		int m_maxPdf4D;       //! number of allocated 4D PDF indices
 		int m_maxPdf34D;       //! number of allocated 3-4D PDF indices for PDF34D
+
+		float m_stepAlpha; //! angular step between reflectance values in angle alpha (in degrees)
 		bool m_useCosBeta; //! use cos angles
 
 		float m_mPostScale;
-		bool Init(const std::string& parName);
-		bool LoadBtfBase(const char* prefix, bool recover);
+
 		
+		int m_lengthOfSlice;  //! Number of measurement points on along slice parametrised by "beta"
+		int m_slicesPerHemisphere;  //! Number of slices over hemisphere parametrized by "alpha"
+		int m_noOfTheta;      //! number of different theta viewing angles stored in PDF3D
+		int m_noOfPhi;        //! number of different phi viewing angles stored in PDF4D
+
+		bool m_allMaterialsInOneDatabase; //! if to compress all materials into one database
+	//! if view direction represented directly by UBO measurement quantization
+		bool m_use34ViewRepresentation;
+		bool m_usePdf2CompactRep; //! If we do not separate colors and luminances for 2D functions
+
+		int m_materialCount; //! how many materials are stored in the database
+
+		bool Init(const std::string& materialDirectoryPath);
 	};
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <Optix7.hpp>
+#include <CUDABuffer.hpp>
 #include <glm/glm.hpp>
 #include <glm/ext/scalar_constants.hpp>
 namespace RayTracerFacility
@@ -7,6 +8,7 @@ namespace RayTracerFacility
 	struct SharedCoordinates
 	{
 		// the values to be used for interpolation in beta coordinate
+		CudaBuffer m_betaAnglesBuffer;
 		float* m_betaAngles; // the sequence of values used
 		int m_lengthOfSlice;
 
@@ -63,13 +65,11 @@ namespace RayTracerFacility
 		bool m_codeBtfFlag;
 
 		SharedCoordinates() {}
-		SharedCoordinates(bool useCosBeta, int LengthOfSlice, float betaAnglesVals[]) {
-			this->m_useCosBeta = useCosBeta;
-			this->m_lengthOfSlice = LengthOfSlice;
-			this->m_betaAngles = new float[LengthOfSlice];
-			//assert(this->m_betaAngles);
-			for (int i = 0; i < LengthOfSlice; i++)
-				m_betaAngles[i] = betaAnglesVals[i];
+		SharedCoordinates(const bool& useCosBeta, const int& LengthOfSlice, std::vector<float>& betaAngles) {
+			m_useCosBeta = useCosBeta;
+			m_lengthOfSlice = LengthOfSlice;
+			m_betaAnglesBuffer.Upload(betaAngles);
+			m_betaAngles = reinterpret_cast<float*>(m_betaAnglesBuffer.DevicePointer());
 			m_hdrFlag = false;
 		}
 		// Here we set the structure for particular angle beta
@@ -77,7 +77,7 @@ namespace RayTracerFacility
 			void SetForAngleBetaDeg(float beta)
 		{
 			assert((beta >= -90.f) && (beta <= 90.f));
-			this->m_beta = beta;
+			m_beta = beta;
 			if (m_useCosBeta) {
 				// The angles are quantized uniformly in sin of beta
 				const float betaRad = beta * glm::pi<float>() / 180.f;
@@ -132,9 +132,9 @@ namespace RayTracerFacility
 	};
 	__device__
 
-	inline void ConvertThetaPhiToBetaAlpha(const float theta, const float phi,
-	                                       float& beta, float& alpha,
-	                                       const SharedCoordinates& tc)
+		inline void ConvertThetaPhiToBetaAlpha(const float theta, const float phi,
+			float& beta, float& alpha,
+			const SharedCoordinates& tc)
 	{
 		if (tc.m_codeBtfFlag) {
 			const float x = cos(phi - tc.m_phi) * sin(theta);
