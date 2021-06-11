@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <Optix7.hpp>
-#include <BTFIAB.cuh>
+#include <BTFBase.cuh>
 namespace RayTracerFacility
 {
 	struct Mesh
@@ -77,7 +77,7 @@ namespace RayTracerFacility
 		}
 	};
 	struct RayMLVQMaterial {
-		BTFIAB* m_btf;
+		BtfBase m_btf;
 #pragma region Device functions
 		__device__
 			void ComputeAngles(const glm::vec3& direction, const glm::vec3& normal, const glm::vec3& tangent, float& theta, float& phi) const
@@ -94,7 +94,8 @@ namespace RayTracerFacility
 				return;
 			}
 
-			assert(fabs(transformedDir[2]) <= 1.0);
+			assert(fabs(transformedDir[2]) <= 1.01f);
+			
 			if (transformedDir[2] < 0.0) {
 				phi = 0.0;
 				theta = 90.0;
@@ -115,11 +116,12 @@ namespace RayTracerFacility
 			out = glm::vec3(1.0f);
 			
 			float illuminationTheta, illuminationPhi, viewTheta, viewPhi;
-			ComputeAngles(viewDir, normal, tangent, viewTheta, viewPhi);
-			ComputeAngles(illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
+			ComputeAngles(-viewDir, normal, tangent, viewTheta, viewPhi);
+			ComputeAngles(-illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
 			
-			m_btf->GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
-			
+			m_btf.GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
+			printf("[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
+			//out /= 256.0f;
 		}
 #pragma endregion
 	};

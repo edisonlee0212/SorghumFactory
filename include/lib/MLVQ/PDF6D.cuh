@@ -5,7 +5,6 @@
 #include <glm/ext/scalar_constants.hpp>
 namespace RayTracerFacility
 {
-	template<typename T>
 	struct PDF6D {
 		int m_numOfRows;          //! no. of rows in spatial BTF index
 		int m_numOfCols;          //! no. of columns in spatial BTF index
@@ -18,7 +17,7 @@ namespace RayTracerFacility
 		int* m_pdf6DSlices;   //! planar index pointing on 4D PDF for individual pixels
 		float* m_pdf6DScale; //! corresponding normalization values
 		// the database of 4D functions to which we point in the array PDF6Dslices
-		PDF4D<T> m_pdf4;
+		PDF4D m_pdf4;
 		
 		void Init(const int& numOfRows, const int& numOfCols, const int& rowsOffset, const int& colsOffset, const int& colorAmount)
 		{
@@ -30,8 +29,8 @@ namespace RayTracerFacility
 		}
 
 		__device__
-			virtual void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
-			T& out, SharedCoordinates& tc) const
+			void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
+			glm::vec3& out, SharedCoordinates& tc) const
 		{
 			int x = texCoord.x;
 			int y = texCoord.y;
@@ -99,10 +98,12 @@ namespace RayTracerFacility
 			assert((tc.m_iPhi >= 0) && (tc.m_iPhi <= tc.m_slicesPerPhi));
 			tc.m_wPhi = (viewPhi - tc.m_iPhi * tc.m_stepPhi) / tc.m_stepPhi;
 			assert((tc.m_wPhi >= 0.f) && (tc.m_wPhi <= 1.f));
-
 			// Now get the value by interpolation between 2 PDF4D, 4 PDF3D,
 			// 8 PDF2D, 16 PDF1D, and 16 IndexAB values for precomputed
 			// interpolation coefficients and indices
+
+			assert(y >= 0 && y < m_numOfRows);
+			assert(x >= 0 && x < m_numOfCols);
 			m_pdf4.GetVal(m_pdf6DSlices[y * m_numOfCols + x] - 1, out, tc);
 			// we have to multiply it by valid scale factor at the end
 			const float scale = m_pdf6DScale[y * m_numOfCols + x];

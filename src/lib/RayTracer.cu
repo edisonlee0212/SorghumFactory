@@ -1218,7 +1218,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 				if (m_instances[i].m_enableMLVQ)
 				{
-					rec.m_data.m_rayMlvqMaterial.m_btf = reinterpret_cast<BTFIAB*>(m_btfsBuffer[m_instances[i].m_mlvqMaterialIndex].DevicePointer());
+					rec.m_data.m_rayMlvqMaterial.m_btf = m_btfs[0];
 				}
 				else {
 					if (m_instances[i].m_albedoTexture != 0)

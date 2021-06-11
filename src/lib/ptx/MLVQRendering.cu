@@ -43,6 +43,8 @@ namespace RayTracerFacility {
 		glm::vec3 albedoColor;
 		if(sbtData.m_enableMLVQ)
 		{
+			sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, glm::vec3(0, -1, 0), normal, tangent, albedoColor);
+			/*
 			float roughness = sbtData.m_material.m_roughness;
 			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 			{
@@ -83,7 +85,7 @@ namespace RayTracerFacility {
 						//* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
 						* perRayData.m_energy;
 				}
-			}
+			}*/
 		}
 		else {
 			albedoColor = sbtData.m_material.GetAlbedo(texCoord);

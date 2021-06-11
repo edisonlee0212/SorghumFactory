@@ -17,7 +17,7 @@ namespace RayTracerFacility
 		bool m_useCosBeta;
 
 		float m_stepAlpha;
-		int m_slicesPerHemi;
+		int m_slicesPerHemisphere;
 
 		float m_stepTheta;
 		int m_slicesPerTheta;
@@ -121,8 +121,8 @@ namespace RayTracerFacility
 
 			this->m_alpha = alpha;
 			m_iAlpha = (int)floor((90.f + alpha) / m_stepAlpha);
-			if (m_iAlpha > m_slicesPerHemi - 2)
-				m_iAlpha = m_slicesPerHemi - 2;
+			if (m_iAlpha > m_slicesPerHemisphere - 2)
+				m_iAlpha = m_slicesPerHemisphere - 2;
 			//assert((m_iAlpha >= 0) && (m_iAlpha <= m_slicesPerHemi - 1));
 			m_wAlpha = (alpha + 90.f - m_iAlpha * m_stepAlpha) / m_stepAlpha;
 			//assert((m_wAlpha >= -1e-5) && (m_wAlpha <= 1.f));

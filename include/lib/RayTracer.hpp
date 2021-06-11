@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
-#include <BTFIAB.cuh>
+#include <BTFBase.cuh>
 namespace RayTracerFacility {
 	struct RAY_TRACER_FACILITY_API Camera {
 		bool m_modified = false;
@@ -312,7 +312,7 @@ namespace RayTracerFacility {
 		void AssemblePipeline(RayTracerPipeline& targetPipeline) const;
 #pragma endregion
 
-		std::vector<BTFIAB> m_btfs;
+		std::vector<BtfBase> m_btfs;
 		std::vector<CudaBuffer> m_btfsBuffer;
 		
 #pragma region Accleration structure

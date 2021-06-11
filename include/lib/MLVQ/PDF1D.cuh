@@ -6,8 +6,6 @@ namespace RayTracerFacility
 {
 	struct PDF1D
 	{
-		// the number of allocated 1D functions
-		int m_maxPdf1D;
 		// the number of values for 1D function
 		int m_lengthOfSlice;
 		// the data array of 1D functions. These are normalized !
@@ -18,11 +16,9 @@ namespace RayTracerFacility
 		// The shared coordinates to be used for interpolation
 		// when retrieving the data from the database
 		
-		void Init(const int& maxPDF1D, const int& lengthOfSlice)
+		void Init(const int& lengthOfSlice)
 		{
-			assert(maxPDF1D > 0);
 			assert(lengthOfSlice > 0);
-			m_maxPdf1D = maxPDF1D;
 			m_lengthOfSlice = lengthOfSlice;
 			m_numOfPdf1D = 0;
 		}
@@ -30,7 +26,7 @@ namespace RayTracerFacility
 		__device__
 			virtual float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
 		{
-			assert((sliceIndex >= 0) && (sliceIndex < m_numOfPdf1D));
+			assert(sliceIndex >= 0 && sliceIndex < m_numOfPdf1D);
 #ifdef LINEAR_INTERPOLANT
 			// This implements simple linear interpolation between two values
 			return (1.f - tc.wBeta) * PDF1Dbasis[sliceIndex][tc.iBeta] +
