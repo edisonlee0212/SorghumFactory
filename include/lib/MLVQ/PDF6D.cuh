@@ -29,11 +29,11 @@ namespace RayTracerFacility
 		}
 
 		__device__
-			void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
-			glm::vec3& out, SharedCoordinates& tc) const
+			void GetValDeg2(const glm::vec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
+			glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
-			int x = texCoord.x;
-			int y = texCoord.y;
+			int x = texCoord.x * m_numOfCols;
+			int y = texCoord.y * m_numOfRows;
 			
 			x -= m_colsOffset;
 			while (x < 0)
@@ -104,7 +104,10 @@ namespace RayTracerFacility
 
 			assert(y >= 0 && y < m_numOfRows);
 			assert(x >= 0 && x < m_numOfCols);
-			m_pdf4.GetVal(m_pdf6DSlices[y * m_numOfCols + x] - 1, out, tc);
+
+			if (print) printf("Sampling from PDF4...");
+			m_pdf4.GetVal(m_pdf6DSlices[y * m_numOfCols + x] - 1, out, tc, print);
+			if(print) printf("Col4[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
 			// we have to multiply it by valid scale factor at the end
 			const float scale = m_pdf6DScale[y * m_numOfCols + x];
 			out *= scale;

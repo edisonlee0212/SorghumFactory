@@ -104,24 +104,33 @@ namespace RayTracerFacility
 
 			theta = glm::degrees(acosf(transformedDir[2]));
 
-			phi = glm::degrees(atan2(transformedDir[1], transformedDir[0]) + 360.0f);
+			phi = glm::degrees(atan2(transformedDir[1], transformedDir[0])) + 360.0f;
 
 			if (phi > 360.f)
 				phi -= 360.f;
 		}
 
 		__device__
-			void GetValue(const glm::uvec2 texCoord, const glm::vec3& viewDir, const glm::vec3& illuminationDir, const glm::vec3& normal, const glm::vec3 tangent, glm::vec3& out) const
+			void GetValue(const glm::vec2& texCoord, const glm::vec3& viewDir, const glm::vec3& illuminationDir, const glm::vec3& normal, const glm::vec3 tangent, glm::vec3& out, const bool& print) const
 		{
 			out = glm::vec3(1.0f);
-			
 			float illuminationTheta, illuminationPhi, viewTheta, viewPhi;
 			ComputeAngles(-viewDir, normal, tangent, viewTheta, viewPhi);
-			ComputeAngles(-illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
+			ComputeAngles(illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
 			
-			m_btf.GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
-			printf("[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
-			//out /= 256.0f;
+			if (print) {
+				printf("TexCoord[%.2f, %.2f]\n", texCoord.x, texCoord.y);
+				printf("Angles[%.1f, %.1f, %.1f, %.1f]\n", illuminationTheta, illuminationPhi, viewTheta, viewPhi);
+				printf("Normal[%.2f, %.2f, %.2f]\n", normal.x, normal.y, normal.z);
+				printf("View[%.2f, %.2f, %.2f]\n", viewDir.x, viewDir.y, viewDir.z);
+				printf("Illumination[%.2f, %.2f, %.2f]\n", illuminationDir.x, illuminationDir.y, illuminationDir.z);
+			}
+			m_btf.GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out, print);
+			out /= 256.0f;
+			if(print){
+				printf("ColBase[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
+			}
+			
 		}
 #pragma endregion
 	};

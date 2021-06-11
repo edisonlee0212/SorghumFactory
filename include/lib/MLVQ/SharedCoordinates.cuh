@@ -167,7 +167,7 @@ namespace RayTracerFacility
 		float aux = xyz[1] / cos(beta);
 		if (aux < -1.f) aux = -1.f;
 		if (aux > 1.f) aux = 1.f;
-		assert((aux >= -1) && (aux <= 1));
+		//assert((aux >= -1) && (aux <= 1));
 		alpha = asin(aux);
 	}
 }

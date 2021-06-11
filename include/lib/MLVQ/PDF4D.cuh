@@ -31,24 +31,26 @@ namespace RayTracerFacility
 			m_size4D = m_pdf3.m_size3D * slicePerPhi;
 		}
 		__device__
-			void GetVal(const int& pdf4DIndex, glm::vec3& out, SharedCoordinates& tc) const
+			void GetVal(const int& pdf4DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
 			const int i = tc.m_iPhi;
 			const float w = tc.m_wPhi;
 			assert(i >= 0 && i < m_slicesPerPhi);
 			assert(pdf4DIndex >= 0 && pdf4DIndex < m_numOfPdf4D);
+			if (print) printf("Sampling from PDF3...");
 			if (i < m_slicesPerPhi - 1) {
 				glm::vec3 out2;
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc);
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i + 1], out2, tc);
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc, print);
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i + 1], out2, tc, print);
 				const float s1 = m_pdf4DScales[pdf4DIndex * m_slicesPerPhi + i] * (1.0f - w);
 				const float s2 = m_pdf4DScales[pdf4DIndex * m_slicesPerPhi + i + 1] * w;
 				out = out * s1 + out2 * s2;
 			}else
 			{
 				return;
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc);
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc, print);
 			}
+			if(print) printf("Col3[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
 		}
 	};
 }

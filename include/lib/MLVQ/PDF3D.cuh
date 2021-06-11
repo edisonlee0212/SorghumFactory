@@ -33,23 +33,24 @@ namespace RayTracerFacility
 		}
 		
 		__device__
-			void GetVal(const int& pdf3DIndex, glm::vec3& out, SharedCoordinates& tc) const
+			void GetVal(const int& pdf3DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
 			const int i = tc.m_iTheta;
 			assert(i >= 0 && i < m_slicesPerTheta);
 			assert(pdf3DIndex >= 0 && pdf3DIndex < m_numOfPdf3D);
+			if (print) printf("Sampling from PDF2...");
 			if (i < m_slicesPerTheta - 1) {
 				const float w = tc.m_wTheta;
 				glm::vec3 out2;
-				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc);
-				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i + 1], out2, tc);
+				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc, print);
+				//m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i + 1], out2, tc);
 				const float s1 = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i] * (1.0f - w);
-				const float s2 = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i + 1] * w;
-				out = out * s1 + out2 * s2;
+				//const float s2 = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i + 1] * w;
+				//out = out * s1 + out2 * s2;
 			}
 			else{
 				return;
-				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc);
+				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc, print);
 				const float s = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i];
 				out *= s;
 			}

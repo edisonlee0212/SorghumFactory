@@ -24,9 +24,10 @@ namespace RayTracerFacility
 		}
 		
 		__device__
-			virtual float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
+			float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
 		{
 			assert(sliceIndex >= 0 && sliceIndex < m_numOfPdf1D);
+			assert(tc.m_iBeta >= 0 && tc.m_iBeta < m_lengthOfSlice);
 #ifdef LINEAR_INTERPOLANT
 			// This implements simple linear interpolation between two values
 			return (1.f - tc.wBeta) * PDF1Dbasis[sliceIndex][tc.iBeta] +

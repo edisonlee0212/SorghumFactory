@@ -12,8 +12,8 @@ namespace RayTracerFacility
 		bool m_hdr = false;
 		float m_hdrValue = 1.0f;
 		__device__
-		void GetValueDeg(const glm::uvec2& texCoord, const float& illuminationTheta, const float& illuminationPhi,
-		                 const float& viewTheta, const float& viewPhi, glm::vec3& out) const
+		void GetValueDeg(const glm::vec2& texCoord, const float& illuminationTheta, const float& illuminationPhi,
+		                 const float& viewTheta, const float& viewPhi, glm::vec3& out, const bool& print) const
 		{
 			if (illuminationTheta > 90.f || viewTheta > 90.f) {
 				out = glm::vec3(1.0f);
@@ -21,15 +21,17 @@ namespace RayTracerFacility
 			}
 			SharedCoordinates tc(m_tcTemplate);
 			// fast version, pre-computation of interpolation values only once
-			m_pdf6.GetValDeg2(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out, tc);
-
+			if (print) printf("Sampling from PDF6...");
+			m_pdf6.GetValDeg2(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out, tc, print);
+			if (print) printf("Col6[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
+			/*
 			if (m_hdr) {
 				// we encode the values multiplied by a user coefficient
 				// before it is converted to User Color Model
 				// Now we have to multiply it back.    
 				const float multi = 1.0f / m_hdrValue;
 				out *= multi;
-			}
+			}*/
 		}
 		
 		int m_materialOrder; //! order of the material processed

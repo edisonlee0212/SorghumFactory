@@ -7,7 +7,15 @@
 #include <CIELab.cuh>
 namespace RayTracerFacility
 {
-	struct PDF2DSeparate : PDF2D {
+	struct PDF2DSeparate {
+		// the used number of 2D functions
+		int m_numOfPdf2D;
+		// the size of the data entry to be used here during restoration
+		int m_size2D;
+		// length of index slice, should be 2 here.
+		int m_lengthOfSlice;
+		IndexAB m_iab;
+		PDF1D m_pdf1;
 		struct PDF2DColor
 		{
 			// the used number of 2D functions
@@ -29,7 +37,7 @@ namespace RayTracerFacility
 			CudaBuffer m_pdf2DColorsBuffer;
 			int* m_pdf2DColors;
 			__device__
-				void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc, const IndexAB& iab) const
+				void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc, const IndexAB& iab, const bool& print) const
 			{
 				assert(pdf2DIndex >= 0 && pdf2DIndex < m_numOfPdf2D);
 				const int i = tc.m_iAlpha;
@@ -67,7 +75,7 @@ namespace RayTracerFacility
 			}
 			
 			__device__
-				void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc, const PDF1D& pdf1) const
+				void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc, const PDF1D& pdf1, const bool& print) const
 			{
 				assert(pdf2DIndex >= 0 && pdf2DIndex < m_numOfPdf2D);
 				const int i = tc.m_iAlpha;
@@ -75,8 +83,8 @@ namespace RayTracerFacility
 				assert(i >= 0 && i < m_lengthOfSlice - 1);
 				// This is different to compact representation ! we interpolate in luminances
 				const float l1 = m_pdf2DScales[pdf2DIndex * m_lengthOfSlice + i] * pdf1.GetVal(m_pdf2DSlices[pdf2DIndex * m_lengthOfSlice + i], tc);
-				const float l2 = m_pdf2DScales[pdf2DIndex * m_lengthOfSlice + i + 1] * pdf1.GetVal(m_pdf2DSlices[pdf2DIndex * m_lengthOfSlice + i + 1], tc);
-				out[0] = (1.f - w) * l1 + w * l2;
+				//const float l2 = m_pdf2DScales[pdf2DIndex * m_lengthOfSlice + i + 1] * pdf1.GetVal(m_pdf2DSlices[pdf2DIndex * m_lengthOfSlice + i + 1], tc);
+				out[0] = l1;//(1.f - w) * l1 + w * l2;
 			}
 		};
 
@@ -96,17 +104,17 @@ namespace RayTracerFacility
 		}
 		
 		__device__
-		void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc) const override
+		void GetVal(const int& pdf2DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
 			assert(pdf2DIndex >= 0 && pdf2DIndex < m_numOfPdf2D);
-
+			
 			glm::vec3 userCMdata;
 			// First, get only luminance
-			return;
-			
-			m_color.GetVal(m_indexLuminanceColor[pdf2DIndex * m_lengthOfSlice + 1], userCMdata, tc, m_iab);
-			
-			m_luminance.GetVal(m_indexLuminanceColor[pdf2DIndex * m_lengthOfSlice + 0], userCMdata, tc, m_pdf1);
+			out = glm::vec3(1.0f);
+			if (print) printf("Sampling from Color...");
+			m_color.GetVal(m_indexLuminanceColor[pdf2DIndex * m_lengthOfSlice + 1], userCMdata, tc, m_iab, print);
+			if (print) printf("Sampling from Luminance...");
+			m_luminance.GetVal(m_indexLuminanceColor[pdf2DIndex * m_lengthOfSlice + 0], userCMdata, tc, m_pdf1, print);
 
 			// Convert to RGB
 			UserCmToRgb(userCMdata, out, tc);

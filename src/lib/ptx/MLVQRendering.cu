@@ -18,6 +18,7 @@ namespace RayTracerFacility {
 		glm::vec3 m_energy;
 		glm::vec3 m_pixelNormal;
 		glm::vec3 m_pixelAlbedo;
+		bool m_printInfo;
 	};
 #pragma region Closest hit functions
 	extern "C" __global__ void __closesthit__radiance()
@@ -43,8 +44,6 @@ namespace RayTracerFacility {
 		glm::vec3 albedoColor;
 		if(sbtData.m_enableMLVQ)
 		{
-			sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, glm::vec3(0, -1, 0), normal, tangent, albedoColor);
-			/*
 			float roughness = sbtData.m_material.m_roughness;
 			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 			{
@@ -56,7 +55,7 @@ namespace RayTracerFacility {
 					glm::vec3 reflected = Reflect(rayDirection, normal);
 					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, 1.0f);
 					glm::vec3 btfColor;
-					sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, newRayDirection, normal, tangent, btfColor);
+					sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, newRayDirection, normal, tangent, btfColor, (perRayData.m_printInfo && sampleID == 0));
 					auto origin = hitPoint;
 					if (glm::dot(newRayDirection, normal) > 0.0f)
 					{
@@ -85,7 +84,7 @@ namespace RayTracerFacility {
 						//* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
 						* perRayData.m_energy;
 				}
-			}*/
+			}
 		}
 		else {
 			albedoColor = sbtData.m_material.GetAlbedo(texCoord);
@@ -172,6 +171,8 @@ namespace RayTracerFacility {
 		cameraRayData.m_energy = glm::vec3(0);
 		cameraRayData.m_pixelNormal = glm::vec3(0);
 		cameraRayData.m_pixelAlbedo = glm::vec3(0);
+		
+		
 		// the values we store the PRD pointer in:
 		uint32_t u0, u1;
 		PackRayDataPointer(&cameraRayData, u0, u1);
@@ -183,6 +184,8 @@ namespace RayTracerFacility {
 
 		for (int sampleID = 0; sampleID < numPixelSamples; sampleID++)
 		{
+			cameraRayData.m_printInfo = sampleID == 0 && ix == rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x / 2.0f && iy == rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.y / 2.0f;
+			
 			// normalized screen plane position, in [0,1]^2
 			// iw: note for de-noising that's not actually correct - if we
 			// assume that the camera should only(!) cover the de-noised
@@ -195,7 +198,7 @@ namespace RayTracerFacility {
 				+ (screen.y - 0.5f) * rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_vertical);
 			float3 rayOrigin = make_float3(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.x, rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.y, rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_camera.m_from.z);
 			float3 rayDirection = make_float3(rayDir.x, rayDir.y, rayDir.z);
-
+			
 			optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
 				rayOrigin,
 				rayDirection,
