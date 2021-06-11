@@ -25,8 +25,8 @@ namespace RayTracerFacility
 		
 		int m_lengthOfSlice;  //! Number of measurement points on along slice parametrised by "beta"
 		int m_slicesPerHemisphere;  //! Number of slices over hemisphere parametrized by "alpha"
-		int m_noOfTheta;      //! number of different theta viewing angles stored in PDF3D
-		int m_noOfPhi;        //! number of different phi viewing angles stored in PDF4D
+		int m_slicePerTheta;      //! number of different theta viewing angles stored in PDF3D
+		int m_slicePerPhi;        //! number of different phi viewing angles stored in PDF4D
 
 		bool m_allMaterialsInOneDatabase; //! if to compress all materials into one database
 	//! if view direction represented directly by UBO measurement quantization

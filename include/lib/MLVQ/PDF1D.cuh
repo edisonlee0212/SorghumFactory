@@ -11,12 +11,22 @@ namespace RayTracerFacility
 		// the number of values for 1D function
 		int m_lengthOfSlice;
 		// the data array of 1D functions. These are normalized !
-		float** m_pdf1DBasis;
+		CudaBuffer m_pdf1DBasisBuffer;
+		float* m_pdf1DBasis;
 		// current number of stored 1D functions
 		int m_numOfPdf1D;
 		// The shared coordinates to be used for interpolation
 		// when retrieving the data from the database
-
+		
+		void Init(const int& maxPDF1D, const int& lengthOfSlice)
+		{
+			assert(maxPDF1D > 0);
+			assert(lengthOfSlice > 0);
+			m_maxPdf1D = maxPDF1D;
+			m_lengthOfSlice = lengthOfSlice;
+			m_numOfPdf1D = 0;
+		}
+		
 		__device__
 			virtual float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
 		{
@@ -30,21 +40,21 @@ namespace RayTracerFacility
 #ifdef HERMITE_INTERPOLANT
 			// This implements Fergusson cubic interpolation based on Cubic Hermite Splines
 			const float w = tc.m_wBeta;
-			const float p0 = m_pdf1DBasis[sliceIndex][tc.m_iBeta];
-			const float p1 = m_pdf1DBasis[sliceIndex][tc.m_iBeta + 1];
+			const float p0 = m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta];
+			const float p1 = m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta + 1];
 			float m0h, m1h;
 			if (tc.m_iBeta == 0)
 				m0h = p1 - p0; // end point
 			else
 				// standard way
-				m0h = 0.5f * (p1 - m_pdf1DBasis[sliceIndex][tc.m_iBeta - 1]);
+				m0h = 0.5f * (p1 - m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta - 1]);
 
 			assert(tc.m_iBeta < m_lengthOfSlice - 1);
 			if (tc.m_iBeta == m_lengthOfSlice - 2)
 				m1h = p1 - p0; // end point
 			else
 				// standard way
-				m1h = 0.5f * (m_pdf1DBasis[sliceIndex][tc.m_iBeta + 1] - p0);
+				m1h = 0.5f * (m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta + 1] - p0);
 			const float t2 = w * w;
 			const float t3 = t2 * w;
 			const float h01 = -2.0f * t3 + 3.0f * t2;

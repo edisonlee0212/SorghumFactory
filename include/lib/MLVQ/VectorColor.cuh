@@ -13,10 +13,19 @@ namespace RayTracerFacility
 		int m_maxVectorColor;
 		int m_initialMaxVectorColor;
 		// the data array of a-b colors
+		CudaBuffer m_vectorColorBasisBuffer;
 		float* m_vectorColorBasis;
 		// current number of stored a-b colors
-		int m_noOfColors;
-
+		int m_numOfColors;
+		
+		void Init(const int& maxVectorColor)
+		{
+			assert(maxVectorColor > 0);
+			m_startIndex = 0;
+			m_maxVectorColor = maxVectorColor;
+			m_numOfColors = 0;
+			m_numOfChannels = 2;
+		}
 		
 		__device__
 		float Get(const int& colorIndex, const int& posAB, SharedCoordinates& tc) const

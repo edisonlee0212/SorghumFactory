@@ -113,10 +113,13 @@ namespace RayTracerFacility
 			void GetValue(const glm::uvec2 texCoord, const glm::vec3& viewDir, const glm::vec3& illuminationDir, const glm::vec3& normal, const glm::vec3 tangent, glm::vec3& out) const
 		{
 			out = glm::vec3(1.0f);
+			
 			float illuminationTheta, illuminationPhi, viewTheta, viewPhi;
 			ComputeAngles(viewDir, normal, tangent, viewTheta, viewPhi);
 			ComputeAngles(illuminationDir, normal, tangent, illuminationTheta, illuminationPhi);
+			
 			m_btf->GetValueDeg(texCoord, illuminationTheta, illuminationPhi, viewTheta, viewPhi, out);
+			
 		}
 #pragma endregion
 	};

@@ -1,6 +1,8 @@
 #pragma once
 #include <Optix7.hpp>
 #include <SharedCoordinates.cuh>
+#include <IndexAB.cuh>
+#include <PDF1D.cuh>
 namespace RayTracerFacility
 {
 	template<typename T>
@@ -14,6 +16,13 @@ namespace RayTracerFacility
 		int m_numOfSlicesPerHemisphere;
 		// the size of the data entry to be used here during restoration
 		int m_size2D;
+		// length of index slice, should be 2 here.
+		int m_lengthOfSlice;
+		IndexAB m_iab;
+		PDF1D m_pdf1;
+
+		
+		
 		// The shared coordinates to be used for interpolation
 		// when retrieving the data from the database
 		__device__

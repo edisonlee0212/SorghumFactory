@@ -10,24 +10,25 @@ namespace RayTracerFacility
 		int m_numOfRows;          //! no. of rows in spatial BTF index
 		int m_numOfCols;          //! no. of columns in spatial BTF index
 		int m_rowsOffset;       //! offset of the first row as we do not need to start from 0
-		int m_colsOffset;       //! offset of the first column as we do not need to start from 0  
+		int m_colsOffset;       //! offset of the first column as we do not need to start from 0
+		int m_colorAmount;		// the number of colors
+
+		CudaBuffer m_pdf6DSlicesBuffer;
+		CudaBuffer m_pdf6DScaleBuffer;
 		int* m_pdf6DSlices;   //! planar index pointing on 4D PDF for individual pixels
 		float* m_pdf6DScale; //! corresponding normalization values
 		// the database of 4D functions to which we point in the array PDF6Dslices
 		PDF4D<T> m_pdf4;
-		// The shared coordinates to be used for interpolation
-		// when retrieving the data from the database
-		// This is required for SSIM data precomputation
-		// the number of slices per phi (=3D functions) to represent one 4D function
-		int m_slicesPerPhi;
-		// the number of slices per theta (=2D functions) to represent one 3D function
-		int m_slicesPerTheta;
-		// the number of indices in parameter alpha
-		int m_slicesPerHemisphere;
-		// the number of values for 1D function
-		int m_lengthOfSlice;
-		// the number of colors
-		int m_numOfColors;
+		
+		void Init(const int& numOfRows, const int& numOfCols, const int& rowsOffset, const int& colsOffset, const int& colorAmount)
+		{
+			m_numOfRows = numOfRows;
+			m_numOfCols = numOfCols;
+			m_rowsOffset = rowsOffset;
+			m_colsOffset = colsOffset;
+			m_colorAmount = colorAmount;
+		}
+
 		__device__
 			virtual void GetValDeg2(const glm::uvec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
 			T& out, SharedCoordinates& tc) const
