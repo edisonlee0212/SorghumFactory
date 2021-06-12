@@ -22,6 +22,7 @@ namespace RayTracerFacility {
 		std::shared_ptr<Texture2D> m_albedoTexture;
 		std::shared_ptr<Texture2D> m_normalTexture;
 		bool m_enableMLVQ = false;
+		int m_mlvqMaterialIndex = 0;
 		void OnGui() override;
 		void SyncWithMeshRenderer();
 	};

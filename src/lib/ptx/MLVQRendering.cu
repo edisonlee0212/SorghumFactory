@@ -59,7 +59,7 @@ namespace RayTracerFacility {
 					glm::vec3 reflected = Reflect(rayDirection, normal);
 					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, 1.0f);
 					glm::vec3 btfColor;
-					sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, newRayDirection, normal, tangent, btfColor, (perRayData.m_printInfo && sampleID == 0));
+					sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, newRayDirection, normal, tangent, btfColor, false/*(perRayData.m_printInfo && sampleID == 0)*/);
 					auto origin = hitPoint;
 					if (glm::dot(newRayDirection, normal) > 0.0f)
 					{

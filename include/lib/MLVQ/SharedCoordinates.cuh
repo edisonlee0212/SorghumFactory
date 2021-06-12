@@ -88,7 +88,7 @@ namespace RayTracerFacility
 				// The angles are quantized uniformly in degrees
 				const float stepBeta = 180.0f / static_cast<float>(m_numOfBeta - 1);
 				m_currentBetaLowBound = glm::clamp(static_cast<int>((beta + 90.0f) / stepBeta), 0, m_numOfBeta - 2);
-				m_weightBeta = (beta + 90.f - m_currentBetaLowBound * stepBeta) / stepBeta;
+				m_weightBeta = (beta + 90.0f - m_currentBetaLowBound * stepBeta) / stepBeta;
 				assert(m_weightBeta > -0.001f && m_weightBeta < 1.001f);
 			}
 		}

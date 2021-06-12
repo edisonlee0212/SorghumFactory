@@ -3,6 +3,18 @@
 #include <MeshRenderer.hpp>
 using namespace RayTracerFacility;
 using namespace UniEngine;
+
+const char* MLVQMaterials[]{
+	"fabrics01",
+	"alu",
+	"corduroy",
+	"wool",
+	"wallpaper",
+	"impalla",
+	"pulli",
+	"proposte"
+};
+
 void RayTracedRenderer::OnGui()
 {
 	ImGui::DragFloat("Metallic##RayTracedRenderer", &m_metallic, 0.01f, 0.0f, 1.0f);
@@ -11,6 +23,10 @@ void RayTracedRenderer::OnGui()
 	ImGui::DragFloat("Diffuse intensity##RayTracedRenderer", &m_diffuseIntensity, 0.01f, 0.0f, 100.0f);
 	ImGui::ColorEdit3("Surface Color##RayTracedRenderer", &m_surfaceColor.x);
 	ImGui::Checkbox("MLVQ##RayTracedRenderer", &m_enableMLVQ);
+	if(m_enableMLVQ)
+	{
+		ImGui::Combo("MLVQ Material", &m_mlvqMaterialIndex, MLVQMaterials, IM_ARRAYSIZE(MLVQMaterials));
+	}
 	EditorManager::DragAndDrop(m_mesh);
 	if (m_mesh)
 	{

@@ -42,6 +42,7 @@ void RayTracerManager::UpdateScene() const
 						|| rayTracerInstance->m_metallic != (rayTracedRenderer->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic, 3.0f))
 						|| rayTracerInstance->m_roughness != rayTracedRenderer->m_roughness
 						|| rayTracerInstance->m_enableMLVQ != rayTracedRenderer->m_enableMLVQ
+						|| rayTracerInstance->m_mlvqMaterialIndex != rayTracedRenderer->m_mlvqMaterialIndex
 						)
 					{
 						needMaterialUpdate = true;
@@ -55,6 +56,7 @@ void RayTracerManager::UpdateScene() const
 				rayTracerInstance->m_metallic = rayTracedRenderer->m_metallic == 1.0f ? -1.0f : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic, 3.0f);
 				rayTracerInstance->m_roughness = rayTracedRenderer->m_roughness;
 				rayTracerInstance->m_enableMLVQ = rayTracedRenderer->m_enableMLVQ;
+				rayTracerInstance->m_mlvqMaterialIndex = rayTracedRenderer->m_mlvqMaterialIndex;
 				rayTracerInstance->m_normalTexture = 0;
 				rayTracerInstance->m_albedoTexture = 0;
 				rayTracerInstance->m_entityId = entity.m_index;

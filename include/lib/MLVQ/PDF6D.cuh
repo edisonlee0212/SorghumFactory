@@ -67,7 +67,12 @@ namespace RayTracerFacility
 			// Back to degrees. Set the values to auxiliary structure
 			tc.m_alpha = glm::degrees(tc.m_alpha);
 			tc.m_beta = glm::degrees(tc.m_beta);
-
+			if(glm::isnan(tc.m_beta) || glm::isnan(tc.m_alpha) || glm::isnan(viewTheta) || glm::isnan(viewPhi))
+			{
+				if (print) printf("Value is nan! beta[%.2f] alpha[%.2f] theta[%.2f] phi[%.2f]", tc.m_beta, tc.m_alpha, viewTheta, viewPhi);
+				return;
+			}
+			assert(!glm::isnan(tc.m_beta) && !glm::isnan(tc.m_alpha) && !glm::isnan(viewTheta) && !glm::isnan(viewPhi));
 			// Now we set the object interpolation data
 			// For PDF1D and IndexAB, beta coefficient, use correct
 			// parameterization
@@ -77,7 +82,7 @@ namespace RayTracerFacility
 			// For PDF3D
 			tc.SetForAngleThetaDeg(glm::clamp(viewTheta, 0.0f, 90.0f));
 			// For PDF4D
-			tc.SetForAnglePhiDeg(glm::clamp(viewTheta, 0.0f, 360.0f));
+			tc.SetForAnglePhiDeg(glm::clamp(viewPhi, 0.0f, 360.0f));
 			
 			// Now get the value by interpolation between 2 PDF4D, 4 PDF3D,
 			// 8 PDF2D, 16 PDF1D, and 16 IndexAB values for precomputed

@@ -380,12 +380,17 @@ RayTracer::RayTracer()
 
 	std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
 
-	int btfAmount = 3;
+	int btfAmount = 8;
 	m_btfs.resize(btfAmount);
 	m_btfsBuffer.resize(btfAmount);
 	m_btfs[0].Init(UniEngine::FileIO::GetProjectPath() + "btfs/fabric01");
 	m_btfs[1].Init(UniEngine::FileIO::GetProjectPath() + "btfs/alu");
 	m_btfs[2].Init(UniEngine::FileIO::GetProjectPath() + "btfs/corduroy");
+	m_btfs[3].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wool");
+	m_btfs[4].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wallpaper");
+	m_btfs[5].Init(UniEngine::FileIO::GetProjectPath() + "btfs/impalla");
+	m_btfs[6].Init(UniEngine::FileIO::GetProjectPath() + "btfs/pulli");
+	m_btfs[7].Init(UniEngine::FileIO::GetProjectPath() + "btfs/proposte");
 	for(int i = 0; i < btfAmount; i++)
 	{
 		m_btfsBuffer[i].Upload(&m_btfs[i], 1);
@@ -1218,7 +1223,7 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
 				if (m_instances[i].m_enableMLVQ)
 				{
-					rec.m_data.m_rayMlvqMaterial.m_btf = m_btfs[0];
+					rec.m_data.m_rayMlvqMaterial.m_btf = m_btfs[m_instances[i].m_mlvqMaterialIndex];
 				}
 				else {
 					if (m_instances[i].m_albedoTexture != 0)
