@@ -9,9 +9,7 @@ namespace RayTracerFacility
 		// the used number of 3D functions
 		int m_numOfPdf3D;
 		// the number of slices per theta (=2D functions) to represent one 3D function
-		int m_slicesPerTheta;
-		// angle theta quantization step
-		float m_stepTheta;
+		int m_numOfTheta;
 		// the size of the data entry to be used here during restoration
 		int m_size3D;
 
@@ -20,40 +18,31 @@ namespace RayTracerFacility
 		int* m_pdf3DSlices;
 		CudaBuffer m_pdf3DScalesBuffer;
 		float* m_pdf3DScales;
-		
+
 		// the database of 2D functions to which we point in the array PDF3Dslices
 		PDF2DSeparate m_pdf2;
 
-		void Init(const int& slicesPerTheta)
+		void Init(const int& numOfTheta)
 		{
-			m_slicesPerTheta = slicesPerTheta;
-			m_stepTheta = 90.0f / (slicesPerTheta - 1);
+			m_numOfTheta = numOfTheta;
 			m_numOfPdf3D = 0;
-			m_size3D = m_slicesPerTheta * m_pdf2.m_size2D;
+			m_size3D = m_numOfTheta * m_pdf2.m_size2D;
 		}
-		
+
 		__device__
 			void GetVal(const int& pdf3DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
-			const int i = tc.m_iTheta;
-			assert(i >= 0 && i < m_slicesPerTheta);
+			const int i = tc.m_currentThetaLowBound;
+			assert(i >= 0 && i < m_numOfTheta - 1);
 			assert(pdf3DIndex >= 0 && pdf3DIndex < m_numOfPdf3D);
 			if (print) printf("Sampling from PDF2...");
-			if (i < m_slicesPerTheta - 1) {
-				const float w = tc.m_wTheta;
-				glm::vec3 out2;
-				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc, print);
-				//m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i + 1], out2, tc);
-				const float s1 = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i] * (1.0f - w);
-				//const float s2 = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i + 1] * w;
-				//out = out * s1 + out2 * s2;
-			}
-			else{
-				return;
-				m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_slicesPerTheta + i], out, tc, print);
-				const float s = m_pdf3DScales[pdf3DIndex * m_slicesPerTheta + i];
-				out *= s;
-			}
+			const float w = tc.m_weightTheta;
+			glm::vec3 out2;
+			m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_numOfTheta + i], out, tc, print);
+			m_pdf2.GetVal(m_pdf3DSlices[pdf3DIndex * m_numOfTheta + i + 1], out2, tc, print);
+			const float s1 = m_pdf3DScales[pdf3DIndex * m_numOfTheta + i] * (1.0f - w);
+			const float s2 = m_pdf3DScales[pdf3DIndex * m_numOfTheta + i + 1] * w;
+			out = out * s1 + out2 * s2;
 		}
 	};
 }

@@ -46,58 +46,39 @@ namespace RayTracerFacility
 
 
 			// recompute from clockwise to anti-clockwise phi_i notation 
-			viewPhi = 360.f - viewPhi;
+			viewPhi = glm::mod(360.0f - viewPhi, 360.0f);
+			/*
 			while (viewPhi >= 360.f)
 				viewPhi -= 360.f;
 			while (viewPhi < 0.f)
 				viewPhi += 360.f;
-
+				*/
 			// recompute from clockwise to anti-clockwise phi_v notation: (360.f - phi_i) 
 			// rotation of onion-sliced parametrization to be perpendicular to phi_v of viewing angle: - (90.f + phi_v)
-			illuminationPhi = (360.f - illuminationPhi) - (90.f + viewPhi);
+			illuminationPhi = glm::mod((360.0f - illuminationPhi) - (90.0f + viewPhi), 360.0f);
+			/*
 			while (illuminationPhi >= 360.f)
 				illuminationPhi -= 360.f;
 			while (illuminationPhi < 0.f)
 				illuminationPhi += 360.f;
-
-			// to radians
-			illuminationTheta *= glm::pi<float>() / 180.f;
-			illuminationPhi *= glm::pi<float>() / 180.f;
-
-			ConvertThetaPhiToBetaAlpha(illuminationTheta, illuminationPhi, tc.m_beta, tc.m_alpha, tc);
+				*/
+			ConvertThetaPhiToBetaAlpha(glm::radians(illuminationTheta), glm::radians(illuminationPhi), tc.m_beta, tc.m_alpha, tc);
 
 			// Back to degrees. Set the values to auxiliary structure
-			tc.m_alpha *= 180.f / glm::pi<float>();
-			tc.m_beta *= 180.f / glm::pi<float>();
-
-			assert((viewTheta >= 0.f) && (viewTheta <= 90.f));
-			assert((viewPhi >= 0.f) && (viewPhi < 360.f));
+			tc.m_alpha = glm::degrees(tc.m_alpha);
+			tc.m_beta = glm::degrees(tc.m_beta);
 
 			// Now we set the object interpolation data
 			// For PDF1D and IndexAB, beta coefficient, use correct
 			// parameterization
-			assert((tc.m_beta >= -90.f) && (tc.m_beta <= 90.f));
-			tc.SetForAngleBetaDeg(tc.m_beta);
-
+			tc.SetForAngleBetaDeg(glm::clamp(tc.m_beta, -90.0f, 90.0f));
 			// For PDF2D
-			assert((tc.m_alpha >= -90.f) && (tc.m_alpha <= 90.f));
-			tc.SetForAngleAlphaDeg(tc.m_alpha);
+			tc.SetForAngleAlphaDeg(glm::clamp(tc.m_alpha, -90.0f, 90.0f));
 			// For PDF3D
-			tc.m_theta = viewTheta;
-			tc.m_iTheta = (int)floor(viewTheta / tc.m_stepTheta);
-			if (tc.m_iTheta == tc.m_slicesPerTheta)
-				tc.m_iTheta = tc.m_slicesPerTheta - 1;
-			assert((tc.m_iTheta >= 0) && (tc.m_iTheta <= tc.m_slicesPerTheta - 1));
-			tc.m_wTheta = (viewTheta - tc.m_iTheta * tc.m_stepTheta) / tc.m_stepTheta;
-			assert((tc.m_wTheta >= -1e-5) && (tc.m_wTheta <= 1.f));
-			if (tc.m_wTheta < 0.f) tc.m_wTheta = 0.f;
-
+			tc.SetForAngleThetaDeg(glm::clamp(viewTheta, 0.0f, 90.0f));
 			// For PDF4D
-			tc.m_phi = viewPhi;
-			tc.m_iPhi = (int)floor(viewPhi / tc.m_stepPhi);
-			assert((tc.m_iPhi >= 0) && (tc.m_iPhi <= tc.m_slicesPerPhi));
-			tc.m_wPhi = (viewPhi - tc.m_iPhi * tc.m_stepPhi) / tc.m_stepPhi;
-			assert((tc.m_wPhi >= 0.f) && (tc.m_wPhi <= 1.f));
+			tc.SetForAnglePhiDeg(glm::clamp(viewTheta, 0.0f, 360.0f));
+			
 			// Now get the value by interpolation between 2 PDF4D, 4 PDF3D,
 			// 8 PDF2D, 16 PDF1D, and 16 IndexAB values for precomputed
 			// interpolation coefficients and indices

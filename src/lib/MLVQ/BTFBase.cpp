@@ -54,6 +54,7 @@ bool ParseIntData(const std::string& fileName, int& numOfRows, int& numOfCols, i
 
 bool BtfBase::Init(const std::string& materialDirectoryPath)
 {
+#pragma region Path check
 	std::string allMaterialInfo;
 	std::string allMaterialInfoPath = materialDirectoryPath + "/all_materialInfo.txt";
 	bool avoidParFile = false;
@@ -71,6 +72,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 		UNIENGINE_ERROR("Failed to load BTF material");
 		return false;
 	}
+#pragma endregion
 #pragma region Line 82 from ibtfbase.cpp
 	m_materialOrder = 0;
 	m_nColor = 0;
@@ -87,7 +89,6 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	//Since no material contains the scale.txt is not used, the code here is not implemented.
 #pragma endregion
 #pragma region material info
-
 	FILE* fp;
 	if ((fp = fopen(allMaterialInfoPath.c_str(), "r")) == NULL) {
 		UNIENGINE_ERROR("Failed to load BTF material");
@@ -102,7 +103,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	int flagUsePDF2compactRep;
 
 	// First save the info about BTFbase: name, materials saved, and how saved
-	if (fscanf(fp, "%s\n%d\n%d\n%d\n%d\n%d\n", &(line[0]), &loadMaterials, &maxMaterials,
+	if (fscanf(fp, "%s\n%d\n%d\n%d\n%d\n%d\n", &line[0], &loadMaterials, &maxMaterials,
 		&flagAllMaterials, &flagUse34DviewRep, &flagUsePDF2compactRep) != 6) {
 		fclose(fp);
 		printf("File is corrupted for reading basic parameters\n");
@@ -129,66 +130,58 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 		return false;
 	}
 	m_useCosBeta = useCosBetaFlag ? true : false;
-	m_lengthOfSlice = stepsPerBeta;
-	assert((m_lengthOfSlice % 2) == 1);
-	m_slicesPerHemisphere = stepsPerAlpha;
-	assert((m_slicesPerHemisphere % 2) == 1);
-	m_slicePerTheta = stepsPerTheta;
-	assert(m_slicePerTheta >= 2);
-	m_slicePerPhi = stepsPerPhi;
-	assert(m_slicePerPhi >= 1);
+	m_numOfBeta = stepsPerBeta;
+	assert(m_numOfBeta % 2 == 1);
+	m_numOfAlpha = stepsPerAlpha;
+	assert(m_numOfAlpha % 2 == 1);
+	m_numOfTheta = stepsPerTheta;
+	assert(m_numOfTheta >= 2);
+	m_numOfPhi = stepsPerPhi;
+	assert(m_numOfPhi >= 1);
 #pragma endregion
 #pragma region Create shared variables
 	std::vector<float> betaAngles;
 	// we always must have odd number of quantization steps per 180 degrees
-	assert((this->m_lengthOfSlice % 2) == 1);
 	if (m_useCosBeta) {
 		printf("We use cos beta quantization with these values:\n");
-		betaAngles.resize(m_lengthOfSlice);
-		for (int i = 0; i < m_lengthOfSlice; i++) {
-			float sinBeta = -1.0f + 2.0f * i / (m_lengthOfSlice - 1);
+		betaAngles.resize(m_numOfBeta);
+		for (int i = 0; i < m_numOfBeta; i++) {
+			float sinBeta = -1.0f + 2.0f * i / (m_numOfBeta - 1);
 			if (sinBeta > 1.0f)
 				sinBeta = 1.0f;
 			// in degrees
-			betaAngles[i] = 180.f / glm::pi<float>() * asin(sinBeta);
+			betaAngles[i] = glm::degrees(glm::asin(sinBeta));
 			printf("%3.2f ", betaAngles[i]);
 		}
 		printf("\n");
 		betaAngles[0] = -90.f;
-		betaAngles[(m_lengthOfSlice - 1) / 2] = 0.f;
-		betaAngles[m_lengthOfSlice - 1] = 90.f;
+		betaAngles[(m_numOfBeta - 1) / 2] = 0.f;
+		betaAngles[m_numOfBeta - 1] = 90.f;
 	}
 	else {
 		float stepBeta = 0.f;
 		// uniform quantization in angle
 		printf("We use uniform angle quantization with these values:\n");
-		stepBeta = 180.f / (m_lengthOfSlice - 1);
-		betaAngles.resize(m_lengthOfSlice);
-		for (int i = 0; i < m_lengthOfSlice; i++) {
+		stepBeta = 180.f / (m_numOfBeta - 1);
+		betaAngles.resize(m_numOfBeta);
+		for (int i = 0; i < m_numOfBeta; i++) {
 			betaAngles[i] = i * stepBeta - 90.f;
 			printf("%3.2f ", betaAngles[i]);
 		}
 		printf("\n");
-		betaAngles[(m_lengthOfSlice - 1) / 2] = 0.f;
-		betaAngles[m_lengthOfSlice - 1] = 90.0f;
+		betaAngles[(m_numOfBeta - 1) / 2] = 0.f;
+		betaAngles[m_numOfBeta - 1] = 90.0f;
 	}
-
 	// Here we set alpha
-	m_stepAlpha = 180.f / (float)(m_slicesPerHemisphere - 1);
-
-	m_tcTemplate = SharedCoordinates(m_useCosBeta, m_lengthOfSlice, betaAngles);
-
-	m_tcTemplate.m_useCosBeta = m_useCosBeta;
-	m_tcTemplate.m_lengthOfSlice = m_lengthOfSlice;
-	// Setting alpha
-	m_tcTemplate.m_stepAlpha = m_stepAlpha;
-	m_tcTemplate.m_slicesPerHemisphere = m_slicesPerHemisphere;
-	// Setting theta
-	m_tcTemplate.m_slicesPerTheta = m_slicePerTheta;
-	// Setting phi
-	m_tcTemplate.m_slicesPerPhi = m_slicePerPhi;
-	// use a specific flag when processing data from code BTF
-	m_tcTemplate.m_codeBtfFlag = tmp12;
+	m_stepAlpha = 180.f / (m_numOfAlpha - 1);
+	m_stepTheta = 90.0f / (m_numOfTheta - 1);
+	m_stepPhi = 360.0f / m_numOfPhi;
+	m_tcTemplate = SharedCoordinates(
+		tmp12, m_useCosBeta, 
+		m_numOfBeta, betaAngles, 
+		m_numOfAlpha, m_stepAlpha, 
+		m_numOfTheta, m_stepTheta, 
+		m_numOfPhi, m_stepPhi);
 #pragma endregion
 #pragma region Current settings
 	// Here we need to read this information about current material setting
@@ -221,7 +214,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 		return false;
 	}
 #pragma endregion
-
+#pragma region Load sizes
 	// !!!!!! If we have only one database for all materials or
 	// we share some databases except PDF6 for all materials
 	m_use34ViewRepresentation = flagUse34DviewRep;
@@ -239,6 +232,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 		printf("Loading materials from several separate databases\n");
 	}
 
+#pragma endregion	
 #pragma region Allocate arrays
 	if (!m_allMaterialsInOneDatabase && loadMaterials != 1)
 	{
@@ -247,7 +241,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	}
 	//Here we only allow single material, so the array representations in original MLVQ lib are not implemented.
 #pragma endregion
-#pragma region Read paths
+#pragma region HDR
 	std::string materialName;
 	std::string inputPath;
 	std::string outputPath;
@@ -279,7 +273,6 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	}
 	fclose(fp);
 #pragma endregion
-
 #pragma region Load material
 	// Note that nrows and ncols are not set during loading !
 	std::string fileName = materialDirectoryPath + "/" + materialName + "_materialInfo.txt";
@@ -301,8 +294,8 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	outputPath = std::string(l2);
 	tempPath = std::string(l3);
 	fclose(fp);
-	if ((fabs(hdrValue - 1.0f) < 1e-6) ||
-		(fabs(hdrValue) < 1e-6)) {
+	if (glm::abs(hdrValue - 1.0f) < 1e-6 ||
+		glm::abs(hdrValue) < 1e-6) {
 		hdrFlag = 0;
 		hdrValue = 1.0f;
 	}
@@ -326,13 +319,12 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	auto& pdf2 = m_pdf6.m_pdf4.m_pdf3.m_pdf2;
 	auto& pdf3 = m_pdf6.m_pdf4.m_pdf3;
 	auto& pdf4 = m_pdf6.m_pdf4;
-	pdf1.Init(m_lengthOfSlice);
-
+	pdf1.Init(m_numOfBeta);
 	ab.Init();
-	iab.Init(m_lengthOfSlice);
-	pdf2.Init(m_slicesPerHemisphere);
-	pdf3.Init(m_slicePerTheta);
-	pdf4.Init(m_slicePerPhi);
+	iab.Init(m_numOfBeta);
+	pdf2.Init(m_numOfAlpha);
+	pdf3.Init(m_numOfTheta);
+	pdf4.Init(m_numOfPhi);
 	m_pdf6.Init(pr, pc, ro, co, m_nColor);
 
 #pragma region Load Data
@@ -351,7 +343,7 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 
 	prefix = materialDirectoryPath + "/" + "all";
 
-	ParseFloatData(prefix + "_PDF1Dslice.txt", pdf1.m_numOfPdf1D, pdf1.m_lengthOfSlice, minFloatVal, maxFloatVal, floatData);
+	ParseFloatData(prefix + "_PDF1Dslice.txt", pdf1.m_numOfPdf1D, pdf1.m_numOfBeta, minFloatVal, maxFloatVal, floatData);
 	pdf1.m_pdf1DBasisBuffer.Upload(floatData);
 	pdf1.m_pdf1DBasis = reinterpret_cast<float*>(pdf1.m_pdf1DBasisBuffer.DevicePointer());
 
@@ -359,48 +351,38 @@ bool BtfBase::Init(const std::string& materialDirectoryPath)
 	ab.m_vectorColorBasisBuffer.Upload(floatData);
 	ab.m_vectorColorBasis = reinterpret_cast<float*>(ab.m_vectorColorBasisBuffer.DevicePointer());
 
-	ParseIntData(prefix + "_indexAB.txt", iab.m_numOfIndexSlices, iab.m_lengthOfSlice, minIntVal, maxIntVal, intData);
+	ParseIntData(prefix + "_indexAB.txt", iab.m_numOfIndexSlices, iab.m_numOfBeta, minIntVal, maxIntVal, intData);
 	iab.m_indexAbBasisBuffer.Upload(intData);
 	iab.m_indexAbBasis = reinterpret_cast<int*>(iab.m_indexAbBasisBuffer.DevicePointer());
 
-	ParseIntData(prefix + "_PDF2Dcolours.txt", pdf2.m_color.m_numOfPdf2D, pdf2.m_color.m_lengthOfSlice, minIntVal, maxIntVal, intData);
+	ParseIntData(prefix + "_PDF2Dcolours.txt", pdf2.m_color.m_numOfPdf2D, pdf2.m_color.m_numOfAlpha, minIntVal, maxIntVal, intData);
 	pdf2.m_color.m_pdf2DColorsBuffer.Upload(intData);
 	pdf2.m_color.m_pdf2DColors = reinterpret_cast<int*>(pdf2.m_color.m_pdf2DColorsBuffer.DevicePointer());
-	ParseIntData(prefix + "_PDF2Dslices.txt", pdf2.m_luminance.m_numOfPdf2D, pdf2.m_luminance.m_lengthOfSlice, minIntVal, maxIntVal, intData);
+	ParseIntData(prefix + "_PDF2Dslices.txt", pdf2.m_luminance.m_numOfPdf2D, pdf2.m_luminance.m_numOfAlpha, minIntVal, maxIntVal, intData);
 	pdf2.m_luminance.m_pdf2DSlicesBuffer.Upload(intData);
 	pdf2.m_luminance.m_pdf2DSlices = reinterpret_cast<int*>(pdf2.m_luminance.m_pdf2DSlicesBuffer.DevicePointer());
-	ParseFloatData(prefix + "_PDF2Dscale.txt", pdf2.m_luminance.m_numOfPdf2D, pdf2.m_luminance.m_lengthOfSlice, minFloatVal, maxFloatVal, floatData);
+	ParseFloatData(prefix + "_PDF2Dscale.txt", pdf2.m_luminance.m_numOfPdf2D, pdf2.m_luminance.m_numOfAlpha, minFloatVal, maxFloatVal, floatData);
 	pdf2.m_luminance.m_pdf2DScalesBuffer.Upload(floatData);
 	pdf2.m_luminance.m_pdf2DScales = reinterpret_cast<float*>(pdf2.m_luminance.m_pdf2DScalesBuffer.DevicePointer());
 	ParseIntData(prefix + "_PDF2Dindices.txt", pdf2.m_numOfPdf2D, pdf2.m_lengthOfSlice, minIntVal, maxIntVal, intData);
 	pdf2.m_indexLuminanceColorBuffer.Upload(intData);
 	pdf2.m_indexLuminanceColor = reinterpret_cast<int*>(pdf2.m_indexLuminanceColorBuffer.DevicePointer());
 
-	ParseFloatData(prefix + "_PDF3Dscale.txt", pdf3.m_numOfPdf3D, pdf3.m_slicesPerTheta, minFloatVal, maxFloatVal, floatData);
+	ParseFloatData(prefix + "_PDF3Dscale.txt", pdf3.m_numOfPdf3D, pdf3.m_numOfTheta, minFloatVal, maxFloatVal, floatData);
 	pdf3.m_pdf3DScalesBuffer.Upload(floatData);
 	pdf3.m_pdf3DScales = reinterpret_cast<float*>(pdf3.m_pdf3DScalesBuffer.DevicePointer());
-	ParseIntData(prefix + "_PDF3Dslices.txt", pdf3.m_numOfPdf3D, pdf3.m_slicesPerTheta, minIntVal, maxIntVal, intData);
+	ParseIntData(prefix + "_PDF3Dslices.txt", pdf3.m_numOfPdf3D, pdf3.m_numOfTheta, minIntVal, maxIntVal, intData);
 	pdf3.m_pdf3DSlicesBuffer.Upload(intData);
 	pdf3.m_pdf3DSlices = reinterpret_cast<int*>(pdf3.m_pdf3DSlicesBuffer.DevicePointer());
 
-	ParseFloatData(prefix + "_PDF4Dscale.txt", pdf4.m_numOfPdf4D, pdf4.m_slicesPerPhi, minFloatVal, maxFloatVal, floatData);
+	ParseFloatData(prefix + "_PDF4Dscale.txt", pdf4.m_numOfPdf4D, pdf4.m_numOfPhi, minFloatVal, maxFloatVal, floatData);
 	pdf4.m_pdf4DScalesBuffer.Upload(floatData);
 	pdf4.m_pdf4DScales = reinterpret_cast<float*>(pdf4.m_pdf4DScalesBuffer.DevicePointer());
-	ParseIntData(prefix + "_PDF4Dslices.txt", pdf4.m_numOfPdf4D, pdf4.m_slicesPerPhi, minIntVal, maxIntVal, intData);
+	ParseIntData(prefix + "_PDF4Dslices.txt", pdf4.m_numOfPdf4D, pdf4.m_numOfPhi, minIntVal, maxIntVal, intData);
 	pdf4.m_pdf4DSlicesBuffer.Upload(intData);
 	pdf4.m_pdf4DSlices = reinterpret_cast<int*>(pdf4.m_pdf4DSlicesBuffer.DevicePointer());
 	UNIENGINE_LOG("The database was read successfully.");
 #pragma endregion
-
-	m_tcTemplate.m_slicesPerHemisphere = pdf2.m_lengthOfSlice;
-
-	
-	m_tcTemplate.m_stepTheta = pdf3.m_stepTheta;
-	m_tcTemplate.m_slicesPerTheta = pdf3.m_slicesPerTheta;
-	
-	m_tcTemplate.m_stepPhi = pdf4.m_stepPhi;
-	m_tcTemplate.m_slicesPerPhi = pdf4.m_slicesPerPhi;
-	
 	return true; // OK - database loaded, or at least partially
 #pragma endregion
 }

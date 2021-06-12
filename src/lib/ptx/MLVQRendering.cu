@@ -32,6 +32,10 @@ namespace RayTracerFacility {
 		auto indices = sbtData.m_mesh.GetIndices(primitiveId);
 		auto texCoord = sbtData.m_mesh.GetTexCoord(triangleBarycentricsInternal, indices);
 		auto normal = sbtData.m_mesh.GetNormal(triangleBarycentricsInternal, indices);
+		if (glm::dot(rayDirection, normal) > 0.f) {
+			normal = -normal;
+		}
+		normal = glm::normalize(normal);
 		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
 		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
 		RayMLVQRenderingRayData& perRayData = *GetRayDataPointer<RayMLVQRenderingRayData>();

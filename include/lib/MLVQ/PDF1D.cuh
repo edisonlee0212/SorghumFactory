@@ -7,7 +7,7 @@ namespace RayTracerFacility
 	struct PDF1D
 	{
 		// the number of values for 1D function
-		int m_lengthOfSlice;
+		int m_numOfBeta;
 		// the data array of 1D functions. These are normalized !
 		CudaBuffer m_pdf1DBasisBuffer;
 		float* m_pdf1DBasis;
@@ -19,7 +19,7 @@ namespace RayTracerFacility
 		void Init(const int& lengthOfSlice)
 		{
 			assert(lengthOfSlice > 0);
-			m_lengthOfSlice = lengthOfSlice;
+			m_numOfBeta = lengthOfSlice;
 			m_numOfPdf1D = 0;
 		}
 		
@@ -27,7 +27,7 @@ namespace RayTracerFacility
 			float GetVal(const int& sliceIndex, SharedCoordinates& tc) const
 		{
 			assert(sliceIndex >= 0 && sliceIndex < m_numOfPdf1D);
-			assert(tc.m_iBeta >= 0 && tc.m_iBeta < m_lengthOfSlice);
+			assert(tc.m_currentBetaLowBound >= 0 && tc.m_currentBetaLowBound < m_numOfBeta);
 #ifdef LINEAR_INTERPOLANT
 			// This implements simple linear interpolation between two values
 			return (1.f - tc.wBeta) * PDF1Dbasis[sliceIndex][tc.iBeta] +
@@ -36,22 +36,22 @@ namespace RayTracerFacility
 
 #ifdef HERMITE_INTERPOLANT
 			// This implements Fergusson cubic interpolation based on Cubic Hermite Splines
-			const float w = tc.m_wBeta;
-			const float p0 = m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta];
-			const float p1 = m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta + 1];
+			const float w = tc.m_weightBeta;
+			const float p0 = m_pdf1DBasis[sliceIndex * m_numOfBeta + tc.m_currentBetaLowBound];
+			const float p1 = m_pdf1DBasis[sliceIndex * m_numOfBeta + tc.m_currentBetaLowBound + 1];
 			float m0h, m1h;
-			if (tc.m_iBeta == 0)
+			if (tc.m_currentBetaLowBound == 0)
 				m0h = p1 - p0; // end point
 			else
 				// standard way
-				m0h = 0.5f * (p1 - m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta - 1]);
+				m0h = 0.5f * (p1 - m_pdf1DBasis[sliceIndex * m_numOfBeta + tc.m_currentBetaLowBound - 1]);
 
-			assert(tc.m_iBeta < m_lengthOfSlice - 1);
-			if (tc.m_iBeta == m_lengthOfSlice - 2)
+			assert(tc.m_currentBetaLowBound < m_numOfBeta - 1);
+			if (tc.m_currentBetaLowBound == m_numOfBeta - 2)
 				m1h = p1 - p0; // end point
 			else
 				// standard way
-				m1h = 0.5f * (m_pdf1DBasis[sliceIndex * m_lengthOfSlice + tc.m_iBeta + 1] - p0);
+				m1h = 0.5f * (m_pdf1DBasis[sliceIndex * m_numOfBeta + tc.m_currentBetaLowBound + 1] - p0);
 			const float t2 = w * w;
 			const float t3 = t2 * w;
 			const float h01 = -2.0f * t3 + 3.0f * t2;

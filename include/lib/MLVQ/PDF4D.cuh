@@ -9,12 +9,10 @@ namespace RayTracerFacility
 		// the used number of 4D functions
 		int m_numOfPdf4D;
 		// the number of slices per phi (=3D functions) to represent one 4D function
-		int m_slicesPerPhi;
+		int m_numOfPhi;
 		// angle phi quantization step
 		float m_stepPhi;
-		// the size of the data entry to be used here during restoration
-		int m_size4D;
-
+		
 		// These are the data allocated maxPDF4D times, serving to represent the function
 		CudaBuffer m_pdf4DSlicesBuffer;
 		int* m_pdf4DSlices;
@@ -23,32 +21,35 @@ namespace RayTracerFacility
 		
 		PDF3D m_pdf3;
 
-		void Init(const int& slicePerPhi)
+		void Init(const int& numOfPhi)
 		{
-			m_slicesPerPhi = slicePerPhi;
-			m_stepPhi = 360.0f / slicePerPhi;
+			m_numOfPhi = numOfPhi;
+			m_stepPhi = 360.0f / numOfPhi;
 			m_numOfPdf4D = 0;
-			m_size4D = m_pdf3.m_size3D * slicePerPhi;
 		}
 		__device__
 			void GetVal(const int& pdf4DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
 		{
-			const int i = tc.m_iPhi;
-			const float w = tc.m_wPhi;
-			assert(i >= 0 && i < m_slicesPerPhi);
+			const int lowPhi = tc.m_currentPhiLowBound;
+			const float w = tc.m_weightPhi;
+			assert(lowPhi >= 0 && lowPhi < m_numOfPhi);
 			assert(pdf4DIndex >= 0 && pdf4DIndex < m_numOfPdf4D);
 			if (print) printf("Sampling from PDF3...");
-			if (i < m_slicesPerPhi - 1) {
+			if (lowPhi != m_numOfPhi - 1) {
 				glm::vec3 out2;
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc, print);
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i + 1], out2, tc, print);
-				const float s1 = m_pdf4DScales[pdf4DIndex * m_slicesPerPhi + i] * (1.0f - w);
-				const float s2 = m_pdf4DScales[pdf4DIndex * m_slicesPerPhi + i + 1] * w;
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_numOfPhi + lowPhi], out, tc, print);
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_numOfPhi + lowPhi + 1], out2, tc, print);
+				const float s1 = m_pdf4DScales[pdf4DIndex * m_numOfPhi + lowPhi] * (1.0f - w);
+				const float s2 = m_pdf4DScales[pdf4DIndex * m_numOfPhi + lowPhi + 1] * w;
 				out = out * s1 + out2 * s2;
 			}else
 			{
-				return;
-				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_slicesPerPhi + i], out, tc, print);
+				glm::vec3 out2;
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_numOfPhi + lowPhi], out, tc, print);
+				m_pdf3.GetVal(m_pdf4DSlices[pdf4DIndex * m_numOfPhi], out2, tc, print);
+				const float s1 = m_pdf4DScales[pdf4DIndex * m_numOfPhi + lowPhi] * (1.0f - w);
+				const float s2 = m_pdf4DScales[pdf4DIndex * m_numOfPhi] * w;
+				out = out * s1 + out2 * s2;
 			}
 			if(print) printf("Col3[%.2f, %.2f, %.2f]\n", out.x, out.y, out.z);
 		}

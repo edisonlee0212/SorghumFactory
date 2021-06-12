@@ -12,14 +12,14 @@ namespace RayTracerFacility
 		// current number of stored 1D index slices
 		int m_numOfIndexSlices;
 		// length of index slice
-		int m_lengthOfSlice;
+		int m_numOfBeta;
 
 		VectorColor m_ab;
 
 		void Init(const int& lengthOfSlice)
 		{
 			assert(lengthOfSlice > 0);
-			m_lengthOfSlice = lengthOfSlice;
+			m_numOfBeta = lengthOfSlice;
 			m_numOfIndexSlices = 0;
 		}
 		
@@ -28,19 +28,18 @@ namespace RayTracerFacility
 			float Get(const int& sliceIndex, const int& posBeta, const int& posAB, SharedCoordinates& tc) const
 		{
 			assert(sliceIndex >= 0 && sliceIndex < m_numOfIndexSlices);
-			assert(posBeta >= 0 && posBeta < m_lengthOfSlice);
-
-			return m_ab.Get(m_indexAbBasis[sliceIndex * m_lengthOfSlice + posBeta], posAB, tc);
+			assert(posBeta >= 0 && posBeta < m_numOfBeta);
+			return m_ab.Get(m_indexAbBasis[sliceIndex * m_numOfBeta + posBeta], posAB, tc);
 		}
 		
 		// Here beta is specified by 'tc'
 		__device__
 			void GetVal(const int& sliceIndex, glm::vec3& out, SharedCoordinates& tc) const
 		{
-			out[0] = (1.f - tc.m_wBeta) * Get(sliceIndex, tc.m_iBeta, 0, tc) +
-				tc.m_wBeta * Get(sliceIndex, tc.m_iBeta + 1, 0, tc);
-			out[1] = (1.f - tc.m_wBeta) * Get(sliceIndex, tc.m_iBeta, 1, tc) +
-				tc.m_wBeta * Get(sliceIndex, tc.m_iBeta + 1, 1, tc);
+			out[0] = (1.f - tc.m_weightBeta) * Get(sliceIndex, tc.m_currentBetaLowBound, 0, tc) +
+				tc.m_weightBeta * Get(sliceIndex, tc.m_currentBetaLowBound + 1, 0, tc);
+			out[1] = (1.f - tc.m_weightBeta) * Get(sliceIndex, tc.m_currentBetaLowBound, 1, tc) +
+				tc.m_weightBeta * Get(sliceIndex, tc.m_currentBetaLowBound + 1, 1, tc);
 		}
 	};
 }
