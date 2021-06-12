@@ -24,6 +24,7 @@ namespace RayTracerFacility {
 	}
 	extern "C" __global__ void __closesthit__radiance()
 	{
+#pragma region Retrive information
 		const auto& sbtData
 			= *(const DefaultSbtData*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
@@ -33,18 +34,14 @@ namespace RayTracerFacility {
 		auto indices = sbtData.m_mesh.GetIndices(primitiveId);
 		auto texCoord = sbtData.m_mesh.GetTexCoord(triangleBarycentricsInternal, indices);
 		auto normal = sbtData.m_mesh.GetNormal(triangleBarycentricsInternal, indices);
-		/*
-		if (glm::dot(rayDirection, normal) > 0.f) {
+		if (glm::dot(rayDirection, normal) > 0.0f) {
 			normal = -normal;
 		}
-		normal = glm::normalize(normal);
-		*/
 		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
 		glm::vec3 albedoColor = sbtData.m_material.GetAlbedo(texCoord);
 		sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
-
 		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
-		
+#pragma endregion
 		DefaultRenderingRayData& perRayData = *GetRayDataPointer<DefaultRenderingRayData>();
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		// start with some ambient term
@@ -94,41 +91,6 @@ namespace RayTracerFacility {
 			}
 		}
 		break;
-		case DefaultOutputRenderType::Glass:
-		{
-			perRayData.m_hitCount = hitCount;
-			if (perRayData.m_hitCount <= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_bounceLimit) {
-				uint32_t u0, u1;
-				PackRayDataPointer(&perRayData, u0, u1);
-				glm::vec3 newRayDirection = Reflect(rayDirection, normal);
-				auto origin = hitPoint;
-				if (glm::dot(newRayDirection, normal) > 0.0f)
-				{
-					origin += normal * 1e-3f;
-				}
-				else
-				{
-					origin -= normal * 1e-3f;
-				}
-				float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
-				float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
-				optixTrace(defaultRenderingLaunchParams.m_traversable,
-					incidentRayOrigin,
-					newRayDirectionInternal,
-					1e-3f,    // tmin
-					1e20f,  // tmax
-					0.0f,   // rayTime
-					static_cast<OptixVisibilityMask>(255),
-					OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES | OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
-					static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
-					u0, u1);
-				const auto cos = glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * sbtData.m_material.m_roughness + (1.0f - sbtData.m_material.m_roughness), 0.0f, 1.0f);
-				energy += cos * perRayData.m_energy;
-			}
-		}
-		break;
 		case DefaultOutputRenderType::Brdf:
 		{
 			uint32_t u0, u1;
@@ -147,6 +109,7 @@ namespace RayTracerFacility {
 					glm::vec3 reflected = Reflect(rayDirection, normal);
 					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, metallic);
 					auto origin = hitPoint;
+					/*
 					if (glm::dot(newRayDirection, normal) > 0.0f)
 					{
 						origin += normal * 1e-3f;
@@ -155,6 +118,8 @@ namespace RayTracerFacility {
 					{
 						origin -= normal * 1e-3f;
 					}
+					*/
+					origin += normal * 1e-3f;
 					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
 					optixTrace(defaultRenderingLaunchParams.m_traversable,
@@ -270,13 +235,16 @@ namespace RayTracerFacility {
 			cameraRayData.m_hitCount = 0;
 		}
 		glm::vec3 rgb(pixelColor / static_cast<float>(numPixelSamples));
+
 		// and write/accumulate to frame buffer ...
-		if (defaultRenderingLaunchParams.m_frame.m_frameId > 1) {
-			float4 currentColor;
-			surf2Dread(&currentColor, defaultRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
-			glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
-			rgb += static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
-			rgb /= static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId + 1);
+		if (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_accumulate) {
+			if (defaultRenderingLaunchParams.m_frame.m_frameId > 1) {
+				float4 currentColor;
+				surf2Dread(&currentColor, defaultRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+				glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
+				rgb += static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
+				rgb /= static_cast<float>(defaultRenderingLaunchParams.m_frame.m_frameId + 1);
+			}
 		}
 		float4 data = make_float4(rgb.r,
 			rgb.g,

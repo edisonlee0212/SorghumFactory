@@ -31,7 +31,6 @@ namespace RayTracerFacility {
 	enum class DefaultOutputRenderType
 	{
 		SoftShadow,
-		Glass,
 		Brdf
 	};
 	

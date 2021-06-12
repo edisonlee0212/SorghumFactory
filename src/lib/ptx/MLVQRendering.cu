@@ -23,6 +23,7 @@ namespace RayTracerFacility {
 #pragma region Closest hit functions
 	extern "C" __global__ void __closesthit__radiance()
 	{
+#pragma region Retrive information
 		const auto& sbtData
 			= *(const RayMLVQSbtData*)optixGetSbtDataPointer();
 		const float2 triangleBarycentricsInternal = optixGetTriangleBarycentrics();
@@ -32,12 +33,13 @@ namespace RayTracerFacility {
 		auto indices = sbtData.m_mesh.GetIndices(primitiveId);
 		auto texCoord = sbtData.m_mesh.GetTexCoord(triangleBarycentricsInternal, indices);
 		auto normal = sbtData.m_mesh.GetNormal(triangleBarycentricsInternal, indices);
-		if (glm::dot(rayDirection, normal) > 0.f) {
+		if (glm::dot(rayDirection, normal) > 0.0f) {
 			normal = -normal;
 		}
 		normal = glm::normalize(normal);
 		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
 		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
+#pragma endregion
 		RayMLVQRenderingRayData& perRayData = *GetRayDataPointer<RayMLVQRenderingRayData>();
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		// start with some ambient term
@@ -46,9 +48,10 @@ namespace RayTracerFacility {
 		PackRayDataPointer(&perRayData, u0, u1);
 		const auto scatterSamples = rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_samplesPerHit;
 		glm::vec3 albedoColor;
+		float metallic = sbtData.m_material.m_metallic;
+		float roughness = sbtData.m_material.m_roughness;
 		if(sbtData.m_enableMLVQ)
 		{
-			float roughness = sbtData.m_material.m_roughness;
 			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 			{
 				perRayData.m_hitCount = hitCount;
@@ -61,6 +64,7 @@ namespace RayTracerFacility {
 					glm::vec3 btfColor;
 					sbtData.m_rayMlvqMaterial.GetValue(texCoord, rayDirection, newRayDirection, normal, tangent, btfColor, false/*(perRayData.m_printInfo && sampleID == 0)*/);
 					auto origin = hitPoint;
+					/*
 					if (glm::dot(newRayDirection, normal) > 0.0f)
 					{
 						origin += normal * 1e-3f;
@@ -69,6 +73,8 @@ namespace RayTracerFacility {
 					{
 						origin -= normal * 1e-3f;
 					}
+					*/
+					origin += normal * 1e-3f;
 					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
 					optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
@@ -84,18 +90,13 @@ namespace RayTracerFacility {
 						static_cast<int>(RayMLVQRenderingRayType::RadianceRayType),             // missSBTIndex
 						u0, u1);
 					
-					energy += btfColor
-						//* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
-						* perRayData.m_energy;
+					energy += btfColor * perRayData.m_energy;
 				}
 			}
 		}
 		else {
 			albedoColor = sbtData.m_material.GetAlbedo(texCoord);
 			sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
-			float metallic = sbtData.m_material.m_metallic;
-			float roughness = sbtData.m_material.m_roughness;
-			
 			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 			{
 				perRayData.m_hitCount = hitCount;
@@ -107,6 +108,7 @@ namespace RayTracerFacility {
 					glm::vec3 reflected = Reflect(rayDirection, normal);
 					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, metallic);
 					auto origin = hitPoint;
+					/*
 					if (glm::dot(newRayDirection, normal) > 0.0f)
 					{
 						origin += normal * 1e-3f;
@@ -115,6 +117,8 @@ namespace RayTracerFacility {
 					{
 						origin -= normal * 1e-3f;
 					}
+					*/
+					origin += normal * 1e-3f;
 					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
 					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
 					optixTrace(rayMLVQRenderingLaunchParams.m_traversable,
@@ -188,7 +192,9 @@ namespace RayTracerFacility {
 
 		for (int sampleID = 0; sampleID < numPixelSamples; sampleID++)
 		{
-			cameraRayData.m_printInfo = sampleID == 0 && ix == rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x / 2.0f && iy == rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.y / 2.0f;
+			cameraRayData.m_printInfo = sampleID == 0
+			&& static_cast<int>(ix) == static_cast<int>(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x / 2.0f)
+			&& static_cast<int>(iy) == static_cast<int>(rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.y / 2.0f);
 			
 			// normalized screen plane position, in [0,1]^2
 			// iw: note for de-noising that's not actually correct - if we
@@ -225,12 +231,14 @@ namespace RayTracerFacility {
 		}
 		glm::vec3 rgb(pixelColor / static_cast<float>(numPixelSamples));
 		// and write/accumulate to frame buffer ...
-		if (rayMLVQRenderingLaunchParams.m_frame.m_frameId > 1) {
-			float4 currentColor;
-			surf2Dread(&currentColor, rayMLVQRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
-			glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
-			rgb += static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
-			rgb /= static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId + 1);
+		if (rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_accumulate) {
+			if (rayMLVQRenderingLaunchParams.m_frame.m_frameId > 1) {
+				float4 currentColor;
+				surf2Dread(&currentColor, rayMLVQRenderingLaunchParams.m_frame.m_outputTexture, ix * sizeof(float4), iy);
+				glm::vec3 transferredCurrentColor = glm::vec4(currentColor.x, currentColor.y, currentColor.z, currentColor.w);
+				rgb += static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId) * transferredCurrentColor;
+				rgb /= static_cast<float>(rayMLVQRenderingLaunchParams.m_frame.m_frameId + 1);
+			}
 		}
 		float4 data = make_float4(rgb.r,
 			rgb.g,

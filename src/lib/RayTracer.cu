@@ -28,7 +28,10 @@ void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const flo
 	m_vertical
 		= cosFovY * glm::normalize(glm::cross(m_horizontal, m_direction));
 }
-
+const char* DefaultRenderTypes[]{
+	"Shadow",
+	"BRDF"
+};
 void DefaultRenderingProperties::OnGui()
 {
 	ImGui::Begin("Ray:Default");
@@ -43,6 +46,7 @@ void DefaultRenderingProperties::OnGui()
 					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
 					ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
 					ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
+					ImGui::Combo("Render type", (int*)&m_debugRenderingType, DefaultRenderTypes, IM_ARRAYSIZE(DefaultRenderTypes));
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenuBar();
