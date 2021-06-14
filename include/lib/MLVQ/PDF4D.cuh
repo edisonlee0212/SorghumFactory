@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 namespace RayTracerFacility
 {
+	template <typename T>
 	struct PDF4D {
 		// the used number of 4D functions
 		int m_numOfPdf4D;
@@ -19,7 +20,7 @@ namespace RayTracerFacility
 		CudaBuffer m_pdf4DScalesBuffer;
 		float* m_pdf4DScales;
 		
-		PDF3D m_pdf3;
+		PDF3D<T> m_pdf3;
 
 		void Init(const int& numOfPhi)
 		{
@@ -28,7 +29,7 @@ namespace RayTracerFacility
 			m_numOfPdf4D = 0;
 		}
 		__device__
-			void GetVal(const int& pdf4DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
+			void GetVal(const int& pdf4DIndex, T& out, SharedCoordinates& tc, const bool& print) const
 		{
 			const int lowPhi = tc.m_currentPhiLowBound;
 			const float w = tc.m_weightPhi;

@@ -5,6 +5,7 @@
 #include <glm/ext/scalar_constants.hpp>
 namespace RayTracerFacility
 {
+	template <typename T>
 	struct PDF6D {
 		int m_numOfRows;          //! no. of rows in spatial BTF index
 		int m_numOfCols;          //! no. of columns in spatial BTF index
@@ -17,7 +18,7 @@ namespace RayTracerFacility
 		int* m_pdf6DSlices;   //! planar index pointing on 4D PDF for individual pixels
 		float* m_pdf6DScale; //! corresponding normalization values
 		// the database of 4D functions to which we point in the array PDF6Dslices
-		PDF4D m_pdf4;
+		PDF4D<T> m_pdf4;
 		
 		void Init(const int& numOfRows, const int& numOfCols, const int& rowsOffset, const int& colsOffset, const int& colorAmount)
 		{
@@ -30,7 +31,7 @@ namespace RayTracerFacility
 
 		__device__
 			void GetValDeg2(const glm::vec2& texCoord, float illuminationTheta, float illuminationPhi, float viewTheta, float viewPhi,
-			glm::vec3& out, SharedCoordinates& tc, const bool& print) const
+				T& out, SharedCoordinates& tc, const bool& print) const
 		{
 			int x = texCoord.x * m_numOfCols;
 			int y = texCoord.y * m_numOfRows;
@@ -47,21 +48,8 @@ namespace RayTracerFacility
 
 			// recompute from clockwise to anti-clockwise phi_i notation 
 			viewPhi = glm::mod(360.0f - viewPhi, 360.0f);
-			/*
-			while (viewPhi >= 360.f)
-				viewPhi -= 360.f;
-			while (viewPhi < 0.f)
-				viewPhi += 360.f;
-				*/
-			// recompute from clockwise to anti-clockwise phi_v notation: (360.f - phi_i) 
-			// rotation of onion-sliced parametrization to be perpendicular to phi_v of viewing angle: - (90.f + phi_v)
 			illuminationPhi = glm::mod((360.0f - illuminationPhi) - (90.0f + viewPhi), 360.0f);
-			/*
-			while (illuminationPhi >= 360.f)
-				illuminationPhi -= 360.f;
-			while (illuminationPhi < 0.f)
-				illuminationPhi += 360.f;
-				*/
+
 			ConvertThetaPhiToBetaAlpha(glm::radians(illuminationTheta), glm::radians(illuminationPhi), tc.m_beta, tc.m_alpha, tc);
 
 			// Back to degrees. Set the values to auxiliary structure

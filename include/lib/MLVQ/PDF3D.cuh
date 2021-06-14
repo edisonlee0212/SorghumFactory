@@ -1,9 +1,10 @@
 #pragma once
 #include <Optix7.hpp>
 #include <SharedCoordinates.cuh>
-#include <PDF2DSeparate.cuh>
+#include <PDF2D.cuh>
 namespace RayTracerFacility
 {
+	template <typename T>
 	struct PDF3D
 	{
 		// the used number of 3D functions
@@ -11,7 +12,6 @@ namespace RayTracerFacility
 		// the number of slices per theta (=2D functions) to represent one 3D function
 		int m_numOfTheta;
 		// the size of the data entry to be used here during restoration
-		int m_size3D;
 
 		// These are the data allocated maxPDF2D times, serving to represent the function
 		CudaBuffer m_pdf3DSlicesBuffer;
@@ -20,17 +20,16 @@ namespace RayTracerFacility
 		float* m_pdf3DScales;
 
 		// the database of 2D functions to which we point in the array PDF3Dslices
-		PDF2DSeparate m_pdf2;
+		PDF2D m_pdf2;
 
 		void Init(const int& numOfTheta)
 		{
 			m_numOfTheta = numOfTheta;
 			m_numOfPdf3D = 0;
-			m_size3D = m_numOfTheta * m_pdf2.m_size2D;
 		}
 
 		__device__
-			void GetVal(const int& pdf3DIndex, glm::vec3& out, SharedCoordinates& tc, const bool& print) const
+			void GetVal(const int& pdf3DIndex, T& out, SharedCoordinates& tc, const bool& print) const
 		{
 			const int i = tc.m_currentThetaLowBound;
 			assert(i >= 0 && i < m_numOfTheta - 1);

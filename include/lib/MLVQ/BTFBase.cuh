@@ -8,7 +8,7 @@ namespace RayTracerFacility
 	struct BtfBase
 	{
 		SharedCoordinates m_tcTemplate;
-		PDF6D m_pdf6;
+		PDF6D<glm::vec3> m_pdf6;
 		bool m_hdr = false;
 		float m_hdrValue = 1.0f;
 		__device__
