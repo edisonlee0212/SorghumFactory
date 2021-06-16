@@ -59,14 +59,12 @@ namespace RayTracerFacility
 		cudaTextureObject_t m_albedoTexture;
 		cudaTextureObject_t m_normalTexture;
 		float m_diffuseIntensity;
-		__device__
-			glm::vec3 GetAlbedo(const glm::vec2& texCoord) const {
+		__device__ glm::vec3 GetAlbedo(const glm::vec2& texCoord) const {
 			if (!m_albedoTexture) return m_surfaceColor;
 			float4 textureAlbedo = tex2D<float4>(m_albedoTexture, texCoord.x, texCoord.y);
 			return glm::vec3(textureAlbedo.x, textureAlbedo.y, textureAlbedo.z);
 		}
-		__device__
-			void ApplyNormalTexture(glm::vec3& normal, const glm::vec2& texCoord, const float2& triangleBarycentrics, const glm::vec3& tangent) const
+		__device__ void ApplyNormalTexture(glm::vec3& normal, const glm::vec2& texCoord, const float2& triangleBarycentrics, const glm::vec3& tangent) const
 		{
 			if (!m_normalTexture) return;
 			float4 textureNormal = tex2D<float4>(m_normalTexture, texCoord.x, texCoord.y);
@@ -74,6 +72,10 @@ namespace RayTracerFacility
 			glm::mat3 TBN = glm::mat3(tangent, B, normal);
 			normal = glm::vec3(textureNormal.x, textureNormal.y, textureNormal.z) * 2.0f - glm::vec3(1.0f);
 			normal = glm::normalize(TBN * normal);
+		}
+		__device__ float GetRadiusMax() const
+		{
+			return 0.5f;
 		}
 	};
 	struct RayMLVQMaterial {

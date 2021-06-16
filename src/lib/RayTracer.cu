@@ -28,10 +28,6 @@ void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const flo
 	m_vertical
 		= cosFovY * glm::normalize(glm::cross(m_horizontal, m_direction));
 }
-const char* DefaultRenderTypes[]{
-	"Shadow",
-	"BRDF"
-};
 void DefaultRenderingProperties::OnGui()
 {
 	ImGui::Begin("Ray:Default");
@@ -46,7 +42,6 @@ void DefaultRenderingProperties::OnGui()
 					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
 					ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
 					ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
-					ImGui::Combo("Render type", (int*)&m_debugRenderingType, DefaultRenderTypes, IM_ARRAYSIZE(DefaultRenderTypes));
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenuBar();
@@ -488,15 +483,15 @@ void RayTracer::CreateMissPrograms()
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 		// ------------------------------------------------------------------
-		// shadow rays
+		// BSSRDF Spatial sampler rays
 		// ------------------------------------------------------------------
-		pgDesc.miss.entryFunctionName = "__miss__shadow";
+		pgDesc.miss.entryFunctionName = "__miss__sampleSp";
 		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_defaultRenderingPipeline.m_missProgramGroups[static_cast<int>(DefaultRenderingRayType::ShadowRayType)]
+			&m_defaultRenderingPipeline.m_missProgramGroups[static_cast<int>(DefaultRenderingRayType::SampleSpRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -577,19 +572,17 @@ void RayTracer::CreateHitGroupPrograms()
 		if (sizeofLog > 1) std::cout << log << std::endl;
 
 		// -------------------------------------------------------
-		// shadow rays: technically we don't need this hit group,
-		// since we just use the miss shader to check if we were not
-		// in shadow
+		// BSSRDF Sampler ray
 		// -------------------------------------------------------
-		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__shadow";
-		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__shadow";
+		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__sampleSp";
+		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__sampleSp";
 
 		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
 			&pgDesc,
 			1,
 			&pgOptions,
 			log, &sizeofLog,
-			&m_defaultRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultRenderingRayType::ShadowRayType)]
+			&m_defaultRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultRenderingRayType::SampleSpRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}

@@ -28,12 +28,7 @@ namespace RayTracerFacility {
 		void Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size);
 	};
 #pragma region MyRegion
-	enum class DefaultOutputRenderType
-	{
-		SoftShadow,
-		Brdf
-	};
-	
+
 	struct RAY_TRACER_FACILITY_API DefaultRenderingProperties
 	{
 		bool m_accumulate = true;
@@ -42,7 +37,6 @@ namespace RayTracerFacility {
 		int m_bounceLimit = 4;
 		int m_samplesPerPixel = 1;
 		int m_samplesPerHit = 1;
-		DefaultOutputRenderType m_debugRenderingType = DefaultOutputRenderType::Brdf;
 		Camera m_camera;
 		unsigned m_outputTextureId;
 		unsigned m_environmentalMapId;
@@ -55,7 +49,6 @@ namespace RayTracerFacility {
 				properties.m_skylightIntensity != m_skylightIntensity ||
 				properties.m_bounceLimit != m_bounceLimit ||
 				properties.m_samplesPerPixel != m_samplesPerPixel ||
-				properties.m_debugRenderingType != m_debugRenderingType ||
 				properties.m_outputTextureId != m_outputTextureId ||
 				properties.m_environmentalMapId != m_environmentalMapId ||
 				properties.m_frameSize != m_frameSize ||
@@ -113,7 +106,7 @@ namespace RayTracerFacility {
 	enum class DefaultRenderingRayType
 	{
 		RadianceRayType,
-		ShadowRayType,
+		SampleSpRayType,
 		RayTypeCount
 	};
 	enum class DefaultIlluminationEstimationRayType

@@ -10,19 +10,21 @@
 #include <RayDataDefinations.hpp>
 namespace RayTracerFacility {
 	extern "C" __constant__ DefaultRenderingLaunchParams defaultRenderingLaunchParams;
-	struct DefaultRenderingRayData {
+	struct DefaultRenderingRadianceRayData {
 		unsigned m_hitCount;
-		
 		Random m_random;
 		glm::vec3 m_energy;
 		glm::vec3 m_pixelNormal;
 		glm::vec3 m_pixelAlbedo;
 	};
-#pragma region Closest hit functions
-	extern "C" __global__ void __closesthit__shadow()
+	struct DefaultRenderingSpSamplerRayData
 	{
-
-	}
+		unsigned m_instanceId;
+		glm::vec3 m_p0;
+		glm::vec3 m_p1;
+		glm::vec3 m_n1;
+	};
+#pragma region Closest hit functions
 	extern "C" __global__ void __closesthit__radiance()
 	{
 #pragma region Retrive information
@@ -43,130 +45,100 @@ namespace RayTracerFacility {
 		sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
 		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
 #pragma endregion
-		DefaultRenderingRayData& perRayData = *GetRayDataPointer<DefaultRenderingRayData>();
+		DefaultRenderingRadianceRayData& perRayData = *GetRayDataPointer<DefaultRenderingRadianceRayData>();
 		unsigned hitCount = perRayData.m_hitCount + 1;
 		// start with some ambient term
 		auto energy = glm::vec3(0.0f);
-		switch (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_debugRenderingType)
+
+		uint32_t u0, u1;
+		PackRayDataPointer(&perRayData, u0, u1);
+		float metallic = sbtData.m_material.m_metallic;
+		float roughness = sbtData.m_material.m_roughness;
+		const auto scatterSamples = defaultRenderingLaunchParams.m_defaultRenderingProperties.m_samplesPerHit;
+		for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
 		{
-		case DefaultOutputRenderType::SoftShadow:
-		{
-			energy += glm::vec3(0.1f) + 0.2f * fabsf(glm::dot(normal, rayDirection)) * albedoColor;
-			// produce random light sample
-			const float lightSize = defaultRenderingLaunchParams.m_skylight.m_lightSize;
-			glm::vec3 lightDir = -defaultRenderingLaunchParams.m_skylight.m_direction + glm::vec3(perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f, perRayData.m_random() - 0.5f) * lightSize;
-			auto origin = hitPoint + 1e-3f * normal;
-			float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
-			// trace shadow ray:
-			const float NdotL = dot(lightDir, normal);
-			if (NdotL >= 0.f) {
-				auto shadowRayData = glm::vec3(0);
-				// the values we store the PRD pointer in:
-				uint32_t u0, u1;
-				PackRayDataPointer(&shadowRayData, u0, u1);
-				float3 newRayDirection = make_float3(lightDir.x, lightDir.y, lightDir.z);
+			perRayData.m_hitCount = hitCount;
+			perRayData.m_energy = glm::vec3(0.0f);
+			if (perRayData.m_hitCount <= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_bounceLimit) {
+				energy = glm::vec3(0.0f);
+				float f = 1.0f;
+				if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
+				float3 incidentRayOrigin;
+				float3 newRayDirectionInternal;
+				BRDF(metallic, perRayData.m_random,
+					normal, hitPoint, rayDirection,
+					incidentRayOrigin, newRayDirectionInternal);
 				optixTrace(defaultRenderingLaunchParams.m_traversable,
 					incidentRayOrigin,
-					newRayDirection,
-					1e-3f,      // tmin
+					newRayDirectionInternal,
+					1e-3f,    // tmin
 					1e20f,  // tmax
-					0.0f,       // rayTime
+					0.0f,   // rayTime
 					static_cast<OptixVisibilityMask>(255),
-					// For shadow rays: skip any/closest hit shaders and terminate on first
-					// intersection with anything. The miss shader is used to mark if the
-					// light was visible.
-					OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES
-					| OPTIX_RAY_FLAG_DISABLE_ANYHIT
-					| OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
-					| OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-					static_cast<int>(DefaultRenderingRayType::ShadowRayType),            // SBT offset
+					OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
+					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
 					static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
-					static_cast<int>(DefaultRenderingRayType::ShadowRayType),            // missSBTIndex 
+					static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
 					u0, u1);
-				energy
-					+= shadowRayData
-					* defaultRenderingLaunchParams.m_defaultRenderingProperties.m_skylightIntensity
-					* albedoColor
-					* NdotL;
+				energy += albedoColor
+					* glm::clamp(glm::abs(glm::dot(normal, glm::vec3(newRayDirectionInternal.x, newRayDirectionInternal.y, newRayDirectionInternal.z))) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
+					* perRayData.m_energy;
+			}
+		}
+		energy /= scatterSamples;
 
-			}
-		}
-		break;
-		case DefaultOutputRenderType::Brdf:
-		{
-			uint32_t u0, u1;
-			PackRayDataPointer(&perRayData, u0, u1);
-			float metallic = sbtData.m_material.m_metallic;
-			float roughness = sbtData.m_material.m_roughness;
-			const auto scatterSamples = defaultRenderingLaunchParams.m_defaultRenderingProperties.m_samplesPerHit;
-			for (int sampleID = 0; sampleID < scatterSamples; sampleID++)
-			{
-				perRayData.m_hitCount = hitCount;
-				perRayData.m_energy = glm::vec3(0.0f);
-				if (perRayData.m_hitCount <= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_bounceLimit) {
-					energy = glm::vec3(0.0f);
-					float f = 1.0f;
-					if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
-					float3 incidentRayOrigin;
-					float3 newRayDirectionInternal;
-					BRDF(metallic, perRayData.m_random, 
-						normal, hitPoint, rayDirection,
-						incidentRayOrigin, newRayDirectionInternal);
-					optixTrace(defaultRenderingLaunchParams.m_traversable,
-						incidentRayOrigin,
-						newRayDirectionInternal,
-						1e-3f,    // tmin
-						1e20f,  // tmax
-						0.0f,   // rayTime
-						static_cast<OptixVisibilityMask>(255),
-						OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-						static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // SBT offset
-						static_cast<int>(DefaultRenderingRayType::RayTypeCount),               // SBT stride
-						static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
-						u0, u1);
-					energy += albedoColor
-						* glm::clamp(glm::abs(glm::dot(normal, glm::vec3(newRayDirectionInternal.x, newRayDirectionInternal.y, newRayDirectionInternal.z))) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
-						* perRayData.m_energy;
-				}
-			}
-			energy /= scatterSamples;
-		}
-		break;
-		}
+
 		if (hitCount == 1) {
 			perRayData.m_pixelNormal = normal;
 			perRayData.m_pixelAlbedo = albedoColor;
 		}
 		perRayData.m_energy = energy + sbtData.m_material.m_diffuseIntensity * albedoColor;
 	}
+	extern "C" __global__ void __closesthit__sampleSp()
+	{
+		DefaultRenderingSpSamplerRayData& perRayData = *GetRayDataPointer<DefaultRenderingSpSamplerRayData>();
+		assert(perRayData.m_instanceId == optixGetInstanceId());
+		const auto& sbtData
+			= *(const DefaultSbtData*)optixGetSbtDataPointer();
+		const auto indices = sbtData.m_mesh.GetIndices(optixGetPrimitiveIndex());
+		const auto centrics = optixGetTriangleBarycentrics();
+		perRayData.m_p1 = sbtData.m_mesh.GetPosition(centrics, indices);
+		perRayData.m_n1 = sbtData.m_mesh.GetNormal(centrics, indices);
+	}
 #pragma endregion
 #pragma region Any hit functions
 	extern "C" __global__ void __anyhit__radiance()
 	{
-		
-	}
 
-	extern "C" __global__ void __anyhit__shadow()
+
+	}
+	extern "C" __global__ void __anyhit__sampleSp()
 	{
+		DefaultRenderingSpSamplerRayData& perRayData = *GetRayDataPointer<DefaultRenderingSpSamplerRayData>();
+		if (perRayData.m_instanceId != optixGetInstanceId()) optixIgnoreIntersection();
+		const auto& sbtData
+			= *(const DefaultSbtData*)optixGetSbtDataPointer();
+		const auto indices = sbtData.m_mesh.GetIndices(optixGetPrimitiveIndex());
+		const auto hitPoint = sbtData.m_mesh.GetPosition(optixGetTriangleBarycentrics(), indices);
+		const auto origin = optixGetWorldRayOrigin();
+		const float distance = glm::distance(hitPoint, glm::vec3(origin.x, origin.y, origin.z));
+		if (distance > sbtData.m_material.GetRadiusMax()) optixIgnoreIntersection();
 	}
 #pragma endregion
 #pragma region Miss functions
 	extern "C" __global__ void __miss__radiance()
 	{
-		DefaultRenderingRayData& prd = *GetRayDataPointer<DefaultRenderingRayData>();
+		DefaultRenderingRadianceRayData& prd = *GetRayDataPointer<DefaultRenderingRadianceRayData>();
 		const float3 rayDir = optixGetWorldRayDirection();
 		float4 environmentalLightColor = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
 		if (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(defaultRenderingLaunchParams.m_skylight.m_environmentalMaps, rayDir);
 		prd.m_pixelAlbedo = prd.m_energy = glm::vec3(environmentalLightColor.x, environmentalLightColor.y, environmentalLightColor.z);
 		prd.m_energy *= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_skylightIntensity;
 	}
-	extern "C" __global__ void __miss__shadow()
+	extern "C" __global__ void __miss__sampleSp()
 	{
-		// we didn't hit anything, so the light is visible
-		glm::vec3& prd = *(glm::vec3*)GetRayDataPointer<glm::vec3>();
-		prd = glm::vec3(1.0f);
-	}
 
+	}
 #pragma endregion
 #pragma region Main ray generation
 	extern "C" __global__ void __raygen__renderFrame()
@@ -174,7 +146,7 @@ namespace RayTracerFacility {
 		// compute a test pattern based on pixel ID
 		float ix = optixGetLaunchIndex().x;
 		float iy = optixGetLaunchIndex().y;
-		DefaultRenderingRayData cameraRayData;
+		DefaultRenderingRadianceRayData cameraRayData;
 		cameraRayData.m_hitCount = 0;
 		cameraRayData.m_random.Init(ix + defaultRenderingLaunchParams.m_defaultRenderingProperties.m_frameSize.x * iy,
 			defaultRenderingLaunchParams.m_frame.m_frameId);
@@ -189,7 +161,7 @@ namespace RayTracerFacility {
 		auto pixelColor = glm::vec3(0.f);
 		auto pixelNormal = glm::vec3(0.f);
 		auto pixelAlbedo = glm::vec3(0.f);
-		
+
 		for (int sampleID = 0; sampleID < numPixelSamples; sampleID++)
 		{
 			// normalized screen plane position, in [0,1]^2
