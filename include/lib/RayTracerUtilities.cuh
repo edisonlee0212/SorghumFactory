@@ -116,6 +116,21 @@ namespace RayTracerFacility
 		const float theta = 2 * glm::pi<float>() * random();
 		const float phi = glm::acos(1.0f - 2.0f * random());
 		return glm::vec3(glm::sin(phi) * glm::cos(theta), glm::sin(phi) * glm::sin(theta), glm::cos(phi));
-	}	
+	}
+
+	static __forceinline__ __device__ void BRDF(
+		const float& metallic, Random& random,
+		const glm::vec3& normal, const glm::vec3& hitPoint, const glm::vec3& in,
+		float3& origin, float3& out)
+	{
+		const glm::vec3 reflected = Reflect(in, normal);
+		const glm::vec3 newRayDirection = RandomSampleHemisphere(random, reflected, metallic);
+		origin = make_float3(hitPoint.x + normal.x * 1e-3f, hitPoint.y + normal.y * 1e-3f, hitPoint.z + normal.z * 1e-3f);
+		out = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
+	}
+
+	
+
+	
 #pragma endregion
 }

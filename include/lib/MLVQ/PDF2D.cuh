@@ -5,9 +5,15 @@
 #include <IndexAB.cuh>
 #include <PDF1D.cuh>
 #include <CIELab.cuh>
+
+
+/**
+ * \brief Since CUDA have poor support for virtual class functions, I used this instead.
+ */
+#define PDF2D PDF2DSeperate
 namespace RayTracerFacility
 {
-	struct PDF2D {
+	struct PDF2DSeperate {
 		// the used number of 2D functions
 		int m_numOfPdf2D;
 		// the size of the data entry to be used here during restoration

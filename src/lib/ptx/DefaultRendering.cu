@@ -12,6 +12,7 @@ namespace RayTracerFacility {
 	extern "C" __constant__ DefaultRenderingLaunchParams defaultRenderingLaunchParams;
 	struct DefaultRenderingRayData {
 		unsigned m_hitCount;
+		
 		Random m_random;
 		glm::vec3 m_energy;
 		glm::vec3 m_pixelNormal;
@@ -106,22 +107,11 @@ namespace RayTracerFacility {
 					energy = glm::vec3(0.0f);
 					float f = 1.0f;
 					if (metallic >= 0.0f) f = (metallic + 2) / (metallic + 1);
-					glm::vec3 reflected = Reflect(rayDirection, normal);
-					glm::vec3 newRayDirection = RandomSampleHemisphere(perRayData.m_random, reflected, metallic);
-					auto origin = hitPoint;
-					/*
-					if (glm::dot(newRayDirection, normal) > 0.0f)
-					{
-						origin += normal * 1e-3f;
-					}
-					else
-					{
-						origin -= normal * 1e-3f;
-					}
-					*/
-					origin += normal * 1e-3f;
-					float3 incidentRayOrigin = make_float3(origin.x, origin.y, origin.z);
-					float3 newRayDirectionInternal = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
+					float3 incidentRayOrigin;
+					float3 newRayDirectionInternal;
+					BRDF(metallic, perRayData.m_random, 
+						normal, hitPoint, rayDirection,
+						incidentRayOrigin, newRayDirectionInternal);
 					optixTrace(defaultRenderingLaunchParams.m_traversable,
 						incidentRayOrigin,
 						newRayDirectionInternal,
@@ -135,7 +125,7 @@ namespace RayTracerFacility {
 						static_cast<int>(DefaultRenderingRayType::RadianceRayType),             // missSBTIndex
 						u0, u1);
 					energy += albedoColor
-						* glm::clamp(glm::abs(glm::dot(normal, newRayDirection)) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
+						* glm::clamp(glm::abs(glm::dot(normal, glm::vec3(newRayDirectionInternal.x, newRayDirectionInternal.y, newRayDirectionInternal.z))) * roughness + (1.0f - roughness) * f, 0.0f, 1.0f)
 						* perRayData.m_energy;
 				}
 			}
@@ -153,6 +143,7 @@ namespace RayTracerFacility {
 #pragma region Any hit functions
 	extern "C" __global__ void __anyhit__radiance()
 	{
+		
 	}
 
 	extern "C" __global__ void __anyhit__shadow()
