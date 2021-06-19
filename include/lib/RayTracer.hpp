@@ -36,7 +36,6 @@ namespace RayTracerFacility {
 		float m_skylightIntensity = 0.8f;
 		int m_bounceLimit = 4;
 		int m_samplesPerPixel = 1;
-		int m_samplesPerHit = 1;
 		Camera m_camera;
 		unsigned m_outputTextureId;
 		unsigned m_environmentalMapId;
@@ -81,7 +80,6 @@ namespace RayTracerFacility {
 		float m_skylightIntensity = 0.8f;
 		int m_bounceLimit = 4;
 		int m_samplesPerPixel = 1;
-		int m_samplesPerHit = 1;
 		Camera m_camera;
 		unsigned m_outputTextureId;
 		unsigned m_environmentalMapId;
