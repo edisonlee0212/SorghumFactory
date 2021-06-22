@@ -91,7 +91,7 @@ Entity TreeManager::GetLeaves(const Entity& tree)
 		leaves.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
 		auto& meshRenderer = leaves.GetPrivateComponent<MeshRenderer>();
 		auto& rayTracerMaterial = leaves.GetPrivateComponent<RayTracedRenderer>();
-		meshRenderer->m_material = ResourceManager::LoadMaterial(true, Default::GLPrograms::StandardProgram);
+		meshRenderer->m_material = ResourceManager::LoadMaterial(true, DefaultResources::GLPrograms::StandardProgram);
 		meshRenderer->m_material->m_name = "Leaves mat";
 		meshRenderer->m_material->m_roughness = 0.0f;
 		meshRenderer->m_material->m_metallic = 0.7f;
@@ -648,7 +648,7 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	GetRbv(plant);
 	EntityManager::SetPrivateComponent(plant, std::make_unique<TreeData>());
 	auto material = std::make_shared<Material>();
-	material->SetProgram(Default::GLPrograms::StandardProgram);
+	material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
 	material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
 	material->m_roughness = 0.01f;
 	material->m_metallic = 0.0f;
@@ -1123,7 +1123,7 @@ void TreeManager::RenderBranchCylinders(const float& displayTime)
 			return internodeInfo.m_startGlobalTime <= displayTime;
 		});
 	if (!branchCylinders.empty())RenderManager::DrawGizmoMeshInstancedColored(
-		Default::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(), EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
+		DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(), EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
 		(glm::vec4*)branchColors.data(), (glm::mat4*)branchCylinders.data(), branchCylinders.size(), glm::mat4(1.0f), 1.0f);
 
 }
@@ -1138,7 +1138,7 @@ void TreeManager::RenderBranchPointers(const float& displayTime)
 			return internodeInfo.m_startGlobalTime <= displayTime;
 		});
 	if (!branchPointers.empty())RenderManager::DrawGizmoMeshInstanced(
-		Default::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(), EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation
+		DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(), EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation
 		, manager.m_pointerColor, reinterpret_cast<glm::mat4*>(branchPointers.data()), branchPointers.size(), glm::mat4(1.0f), 1.0f);
 
 }
@@ -2214,7 +2214,7 @@ void TreeManager::Init()
 	manager.m_internodeDebuggingCamera = std::make_unique<CameraComponent>();
 	manager.m_internodeDebuggingCamera->m_drawSkyBox = false;
 	manager.m_internodeDebuggingCamera->m_clearColor = glm::vec3(0.1f);
-	manager.m_internodeDebuggingCamera->m_skyBox = Default::Textures::DefaultSkybox;
+	manager.m_internodeDebuggingCamera->m_skyBox = DefaultResources::Textures::DefaultSkybox;
 
 #pragma endregion
 

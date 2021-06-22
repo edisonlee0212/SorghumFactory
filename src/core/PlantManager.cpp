@@ -292,8 +292,8 @@ Entity PlantManager::CreateCubeObstacle()
 	volumeEntity.SetStatic(true);
 	volumeEntity.SetPrivateComponent(std::make_unique<CubeVolume>());
 	auto meshRenderer = std::make_unique<MeshRenderer>();
-	meshRenderer->m_mesh = Default::Primitives::Cube;
-	meshRenderer->m_material = Default::Materials::StandardMaterial;
+	meshRenderer->m_mesh = DefaultResources::Primitives::Cube;
+	meshRenderer->m_material = DefaultResources::Materials::StandardMaterial;
 	volumeEntity.SetPrivateComponent(std::move(meshRenderer));
 	auto& volume = volumeEntity.GetPrivateComponent<CubeVolume>();
 	volume->ApplyMeshRendererBounds();
@@ -389,8 +389,8 @@ void PlantManager::Init()
 #pragma region Ground
 	manager.m_ground = EntityManager::CreateEntity("Ground");
 	auto meshRenderer = std::make_unique<MeshRenderer>();
-	meshRenderer->m_mesh = Default::Primitives::Quad;
-	meshRenderer->m_material = ResourceManager::LoadMaterial(true, Default::GLPrograms::StandardProgram);
+	meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
+	meshRenderer->m_material = ResourceManager::LoadMaterial(true, DefaultResources::GLPrograms::StandardProgram);
 	meshRenderer->m_material->m_name = "Ground mat";
 	meshRenderer->m_material->m_roughness = 0.0f;
 	meshRenderer->m_material->m_metallic = 0.7f;
@@ -417,11 +417,11 @@ void PlantManager::Init()
 
 #pragma region Mask material
 	std::string vertShaderCode = std::string("#version 460 core\n")
-		+ *Default::ShaderIncludes::Uniform +
+		+ *DefaultResources::ShaderIncludes::Uniform +
 		+"\n"
 		+ FileIO::LoadFileAsString(FileIO::GetResourcePath("Shaders/Vertex/Standard.vert"));
 	std::string fragShaderCode = std::string("#version 460 core\n")
-		+ *Default::ShaderIncludes::Uniform
+		+ *DefaultResources::ShaderIncludes::Uniform
 		+ "\n"
 		+ FileIO::LoadFileAsString(FileIO::GetAssetFolderPath() + "Shaders/Fragment/SemanticBranch.frag");
 
@@ -433,11 +433,11 @@ void PlantManager::Init()
 
 
 	vertShaderCode = std::string("#version 460 core\n")
-		+ *Default::ShaderIncludes::Uniform +
+		+ *DefaultResources::ShaderIncludes::Uniform +
 		+"\n"
 		+ FileIO::LoadFileAsString(FileIO::GetResourcePath("Shaders/Vertex/StandardInstanced.vert"));
 	fragShaderCode = std::string("#version 460 core\n")
-		+ *Default::ShaderIncludes::Uniform
+		+ *DefaultResources::ShaderIncludes::Uniform
 		+ "\n"
 		+ FileIO::LoadFileAsString(FileIO::GetAssetFolderPath() + "Shaders/Fragment/SemanticLeaf.frag");
 	standardVert = std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);

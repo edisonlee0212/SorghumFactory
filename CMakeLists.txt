@@ -151,7 +151,7 @@ set(PLANT_FACTORY_RESOURCE_DEF PLANT_FACTORY_RESOURCE_FOLDER=\"${PLANT_FACTORY_R
 
 
 add_executable(sorghumMLVQ
-	src/app/sample-main.cpp
+	"src/app/SorghumMLVQ.cpp"
 	)
 
 target_include_directories(sorghumMLVQ

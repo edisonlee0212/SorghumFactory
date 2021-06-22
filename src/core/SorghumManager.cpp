@@ -113,7 +113,7 @@ void SorghumManager::Init()
 {
 	auto& sorghumManager = GetInstance();
 	sorghumManager.m_leafNodeMaterial = std::make_shared<Material>();
-	sorghumManager.m_leafNodeMaterial->SetProgram(Default::GLPrograms::StandardProgram);
+	sorghumManager.m_leafNodeMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafNodeMaterial->m_albedoColor = glm::vec3(0, 1, 0);
 
 	sorghumManager.m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf",
@@ -123,7 +123,7 @@ void SorghumManager::Init()
 	EntityManager::SetEntityQueryAllFilters(sorghumManager.m_leafQuery, LeafInfo());
 
 	sorghumManager.m_leafMaterial = std::make_shared<Material>();
-	sorghumManager.m_leafMaterial->SetProgram(Default::GLPrograms::StandardProgram);
+	sorghumManager.m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
 	const auto textureLeaf = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
 	sorghumManager.m_leafSurfaceTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
@@ -133,7 +133,7 @@ void SorghumManager::Init()
 
 	sorghumManager.m_instancedLeafMaterial = std::make_shared<Material>();
 	sorghumManager.m_instancedLeafMaterial->m_cullingMode = MaterialCullingMode::Off;
-	sorghumManager.m_instancedLeafMaterial->SetProgram(Default::GLPrograms::StandardInstancedProgram);
+	sorghumManager.m_instancedLeafMaterial->SetProgram(DefaultResources::GLPrograms::StandardInstancedProgram);
 	sorghumManager.m_instancedLeafMaterial->SetTexture(textureLeaf);
 	sorghumManager.m_instancedLeafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_instancedLeafMaterial->m_metallic = 0.0f;
@@ -793,7 +793,7 @@ void SorghumManager::RenderLightProbes()
 {
 	auto& manager = GetInstance();
 	if (manager.m_probeTransforms.empty() || manager.m_probeColors.empty() || manager.m_probeTransforms.size() != manager.m_probeColors.size()) return;
-	RenderManager::DrawGizmoMeshInstancedColored(Default::Primitives::Cube.get(), EditorManager::GetSceneCamera().get(), manager.m_probeColors.data(), manager.m_probeTransforms.data(), manager.m_probeTransforms.size(), glm::mat4(1.0f), 0.2f);
+	RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(), EditorManager::GetSceneCamera().get(), manager.m_probeColors.data(), manager.m_probeTransforms.data(), manager.m_probeTransforms.size(), glm::mat4(1.0f), 0.2f);
 	/*
 	if (!EditorManager::GetSceneCamera()->IsEnabled()) return;
 #pragma region Render
@@ -1070,7 +1070,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		const float leafGravityBending = i.second.m_leafGravityBending;
 		const float leafGravityBendingIncrease = i.second.m_leafGravityBendingIncreaseFactor;
 		auto meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		i.first.SetPrivateComponent(std::move(meshRenderer));
@@ -1085,7 +1085,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode.SetComponentData(internodeInfo);
 		leafNode.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode.SetPrivateComponent(std::move(meshRenderer));
@@ -1099,7 +1099,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode2.SetComponentData(internodeInfo);
 		leafNode2.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode2.SetPrivateComponent(std::move(meshRenderer));
@@ -1113,7 +1113,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode3.SetComponentData(internodeInfo);
 		leafNode3.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode3.SetPrivateComponent(std::move(meshRenderer));
@@ -1127,7 +1127,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode4.SetComponentData(internodeInfo);
 		leafNode4.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode4.SetPrivateComponent(std::move(meshRenderer));
@@ -1141,7 +1141,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode5.SetComponentData(internodeInfo);
 		leafNode5.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode5.SetPrivateComponent(std::move(meshRenderer));
@@ -1155,7 +1155,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode7.SetComponentData(internodeInfo);
 		leafNode7.SetComponentData(internodeGrowth);
 		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = Default::Primitives::Sphere;
+		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
 		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
 		leafNode7.SetPrivateComponent(std::move(meshRenderer));

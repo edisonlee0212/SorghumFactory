@@ -15,8 +15,7 @@ DefaultFoliageGenerator::DefaultFoliageGenerator()
 	m_archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());
 
 	m_leafMaterial = std::make_shared<Material>();
-	m_leafMaterial->m_shininess = 32.0f;
-	m_leafMaterial->SetProgram(Default::GLPrograms::StandardInstancedProgram);
+	m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardInstancedProgram);
 	m_leafMaterial->m_alphaDiscardEnabled = true;
 	m_leafMaterial->m_alphaDiscardOffset = 0.1f;
 	m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
@@ -49,7 +48,7 @@ void DefaultFoliageGenerator::Generate()
 		EntityManager::SetParent(foliageEntity, tree);
 		auto particleSys = std::make_unique<Particles>();
 		particleSys->m_material = m_leafMaterial;
-		particleSys->m_mesh = Default::Primitives::Quad;
+		particleSys->m_mesh = DefaultResources::Primitives::Quad;
 		particleSys->m_forwardRendering = false;
 		Transform transform;
 		transform.m_value = glm::translate(glm::vec3(0.0f)) * glm::scale(glm::vec3(1.0f));

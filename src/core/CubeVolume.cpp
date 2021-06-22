@@ -24,7 +24,7 @@ void CubeVolume::OnGui()
 	ImGui::Checkbox("Display bounds", &m_displayBounds);
 	if (m_displayBounds)
 	{
-		RenderManager::DrawGizmoMesh(Default::Primitives::Cube.get(), RenderManager::GetMainCamera(), glm::vec4(0, 1, 0, 0.2), glm::translate(m_minMaxBound.Center()) * glm::scale(m_minMaxBound.Size()), 1);
+		RenderManager::DrawGizmoMesh(DefaultResources::Primitives::Cube.get(), RenderManager::GetMainCamera(), glm::vec4(0, 1, 0, 0.2), glm::translate(m_minMaxBound.Center()) * glm::scale(m_minMaxBound.Size()), 1);
 	}
 	if (GetOwner().HasPrivateComponent<MeshRenderer>()) {
 		if (ImGui::Button("Apply mesh bound"))

@@ -9,7 +9,7 @@ void TreeLeaves::OnGui()
 
 void TreeLeaves::FormMesh()
 {
-	auto quadMesh = Default::Primitives::Quad;
+	auto quadMesh = DefaultResources::Primitives::Quad;
 	auto& quadTriangles = quadMesh->UnsafeGetTriangles();
 	auto quadVerticesSize = quadMesh->GetVerticesAmount();
 	size_t offset = 0;
