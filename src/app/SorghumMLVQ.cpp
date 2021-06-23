@@ -51,7 +51,7 @@ void EngineSetup()
 	RenderManager::GetInstance().m_lightSettings.m_blockerSearchAmount = 6;
 	RenderManager::GetInstance().m_lightSettings.m_pcfSampleAmount = 16;
 	RenderManager::GetInstance().m_lightSettings.m_scaleFactor = 1.0f;
-	RenderManager::GetInstance().m_lightSettings.m_ambientLight = 0.2f;
+	RenderManager::GetInstance().m_lightSettings.m_ambientLight = 1.0f;
 	RenderManager::SetShadowMapResolution(4096);
 	RenderManager::GetInstance().m_stableFit = false;
 	RenderManager::GetInstance().m_lightSettings.m_seamFixRatio = 0.05f;
