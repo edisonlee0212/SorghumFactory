@@ -78,7 +78,7 @@ void EngineSetup()
 	auto mainCamera = RenderManager::GetMainCamera();
 	if (mainCamera) {
 		mainCamera->GetOwner().SetComponentData(transform);
-		mainCamera->m_drawSkyBox = false;
+		mainCamera->m_useClearColor = true;
 		mainCamera->m_clearColor = glm::vec3(0.2f);
 		auto postProcessing = std::make_unique<PostProcessing>();
 		postProcessing->PushLayer(std::make_unique<Bloom>());
