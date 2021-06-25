@@ -73,33 +73,6 @@ namespace RayTracerFacility {
 		float m_skylightPower = 1.0f;
 		bool m_pushNormal = true;
 	};
-	struct RAY_TRACER_FACILITY_API RayMLVQRenderingProperties
-	{
-		bool m_accumulate = true;
-		bool m_useEnvironmentalMap = false;
-		float m_skylightIntensity = 0.8f;
-		int m_bounceLimit = 4;
-		int m_samplesPerPixel = 1;
-		Camera m_camera;
-		unsigned m_outputTextureId;
-		unsigned m_environmentalMapId;
-		glm::ivec2 m_frameSize;
-		[[nodiscard]] bool Changed(const RayMLVQRenderingProperties& properties) const
-		{
-			return
-				properties.m_accumulate != m_accumulate ||
-				properties.m_useEnvironmentalMap != m_useEnvironmentalMap ||
-				properties.m_skylightIntensity != m_skylightIntensity ||
-				properties.m_bounceLimit != m_bounceLimit ||
-				properties.m_samplesPerPixel != m_samplesPerPixel ||
-				properties.m_outputTextureId != m_outputTextureId ||
-				properties.m_environmentalMapId != m_environmentalMapId ||
-				properties.m_frameSize != m_frameSize ||
-				properties.m_camera != m_camera;
-		}
-		void OnGui();
-	};
-
 
 	enum class DefaultRenderingRayType
 	{
@@ -113,14 +86,7 @@ namespace RayTracerFacility {
 		RayTypeCount
 	};
 
-	enum class RayMLVQRenderingRayType
-	{
-		RadianceRayType,
-		RayTypeCount
-	};
-
 	struct VertexInfo;
-
 
 	struct DefaultRenderingLaunchParams
 	{
@@ -163,18 +129,6 @@ namespace RayTracerFacility {
 		OptixTraversableHandle m_traversable;
 	};
 
-	struct RayMLVQRenderingLaunchParams
-	{
-		RayMLVQRenderingProperties m_rayMLVQRenderingProperties;
-		struct {
-			cudaSurfaceObject_t m_outputTexture;
-			size_t m_frameId;
-		} m_frame;
-		struct {
-			cudaTextureObject_t m_environmentalMaps[6];
-		} m_skylight;
-		OptixTraversableHandle m_traversable;
-	};
 #pragma endregion
 	struct RAY_TRACER_FACILITY_API RayTracerInstance {
 		std::vector<glm::vec3>* m_positions;
@@ -208,7 +162,6 @@ namespace RayTracerFacility {
 	{
 		DefaultRendering,
 		IlluminationEstimation,
-		RayMLVQRendering,
 		
 		PipelineSize
 	};
@@ -244,7 +197,6 @@ namespace RayTracerFacility {
 		// internal helper functions
 		// ------------------------------------------------------------------
 		[[nodiscard]] bool RenderDefault(const DefaultRenderingProperties& properties);
-		[[nodiscard]] bool RenderRayMLVQ(const RayMLVQRenderingProperties& properties);
 		void EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes);
 		RayTracer();
 		/*! build an acceleration structure for the given triangle mesh */
@@ -274,12 +226,9 @@ namespace RayTracerFacility {
 
 		DefaultRenderingLaunchParams m_defaultRenderingLaunchParams;
 		DefaultIlluminationEstimationLaunchParams m_defaultIlluminationEstimationLaunchParams;
-		RayMLVQRenderingLaunchParams m_rayMLVQRenderingLaunchParams;
 		
 		RayTracerPipeline m_defaultRenderingPipeline;
-		RayTracerPipeline m_defaultIlluminationEstimationPipeline;
-		RayTracerPipeline m_rayMLVQRenderingPipeline;
-		
+		RayTracerPipeline m_defaultIlluminationEstimationPipeline;		
 		/*! creates the module that contains all the programs we are going
 		  to use. in this simple example, we use a single module from a
 		  single .cu file, using a single embedded ptx string */

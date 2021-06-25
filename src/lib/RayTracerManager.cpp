@@ -65,7 +65,15 @@ void RayTracerManager::UpdateScene() const
 			if (rayTracedRenderer->m_albedoTexture && rayTracedRenderer->m_albedoTexture->Texture()->Id() != rayTracerInstance->m_albedoTexture)
 			{
 				updateShaderBindingTable = true;
-				rayTracerInstance->m_albedoTexture = rayTracedRenderer->m_albedoTexture->Texture()->Id();
+				if (rayTracedRenderer->m_albedoTexture && rayTracedRenderer->m_albedoTexture->Texture()->IsResident())
+				{
+					UNIENGINE_ERROR("Texture is resident, can't be used!");
+					rayTracedRenderer->m_albedoTexture.reset();
+					rayTracerInstance->m_albedoTexture = 0;
+				}
+				else {
+					rayTracerInstance->m_albedoTexture = rayTracedRenderer->m_albedoTexture->Texture()->Id();
+				}
 			}
 			else if (!rayTracedRenderer->m_albedoTexture && rayTracerInstance->m_albedoTexture != 0)
 			{
@@ -75,7 +83,15 @@ void RayTracerManager::UpdateScene() const
 			if (rayTracedRenderer->m_normalTexture && rayTracedRenderer->m_normalTexture->Texture()->Id() != rayTracerInstance->m_normalTexture)
 			{
 				updateShaderBindingTable = true;
-				rayTracerInstance->m_normalTexture = rayTracedRenderer->m_normalTexture->Texture()->Id();
+				if (rayTracedRenderer->m_normalTexture && rayTracedRenderer->m_normalTexture->Texture()->IsResident())
+				{
+					UNIENGINE_ERROR("Texture is resident, can't be used!");
+					rayTracedRenderer->m_normalTexture.reset();
+					rayTracerInstance->m_normalTexture = 0;
+				}
+				else {
+					rayTracerInstance->m_normalTexture = rayTracedRenderer->m_normalTexture->Texture()->Id();
+				}
 			}
 			else if (!rayTracedRenderer->m_normalTexture && rayTracerInstance->m_normalTexture != 0)
 			{
@@ -158,7 +174,6 @@ void RayTracerManager::Init()
 	);
 
 	manager.m_defaultWindow.Init("Ray:Default");
-	manager.m_rayMLVQWindow.Init("Ray:MLVQ");
 #pragma region Environmental map
 	{
 		const std::vector facesPath
@@ -202,25 +217,12 @@ void RayTracerManager::Update()
 			manager.m_defaultWindow.m_rendered = CudaModule::GetRayTracer()->RenderDefault(manager.m_defaultRenderingProperties);
 		}
 	}
-	
-	{
-		const auto size = manager.m_rayMLVQWindow.Resize();
-		manager.m_rayMLVQRenderingProperties.m_camera.Set(EditorManager::GetInstance().m_sceneCameraRotation, EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCamera->m_fov, size);
-		manager.m_rayMLVQRenderingProperties.m_environmentalMapId = manager.m_environmentalMap->Texture()->Id();
-		manager.m_rayMLVQRenderingProperties.m_frameSize = size;
-		manager.m_rayMLVQRenderingProperties.m_outputTextureId = manager.m_rayMLVQWindow.m_output->Id();
-		if (!CudaModule::GetRayTracer()->m_instances.empty()) {
-			manager.m_rayMLVQWindow.m_rendered = CudaModule::GetRayTracer()->RenderRayMLVQ(manager.m_rayMLVQRenderingProperties);
-		}
-	}
 }
 
 void RayTracerManager::OnGui()
 {
 	auto& manager = GetInstance();
 	manager.m_defaultWindow.OnGui();
-	manager.m_rayMLVQWindow.OnGui();
-	manager.m_rayMLVQRenderingProperties.OnGui();
 	manager.m_defaultRenderingProperties.OnGui();
 }
 

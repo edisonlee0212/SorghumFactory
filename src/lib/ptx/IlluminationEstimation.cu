@@ -27,7 +27,7 @@ namespace RayTracerFacility {
 		}
 		auto tangent = sbtData.m_mesh.GetTangent(triangleBarycentricsInternal, indices);
 		glm::vec3 albedoColor = sbtData.m_material.GetAlbedo(texCoord);
-		sbtData.m_material.ApplyNormalTexture(normal, texCoord, triangleBarycentricsInternal, tangent);
+		sbtData.m_material.ApplyNormalTexture(normal, texCoord, tangent);
 		auto hitPoint = sbtData.m_mesh.GetPosition(triangleBarycentricsInternal, indices);
 #pragma endregion
 		IlluminationEstimationRayData& perRayData = *GetRayDataPointer<IlluminationEstimationRayData>();

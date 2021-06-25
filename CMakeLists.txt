@@ -52,8 +52,6 @@ file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL
 
 cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/DefaultRendering.cu)
 cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/IlluminationEstimation.cu)
-cuda_compile_and_embed(MLVQ_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/MLVQRendering.cu)
-
 
 add_library(rayTracerFacility
 	SHARED

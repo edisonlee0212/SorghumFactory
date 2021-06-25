@@ -52,9 +52,6 @@ namespace RayTracerFacility
 		DefaultRenderingProperties m_defaultRenderingProperties;
 		RayTracerRenderWindow m_defaultWindow;
 
-		RayMLVQRenderingProperties m_rayMLVQRenderingProperties;
-		RayTracerRenderWindow m_rayMLVQWindow;
-
 		void UpdateScene() const;
 		
 		static RayTracerManager& GetInstance();

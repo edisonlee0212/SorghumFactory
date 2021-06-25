@@ -52,30 +52,6 @@ void DefaultRenderingProperties::OnGui()
 	ImGui::End();
 }
 
-void RayMLVQRenderingProperties::OnGui()
-{
-	ImGui::Begin("Ray:MLVQ");
-	{
-		if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
-			if (ImGui::BeginMenuBar())
-			{
-				if (ImGui::BeginMenu("Settings"))
-				{
-					ImGui::Checkbox("Accumulate", &m_accumulate);
-					ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
-					ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
-					ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
-					ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
-					ImGui::EndMenu();
-				}
-				ImGui::EndMenuBar();
-			}
-		}
-		ImGui::EndChild();
-	}
-	ImGui::End();
-}
-
 bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties)
 {
 	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
@@ -198,128 +174,6 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties& properties)
 	return true;
 }
 
-bool RayTracer::RenderRayMLVQ(const RayMLVQRenderingProperties& properties)
-{
-	if (properties.m_frameSize.x == 0 | properties.m_frameSize.y == 0) return true;
-	if (!m_hasAccelerationStructure) return false;
-	std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
-	std::vector<cudaGraphicsResource_t> boundResources;
-	BuildShaderBindingTable(boundTextures, boundResources);
-	if (m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.Changed(properties)) {
-		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties = properties;
-		m_rayMLVQRenderingPipeline.m_statusChanged = true;
-	}
-	if (!m_rayMLVQRenderingPipeline.m_accumulate || m_rayMLVQRenderingPipeline.m_statusChanged) {
-		m_rayMLVQRenderingLaunchParams.m_frame.m_frameId = 0;
-		m_rayMLVQRenderingPipeline.m_statusChanged = false;
-	}
-#pragma region Bind texture
-	cudaArray_t outputArray;
-	cudaGraphicsResource_t outputTexture;
-	cudaArray_t environmentalMapPosXArray;
-	cudaArray_t environmentalMapNegXArray;
-	cudaArray_t environmentalMapPosYArray;
-	cudaArray_t environmentalMapNegYArray;
-	cudaArray_t environmentalMapPosZArray;
-	cudaArray_t environmentalMapNegZArray;
-	cudaGraphicsResource_t environmentalMapTexture;
-#pragma region Bind output texture as cudaSurface
-	CUDA_CHECK(GraphicsGLRegisterImage(&outputTexture, m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_outputTextureId, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsNone));
-	CUDA_CHECK(GraphicsMapResources(1, &outputTexture, nullptr));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&outputArray, outputTexture, 0, 0));
-	// Specify surface
-	struct cudaResourceDesc cudaResourceDesc;
-	memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
-	cudaResourceDesc.resType = cudaResourceTypeArray;
-	// Create the surface objects
-	cudaResourceDesc.res.array.array = outputArray;
-	// Create surface object
-	CUDA_CHECK(CreateSurfaceObject(&m_rayMLVQRenderingLaunchParams.m_frame.m_outputTexture, &cudaResourceDesc));
-#pragma endregion
-#pragma region Bind environmental map as cudaTexture
-	CUDA_CHECK(GraphicsGLRegisterImage(&environmentalMapTexture, m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_environmentalMapId, GL_TEXTURE_CUBE_MAP, cudaGraphicsRegisterFlagsNone));
-	CUDA_CHECK(GraphicsMapResources(1, &environmentalMapTexture, nullptr));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapPosXArray, environmentalMapTexture, cudaGraphicsCubeFacePositiveX, 0));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapNegXArray, environmentalMapTexture, cudaGraphicsCubeFaceNegativeX, 0));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapPosYArray, environmentalMapTexture, cudaGraphicsCubeFacePositiveY, 0));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapNegYArray, environmentalMapTexture, cudaGraphicsCubeFaceNegativeY, 0));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapPosZArray, environmentalMapTexture, cudaGraphicsCubeFacePositiveZ, 0));
-	CUDA_CHECK(GraphicsSubResourceGetMappedArray(&environmentalMapNegZArray, environmentalMapTexture, cudaGraphicsCubeFaceNegativeZ, 0));
-	memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
-	cudaResourceDesc.resType = cudaResourceTypeArray;
-	struct cudaTextureDesc cudaTextureDesc;
-	memset(&cudaTextureDesc, 0, sizeof(cudaTextureDesc));
-	cudaTextureDesc.addressMode[0] = cudaAddressModeWrap;
-	cudaTextureDesc.addressMode[1] = cudaAddressModeWrap;
-	cudaTextureDesc.filterMode = cudaFilterModeLinear;
-	cudaTextureDesc.readMode = cudaReadModeElementType;
-	cudaTextureDesc.normalizedCoords = 1;
-	// Create texture object
-	cudaResourceDesc.res.array.array = environmentalMapPosXArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[0], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-	cudaResourceDesc.res.array.array = environmentalMapNegXArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[1], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-	cudaResourceDesc.res.array.array = environmentalMapPosYArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[2], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-	cudaResourceDesc.res.array.array = environmentalMapNegYArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[3], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-	cudaResourceDesc.res.array.array = environmentalMapPosZArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[4], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-	cudaResourceDesc.res.array.array = environmentalMapNegZArray;
-	CUDA_CHECK(CreateTextureObject(&m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[5], &cudaResourceDesc, &cudaTextureDesc, nullptr));
-#pragma endregion
-#pragma endregion
-#pragma region Upload parameters
-	m_rayMLVQRenderingPipeline.m_launchParamsBuffer.Upload(&m_rayMLVQRenderingLaunchParams, 1);
-	m_rayMLVQRenderingLaunchParams.m_frame.m_frameId++;
-#pragma endregion
-#pragma endregion
-#pragma region Launch rays from camera
-	OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
-		m_rayMLVQRenderingPipeline.m_pipeline, m_stream,
-		/*! parameters and SBT */
-		m_rayMLVQRenderingPipeline.m_launchParamsBuffer.DevicePointer(),
-		m_rayMLVQRenderingPipeline.m_launchParamsBuffer.m_sizeInBytes,
-		&m_rayMLVQRenderingPipeline.m_sbt,
-		/*! dimensions of the launch: */
-		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.x,
-		m_rayMLVQRenderingLaunchParams.m_rayMLVQRenderingProperties.m_frameSize.y,
-		1
-	));
-#pragma endregion
-	CUDA_SYNC_CHECK();
-#pragma region Remove texture binding.
-	CUDA_CHECK(DestroySurfaceObject(m_rayMLVQRenderingLaunchParams.m_frame.m_outputTexture));
-	m_rayMLVQRenderingLaunchParams.m_frame.m_outputTexture = 0;
-	CUDA_CHECK(GraphicsUnmapResources(1, &outputTexture, 0));
-	CUDA_CHECK(GraphicsUnregisterResource(outputTexture));
-
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[0]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[0] = 0;
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[1]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[1] = 0;
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[2]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[2] = 0;
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[3]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[3] = 0;
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[4]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[4] = 0;
-	CUDA_CHECK(DestroyTextureObject(m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[5]));
-	m_rayMLVQRenderingLaunchParams.m_skylight.m_environmentalMaps[5] = 0;
-
-	CUDA_CHECK(GraphicsUnmapResources(1, &environmentalMapTexture, 0));
-	CUDA_CHECK(GraphicsUnregisterResource(environmentalMapTexture));
-#pragma endregion
-
-	for (int i = 0; i < boundResources.size(); i++)
-	{
-		CUDA_CHECK(DestroySurfaceObject(boundTextures[i].second));
-		CUDA_CHECK(GraphicsUnmapResources(1, &boundResources[i], 0));
-		CUDA_CHECK(GraphicsUnregisterResource(boundResources[i]));
-	}
-	return true;
-}
-
 void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstimationProperties& properties, CudaBuffer& lightProbes)
 {
 	if (!m_hasAccelerationStructure) return;
@@ -413,7 +267,6 @@ void RayTracer::SetSkylightDir(const glm::vec3& value)
 void RayTracer::ClearAccumulate()
 {
 	m_defaultRenderingPipeline.m_statusChanged = true;
-	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 static void context_log_cb(const unsigned int level,
@@ -441,20 +294,17 @@ void RayTracer::CreateContext()
 
 extern "C" char DEFAULT_RENDERING_PTX[];
 extern "C" char ILLUMINATION_ESTIMATION_PTX[];
-extern "C" char MLVQ_RENDERING_PTX[];
 
 void RayTracer::CreateModules()
 {
 	CreateModule(m_defaultRenderingPipeline, DEFAULT_RENDERING_PTX, "defaultRenderingLaunchParams");
 	CreateModule(m_defaultIlluminationEstimationPipeline, ILLUMINATION_ESTIMATION_PTX, "defaultIlluminationEstimationLaunchParams");
-	CreateModule(m_rayMLVQRenderingPipeline, MLVQ_RENDERING_PTX, "rayMLVQRenderingLaunchParams");
 }
 
 void RayTracer::CreateRayGenPrograms()
 {
 	CreateRayGenProgram(m_defaultRenderingPipeline, "__raygen__renderFrame");
 	CreateRayGenProgram(m_defaultIlluminationEstimationPipeline, "__raygen__illuminationEstimation");
-	CreateRayGenProgram(m_rayMLVQRenderingPipeline, "__raygen__renderFrame");
 }
 
 void RayTracer::CreateMissPrograms()
@@ -516,30 +366,6 @@ void RayTracer::CreateMissPrograms()
 			&pgOptions,
 			log, &sizeofLog,
 			&m_defaultIlluminationEstimationPipeline.m_missProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
-	{
-		m_rayMLVQRenderingPipeline.m_missProgramGroups.resize(static_cast<int>(RayMLVQRenderingRayType::RayTypeCount));
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-
-		OptixProgramGroupOptions pgOptions = {};
-		OptixProgramGroupDesc pgDesc = {};
-		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
-		pgDesc.miss.module = m_rayMLVQRenderingPipeline.m_module;
-
-		// ------------------------------------------------------------------
-		// radiance rays
-		// ------------------------------------------------------------------
-		pgDesc.miss.entryFunctionName = "__miss__radiance";
-
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
-			&pgDesc,
-			1,
-			&pgOptions,
-			log, &sizeofLog,
-			&m_rayMLVQRenderingPipeline.m_missProgramGroups[static_cast<int>(RayMLVQRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -607,30 +433,6 @@ void RayTracer::CreateHitGroupPrograms()
 			&pgOptions,
 			log, &sizeofLog,
 			&m_defaultIlluminationEstimationPipeline.m_hitGroupProgramGroups[static_cast<int>(DefaultIlluminationEstimationRayType::RadianceRayType)]
-		));
-		if (sizeofLog > 1) std::cout << log << std::endl;
-	}
-	{
-		m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups.resize(static_cast<int>(RayMLVQRenderingRayType::RayTypeCount));
-		char log[2048];
-		size_t sizeofLog = sizeof(log);
-
-		OptixProgramGroupOptions pgOptions = {};
-		OptixProgramGroupDesc pgDesc = {};
-		pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
-		pgDesc.hitgroup.moduleCH = m_rayMLVQRenderingPipeline.m_module;
-		pgDesc.hitgroup.moduleAH = m_rayMLVQRenderingPipeline.m_module;
-		// -------------------------------------------------------
-		// radiance rays
-		// -------------------------------------------------------
-		pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
-		pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
-		OPTIX_CHECK(optixProgramGroupCreate(m_optixDeviceContext,
-			&pgDesc,
-			1,
-			&pgOptions,
-			log, &sizeofLog,
-			&m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups[static_cast<int>(RayMLVQRenderingRayType::RadianceRayType)]
 		));
 		if (sizeofLog > 1) std::cout << log << std::endl;
 	}
@@ -851,23 +653,19 @@ void RayTracer::BuildAccelerationStructure()
 
 	m_defaultRenderingLaunchParams.m_traversable = asHandle;
 	m_defaultIlluminationEstimationLaunchParams.m_traversable = asHandle;
-	m_rayMLVQRenderingLaunchParams.m_traversable = asHandle;
 	m_hasAccelerationStructure = true;
 }
 
 void RayTracer::SetAccumulate(const bool& value)
 {
 	m_defaultRenderingPipeline.m_accumulate = value;
-	m_rayMLVQRenderingPipeline.m_accumulate = value;
 	m_defaultRenderingPipeline.m_statusChanged = true;
-	m_rayMLVQRenderingPipeline.m_statusChanged = true;
 }
 
 void RayTracer::AssemblePipelines()
 {
 	AssemblePipeline(m_defaultRenderingPipeline);
 	AssemblePipeline(m_defaultIlluminationEstimationPipeline);
-	AssemblePipeline(m_rayMLVQRenderingPipeline);
 }
 
 void RayTracer::CreateRayGenProgram(RayTracerPipeline& targetPipeline, char entryFunctionName[]) const
@@ -1020,6 +818,11 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 				rec.m_data.m_material.m_albedoTexture = 0;
 				rec.m_data.m_material.m_normalTexture = 0;
 				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
+				rec.m_data.m_enableMLVQ = m_instances[i].m_enableMLVQ;
+				if (m_instances[i].m_enableMLVQ)
+				{
+					rec.m_data.m_rayMlvqMaterial.m_btf = m_btfs[m_instances[i].m_mlvqMaterialIndex];
+				}
 				if (m_instances[i].m_albedoTexture != 0)
 				{
 					bool duplicate = false;
@@ -1162,146 +965,5 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 		m_defaultIlluminationEstimationPipeline.m_sbt.hitgroupRecordBase = m_defaultIlluminationEstimationPipeline.m_hitGroupRecordsBuffer.DevicePointer();
 		m_defaultIlluminationEstimationPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(DefaultIlluminationEstimationRayHitRecord);
 		m_defaultIlluminationEstimationPipeline.m_sbt.hitgroupRecordCount = static_cast<int>(hitGroupRecords.size());
-	}
-	{
-		// ------------------------------------------------------------------
-		// build raygen records
-		// ------------------------------------------------------------------
-		std::vector<RayMLVQRenderingRayGenRecord> raygenRecords;
-		for (int i = 0; i < m_rayMLVQRenderingPipeline.m_rayGenProgramGroups.size(); i++) {
-			RayMLVQRenderingRayGenRecord rec;
-			OPTIX_CHECK(optixSbtRecordPackHeader(m_rayMLVQRenderingPipeline.m_rayGenProgramGroups[i], &rec));
-			rec.m_data = nullptr; /* for now ... */
-			raygenRecords.push_back(rec);
-		}
-		m_rayMLVQRenderingPipeline.m_rayGenRecordsBuffer.Upload(raygenRecords);
-		m_rayMLVQRenderingPipeline.m_sbt.raygenRecord = m_rayMLVQRenderingPipeline.m_rayGenRecordsBuffer.DevicePointer();
-
-		// ------------------------------------------------------------------
-		// build miss records
-		// ------------------------------------------------------------------
-		std::vector<RayMLVQRenderingRayMissRecord> missRecords;
-		for (int i = 0; i < m_rayMLVQRenderingPipeline.m_missProgramGroups.size(); i++) {
-			RayMLVQRenderingRayMissRecord rec;
-			OPTIX_CHECK(optixSbtRecordPackHeader(m_rayMLVQRenderingPipeline.m_missProgramGroups[i], &rec));
-			rec.m_data = nullptr; /* for now ... */
-			missRecords.push_back(rec);
-		}
-		m_rayMLVQRenderingPipeline.m_missRecordsBuffer.Upload(missRecords);
-		m_rayMLVQRenderingPipeline.m_sbt.missRecordBase = m_rayMLVQRenderingPipeline.m_missRecordsBuffer.DevicePointer();
-		m_rayMLVQRenderingPipeline.m_sbt.missRecordStrideInBytes = sizeof(RayMLVQRenderingRayMissRecord);
-		m_rayMLVQRenderingPipeline.m_sbt.missRecordCount = static_cast<int>(missRecords.size());
-
-		// ------------------------------------------------------------------
-		// build hit records
-		// ------------------------------------------------------------------
-
-		// we don't actually have any objects in this example, but let's
-		// create a dummy one so the SBT doesn't have any null pointers
-		// (which the sanity checks in compilation would complain about)
-		const int numObjects = m_positionsBuffer.size();
-		std::vector<RayMLVQRenderingRayHitRecord> hitGroupRecords;
-		for (int i = 0; i < numObjects; i++) {
-			for (int rayID = 0; rayID < static_cast<int>(RayMLVQRenderingRayType::RayTypeCount); rayID++) {
-				RayMLVQRenderingRayHitRecord rec;
-				OPTIX_CHECK(optixSbtRecordPackHeader(m_rayMLVQRenderingPipeline.m_hitGroupProgramGroups[rayID], &rec));
-				rec.m_data.m_mesh.m_position = reinterpret_cast<glm::vec3*>(m_transformedPositionsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_triangle = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_normal = reinterpret_cast<glm::vec3*>(m_transformedNormalsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_tangent = reinterpret_cast<glm::vec3*>(m_transformedTangentsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
-				rec.m_data.m_enableMLVQ = m_instances[i].m_enableMLVQ;
-				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
-				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
-				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
-				rec.m_data.m_material.m_albedoTexture = 0;
-				rec.m_data.m_material.m_normalTexture = 0;
-				rec.m_data.m_material.m_diffuseIntensity = m_instances[i].m_diffuseIntensity;
-				if (m_instances[i].m_enableMLVQ)
-				{
-					rec.m_data.m_rayMlvqMaterial.m_btf = m_btfs[m_instances[i].m_mlvqMaterialIndex];
-				}
-				else {
-					if (m_instances[i].m_albedoTexture != 0)
-					{
-						bool duplicate = false;
-						for (auto& boundTexture : boundTextures)
-						{
-							if (boundTexture.first == m_instances[i].m_albedoTexture)
-							{
-								rec.m_data.m_material.m_albedoTexture = boundTexture.second;
-								duplicate = true;
-								break;
-							}
-						}
-						if (!duplicate) {
-#pragma region Bind output texture
-							cudaArray_t textureArray;
-							cudaGraphicsResource_t graphicsResource;
-							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_albedoTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
-							CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
-							CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
-							struct cudaResourceDesc cudaResourceDesc;
-							memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
-							cudaResourceDesc.resType = cudaResourceTypeArray;
-							cudaResourceDesc.res.array.array = textureArray;
-							struct cudaTextureDesc cudaTextureDesc;
-							memset(&cudaTextureDesc, 0, sizeof(cudaTextureDesc));
-							cudaTextureDesc.addressMode[0] = cudaAddressModeWrap;
-							cudaTextureDesc.addressMode[1] = cudaAddressModeWrap;
-							cudaTextureDesc.filterMode = cudaFilterModeLinear;
-							cudaTextureDesc.readMode = cudaReadModeElementType;
-							cudaTextureDesc.normalizedCoords = 1;
-							CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_albedoTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
-#pragma endregion
-							boundResources.push_back(graphicsResource);
-							boundTextures.emplace_back(m_instances[i].m_albedoTexture, rec.m_data.m_material.m_albedoTexture);
-						}
-					}
-					if (m_instances[i].m_normalTexture != 0)
-					{
-						bool duplicate = false;
-						for (auto& boundTexture : boundTextures)
-						{
-							if (boundTexture.first == m_instances[i].m_normalTexture)
-							{
-								rec.m_data.m_material.m_normalTexture = boundTexture.second;
-								duplicate = true;
-								break;
-							}
-						}
-						if (!duplicate) {
-#pragma region Bind output texture
-							cudaArray_t textureArray;
-							cudaGraphicsResource_t graphicsResource;
-							CUDA_CHECK(GraphicsGLRegisterImage(&graphicsResource, m_instances[i].m_normalTexture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
-							CUDA_CHECK(GraphicsMapResources(1, &graphicsResource, nullptr));
-							CUDA_CHECK(GraphicsSubResourceGetMappedArray(&textureArray, graphicsResource, 0, 0));
-							struct cudaResourceDesc cudaResourceDesc;
-							memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
-							cudaResourceDesc.resType = cudaResourceTypeArray;
-							cudaResourceDesc.res.array.array = textureArray;
-							struct cudaTextureDesc cudaTextureDesc;
-							memset(&cudaTextureDesc, 0, sizeof(cudaTextureDesc));
-							cudaTextureDesc.addressMode[0] = cudaAddressModeWrap;
-							cudaTextureDesc.addressMode[1] = cudaAddressModeWrap;
-							cudaTextureDesc.filterMode = cudaFilterModeLinear;
-							cudaTextureDesc.readMode = cudaReadModeElementType;
-							cudaTextureDesc.normalizedCoords = 1;
-							CUDA_CHECK(CreateTextureObject(&rec.m_data.m_material.m_normalTexture, &cudaResourceDesc, &cudaTextureDesc, nullptr));
-#pragma endregion
-							boundResources.push_back(graphicsResource);
-							boundTextures.emplace_back(m_instances[i].m_normalTexture, rec.m_data.m_material.m_normalTexture);
-						}
-					}
-				}
-				hitGroupRecords.push_back(rec);
-			}
-		}
-		m_rayMLVQRenderingPipeline.m_hitGroupRecordsBuffer.Upload(hitGroupRecords);
-		m_rayMLVQRenderingPipeline.m_sbt.hitgroupRecordBase = m_rayMLVQRenderingPipeline.m_hitGroupRecordsBuffer.DevicePointer();
-		m_rayMLVQRenderingPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(RayMLVQRenderingRayHitRecord);
-		m_rayMLVQRenderingPipeline.m_sbt.hitgroupRecordCount = static_cast<int>(hitGroupRecords.size());
 	}
 }

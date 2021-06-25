@@ -22,11 +22,8 @@ void RayTracedRenderer::OnGui()
 	ImGui::DragFloat("Transparency##RayTracedRenderer", &m_transparency, 0.01f, 0.0f, 1.0f);
 	ImGui::DragFloat("Diffuse intensity##RayTracedRenderer", &m_diffuseIntensity, 0.01f, 0.0f, 100.0f);
 	ImGui::ColorEdit3("Surface Color##RayTracedRenderer", &m_surfaceColor.x);
-	ImGui::Checkbox("MLVQ##RayTracedRenderer", &m_enableMLVQ);
-	if(m_enableMLVQ)
-	{
-		ImGui::Combo("MLVQ Material", &m_mlvqMaterialIndex, MLVQMaterials, IM_ARRAYSIZE(MLVQMaterials));
-	}
+	ImGui::Text("Mesh: ");
+	ImGui::SameLine();
 	EditorManager::DragAndDrop(m_mesh);
 	if (m_mesh)
 	{
@@ -36,24 +33,30 @@ void RayTracedRenderer::OnGui()
 			ImGui::TreePop();
 		}
 	}
-	
-	if (ImGui::TreeNode("Textures##RayTracerMaterial")) {
-		
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Text("Albedo:");
-		ImGui::SameLine();
-		EditorManager::DragAndDrop(m_albedoTexture);
+	ImGui::Text("Material: ");
+	ImGui::SameLine();
+	ImGui::Checkbox("MLVQ##RayTracedRenderer", &m_enableMLVQ);
+	if(m_enableMLVQ)
+	{
+		ImGui::Combo("MLVQ Material", &m_mlvqMaterialIndex, MLVQMaterials, IM_ARRAYSIZE(MLVQMaterials));
+	}
+	else {
+		if (ImGui::TreeNode("Textures##RayTracerMaterial")) {
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Text("Albedo:");
+			ImGui::SameLine();
+			EditorManager::DragAndDrop(m_albedoTexture);
+			
 
-
-
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Text("Normal:");
-		ImGui::SameLine();
-		EditorManager::DragAndDrop(m_normalTexture);
-
-		ImGui::TreePop();
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Text("Normal:");
+			ImGui::SameLine();
+			EditorManager::DragAndDrop(m_normalTexture);
+			
+			ImGui::TreePop();
+		}
 	}
 }
 

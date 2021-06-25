@@ -64,7 +64,7 @@ namespace RayTracerFacility
 			float4 textureAlbedo = tex2D<float4>(m_albedoTexture, texCoord.x, texCoord.y);
 			return glm::vec3(textureAlbedo.x, textureAlbedo.y, textureAlbedo.z);
 		}
-		__device__ void ApplyNormalTexture(glm::vec3& normal, const glm::vec2& texCoord, const float2& triangleBarycentrics, const glm::vec3& tangent) const
+		__device__ void ApplyNormalTexture(glm::vec3& normal, const glm::vec2& texCoord, const glm::vec3& tangent) const
 		{
 			if (!m_normalTexture) return;
 			float4 textureNormal = tex2D<float4>(m_normalTexture, texCoord.x, texCoord.y);
@@ -78,6 +78,7 @@ namespace RayTracerFacility
 			return 0.5f;
 		}
 	};
+	
 	struct RayMLVQMaterial {
 		BtfBase m_btf;
 #pragma region Device functions
@@ -140,17 +141,11 @@ namespace RayTracerFacility
 	struct DefaultSbtData
 	{
 		Mesh m_mesh;
-		DefaultMaterial m_material;
-	};
-
-	struct RayMLVQSbtData
-	{
-		Mesh m_mesh;
 		bool m_enableMLVQ;
 		DefaultMaterial m_material;
 		RayMLVQMaterial m_rayMlvqMaterial;
 	};
-
+	
 	/*! SBT record for a raygen program */
 	struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) DefaultRenderingRayGenRecord
 	{
@@ -203,32 +198,5 @@ namespace RayTracerFacility
 		// just a dummy value - later examples will use more interesting
 		// data here
 		DefaultSbtData m_data;
-	};
-
-	/*! SBT record for a raygen program */
-	struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) RayMLVQRenderingRayGenRecord
-	{
-		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-		// just a dummy value - later examples will use more interesting
-		// data here
-		void* m_data;
-	};
-
-	/*! SBT record for a miss program */
-	struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) RayMLVQRenderingRayMissRecord
-	{
-		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-		// just a dummy value - later examples will use more interesting
-		// data here
-		void* m_data;
-	};
-
-	/*! SBT record for a hitgroup program */
-	struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) RayMLVQRenderingRayHitRecord
-	{
-		__align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-		// just a dummy value - later examples will use more interesting
-		// data here
-		RayMLVQSbtData m_data;
 	};
 }

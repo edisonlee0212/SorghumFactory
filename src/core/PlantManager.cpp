@@ -398,7 +398,7 @@ void PlantManager::Init()
 	manager.m_ground.SetPrivateComponent(std::move(meshRenderer));
 	Transform groundTransform;
 	GlobalTransform groundGlobalTransform;
-	groundTransform.SetScale(glm::vec3(1000.0f, 1.0f, 1000.0f));
+	groundTransform.SetScale(glm::vec3(75.0f, 1.0f, 75.0f));
 	groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
 	groundGlobalTransform.m_value = groundTransform.m_value;
 	manager.m_ground.SetComponentData(groundTransform);
