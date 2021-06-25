@@ -138,7 +138,7 @@ namespace RayTracerFacility {
 	};
 	
 	template<typename T>
-	struct RAY_TRACER_FACILITY_API LightProbe
+	struct RAY_TRACER_FACILITY_API LightSensor
 	{
 		glm::vec3 m_surfaceNormal;
 		/**
@@ -159,7 +159,7 @@ namespace RayTracerFacility {
 	{
 		size_t m_size;
 		IlluminationEstimationProperties m_defaultIlluminationEstimationProperties;
-		LightProbe<float>* m_lightProbes;
+		LightSensor<float>* m_lightProbes;
 		OptixTraversableHandle m_traversable;
 	};
 

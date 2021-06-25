@@ -330,7 +330,7 @@ void RayTracer::EstimateIllumination(const size_t& size, const IlluminationEstim
 #pragma region Upload parameters
 	m_defaultIlluminationEstimationLaunchParams.m_size = size;
 	m_defaultIlluminationEstimationLaunchParams.m_defaultIlluminationEstimationProperties = properties;
-	m_defaultIlluminationEstimationLaunchParams.m_lightProbes = reinterpret_cast<LightProbe<float>*>(lightProbes.DevicePointer());
+	m_defaultIlluminationEstimationLaunchParams.m_lightProbes = reinterpret_cast<LightSensor<float>*>(lightProbes.DevicePointer());
 	m_defaultIlluminationEstimationPipeline.m_launchParamsBuffer.Upload(&m_defaultIlluminationEstimationLaunchParams, 1);
 #pragma endregion
 #pragma endregion

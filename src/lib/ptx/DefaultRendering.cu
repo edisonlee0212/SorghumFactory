@@ -274,7 +274,7 @@ namespace RayTracerFacility {
 		const float3 rayDir = optixGetWorldRayDirection();
 		float4 environmentalLightColor = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
 		if (defaultRenderingLaunchParams.m_defaultRenderingProperties.m_useEnvironmentalMap) environmentalLightColor = SampleCubeMap<float4>(defaultRenderingLaunchParams.m_skylight.m_environmentalMaps, rayDir);
-		prd.m_pixelAlbedo = prd.m_energy = glm::vec3(environmentalLightColor.x, environmentalLightColor.y, environmentalLightColor.z);
+		prd.m_pixelAlbedo = prd.m_energy = glm::pow(glm::vec3(environmentalLightColor.x, environmentalLightColor.y, environmentalLightColor.z), glm::vec3(1.0 / 2.2));
 		prd.m_energy *= defaultRenderingLaunchParams.m_defaultRenderingProperties.m_skylightIntensity;
 	}
 	extern "C" __global__ void __miss__sampleSp()

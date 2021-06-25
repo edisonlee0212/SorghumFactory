@@ -48,7 +48,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 				const float area = glm::sqrt(p * (p - a) * (p - b) * (p - c));
 				m_triangleAreas.push_back(area);
 				m_totalArea += area;
-				LightProbe<float> lightProbe;
+				RayTracerFacility::LightSensor<float> lightProbe;
 				lightProbe.m_direction = glm::vec3(0.0f);
 				lightProbe.m_energy = 0.0f;
 				lightProbe.m_surfaceNormal = glm::cross(positions[triangle.x] - positions[triangle.y], positions[triangle.y] - positions[triangle.z]);

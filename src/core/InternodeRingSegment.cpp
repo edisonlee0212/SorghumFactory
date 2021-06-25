@@ -55,11 +55,10 @@ void InternodeRingSegment::AppendPoints(std::vector<Vertex>& vertices, glm::vec3
 
 inline glm::vec3 InternodeRingSegment::GetPoint(glm::vec3& normalDir, float angle, bool isStart)
 {
-	glm::vec3 position;
-	glm::vec3 direction;
-	direction = glm::cross(normalDir, isStart ? this->m_startAxis : this->m_endAxis);
+	glm::vec3 direction = glm::cross(normalDir, isStart ? this->m_startAxis : this->m_endAxis);
 	direction = glm::rotate(direction, glm::radians(angle), isStart ? this->m_startAxis : this->m_endAxis);
 	direction = glm::normalize(direction);
-	position = (isStart ? m_startPosition : m_endPosition) + direction * (isStart ? m_startRadius : m_endRadius);
+	const glm::vec3 position = (isStart ? m_startPosition : m_endPosition) + direction * (
+		isStart ? m_startRadius : m_endRadius);
 	return position;
 }

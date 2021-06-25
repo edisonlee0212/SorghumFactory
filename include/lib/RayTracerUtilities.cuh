@@ -32,7 +32,7 @@ namespace RayTracerFacility
 	}
 
 	template<typename T>
-	static __forceinline__ __device__ float4 SampleCubeMap(const cudaTextureObject_t cubeMap[], const float3& direction)
+	static __forceinline__ __device__ T SampleCubeMap(const cudaTextureObject_t cubeMap[], const float3& direction)
 	{
 		const float absX = abs(direction.x);
 		const float absY = abs(direction.y);
@@ -44,19 +44,19 @@ namespace RayTracerFacility
 		{
 			faceIndex = direction.z < 0.0 ? 5 : 4;
 			ma = 0.5f / absZ;
-			uv = glm::vec2(direction.z < 0.0 ? -direction.x : direction.x, direction.y);
+			uv = glm::vec2(direction.z < 0.0 ? -direction.x : direction.x, -direction.y);
 		}
 		else if (absY >= absX)
 		{
 			faceIndex = direction.y < 0.0 ? 3 : 2;
 			ma = 0.5f / absY;
-			uv = glm::vec2(direction.x, direction.y < 0.0 ? direction.z : -direction.z);
+			uv = glm::vec2(direction.x, direction.y > 0.0 ? direction.z : -direction.z);
 		}
 		else
 		{
 			faceIndex = direction.x < 0.0 ? 1 : 0;
 			ma = 0.5f / absX;
-			uv = glm::vec2(direction.x < 0.0 ? direction.z : -direction.z, direction.y);
+			uv = glm::vec2(direction.x < 0.0 ? direction.z : -direction.z, -direction.y);
 		}
 		uv = uv * ma + glm::vec2(0.5);
 		return tex2D<T>(cubeMap[faceIndex], uv.x, uv.y);

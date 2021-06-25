@@ -14,7 +14,7 @@ DefaultFoliageGenerator::DefaultFoliageGenerator()
 	m_defaultFoliageInfo = DefaultFoliageInfo();
 	m_archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());
 
-	m_leafMaterial = std::make_shared<Material>();
+	m_leafMaterial = ResourceManager::CreateResource<Material>();
 	m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardInstancedProgram);
 	m_leafMaterial->m_alphaDiscardEnabled = true;
 	m_leafMaterial->m_alphaDiscardOffset = 0.1f;
@@ -30,7 +30,7 @@ DefaultFoliageGenerator::DefaultFoliageGenerator()
 void DefaultFoliageGenerator::Generate()
 {
 	const auto tree = GetOwner();
-	GlobalTransform treeTransform = EntityManager::GetComponentData<GlobalTransform>(tree);
+	auto treeTransform = EntityManager::GetComponentData<GlobalTransform>(tree);
 	Entity foliageEntity;
 	bool found = false;
 	EntityManager::ForEachChild(tree, [&found, &foliageEntity](Entity child)

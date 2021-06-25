@@ -145,20 +145,7 @@ RayTracerManager& RayTracerManager::GetInstance()
 void RayTracerManager::Init()
 {
 	auto& manager = GetInstance();
-#pragma region Environmental map
-	{
-		const std::vector facesPath
-		{
-			FileIO::GetResourcePath("Textures/Skyboxes/Default/posx.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negx.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/posy.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negy.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/posz.jpg"),
-		FileIO::GetResourcePath("Textures/Skyboxes/Default/negz.jpg"),
-		};
-		manager.m_environmentalMap = ResourceManager::LoadCubemap(false, facesPath, true);
-	}
-#pragma endregion
+
 	CudaModule::Init();
 	EditorManager::RegisterPrivateComponentMenu<RayTracedRenderer>([](Entity owner)
 		{
@@ -172,6 +159,20 @@ void RayTracerManager::Init()
 
 	manager.m_defaultWindow.Init("Ray:Default");
 	manager.m_rayMLVQWindow.Init("Ray:MLVQ");
+#pragma region Environmental map
+	{
+		const std::vector facesPath
+		{
+			FileIO::GetResourcePath("Textures/Skyboxes/Default/posx.jpg"),
+		FileIO::GetResourcePath("Textures/Skyboxes/Default/negx.jpg"),
+		FileIO::GetResourcePath("Textures/Skyboxes/Default/posy.jpg"),
+		FileIO::GetResourcePath("Textures/Skyboxes/Default/negy.jpg"),
+		FileIO::GetResourcePath("Textures/Skyboxes/Default/posz.jpg"),
+		FileIO::GetResourcePath("Textures/Skyboxes/Default/negz.jpg"),
+		};
+		manager.m_environmentalMap = ResourceManager::LoadCubemap(false, FileIO::GetResourcePath("Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr"));
+	}
+#pragma endregion
 }
 
 void RayTracerRenderWindow::Init(const std::string& name)

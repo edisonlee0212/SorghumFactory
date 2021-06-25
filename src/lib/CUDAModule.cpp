@@ -40,7 +40,7 @@ void CudaModule::Terminate()
 }
 
 
-void CudaModule::EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightProbe<float>>& lightProbes)
+void CudaModule::EstimateIlluminationRayTracing(const IlluminationEstimationProperties& properties, std::vector<LightSensor<float>>& lightProbes)
 {
 	auto& cudaModule = GetInstance();
 #pragma region Prepare light probes

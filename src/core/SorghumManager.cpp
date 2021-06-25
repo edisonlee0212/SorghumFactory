@@ -112,8 +112,7 @@ SorghumManager& SorghumManager::GetInstance()
 void SorghumManager::Init()
 {
 	auto& sorghumManager = GetInstance();
-	sorghumManager.m_leafNodeMaterial = std::make_shared<Material>();
-	sorghumManager.m_leafNodeMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+	sorghumManager.m_leafNodeMaterial = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafNodeMaterial->m_albedoColor = glm::vec3(0, 1, 0);
 
 	sorghumManager.m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf",
@@ -122,7 +121,7 @@ void SorghumManager::Init()
 	sorghumManager.m_leafQuery = EntityManager::CreateEntityQuery();
 	EntityManager::SetEntityQueryAllFilters(sorghumManager.m_leafQuery, LeafInfo());
 
-	sorghumManager.m_leafMaterial = std::make_shared<Material>();
+	sorghumManager.m_leafMaterial = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
 	const auto textureLeaf = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
@@ -131,9 +130,8 @@ void SorghumManager::Init()
 	sorghumManager.m_leafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_leafMaterial->m_metallic = 0.0f;
 
-	sorghumManager.m_instancedLeafMaterial = std::make_shared<Material>();
+	sorghumManager.m_instancedLeafMaterial = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardInstancedProgram);
 	sorghumManager.m_instancedLeafMaterial->m_cullingMode = MaterialCullingMode::Off;
-	sorghumManager.m_instancedLeafMaterial->SetProgram(DefaultResources::GLPrograms::StandardInstancedProgram);
 	sorghumManager.m_instancedLeafMaterial->SetTexture(textureLeaf);
 	sorghumManager.m_instancedLeafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_instancedLeafMaterial->m_metallic = 0.0f;
@@ -192,7 +190,7 @@ Entity SorghumManager::CreateSorghumLeaf(const Entity& plantEntity)
 
 	auto mmc = std::make_unique<MeshRenderer>();
 	mmc->m_material = GetInstance().m_leafMaterial;
-	mmc->m_mesh = std::make_shared<Mesh>();
+	mmc->m_mesh = ResourceManager::CreateResource<Mesh>();
 	
 	auto rtt = std::make_unique<RayTracedRenderer>();
 	rtt->m_mesh = mmc->m_mesh;

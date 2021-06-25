@@ -204,7 +204,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 	properties.m_seed = glm::linearRand(16384, 32768);
 	properties.m_skylightPower = 1.0f;
 	properties.m_pushNormal = true;
-	std::vector<RayTracerFacility::LightProbe<float>> lightProbes;
+	std::vector<RayTracerFacility::LightSensor<float>> lightProbes;
 	lightProbes.resize(manager.m_internodeQuery.GetEntityAmount());
 	EntityManager::ForEach<GlobalTransform>(JobManager::PrimaryWorkers(), manager.m_internodeQuery, [&](int i, Entity leafEntity, GlobalTransform& globalTransform)
 		{
@@ -429,7 +429,8 @@ void PlantManager::Init()
 	standardVert->Compile(vertShaderCode);
 	auto standardFrag = std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Fragment);
 	standardFrag->Compile(fragShaderCode);
-	auto branchProgram = std::make_shared<OpenGLUtils::GLProgram>(standardVert, standardFrag);
+	auto branchProgram = ResourceManager::CreateResource<OpenGLUtils::GLProgram>();
+	branchProgram->Link(standardVert, standardFrag);
 
 
 	vertShaderCode = std::string("#version 460 core\n")
@@ -444,7 +445,8 @@ void PlantManager::Init()
 	standardVert->Compile(vertShaderCode);
 	standardFrag = std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Fragment);
 	standardFrag->Compile(fragShaderCode);
-	auto leafProgram = std::make_shared<OpenGLUtils::GLProgram>(standardVert, standardFrag);
+	auto leafProgram = ResourceManager::CreateResource<OpenGLUtils::GLProgram>();
+	leafProgram->Link(standardVert, standardFrag);
 #pragma endregion
 #pragma region Entity
 	manager.m_internodeArchetype = EntityManager::CreateEntityArchetype(
