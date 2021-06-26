@@ -94,6 +94,7 @@ Entity TreeManager::GetLeaves(const Entity& tree)
 		meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 		meshRenderer->m_material->m_name = "Leaves mat";
 		meshRenderer->m_material->m_roughness = 0.0f;
+		meshRenderer->m_material->m_cullingMode = MaterialCullingMode::Off;
 		meshRenderer->m_material->m_metallic = 0.7f;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
 		meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
@@ -651,8 +652,8 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
 	material->m_roughness = 0.01f;
 	material->m_metallic = 0.0f;
-	material->SetTexture(manager.m_defaultBranchNormalTexture);
-	material->SetTexture(manager.m_defaultBranchAlbedoTexture);
+	material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
+	material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
 	auto meshRenderer = std::make_unique<MeshRenderer>();
 	meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
 	meshRenderer->m_material = std::move(material);
@@ -1372,7 +1373,8 @@ void TreeManager::GenerateLeavesForTree(PlantManager& plantManager)
 	auto& manager = GetInstance();
 	for (const auto& plant : PlantManager::GetInstance().m_plants)
 	{
-		GetLeaves(plant).GetPrivateComponent<TreeLeaves>()->m_transforms.clear();
+		Entity leaves = GetLeaves(plant);
+		if(leaves.IsValid()) leaves.GetPrivateComponent<TreeLeaves>()->m_transforms.clear();
 	}
 	std::mutex mutex;
 	EntityManager::ForEach<GlobalTransform, InternodeInfo, InternodeStatistics, Illumination>(JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
@@ -1415,7 +1417,8 @@ void TreeManager::GenerateLeavesForTree(PlantManager& plantManager)
 	);
 	for (const auto& plant : PlantManager::GetInstance().m_plants)
 	{
-		GetLeaves(plant).GetPrivateComponent<TreeLeaves>()->FormMesh();
+		Entity leaves = GetLeaves(plant);
+		if (leaves.IsValid()) leaves.GetPrivateComponent<TreeLeaves>()->FormMesh();
 	}
 }
 
@@ -2224,10 +2227,10 @@ void TreeManager::Init()
 	{
 		manager.m_randomColors.emplace_back(glm::linearRand(0.0f, 1.0f), glm::linearRand(0.0f, 1.0f), glm::linearRand(0.0f, 1.0f));
 	}
-	manager.m_defaultRayTracingBranchAlbedoTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_baseColor.jpg", TextureType::Albedo);
-	manager.m_defaultRayTracingBranchNormalTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_normal.jpg", TextureType::Normal);
-	manager.m_defaultBranchAlbedoTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_baseColor.jpg", TextureType::Albedo);
-	manager.m_defaultBranchNormalTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_normal.jpg", TextureType::Normal);
+	manager.m_defaultRayTracingBranchAlbedoTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
+	manager.m_defaultRayTracingBranchNormalTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_normal.jpg");
+	manager.m_defaultBranchAlbedoTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
+	manager.m_defaultBranchNormalTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/BarkMaterial/Bark_Pine_normal.jpg");
 #pragma endregion
 #pragma region General tree growth
 	plantManager.m_plantMeshGenerators.insert_or_assign(PlantType::GeneralTree, [](PlantManager& manager)

@@ -126,13 +126,13 @@ void SorghumManager::Init()
 	sorghumManager.m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
 	const auto textureLeaf = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
 	sorghumManager.m_leafSurfaceTexture = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
-	sorghumManager.m_leafMaterial->SetTexture(textureLeaf);
+	sorghumManager.m_leafMaterial->SetTexture(TextureType::Albedo, textureLeaf);
 	sorghumManager.m_leafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_leafMaterial->m_metallic = 0.0f;
 
 	sorghumManager.m_instancedLeafMaterial = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardInstancedProgram);
 	sorghumManager.m_instancedLeafMaterial->m_cullingMode = MaterialCullingMode::Off;
-	sorghumManager.m_instancedLeafMaterial->SetTexture(textureLeaf);
+	sorghumManager.m_instancedLeafMaterial->SetTexture(TextureType::Albedo, textureLeaf);
 	sorghumManager.m_instancedLeafMaterial->m_roughness = 0.0f;
 	sorghumManager.m_instancedLeafMaterial->m_metallic = 0.0f;
 
