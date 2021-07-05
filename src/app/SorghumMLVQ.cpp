@@ -19,27 +19,28 @@ int main()
 	PlantManager::Init();
 	SorghumManager::Init();
 	TreeManager::Init();
-	RayTracerManager::Init();
+	const bool enableRayTracing = true;
+	if(enableRayTracing) RayTracerManager::Init();
 #pragma region Engine Loop
-	Application::RegisterUpdateFunction([]()
+	Application::RegisterUpdateFunction([&]()
 		{
 			PlantManager::Update();
 			SorghumManager::Update();
 			TreeManager::Update();
-			RayTracerManager::Update();
+			if (enableRayTracing) RayTracerManager::Update();
 		}
 	);
-	Application::RegisterLateUpdateFunction([]()
+	Application::RegisterLateUpdateFunction([&]()
 		{
 			PlantManager::OnGui();
 			TreeManager::OnGui();
 			SorghumManager::OnGui();
-			RayTracerManager::OnGui();
+			if (enableRayTracing) RayTracerManager::OnGui();
 		}
 	);
 	Application::Run();
 #pragma endregion
-	RayTracerManager::End();
+	if (enableRayTracing) RayTracerManager::End();
 	Application::End();
 }
 void EngineSetup()
