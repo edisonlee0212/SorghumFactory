@@ -93,9 +93,9 @@ Entity TreeManager::GetLeaves(const Entity& tree)
 		auto& rayTracerMaterial = leaves.GetPrivateComponent<RayTracedRenderer>();
 		meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 		meshRenderer->m_material->m_name = "Leaves mat";
-		meshRenderer->m_material->m_roughness = 0.0f;
+		meshRenderer->m_material->m_roughness = 1.0f;
 		meshRenderer->m_material->m_cullingMode = MaterialCullingMode::Off;
-		meshRenderer->m_material->m_metallic = 0.7f;
+		meshRenderer->m_material->m_metallic = 0.0f;
 		meshRenderer->m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
 		meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
 		rayTracerMaterial->SyncWithMeshRenderer();
@@ -650,7 +650,7 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	EntityManager::SetPrivateComponent(plant, std::make_unique<TreeData>());
 	auto material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 	material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
-	material->m_roughness = 0.01f;
+	material->m_roughness = 1.0f;
 	material->m_metallic = 0.0f;
 	material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
 	material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);

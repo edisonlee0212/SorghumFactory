@@ -390,15 +390,15 @@ void PlantManager::Init()
 	manager.m_ground = EntityManager::CreateEntity("Ground");
 	auto meshRenderer = std::make_unique<MeshRenderer>();
 	meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
-	meshRenderer->m_material = ResourceManager::LoadMaterial(true, DefaultResources::GLPrograms::StandardProgram);
+	meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 	meshRenderer->m_material->m_name = "Ground mat";
-	meshRenderer->m_material->m_roughness = 0.0f;
-	meshRenderer->m_material->m_metallic = 0.7f;
+	meshRenderer->m_material->m_roughness = 1.0f;
+	meshRenderer->m_material->m_metallic = 0.5f;
 	meshRenderer->m_material->m_albedoColor = glm::vec3(1.0f);
 	manager.m_ground.SetPrivateComponent(std::move(meshRenderer));
 	Transform groundTransform;
 	GlobalTransform groundGlobalTransform;
-	groundTransform.SetScale(glm::vec3(75.0f, 1.0f, 75.0f));
+	groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
 	groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
 	groundGlobalTransform.m_value = groundTransform.m_value;
 	manager.m_ground.SetComponentData(groundTransform);
@@ -410,8 +410,8 @@ void PlantManager::Init()
 	rayTracedRenderer->m_enableMLVQ = true;
 	auto cubeVolume = std::make_unique<CubeVolume>();
 	cubeVolume->m_asObstacle = true;
-	cubeVolume->m_minMaxBound.m_max = glm::vec3(1000, -0.1f, 1000);
-	cubeVolume->m_minMaxBound.m_min = glm::vec3(-1000, -10.0f, -1000);
+	cubeVolume->m_minMaxBound.m_max = glm::vec3(500, -0.1f, 500);
+	cubeVolume->m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
 	manager.m_ground.SetPrivateComponent(std::move(cubeVolume));
 #pragma endregion
 

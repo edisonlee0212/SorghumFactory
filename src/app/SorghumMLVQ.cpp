@@ -52,7 +52,7 @@ void EngineSetup()
 	RenderManager::GetInstance().m_lightSettings.m_blockerSearchAmount = 6;
 	RenderManager::GetInstance().m_lightSettings.m_pcfSampleAmount = 16;
 	RenderManager::GetInstance().m_lightSettings.m_scaleFactor = 1.0f;
-	RenderManager::GetInstance().m_lightSettings.m_ambientLight = 1.0f;
+	RenderManager::GetInstance().m_lightSettings.m_ambientLight = 0.2f;
 	RenderManager::SetShadowMapResolution(4096);
 	RenderManager::GetInstance().m_stableFit = false;
 	RenderManager::GetInstance().m_lightSettings.m_seamFixRatio = 0.05f;
@@ -80,13 +80,11 @@ void EngineSetup()
 	if (mainCamera) {
 		mainCamera->GetOwner().SetComponentData(transform);
 		mainCamera->m_useClearColor = true;
-		mainCamera->m_clearColor = glm::vec3(0.2f);
+		mainCamera->m_clearColor = glm::vec3(0.5f);
 		auto postProcessing = std::make_unique<PostProcessing>();
 		postProcessing->PushLayer(std::make_unique<Bloom>());
-		//postProcessing->PushLayer(std::make_unique<SSAO>());
-		mainCamera->GetOwner().SetPrivateComponent(std::move(postProcessing));
+		//mainCamera->GetOwner().SetPrivateComponent(std::move(postProcessing));
 	}
-	EditorManager::GetSceneCamera()->m_clearColor = glm::vec3(0.2f);
 #pragma endregion
 	JobManager::ResizeSecondaryWorkers(0);
 	JobManager::ResizePrimaryWorkers(18);
