@@ -995,22 +995,22 @@ void TreeManager::OnGui()
 						glm::vec3 front = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(0, 0, -1);
 						glm::vec3 right = EditorManager::GetInstance().m_sceneCameraRotation * glm::vec3(1, 0, 0);
 						if (InputManager::GetKeyInternal(GLFW_KEY_W, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition += front * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
+							EditorManager::GetInstance().m_sceneCameraPosition += front * static_cast<float>(Application::Time().DeltaTime()) * EditorManager::GetInstance().m_velocity;
 						}
 						if (InputManager::GetKeyInternal(GLFW_KEY_S, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition -= front * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
+							EditorManager::GetInstance().m_sceneCameraPosition -= front * static_cast<float>(Application::Time().DeltaTime()) * EditorManager::GetInstance().m_velocity;
 						}
 						if (InputManager::GetKeyInternal(GLFW_KEY_A, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition -= right * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
+							EditorManager::GetInstance().m_sceneCameraPosition -= right * static_cast<float>(Application::Time().DeltaTime()) * EditorManager::GetInstance().m_velocity;
 						}
 						if (InputManager::GetKeyInternal(GLFW_KEY_D, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition += right * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime()) * EditorManager::GetInstance().m_velocity;
+							EditorManager::GetInstance().m_sceneCameraPosition += right * static_cast<float>(Application::Time().DeltaTime()) * EditorManager::GetInstance().m_velocity;
 						}
 						if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_SHIFT, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition.y += EditorManager::GetInstance().m_velocity * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime());
+							EditorManager::GetInstance().m_sceneCameraPosition.y += EditorManager::GetInstance().m_velocity * static_cast<float>(Application::Time().DeltaTime());
 						}
 						if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_CONTROL, WindowManager::GetWindow())) {
-							EditorManager::GetInstance().m_sceneCameraPosition.y -= EditorManager::GetInstance().m_velocity * static_cast<float>(Application::GetCurrentWorld()->Time()->DeltaTime());
+							EditorManager::GetInstance().m_sceneCameraPosition.y -= EditorManager::GetInstance().m_velocity * static_cast<float>(Application::Time().DeltaTime());
 						}
 						if (xOffset != 0.0f || yOffset != 0.0f) {
 							EditorManager::GetInstance().m_sceneCameraYawAngle += xOffset * EditorManager::GetInstance().m_sensitivity;
