@@ -665,7 +665,7 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	
 	auto skinnedMeshRenderer = std::make_unique<SkinnedMeshRenderer>();
 	skinnedMeshRenderer->m_skinnedMesh = ResourceManager::CreateResource<SkinnedMesh>();
-	skinnedMeshRenderer->m_skinnedMesh->m_animation = animator->m_animation; 
+	skinnedMeshRenderer->m_skinnedMesh->m_animation = plant.GetPrivateComponent<Animator>()->m_animation; 
 	skinnedMeshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardSkinnedProgram);
 	skinnedMeshRenderer->m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
 	skinnedMeshRenderer->m_material->m_roughness = 1.0f;
@@ -673,11 +673,12 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	skinnedMeshRenderer->m_material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
 	skinnedMeshRenderer->m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
 	skinnedMeshRenderer->AttachAnimator(plant);
+	plant.SetPrivateComponent(std::move(skinnedMeshRenderer));
 	
 	auto rtt = std::make_unique<RayTracedRenderer>();
 	rtt->m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
 	rtt->m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
-	rtt->m_mesh = meshRenderer->m_mesh;
+	rtt->m_mesh = plant.GetPrivateComponent<MeshRenderer>()->m_mesh;
 	plant.SetPrivateComponent(std::move(rtt));
 	
 	
@@ -1522,7 +1523,7 @@ void TreeManager::GenerateMeshForTree(PlantManager& manager)
 			for (int i = 0; i < boundEntities.size(); i++)
 			{
 				names[i] = boundEntities[i].GetName();
-				offsetMatrices[i] = glm::inverse(plantGlobalTransform.m_value) * boundEntities[i].GetComponentData<GlobalTransform>().m_value;
+				offsetMatrices[i] = glm::inverse(plantGlobalTransform.m_value) * glm::inverse(boundEntities[i].GetComponentData<GlobalTransform>().m_value);
 				boneIndices[i] = i;
 			}
 			animator->Setup(boundEntities, names, offsetMatrices);
