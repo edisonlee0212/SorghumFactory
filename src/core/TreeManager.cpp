@@ -657,8 +657,9 @@ Entity TreeManager::CreateTree(const Transform& transform)
 	auto meshRenderer = std::make_unique<MeshRenderer>();
 	meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
 	meshRenderer->m_material = std::move(material);
-	
-
+	auto animator = std::make_unique<Animator>();
+	animator->m_animation = ResourceManager::CreateResource<Animation>();
+	plant.SetPrivateComponent(std::move(animator));
 	auto rtt = std::make_unique<RayTracedRenderer>();
 	rtt->m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
 	rtt->m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
@@ -1143,6 +1144,15 @@ void TreeManager::RenderBranchPointers(const float& displayTime)
 
 }
 
+void TreeManager::TreeNodeWalker(std::vector<Entity>& boundEntities, const Entity& node)
+{
+	boundEntities.push_back(node);
+	EntityManager::ForEachChild(node, [&](Entity child)
+	{
+		TreeNodeWalker(boundEntities, child);
+	});
+}
+
 TreeManager& TreeManager::GetInstance()
 {
 	static TreeManager instance;
@@ -1353,10 +1363,27 @@ void TreeManager::GenerateMeshForTree(PlantManager& manager)
 	for (const auto& plant : manager.m_plants) {
 		if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
 		if (!plant.HasPrivateComponent<MeshRenderer>() || !plant.HasPrivateComponent<TreeData>()) continue;
+		auto& animator = plant.GetPrivateComponent<Animator>();
 		auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(plant);
 		auto& treeData = EntityManager::GetPrivateComponent<TreeData>(plant);
 		if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull())
 		{
+#pragma region Animator
+			const auto plantGlobalTransform = plant.GetComponentData<GlobalTransform>();
+			std::vector<Entity> boundEntities;
+			TreeNodeWalker(boundEntities, rootInternode);
+			std::vector<glm::mat4> offsetMatrices;
+			std::vector<std::string> names;
+			offsetMatrices.resize(boundEntities.size());
+			names.resize(boundEntities.size());
+			for(int i = 0; i < boundEntities.size(); i++)
+			{
+				names[i] = boundEntities[i].GetName();
+				offsetMatrices[i] = glm::inverse(plantGlobalTransform.m_value) * boundEntities[i].GetComponentData<GlobalTransform>().m_value;
+			}
+			animator->Setup(boundEntities, names, offsetMatrices);
+#pragma endregion
+
 			if (EntityManager::GetChildrenAmount(rootInternode) != 0) {
 				std::vector<unsigned> indices;
 				std::vector<Vertex> vertices;

@@ -138,7 +138,7 @@ namespace PlantFactory {
 		
 		static void RenderBranchCylinders(const float& displayTime);
 		static void RenderBranchPointers(const float& displayTime);
-		
+		static void TreeNodeWalker(std::vector<Entity>& boundEntities, const Entity& node);
 		static TreeManager& GetInstance();
 		static void SimpleMeshGenerator(Entity& internode, std::vector<Vertex>& vertices, std::vector<unsigned>& indices, const glm::vec3& normal, float resolution, int parentStep = -1);
 		static void GenerateMeshForTree(PlantManager& manager);
