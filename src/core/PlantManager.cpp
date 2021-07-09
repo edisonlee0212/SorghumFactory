@@ -7,13 +7,15 @@
 #include <TreeManager.hpp>
 #include <RayTracerManager.hpp>
 #include <RayTracedRenderer.hpp>
+#include <RigidBody.hpp>
+#include <D6Joint.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
 void ResourceParcel::OnGui() const
 {
-	ImGui::Text(("Nutrient: " + std::to_string(m_nutrient)).c_str());
-	ImGui::Text(("Carbon: " + std::to_string(m_carbon)).c_str());
+	ImGui::Text("%s", ("Nutrient: " + std::to_string(m_nutrient)).c_str());
+	ImGui::Text("%s", ("Carbon: " + std::to_string(m_carbon)).c_str());
 }
 
 void InternodeData::OnGui()
@@ -21,12 +23,12 @@ void InternodeData::OnGui()
 	if (ImGui::TreeNode("Display buds")) {
 		for (int i = 0; i < m_buds.size(); i++)
 		{
-			ImGui::Text(("Bud: " + std::to_string(i)).c_str());
+			ImGui::Text("%s", ("Bud: " + std::to_string(i)).c_str());
 			if (ImGui::TreeNode("Info")) {
 				ImGui::Text(m_buds[i].m_isApical ? "Type: Apical" : "Type: Lateral");
 				ImGui::Text(m_buds[i].m_active ? "Status: Active" : "Status: Not active");
 				ImGui::Text(m_buds[i].m_enoughForGrowth ? "Has enough resource: True" : "Has enough resource: False");
-				ImGui::Text(("ResourceWeight: " + std::to_string(m_buds[i].m_resourceWeight)).c_str());
+				ImGui::Text("%s", ("ResourceWeight: " + std::to_string(m_buds[i].m_resourceWeight)).c_str());
 				if (ImGui::TreeNode("Current Resource")) {
 					m_buds[i].m_currentResource.OnGui();
 					ImGui::TreePop();
@@ -61,7 +63,7 @@ void PlantManager::OnGui()
 			if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
 			ImGui::EndPopup();
 		}
-		ImGui::Text(("Internode amount: " + std::to_string(manager.m_internodes.size())).c_str());
+		ImGui::Text("%s", ("Internode amount: " + std::to_string(manager.m_internodes.size())).c_str());
 		if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			if (ImGui::Button("Recalculate illumination")) CalculateIlluminationForInternodes(manager);
@@ -185,6 +187,19 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
 		newInternodeData->m_owner = candidate.m_owner;
 		EntityManager::SetPrivateComponent<InternodeData>(newInternode, std::move(newInternodeData));
 		EntityManager::SetParent(newInternode, candidate.m_parent);
+        if(candidate.m_info.m_plantType == PlantType::GeneralTree){
+            newInternode.SetPrivateComponent<RigidBody>(std::make_unique<RigidBody>());
+            auto& rigidBody = newInternode.GetPrivateComponent<RigidBody>();
+            rigidBody->SetShapeType(ShapeType::Sphere);
+            rigidBody->SetStatic(false);
+            // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
+            rigidBody->SetShapeParam(glm::vec3(0.01f));
+            rigidBody->SetEnabled(false);
+
+            newInternode.SetPrivateComponent<D6Joint>(std::make_unique<D6Joint>());
+            newInternode.GetPrivateComponent<D6Joint>()->m_linkedEntity = candidate.m_parent;
+            newInternode.GetPrivateComponent<D6Joint>()->Link();
+        }
 		i++;
 	}
 	GetInstance().m_internodeCreateTimer = Application::EngineTime() - time;
@@ -320,7 +335,7 @@ Entity PlantManager::CreatePlant(const PlantType& type, const Transform& transfo
 	entity.SetComponentData(globalTransform);
 	entity.SetComponentData(transform);
 	entity.SetName("Tree");
-	PlantInfo treeInfo;
+	PlantInfo treeInfo{};
 	treeInfo.m_plantType = type;
 	treeInfo.m_age = 0;
 	treeInfo.m_startTime = GetInstance().m_globalTime;
@@ -352,6 +367,8 @@ Entity PlantManager::CreatePlant(const PlantType& type, const Transform& transfo
 	rootInternodeData->m_buds.push_back(bud);
 	rootInternodeData->m_owner = entity;
 	EntityManager::SetParent(rootInternode, entity);
+
+
 #pragma endregion
 	return entity;
 }
