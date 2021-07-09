@@ -81,13 +81,8 @@ void EngineSetup()
 		mainCamera->GetOwner().SetComponentData(transform);
 		mainCamera->m_useClearColor = true;
 		mainCamera->m_clearColor = glm::vec3(0.5f);
-		auto postProcessing = std::make_unique<PostProcessing>();
-		postProcessing->PushLayer(std::make_unique<Bloom>());
-		//mainCamera->GetOwner().SetPrivateComponent(std::move(postProcessing));
 	}
 #pragma endregion
-	JobManager::ResizeSecondaryWorkers(0);
-	JobManager::ResizePrimaryWorkers(18);
 #pragma endregion
 
 	const Entity lightEntity = EntityManager::CreateEntity("Light source");
