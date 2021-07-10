@@ -5,7 +5,8 @@
 #include <RayTracedRenderer.hpp>
 #include <TreeLeaves.hpp>
 #include <RigidBody.hpp>
-
+#include <FixedJoint.hpp>
+#include <PhysicsManager.hpp>
 using namespace RayTracerFacility;
 using namespace PlantFactory;
 
@@ -709,7 +710,7 @@ Entity TreeManager::CreateTree(const Transform &transform) {
     rigidBody->SetStatic(true);
     // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
     rigidBody->SetShapeParam(glm::vec3(0.01f));
-    rigidBody->SetEnabled(false);
+    rigidBody->SetEnabled(true);
 
     GetLeaves(plant);
     GetRbv(plant);
@@ -932,7 +933,6 @@ void TreeManager::OnGui() {
                         treeTransform.SetPosition(newTreePositions[i]);
                         treeTransform.SetEulerRotation(glm::radians(newTreeRotations[i]));
                         Entity tree = CreateTree(treeTransform);
-                        tree.SetStatic(true);
                         tree.GetPrivateComponent<TreeData>()->m_parameters = newTreeParameters[i];
                     }
                     ImGui::CloseCurrentPopup();
@@ -1297,18 +1297,18 @@ TreeManager &TreeManager::GetInstance() {
     return instance;
 }
 
-void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector<Vertex> &vertices,
-                                    std::vector<unsigned> &indices, const glm::vec3 &normal) {
-    glm::vec3 newNormalDir = normal;
+void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector<int>& parentIndices, std::vector<Vertex> &vertices,
+                                    std::vector<unsigned> &indices) {
     int parentStep = -1;
-    for (int i = 1; i < internodes.size(); i++) {
-        auto &internode = internodes[i];
+    for (int internodeIndex = 1; internodeIndex < internodes.size(); internodeIndex++) {
+        auto &internode = internodes[internodeIndex];
+        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>()->m_normalDir;
         const glm::vec3 front =
                 internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
         auto &list = EntityManager::GetPrivateComponent<InternodeData>(internode);
         if (list->m_rings.empty()) {
-            return;
+            continue;
         }
         auto step = list->m_step;
         //For stitching
@@ -1417,17 +1417,17 @@ void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector
 
 void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes, std::vector<int> &parentIndices,
                                            std::vector<SkinnedVertex> &vertices,
-                                           std::vector<unsigned> &indices, const glm::vec3 &normal) {
-    glm::vec3 newNormalDir = normal;
+                                           std::vector<unsigned> &indices) {
     int parentStep = -1;
-    for (int i = 1; i < internodes.size(); i++) {
-        auto &internode = internodes[i];
+    for (int internodeIndex = 1; internodeIndex < internodes.size(); internodeIndex++) {
+        auto &internode = internodes[internodeIndex];
+        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>()->m_normalDir;
         const glm::vec3 front =
                 internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
         auto &list = EntityManager::GetPrivateComponent<InternodeData>(internode);
         if (list->m_rings.empty()) {
-            return;
+            continue;
         }
         auto step = list->m_step;
         //For stitching
@@ -1437,7 +1437,7 @@ void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes, std:
         float angleStep = 360.0f / static_cast<float>(pStep);
         int vertexIndex = vertices.size();
         SkinnedVertex archetype;
-        archetype.m_bondId = glm::ivec4(i, parentIndices[i], -1, -1);
+        archetype.m_bondId = glm::ivec4(internodeIndex, parentIndices[internodeIndex], -1, -1);
         archetype.m_bondId2 = glm::ivec4(-1, -1, -1, -1);
         archetype.m_weight = glm::vec4(0.8f, 0.2f, 0.0f, 0.0f);
         archetype.m_weight2 = glm::vec4(0.0f);
@@ -1546,184 +1546,185 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
     }
 
     //Prepare ring mesh.
-    EntityManager::ForEach<GlobalTransform, Transform, InternodeGrowth, InternodeInfo>(JobManager::PrimaryWorkers(),
-                                                                                       manager.m_internodeQuery,
-                                                                                       [&](int i, Entity internode,
-                                                                                           GlobalTransform &globalTransform,
-                                                                                           Transform &transform,
-                                                                                           InternodeGrowth &internodeGrowth,
-                                                                                           InternodeInfo &internodeInfo) {
-                                                                                           if (internodeInfo.m_plantType !=
-                                                                                               PlantType::GeneralTree)
-                                                                                               return;
-                                                                                           const Entity parent = EntityManager::GetParent(
-                                                                                                   internode);
-                                                                                           if (parent ==
-                                                                                               internodeInfo.m_plant)
-                                                                                               return;
-                                                                                           bool isRootInternode = false;
-                                                                                           if (EntityManager::GetParent(
-                                                                                                   parent) ==
-                                                                                               internodeInfo.m_plant)
-                                                                                               isRootInternode = true;
+    EntityManager::ForEach<GlobalTransform, Transform, InternodeGrowth, InternodeInfo>
+            (JobManager::PrimaryWorkers(),
+             manager.m_internodeQuery,
+             [&](int i, Entity internode,
+                 GlobalTransform &globalTransform,
+                 Transform &transform,
+                 InternodeGrowth &internodeGrowth,
+                 InternodeInfo &internodeInfo) {
+                 if (internodeInfo.m_plantType !=
+                     PlantType::GeneralTree)
+                     return;
+                 const Entity parent = EntityManager::GetParent(
+                         internode);
+                 if (parent ==
+                     internodeInfo.m_plant)
+                     return;
+                 bool isRootInternode = false;
+                 if (EntityManager::GetParent(
+                         parent) ==
+                     internodeInfo.m_plant)
+                     isRootInternode = true;
 
-                                                                                           auto &list = EntityManager::GetPrivateComponent<InternodeData>(
-                                                                                                   internode);
-                                                                                           list->m_rings.clear();
-                                                                                           glm::mat4 treeTransform = internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value;
-                                                                                           GlobalTransform parentGlobalTransform;
-                                                                                           parentGlobalTransform.m_value =
-                                                                                                   glm::inverse(
-                                                                                                           treeTransform) *
-                                                                                                   parent.GetComponentData<GlobalTransform>().m_value;
-                                                                                           float parentThickness = isRootInternode
-                                                                                                                   ?
-                                                                                                                   internodeGrowth.m_thickness *
-                                                                                                                   1.25f
-                                                                                                                   : parent.GetComponentData<InternodeGrowth>().m_thickness;
-                                                                                           glm::vec3 parentScale;
-                                                                                           glm::quat parentRotation;
-                                                                                           glm::vec3 parentTranslation;
-                                                                                           parentGlobalTransform.Decompose(
-                                                                                                   parentTranslation,
-                                                                                                   parentRotation,
-                                                                                                   parentScale);
+                 auto &list = EntityManager::GetPrivateComponent<InternodeData>(
+                         internode);
+                 list->m_rings.clear();
+                 glm::mat4 treeTransform = internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value;
+                 GlobalTransform parentGlobalTransform;
+                 parentGlobalTransform.m_value =
+                         glm::inverse(
+                                 treeTransform) *
+                         parent.GetComponentData<GlobalTransform>().m_value;
+                 float parentThickness = isRootInternode
+                                         ?
+                                         internodeGrowth.m_thickness *
+                                         1.25f
+                                         : parent.GetComponentData<InternodeGrowth>().m_thickness;
+                 glm::vec3 parentScale;
+                 glm::quat parentRotation;
+                 glm::vec3 parentTranslation;
+                 parentGlobalTransform.Decompose(
+                         parentTranslation,
+                         parentRotation,
+                         parentScale);
 
-                                                                                           glm::vec3 scale;
-                                                                                           glm::quat rotation;
-                                                                                           glm::vec3 translation;
-                                                                                           GlobalTransform copyGT;
-                                                                                           copyGT.m_value =
-                                                                                                   glm::inverse(
-                                                                                                           treeTransform) *
-                                                                                                   globalTransform.m_value;
-                                                                                           copyGT.Decompose(translation,
-                                                                                                            rotation,
-                                                                                                            scale);
+                 glm::vec3 scale;
+                 glm::quat rotation;
+                 glm::vec3 translation;
+                 GlobalTransform copyGT;
+                 copyGT.m_value =
+                         glm::inverse(
+                                 treeTransform) *
+                         globalTransform.m_value;
+                 copyGT.Decompose(translation,
+                                  rotation,
+                                  scale);
 
-                                                                                           glm::vec3 parentDir = isRootInternode
-                                                                                                                 ? glm::vec3(
-                                                                                                           0, 1, 0) :
-                                                                                                                 parentRotation *
-                                                                                                                 glm::vec3(
-                                                                                                                         0,
-                                                                                                                         0,
-                                                                                                                         -1);
-                                                                                           glm::vec3 dir = rotation *
-                                                                                                           glm::vec3(0,
-                                                                                                                     0,
-                                                                                                                     -1);
-                                                                                           glm::quat mainChildRotation = rotation;
-                                                                                           if (!internodeGrowth.m_thickestChild.IsNull()) {
-                                                                                               GlobalTransform thickestChildTransform;
-                                                                                               thickestChildTransform.m_value =
-                                                                                                       glm::inverse(
-                                                                                                               treeTransform) *
-                                                                                                       internodeGrowth.m_thickestChild.GetComponentData<GlobalTransform>().m_value;
-                                                                                               mainChildRotation = thickestChildTransform.GetRotation();
-                                                                                           }
-                                                                                           glm::vec3 mainChildDir =
-                                                                                                   mainChildRotation *
-                                                                                                   glm::vec3(0, 0, -1);
-                                                                                           GlobalTransform parentThickestChildGlobalTransform;
-                                                                                           parentThickestChildGlobalTransform.m_value =
-                                                                                                   glm::inverse(
-                                                                                                           treeTransform) *
-                                                                                                   parent.GetComponentData<InternodeGrowth>().m_thickestChild.GetComponentData<GlobalTransform>().m_value;
-                                                                                           glm::vec3 parentMainChildDir =
-                                                                                                   parentThickestChildGlobalTransform.GetRotation() *
-                                                                                                   glm::vec3(0, 0, -1);
-                                                                                           glm::vec3 fromDir = isRootInternode
-                                                                                                               ? parentDir
-                                                                                                               :
-                                                                                                               (parentDir +
-                                                                                                                parentMainChildDir) /
-                                                                                                               2.0f;
-                                                                                           dir = (dir + mainChildDir) /
-                                                                                                 2.0f;
+                 glm::vec3 parentDir = isRootInternode
+                                       ? glm::vec3(
+                                 0, 1, 0) :
+                                       parentRotation *
+                                       glm::vec3(
+                                               0,
+                                               0,
+                                               -1);
+                 glm::vec3 dir = rotation *
+                                 glm::vec3(0,
+                                           0,
+                                           -1);
+                 glm::quat mainChildRotation = rotation;
+                 if (!internodeGrowth.m_thickestChild.IsNull()) {
+                     GlobalTransform thickestChildTransform;
+                     thickestChildTransform.m_value =
+                             glm::inverse(
+                                     treeTransform) *
+                             internodeGrowth.m_thickestChild.GetComponentData<GlobalTransform>().m_value;
+                     mainChildRotation = thickestChildTransform.GetRotation();
+                 }
+                 glm::vec3 mainChildDir =
+                         mainChildRotation *
+                         glm::vec3(0, 0, -1);
+                 GlobalTransform parentThickestChildGlobalTransform;
+                 parentThickestChildGlobalTransform.m_value =
+                         glm::inverse(
+                                 treeTransform) *
+                         parent.GetComponentData<InternodeGrowth>().m_thickestChild.GetComponentData<GlobalTransform>().m_value;
+                 glm::vec3 parentMainChildDir =
+                         parentThickestChildGlobalTransform.GetRotation() *
+                         glm::vec3(0, 0, -1);
+                 glm::vec3 fromDir = isRootInternode
+                                     ? parentDir
+                                     :
+                                     (parentDir +
+                                      parentMainChildDir) /
+                                     2.0f;
+                 dir = (dir + mainChildDir) /
+                       2.0f;
 #pragma region Subdivision internode here.
-                                                                                           auto distance = glm::distance(
-                                                                                                   parentTranslation,
-                                                                                                   translation);
+                 auto distance = glm::distance(
+                         parentTranslation,
+                         translation);
 
-                                                                                           int step = parentThickness /
-                                                                                                      treeManager.m_meshResolution;
-                                                                                           if (step < 4) step = 4;
-                                                                                           if (step % 2 != 0) step++;
-                                                                                           list->m_step = step;
-                                                                                           int amount = static_cast<int>(
-                                                                                                   0.5f + distance *
-                                                                                                          treeManager.m_meshSubdivision);
-                                                                                           if (amount % 2 != 0)
-                                                                                               amount++;
-                                                                                           BezierCurve curve = BezierCurve(
-                                                                                                   parentTranslation,
-                                                                                                   parentTranslation +
-                                                                                                   distance / 3.0f *
-                                                                                                   fromDir,
-                                                                                                   translation -
-                                                                                                   distance / 3.0f *
-                                                                                                   dir, translation);
-                                                                                           float posStep = 1.0f /
-                                                                                                           static_cast<float>(amount);
-                                                                                           glm::vec3 dirStep =
-                                                                                                   (dir - fromDir) /
-                                                                                                   static_cast<float>(amount);
-                                                                                           float radiusStep =
-                                                                                                   (internodeGrowth.m_thickness -
-                                                                                                    parentThickness) /
-                                                                                                   static_cast<float>(amount);
+                 int step = parentThickness /
+                            treeManager.m_meshResolution;
+                 if (step < 4) step = 4;
+                 if (step % 2 != 0) step++;
+                 list->m_step = step;
+                 int amount = static_cast<int>(
+                         0.5f + distance *
+                                treeManager.m_meshSubdivision);
+                 if (amount % 2 != 0)
+                     amount++;
+                 BezierCurve curve = BezierCurve(
+                         parentTranslation,
+                         parentTranslation +
+                         distance / 3.0f *
+                         fromDir,
+                         translation -
+                         distance / 3.0f *
+                         dir, translation);
+                 float posStep = 1.0f /
+                                 static_cast<float>(amount);
+                 glm::vec3 dirStep =
+                         (dir - fromDir) /
+                         static_cast<float>(amount);
+                 float radiusStep =
+                         (internodeGrowth.m_thickness -
+                          parentThickness) /
+                         static_cast<float>(amount);
 
-                                                                                           for (int i = 1;
-                                                                                                i < amount; i++) {
-                                                                                               float startThickness =
-                                                                                                       static_cast<float>(
-                                                                                                               i - 1) *
-                                                                                                       radiusStep;
-                                                                                               float endThickness =
-                                                                                                       static_cast<float>(i) *
-                                                                                                       radiusStep;
-                                                                                               list->m_rings.emplace_back(
-                                                                                                       curve.GetPoint(
-                                                                                                               posStep *
-                                                                                                               (i - 1)),
-                                                                                                       curve.GetPoint(
-                                                                                                               posStep *
-                                                                                                               i),
-                                                                                                       fromDir +
-                                                                                                       static_cast<float>(
-                                                                                                               i - 1) *
-                                                                                                       dirStep,
-                                                                                                       fromDir +
-                                                                                                       static_cast<float>(i) *
-                                                                                                       dirStep,
-                                                                                                       parentThickness +
-                                                                                                       startThickness,
-                                                                                                       parentThickness +
-                                                                                                       endThickness);
-                                                                                           }
-                                                                                           if (amount > 1)
-                                                                                               list->m_rings.emplace_back(
-                                                                                                       curve.GetPoint(
-                                                                                                               1.0f -
-                                                                                                               posStep),
-                                                                                                       translation,
-                                                                                                       dir - dirStep,
-                                                                                                       dir,
-                                                                                                       internodeGrowth.m_thickness -
-                                                                                                       radiusStep,
-                                                                                                       internodeGrowth.m_thickness);
-                                                                                           else
-                                                                                               list->m_rings.emplace_back(
-                                                                                                       parentTranslation,
-                                                                                                       translation,
-                                                                                                       fromDir, dir,
-                                                                                                       parentThickness,
-                                                                                                       internodeGrowth.m_thickness);
+                 for (int i = 1;
+                      i < amount; i++) {
+                     float startThickness =
+                             static_cast<float>(
+                                     i - 1) *
+                             radiusStep;
+                     float endThickness =
+                             static_cast<float>(i) *
+                             radiusStep;
+                     list->m_rings.emplace_back(
+                             curve.GetPoint(
+                                     posStep *
+                                     (i - 1)),
+                             curve.GetPoint(
+                                     posStep *
+                                     i),
+                             fromDir +
+                             static_cast<float>(
+                                     i - 1) *
+                             dirStep,
+                             fromDir +
+                             static_cast<float>(i) *
+                             dirStep,
+                             parentThickness +
+                             startThickness,
+                             parentThickness +
+                             endThickness);
+                 }
+                 if (amount > 1)
+                     list->m_rings.emplace_back(
+                             curve.GetPoint(
+                                     1.0f -
+                                     posStep),
+                             translation,
+                             dir - dirStep,
+                             dir,
+                             internodeGrowth.m_thickness -
+                             radiusStep,
+                             internodeGrowth.m_thickness);
+                 else
+                     list->m_rings.emplace_back(
+                             parentTranslation,
+                             translation,
+                             fromDir, dir,
+                             parentThickness,
+                             internodeGrowth.m_thickness);
 #pragma endregion
-                                                                                       }
+             }
 
-    );
+            );
     for (const auto &plant : manager.m_plants) {
         if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
         if (!plant.HasPrivateComponent<MeshRenderer>() || !plant.HasPrivateComponent<TreeData>()) continue;
@@ -1754,13 +1755,12 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
             if (EntityManager::GetChildrenAmount(rootInternode) != 0) {
                 std::vector<unsigned> indices;
                 std::vector<Vertex> vertices;
-                TreeMeshGenerator(boundEntities, vertices, indices, glm::vec3(0, 0, 1));
+                TreeMeshGenerator(boundEntities, parentIndices, vertices, indices);
                 meshRenderer->m_mesh->SetVertices(17, vertices, indices);
 
                 std::vector<unsigned> skinnedIndices;
                 std::vector<SkinnedVertex> skinnedVertices;
-                TreeSkinnedMeshGenerator(boundEntities, parentIndices, skinnedVertices, skinnedIndices,
-                                         glm::vec3(0, 0, 1));
+                TreeSkinnedMeshGenerator(boundEntities, parentIndices, skinnedVertices, skinnedIndices);
                 skinnedMeshRenderer->m_skinnedMesh->SetVertices(17, skinnedVertices, skinnedIndices);
                 skinnedMeshRenderer->m_skinnedMesh->m_boneAnimatorIndices = boneIndices;
 
@@ -2131,6 +2131,7 @@ void TreeManager::PruneTrees(PlantManager &manager, std::vector<Volume *> &obsta
                 }
             }, false
     );
+    return;
     for (const auto &i : cutOff)
         EntityManager::DeleteEntity(i);
 }
@@ -2398,6 +2399,12 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         child.SetComponentData(childInternodeTransform);
         child.SetComponentData(childInternodeGlobalTransform);
         child.SetComponentData(childInternodeGrowth);
+        auto& rigidBody = child.GetPrivateComponent<RigidBody>();
+        rigidBody->SetAngularVelocity(glm::vec3(0.0f));
+        rigidBody->SetLinearVelocity(glm::vec3(0.0f));
+        rigidBody->UpdateMass(0.001f);
+        PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
+        child.GetPrivateComponent<FixedJoint>()->Link();
 #pragma endregion
 #pragma region Retarget current internode
         currentInternode = child;
@@ -2461,6 +2468,12 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                         child.SetComponentData(childInternodeStatistics);
                                         child.SetComponentData(childInternodeInfo);
                                         child.SetComponentData(childInternodeGrowth);
+                                        auto& rigidBody = child.GetPrivateComponent<RigidBody>();
+                                        rigidBody->SetAngularVelocity(glm::vec3(0.0f));
+                                        rigidBody->SetLinearVelocity(glm::vec3(0.0f));
+                                        rigidBody->UpdateMass(0.001f);
+                                        PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
+                                        child.GetPrivateComponent<FixedJoint>()->Link();
 #pragma endregion
                                         UpdateLevels(child, treeData);
                                         childInternodeStatistics = child.GetComponentData<InternodeStatistics>();

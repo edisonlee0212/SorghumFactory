@@ -143,7 +143,7 @@ namespace PlantFactory {
 		std::vector<glm::vec3> m_points;
 		std::vector<Bud> m_buds;
 		std::vector<InternodeRingSegment> m_rings;
-		glm::vec3 m_normalDir;
+		glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
 		int m_step;
 		void OnGui() override;
 	};

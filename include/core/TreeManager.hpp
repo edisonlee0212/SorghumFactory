@@ -140,8 +140,8 @@ namespace PlantFactory {
 		static void RenderBranchPointers(const float& displayTime);
 		static void TreeNodeWalker(std::vector<Entity>& boundEntities, std::vector<int>& parentIndices, const int& parentIndex, const Entity& node);
 		static TreeManager& GetInstance();
-		static void TreeMeshGenerator(std::vector<Entity>& internodes, std::vector<Vertex>& vertices, std::vector<unsigned>& indices, const glm::vec3& normal);
-		static void TreeSkinnedMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<SkinnedVertex>& vertices, std::vector<unsigned>& indices, const glm::vec3& normal);
+		static void TreeMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<Vertex>& vertices, std::vector<unsigned>& indices);
+		static void TreeSkinnedMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<SkinnedVertex>& vertices, std::vector<unsigned>& indices);
 		static void GenerateMeshForTree(PlantManager& manager);
 		static void GenerateLeavesForTree(PlantManager& plantManager);
 		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
