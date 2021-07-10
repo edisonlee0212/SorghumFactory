@@ -142,7 +142,7 @@ void SorghumManager::Init()
 		}
 	);
 
-	PlantManager::GetInstance().m_plantFoliageGenerators.insert_or_assign(PlantType::Sorghum, [](PlantManager& manager)
+	PlantManager::GetInstance().m_plantMeshGenerators.insert_or_assign(PlantType::Sorghum, [](PlantManager& manager)
 		{
 			GenerateLeavesForSorghum(manager);
 		}

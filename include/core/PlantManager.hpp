@@ -59,6 +59,7 @@ namespace PlantFactory {
 		float m_startGlobalTime = 0;
 		int m_order = 1;
 		int m_level = 1;
+		int m_index = -1;
 	};
 	struct InternodeGrowth : ComponentDataBase
 	{
@@ -195,8 +196,6 @@ namespace PlantFactory {
 		std::map<PlantType, std::function<void(PlantManager& manager)>>
 			m_plantMetaDataCalculators;
 		std::map<PlantType, std::function<void(PlantManager& manager)>>
-			m_plantFoliageGenerators;
-		std::map<PlantType, std::function<void(PlantManager& manager)>>
 			m_plantMeshGenerators;
 #pragma region Growth
 		static bool GrowAllPlants();
@@ -238,7 +237,6 @@ namespace PlantFactory {
 		
 		
 #pragma region Timers
-		float m_foliageGenerationTimer = 0;
 		float m_meshGenerationTimer = 0;
 		float m_resourceAllocationTimer = 0;
 		float m_internodeFormTimer = 0;

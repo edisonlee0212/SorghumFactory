@@ -56,7 +56,7 @@ void PlantManager::OnGui()
 			ImGui::Text("Are you sure? All plants will be removed!");
 			if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
 				DeleteAllPlants();
-				TreeManager::GenerateLeavesForTree(manager);
+				TreeManager::GenerateMeshForTree(manager);
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SetItemDefaultFocus();
@@ -194,10 +194,10 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
             rigidBody->SetShapeType(ShapeType::Sphere);
             rigidBody->SetStatic(false);
             // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-            rigidBody->SetShapeParam(glm::vec3(0.01f));
+            rigidBody->SetShapeParam(glm::vec3(0.001f));
             rigidBody->SetEnabled(true);
-            newInternode.SetPrivateComponent<D6Joint>(std::make_unique<D6Joint>());
-            newInternode.GetPrivateComponent<D6Joint>()->m_linkedEntity = candidate.m_parent;
+            newInternode.SetPrivateComponent<FixedJoint>(std::make_unique<FixedJoint>());
+            newInternode.GetPrivateComponent<FixedJoint>()->m_linkedEntity = candidate.m_parent;
         }
 		i++;
 	}
@@ -581,14 +581,8 @@ void PlantManager::Refresh()
 	manager.m_internodeTransforms.resize(0);
 	manager.m_internodeQuery.ToComponentDataArray(manager.m_internodeTransforms);
 	manager.m_internodeQuery.ToEntityArray(manager.m_internodes);
-	float time = Application::EngineTime();
-	for (auto& i : manager.m_plantFoliageGenerators)
-	{
-		i.second(manager);
-	}
-	manager.m_foliageGenerationTimer = Application::EngineTime() - time;
 
-	time = Application::EngineTime();
+	float time = Application::EngineTime();
 	for (auto& i : manager.m_plantMeshGenerators)
 	{
 		i.second(manager);

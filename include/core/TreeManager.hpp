@@ -143,7 +143,6 @@ namespace PlantFactory {
 		static void TreeMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<Vertex>& vertices, std::vector<unsigned>& indices);
 		static void TreeSkinnedMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<SkinnedVertex>& vertices, std::vector<unsigned>& indices);
 		static void GenerateMeshForTree(PlantManager& manager);
-		static void GenerateLeavesForTree(PlantManager& plantManager);
 		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
 		static float GetGrowthParameter(const GrowthParameterType& type, std::unique_ptr<TreeData>& treeData, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics);
 		static void PruneTrees(PlantManager& manager, std::vector<Volume*>& obstacles);

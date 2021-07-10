@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.17)
-
 project(
 		RayMLVQ
 		VERSION 0.1
@@ -79,6 +78,7 @@ add_library(rayTracerFacility
 	${CMAKE_MODULE_PATH}/configure_optix.cmake
 	${CMAKE_MODULE_PATH}/FindOptiX.cmake
 	)
+set_property(TARGET rayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
 
 generate_export_header(rayTracerFacility
 	BASE_NAME RAY_TRACER_FACILITY
