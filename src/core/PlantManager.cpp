@@ -9,6 +9,7 @@
 #include <RayTracedRenderer.hpp>
 #include <RigidBody.hpp>
 #include <FixedJoint.hpp>
+#include <D6Joint.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -195,8 +196,8 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
             // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
             rigidBody->SetShapeParam(glm::vec3(0.01f));
             rigidBody->SetEnabled(true);
-            newInternode.SetPrivateComponent<FixedJoint>(std::make_unique<FixedJoint>());
-            newInternode.GetPrivateComponent<FixedJoint>()->m_linkedEntity = candidate.m_parent;
+            newInternode.SetPrivateComponent<D6Joint>(std::make_unique<D6Joint>());
+            newInternode.GetPrivateComponent<D6Joint>()->m_linkedEntity = candidate.m_parent;
         }
 		i++;
 	}

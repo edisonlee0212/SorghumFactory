@@ -7,6 +7,7 @@
 #include <RigidBody.hpp>
 #include <FixedJoint.hpp>
 #include <PhysicsManager.hpp>
+#include <D6Joint.hpp>
 using namespace RayTracerFacility;
 using namespace PlantFactory;
 
@@ -2404,7 +2405,13 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
         rigidBody->UpdateMass(0.001f);
         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-        child.GetPrivateComponent<FixedJoint>()->Link();
+        child.GetPrivateComponent<D6Joint>()->Link();
+        child.GetPrivateComponent<D6Joint>()->SetLockX(false);
+        child.GetPrivateComponent<D6Joint>()->SetLockY(false);
+        child.GetPrivateComponent<D6Joint>()->SetLockZ(false);
+        child.GetPrivateComponent<D6Joint>()->SetDriveX(10, 1, false);
+        child.GetPrivateComponent<D6Joint>()->SetDriveY(10, 1, false);
+        child.GetPrivateComponent<D6Joint>()->SetDriveZ(10, 1, false);
 #pragma endregion
 #pragma region Retarget current internode
         currentInternode = child;
@@ -2473,7 +2480,13 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
                                         rigidBody->UpdateMass(0.001f);
                                         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-                                        child.GetPrivateComponent<FixedJoint>()->Link();
+                                        child.GetPrivateComponent<D6Joint>()->Link();
+                                        child.GetPrivateComponent<D6Joint>()->SetLockX(false);
+                                        child.GetPrivateComponent<D6Joint>()->SetLockY(false);
+                                        child.GetPrivateComponent<D6Joint>()->SetLockZ(false);
+                                        child.GetPrivateComponent<D6Joint>()->SetDriveX(10, 1, false);
+                                        child.GetPrivateComponent<D6Joint>()->SetDriveY(10, 1, false);
+                                        child.GetPrivateComponent<D6Joint>()->SetDriveZ(10, 1, false);
 #pragma endregion
                                         UpdateLevels(child, treeData);
                                         childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
