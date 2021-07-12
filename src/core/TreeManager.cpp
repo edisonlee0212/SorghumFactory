@@ -5,9 +5,8 @@
 #include <RayTracedRenderer.hpp>
 #include <TreeLeaves.hpp>
 #include <RigidBody.hpp>
-#include <FixedJoint.hpp>
+#include <Joint.hpp>
 #include <PhysicsManager.hpp>
-#include <D6Joint.hpp>
 #include <SkinnedMeshRenderer.hpp>
 
 using namespace RayTracerFacility;
@@ -726,7 +725,7 @@ Entity TreeManager::CreateTree(const Transform &transform) {
     rootInternode.SetPrivateComponent<RigidBody>(std::make_unique<RigidBody>());
     auto &rigidBody = rootInternode.GetPrivateComponent<RigidBody>();
     rigidBody->SetShapeType(ShapeType::Sphere);
-    rigidBody->SetStatic(true);
+    rigidBody->SetKinematic(true);
     // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
     rigidBody->SetShapeParam(glm::vec3(0.01f));
     rigidBody->SetEnabled(true);
@@ -806,16 +805,27 @@ void TreeManager::OnGui() {
 #pragma region Main menu
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Tree Manager")) {
+            ImGui::Text("Physics");
+            ImGui::DragFloat("Internode Density", &manager.m_density, 0.1f, 0.01f, 1000.0f);
+            ImGui::DragFloat("Linear Damping", &manager.m_linearDamping, 0.1f, 0.01f, 1000.0f);
+            ImGui::DragFloat("Angular Damping", &manager.m_angularDamping, 0.1f, 0.01f, 1000.0f);
+            ImGui::Separator();
+            ImGui::Text("Foliage");
             ImGui::DragInt("Leaf amount", &manager.m_leafAmount, 0, 0, 50);
             ImGui::DragFloat("Generation radius", &manager.m_radius, 0.01, 0.01, 10);
             ImGui::DragFloat2("Leaf size", &manager.m_leafSize.x, 0.01, 0.01, 10);
+            ImGui::Separator();
+            ImGui::Text("Crown shyness");
             ImGui::DragFloat("Crown shyness D", &manager.m_crownShynessDiameter, 0.01f, 0.0f, 2.0f);
             if (manager.m_crownShynessDiameter > manager.m_voxelSpaceModule.GetDiameter())
                 Debug::Error("Diameter too large!");
 
+            ImGui::Separator();
+            ImGui::Text("Metadata");
             if (ImGui::Button("Update metadata")) {
                 UpdateTreesMetaData(PlantManager::GetInstance());
             }
+            ImGui::Separator();
             if (!Application::IsPlaying()) {
                 if (ImGui::Button("Create...")) {
                     ImGui::OpenPopup("New tree wizard");
@@ -1167,80 +1177,80 @@ void TreeManager::OnGui() {
                                             glm::mat4_cast(EditorManager::GetInstance().m_sceneCameraRotation);
                         const Ray cameraRay = manager.m_internodeDebuggingCamera->ScreenPointToRay(
                                 cameraLtw, mousePosition);
-                        EntityManager::ForEach<GlobalTransform, BranchCylinderWidth>(JobManager::PrimaryWorkers(),
-                                                                                     plantManager.m_internodeQuery,
-                                                                                     [&, cameraLtw, cameraRay](int i,
-                                                                                                               Entity entity,
-                                                                                                               GlobalTransform &ltw,
-                                                                                                               BranchCylinderWidth &width) {
-                                                                                         const glm::vec3 position = ltw.m_value[3];
-                                                                                         const auto parentPosition = EntityManager::GetParent(
-                                                                                                 entity).GetComponentData<GlobalTransform>().GetPosition();
-                                                                                         const auto center = (position +
-                                                                                                              parentPosition) /
-                                                                                                             2.0f;
-                                                                                         auto &dir = cameraRay.m_direction;
-                                                                                         auto &pos = cameraRay.m_start;
-                                                                                         const auto radius = width.m_value;
-                                                                                         const auto height = glm::distance(
-                                                                                                 parentPosition,
-                                                                                                 position);
+                        EntityManager::ForEach<GlobalTransform, BranchCylinderWidth, InternodeGrowth>(
+                                JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+                                [&, cameraLtw, cameraRay](int i,
+                                                          Entity entity,
+                                                          GlobalTransform &ltw,
+                                                          BranchCylinderWidth &width,
+                                                          InternodeGrowth &internodeGrowth) {
+                                    const glm::vec3 position = ltw.m_value[3];
+                                    const auto parentPosition = EntityManager::GetParent(
+                                            entity).GetComponentData<GlobalTransform>().GetPosition();
+                                    const auto center = (position +
+                                                         parentPosition) /
+                                                        2.0f;
+                                    auto &dir = cameraRay.m_direction;
+                                    auto &pos = cameraRay.m_start;
+                                    const auto radius = width.m_value;
+                                    const auto height = glm::distance(
+                                            parentPosition,
+                                            position);
+                                    if (internodeGrowth.m_distanceToRoot == 0) {
+                                        if (!cameraRay.Intersect(
+                                                center, glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
+                                            return;
+                                    } else {
+                                        if (!cameraRay.Intersect(
+                                                center, height / 2.0f))
+                                            return;
 
-                                                                                         if (!cameraRay.Intersect(
-                                                                                                 center, height / 2.0f))
-                                                                                             return;
 #pragma region Line Line intersection
-                                                                                         /*
-								 * http://geomalgorithms.com/a07-_distance.html
-								 */
-                                                                                         glm::vec3 u =
-                                                                                                 pos - (pos + dir);
-                                                                                         glm::vec3 v = position -
-                                                                                                       parentPosition;
-                                                                                         glm::vec3 w = (pos + dir) -
-                                                                                                       parentPosition;
-                                                                                         const auto a = dot(u,
-                                                                                                            u);        // always >= 0
-                                                                                         const auto b = dot(u, v);
-                                                                                         const auto c = dot(v,
-                                                                                                            v);        // always >= 0
-                                                                                         const auto d = dot(u, w);
-                                                                                         const auto e = dot(v, w);
-                                                                                         const auto dotP = a * c - b *
-                                                                                                                   b;       // always >= 0
-                                                                                         float sc, tc;
-                                                                                         // compute the line parameters of the two closest points
-                                                                                         if (dotP <
-                                                                                             0.001f) {          // the lines are almost parallel
-                                                                                             sc = 0.0f;
-                                                                                             tc = (b > c ? d / b : e /
-                                                                                                                   c);   // use the largest denominator
-                                                                                         } else {
-                                                                                             sc = (b * e - c * d) /
-                                                                                                  dotP;
-                                                                                             tc = (a * e - b * d) /
-                                                                                                  dotP;
-                                                                                         }
-                                                                                         // get the difference of the two closest points
-                                                                                         glm::vec3 dP = w + sc * u -
-                                                                                                        tc *
-                                                                                                        v;  // =  L1(sc) - L2(tc)
-                                                                                         if (glm::length(dP) >
-                                                                                             radius)
-                                                                                             return;
+                                        /*
+    * http://geomalgorithms.com/a07-_distance.html
+    */
+                                        glm::vec3 u =
+                                                pos - (pos + dir);
+                                        glm::vec3 v = position -
+                                                      parentPosition;
+                                        glm::vec3 w = (pos + dir) -
+                                                      parentPosition;
+                                        const auto a = dot(u,
+                                                           u);        // always >= 0
+                                        const auto b = dot(u, v);
+                                        const auto c = dot(v,
+                                                           v);        // always >= 0
+                                        const auto d = dot(u, w);
+                                        const auto e = dot(v, w);
+                                        const auto dotP = a * c - b * b;       // always >= 0
+                                        float sc, tc;
+                                        // compute the line parameters of the two closest points
+                                        if (dotP <
+                                            0.001f) {          // the lines are almost parallel
+                                            sc = 0.0f;
+                                            tc = (b > c ? d / b : e / c);   // use the largest denominator
+                                        } else {
+                                            sc = (b * e - c * d) / dotP;
+                                            tc = (a * e - b * d) / dotP;
+                                        }
+                                        // get the difference of the two closest points
+                                        glm::vec3 dP = w + sc * u - tc * v;  // =  L1(sc) - L2(tc)
+                                        if (glm::length(dP) > radius)
+                                            return;
 #pragma endregion
-                                                                                         const auto distance = glm::distance(
-                                                                                                 glm::vec3(
-                                                                                                         cameraLtw.m_value[3]),
-                                                                                                 glm::vec3(center));
-                                                                                         std::lock_guard<std::mutex> lock(
-                                                                                                 writeMutex);
-                                                                                         if (distance < minDistance) {
-                                                                                             minDistance = distance;
-                                                                                             manager.m_currentFocusingInternode = entity;
-                                                                                         }
+                                    }
+                                    const auto distance = glm::distance(
+                                            glm::vec3(
+                                                    cameraLtw.m_value[3]),
+                                            glm::vec3(center));
+                                    std::lock_guard<std::mutex> lock(
+                                            writeMutex);
+                                    if (distance < minDistance) {
+                                        minDistance = distance;
+                                        manager.m_currentFocusingInternode = entity;
+                                    }
 
-                                                                                     }
+                                }
                         );
                         if (InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT, WindowManager::GetWindow())) {
                             if (!manager.m_currentFocusingInternode.IsNull()) {
@@ -1275,6 +1285,27 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
             const InternodeInfo &internodeInfo) {
         return internodeInfo.m_startGlobalTime <= displayTime;
     });
+    std::vector<Entity> rootInternodes;
+    plantManager.m_internodeQuery.ToEntityArray<InternodeGrowth>(rootInternodes, [displayTime](
+            const Entity &entity, const InternodeGrowth &internodeGrowth) {
+        return internodeGrowth.m_distanceToRoot == 0;
+    });
+
+    for (const auto &i : rootInternodes) {
+        auto gt = i.GetComponentData<GlobalTransform>();
+        float thickness = 0.1f;
+        if (EntityManager::GetChildrenAmount(i) > 0)
+            thickness = glm::max(0.05f, EntityManager::GetChildren(
+                    i)[0].GetComponentData<InternodeGrowth>().m_thickness);
+        RenderManager::DrawGizmoMesh(
+                DefaultResources::Primitives::Sphere.get(),
+                manager.m_internodeDebuggingCamera.get(),
+                EditorManager::GetInstance().m_sceneCameraPosition,
+                EditorManager::GetInstance().m_sceneCameraRotation,
+                EditorManager::GetSelectedEntity() == i ? glm::vec4(1) : manager.m_currentFocusingInternode == i ? glm::vec4(0, 0, 1, 1) : glm::vec4(1, 0, 1, 1),
+                gt.m_value, thickness * 2.0f);
+    }
+
     if (!branchCylinders.empty())
         RenderManager::DrawGizmoMeshInstancedColored(
                 DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(),
@@ -1802,7 +1833,8 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                 const glm::vec3 right = rotation * glm::vec3(-1, 0, 0);
                 const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
                 std::lock_guard lock(mutex);
-                auto inversePlantGlobalTransform = glm::inverse(internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value);
+                auto inversePlantGlobalTransform = glm::inverse(
+                        internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value);
                 for (int i = 0; i < treeManager.m_leafAmount; i++) {
                     const auto transform = inversePlantGlobalTransform * globalTransform.m_value *
                                            (
@@ -2186,7 +2218,6 @@ void TreeManager::PruneTrees(PlantManager &manager, std::vector<Volume *> &obsta
                 }
             }, false
     );
-    return;
     for (const auto &i : cutOff)
         EntityManager::DeleteEntity(i);
 }
@@ -2430,6 +2461,7 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
 }
 
 void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData> &treeData) {
+    auto &treeManager = GetInstance();
     auto currentInternode = internode;
     auto currentInternodeInfo = internode.GetComponentData<InternodeInfo>();
     auto currentInternodeGlobalTransform = internode.GetComponentData<GlobalTransform>();
@@ -2465,18 +2497,13 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         child.SetComponentData(childInternodeGrowth);
         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-        rigidBody->UpdateMass(1.0f);
+        rigidBody->SetDensityAndMassCenter(treeManager.m_density);
         rigidBody->SetAngularVelocity(glm::vec3(0.0f));
         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
-        child.GetPrivateComponent<FixedJoint>()->Link();
-        /*
-                                        child.GetPrivateComponent<FixedJoint>()->SetLockX(true);
-                                        child.GetPrivateComponent<FixedJoint>()->SetLockY(true);
-                                        child.GetPrivateComponent<FixedJoint>()->SetLockZ(true);
-                                        child.GetPrivateComponent<FixedJoint>()->SetDriveX(10, 1, false);
-                                        child.GetPrivateComponent<FixedJoint>()->SetDriveY(10, 1, false);
-                                        child.GetPrivateComponent<FixedJoint>()->SetDriveZ(10, 1, false);
-                                        */
+        rigidBody->SetLinearDamping(treeManager.m_linearDamping);
+        rigidBody->SetAngularDamping(treeManager.m_angularDamping);
+        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_angularSolverIteration);
+        child.GetPrivateComponent<Joint>()->Link(currentInternode);
 
 #pragma endregion
 #pragma region Retarget current internode
@@ -2543,18 +2570,13 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                         child.SetComponentData(childInternodeGrowth);
                                         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
                                         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-                                        rigidBody->UpdateMass(1.0f);
+                                        rigidBody->SetDensityAndMassCenter(treeManager.m_density);
                                         rigidBody->SetAngularVelocity(glm::vec3(0.0f));
                                         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
-                                        child.GetPrivateComponent<FixedJoint>()->Link();
-                                        /*
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetLockX(true);
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetLockY(true);
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetLockZ(true);
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetDriveX(10, 1, false);
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetDriveY(10, 1, false);
-                                                                        child.GetPrivateComponent<FixedJoint>()->SetDriveZ(10, 1, false);
-                                                                        */
+                                        rigidBody->SetLinearDamping(treeManager.m_linearDamping);
+                                        rigidBody->SetAngularDamping(treeManager.m_angularDamping);
+                                        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_angularSolverIteration);
+                                        child.GetPrivateComponent<Joint>()->Link(currentInternode);
 #pragma endregion
                                         UpdateLevels(child, treeData);
                                         childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
@@ -2771,6 +2793,13 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
 
 void TreeManager::Init() {
     auto &manager = GetInstance();
+
+    manager.m_density = 1.0f;
+    manager.m_linearDamping = 50.0f;
+    manager.m_angularDamping = 10.0f;
+    manager.m_positionSolverIteration = 4;
+    manager.m_angularSolverIteration = 1;
+
     manager.m_voxelSpaceModule.Reset();
 
 

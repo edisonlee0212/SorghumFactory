@@ -47,6 +47,17 @@ namespace PlantFactory {
 		static Entity GetRbv(const Entity& tree);
 #pragma endregion
 	public:
+
+#pragma region Physics
+	    float m_density = 1.0f;
+	    float m_linearDamping = 50.0f;
+	    float m_angularDamping = 10.0f;
+	    int m_positionSolverIteration = 4;
+	    int m_angularSolverIteration = 1;
+
+#pragma endregion
+
+
 #pragma region Rendering
 		VoxelSpace m_voxelSpaceModule;
 		
@@ -89,7 +100,6 @@ namespace PlantFactory {
 
 		std::vector<Entity> m_entitiesWithRenderer;
 		OpenGLUtils::GLVBO m_internodeColorBuffer;
-		OpenGLUtils::GLVBO m_internodeTransformBuffer;
 #pragma endregion
 #pragma region Crown shyness
 		float m_crownShynessDiameter = 0.2f;

@@ -1190,12 +1190,12 @@ void SorghumManager::Update()
 		}
 		else
 		{
-			const float timer = Application::EngineTime();
+			const float timer = Application::Time().CurrentTime();
 			auto& estimator = manager.m_processingEntities[manager.m_processingIndex].GetPrivateComponent<TriangleIlluminationEstimator>();
 			estimator->CalculateIllumination(manager.m_properties);
 			manager.m_probeTransforms.insert(manager.m_probeTransforms.end(), estimator->m_probeTransforms.begin(), estimator->m_probeTransforms.end());
 			manager.m_probeColors.insert(manager.m_probeColors.end(), estimator->m_probeColors.begin(), estimator->m_probeColors.end());
-			manager.m_perPlantCalculationTime = Application::EngineTime() - timer;
+			manager.m_perPlantCalculationTime = Application::Time().CurrentTime() - timer;
 			const auto count = manager.m_probeTransforms.size();
 			manager.m_lightProbeRenderingColorBuffer.SetData(static_cast<GLsizei>(count) * sizeof(glm::vec4), manager.m_probeColors.data(), GL_DYNAMIC_DRAW);
 			manager.m_lightProbeRenderingTransformBuffer.SetData(static_cast<GLsizei>(count) * sizeof(glm::mat4), manager.m_probeTransforms.data(), GL_DYNAMIC_DRAW);

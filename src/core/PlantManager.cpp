@@ -8,8 +8,7 @@
 #include <RayTracerManager.hpp>
 #include <RayTracedRenderer.hpp>
 #include <RigidBody.hpp>
-#include <FixedJoint.hpp>
-#include <D6Joint.hpp>
+#include <Joint.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -72,9 +71,9 @@ void PlantManager::OnGui()
 			ImGui::DragInt("Amount", &pushAmount, 1, 0, 60.0f / manager.m_deltaTime);
 			if (ImGui::Button("Push time (grow by iteration)")) manager.m_iterationsToGrow = pushAmount;
 			if (Application::IsPlaying() && ImGui::Button("Push time (grow instantly)")) {
-				const float time = Application::EngineTime();
+				const float time = Application::Time().CurrentTime();
 				GrowAllPlants(pushAmount);
-				const std::string spendTime = std::to_string(Application::EngineTime() - time);
+				const std::string spendTime = std::to_string(Application::Time().CurrentTime() - time);
 				Debug::Log("Growth finished in " + spendTime + " sec.");
 			}
 
@@ -102,7 +101,7 @@ bool PlantManager::GrowAllPlants()
 	auto& manager = GetInstance();
 	Refresh();
 	manager.m_globalTime += manager.m_deltaTime;
-	float time = Application::EngineTime();
+	float time = Application::Time().CurrentTime();
 	std::vector<ResourceParcel> totalResources;
 	totalResources.resize(manager.m_plants.size());
 	std::vector<ResourceParcel> resourceAvailable;
@@ -113,7 +112,7 @@ bool PlantManager::GrowAllPlants()
 	{
 		i.second(manager, totalResources);
 	}
-	manager.m_resourceAllocationTimer = Application::EngineTime() - time;
+	manager.m_resourceAllocationTimer = Application::Time().CurrentTime() - time;
 
 	for (const auto& plant : manager.m_plants)
 	{
@@ -122,17 +121,17 @@ bool PlantManager::GrowAllPlants()
 		plant.SetComponentData(plantInfo);
 	}
 
-	time = Application::EngineTime();
+	time = Application::Time().CurrentTime();
 	std::vector<InternodeCandidate> candidates;
 	for (auto& i : manager.m_plantGrowthModels)
 	{
 		i.second(manager, candidates);
 	}
-	manager.m_internodeFormTimer = Application::EngineTime() - time;
+	manager.m_internodeFormTimer = Application::Time().CurrentTime() - time;
 
 	if (GrowCandidates(candidates))
 	{
-		time = Application::EngineTime();
+		time = Application::Time().CurrentTime();
 		std::vector<Volume*> obstacles;
 		const auto* entities = EntityManager::GetPrivateComponentOwnersList<CubeVolume>();
 		if (entities) {
@@ -147,13 +146,13 @@ bool PlantManager::GrowAllPlants()
 		{
 			i.second(manager, obstacles);
 		}
-		manager.m_pruningTimer = Application::EngineTime() - time;
-		time = Application::EngineTime();
+		manager.m_pruningTimer = Application::Time().CurrentTime() - time;
+		time = Application::Time().CurrentTime();
 		for (auto& i : manager.m_plantMetaDataCalculators)
 		{
 			i.second(manager);
 		}
-		manager.m_metaDataTimer = Application::EngineTime() - time;
+		manager.m_metaDataTimer = Application::Time().CurrentTime() - time;
 		return true;
 	}
 	return false;
@@ -172,7 +171,7 @@ bool PlantManager::GrowAllPlants(const unsigned& iterations)
 
 bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
 {
-	const float time = Application::EngineTime();
+	const float time = Application::Time().CurrentTime();
 	if (candidates.empty()) return false;
 	auto entities = EntityManager::CreateEntities(GetInstance().m_internodeArchetype, candidates.size(), "Internode");
 	int i = 0;
@@ -194,21 +193,22 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
             rigidBody->SetShapeType(ShapeType::Sphere);
             rigidBody->SetStatic(false);
             // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-            rigidBody->SetShapeParam(glm::vec3(0.001f));
+            rigidBody->SetShapeParam(glm::vec3(0.1f));
             rigidBody->SetEnabled(true);
-            newInternode.SetPrivateComponent<FixedJoint>(std::make_unique<FixedJoint>());
-            newInternode.GetPrivateComponent<FixedJoint>()->m_linkedEntity = candidate.m_parent;
+            newInternode.SetPrivateComponent<Joint>(std::make_unique<Joint>());
+            newInternode.GetPrivateComponent<Joint>()->SetType(JointType::Fixed);
+            newInternode.GetPrivateComponent<Joint>()->Link(candidate.m_parent);
         }
 		i++;
 	}
-	GetInstance().m_internodeCreateTimer = Application::EngineTime() - time;
+	GetInstance().m_internodeCreateTimer = Application::Time().CurrentTime() - time;
 	return true;
 }
 
 void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 {
 	if (manager.m_internodeTransforms.empty()) return;
-	const float time = Application::EngineTime();
+	const float time = Application::Time().CurrentTime();
 	//Upload geometries to OptiX.
 	RayTracerFacility::RayTracerManager::GetInstance().UpdateScene();
 	RayTracerFacility::IlluminationEstimationProperties properties;
@@ -237,7 +237,7 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager& manager)
 		}, false
 		);
 
-	manager.m_illuminationCalculationTimer = Application::EngineTime() - time;
+	manager.m_illuminationCalculationTimer = Application::Time().CurrentTime() - time;
 }
 void PlantManager::CollectNutrient(std::vector<Entity>& trees, std::vector<ResourceParcel>& totalNutrients,
 	std::vector<ResourceParcel>& nutrientsAvailable)
@@ -582,12 +582,12 @@ void PlantManager::Refresh()
 	manager.m_internodeQuery.ToComponentDataArray(manager.m_internodeTransforms);
 	manager.m_internodeQuery.ToEntityArray(manager.m_internodes);
 
-	float time = Application::EngineTime();
+	float time = Application::Time().CurrentTime();
 	for (auto& i : manager.m_plantMeshGenerators)
 	{
 		i.second(manager);
 	}
-	manager.m_meshGenerationTimer = Application::EngineTime() - time;
+	manager.m_meshGenerationTimer = Application::Time().CurrentTime() - time;
 	CalculateIlluminationForInternodes(manager);
 }
 
