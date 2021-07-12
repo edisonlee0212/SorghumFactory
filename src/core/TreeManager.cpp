@@ -1198,7 +1198,7 @@ void TreeManager::OnGui() {
                                             position);
                                     if (internodeGrowth.m_distanceToRoot == 0) {
                                         if (!cameraRay.Intersect(
-                                                center, glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
+                                                position, glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
                                             return;
                                     } else {
                                         if (!cameraRay.Intersect(
