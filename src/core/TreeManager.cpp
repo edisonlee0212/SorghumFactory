@@ -809,6 +809,14 @@ void TreeManager::OnGui() {
             ImGui::DragFloat("Internode Density", &manager.m_density, 0.1f, 0.01f, 1000.0f);
             ImGui::DragFloat("Linear Damping", &manager.m_linearDamping, 0.1f, 0.01f, 1000.0f);
             ImGui::DragFloat("Angular Damping", &manager.m_angularDamping, 0.1f, 0.01f, 1000.0f);
+            int pi = manager.m_positionSolverIteration;
+            int vi = manager.m_velocitySolverIteration;
+            if (ImGui::DragInt("Velocity solver iteration", &vi, 1, 1, 100)) {
+                manager.m_velocitySolverIteration = vi;
+            }
+            if (ImGui::DragInt("Position solver iteration", &pi, 1, 1, 100)) {
+                manager.m_positionSolverIteration = pi;
+            }
             ImGui::Separator();
             ImGui::Text("Foliage");
             ImGui::DragInt("Leaf amount", &manager.m_leafAmount, 0, 0, 50);
@@ -826,11 +834,12 @@ void TreeManager::OnGui() {
                 UpdateTreesMetaData(PlantManager::GetInstance());
             }
             ImGui::Separator();
-            if (!Application::IsPlaying()) {
-                if (ImGui::Button("Create...")) {
-                    ImGui::OpenPopup("New tree wizard");
-                }
+
+            if (ImGui::Button("Create...")) {
+                ImGui::OpenPopup("New tree wizard");
+                Application::SetPlaying(false);
             }
+
             ImGui::DragFloat("Mesh resolution", &manager.m_meshResolution, 0.001f, 0, 1);
             ImGui::DragFloat("Mesh subdivision", &manager.m_meshSubdivision, 0.001f, 0, 1);
             if (ImGui::Button("Generate mesh")) {
@@ -1302,7 +1311,9 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
                 manager.m_internodeDebuggingCamera.get(),
                 EditorManager::GetInstance().m_sceneCameraPosition,
                 EditorManager::GetInstance().m_sceneCameraRotation,
-                EditorManager::GetSelectedEntity() == i ? glm::vec4(1) : manager.m_currentFocusingInternode == i ? glm::vec4(0, 0, 1, 1) : glm::vec4(1, 0, 1, 1),
+                EditorManager::GetSelectedEntity() == i ? glm::vec4(1) : manager.m_currentFocusingInternode == i
+                                                                         ? glm::vec4(0, 0, 1, 1) : glm::vec4(1, 0, 1,
+                                                                                                             1),
                 gt.m_value, thickness * 2.0f);
     }
 
@@ -2497,12 +2508,13 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         child.SetComponentData(childInternodeGrowth);
         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-        rigidBody->SetDensityAndMassCenter(treeManager.m_density);
+        rigidBody->SetDensityAndMassCenter(
+                treeManager.m_density * childInternodeGrowth.m_thickness * childInternodeGrowth.m_thickness);
         rigidBody->SetAngularVelocity(glm::vec3(0.0f));
         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
         rigidBody->SetLinearDamping(treeManager.m_linearDamping);
         rigidBody->SetAngularDamping(treeManager.m_angularDamping);
-        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_angularSolverIteration);
+        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_velocitySolverIteration);
         child.GetPrivateComponent<Joint>()->Link(currentInternode);
 
 #pragma endregion
@@ -2570,12 +2582,14 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                         child.SetComponentData(childInternodeGrowth);
                                         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
                                         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-                                        rigidBody->SetDensityAndMassCenter(treeManager.m_density);
+                                        rigidBody->SetDensityAndMassCenter(
+                                                treeManager.m_density * childInternodeGrowth.m_thickness * childInternodeGrowth.m_thickness);
                                         rigidBody->SetAngularVelocity(glm::vec3(0.0f));
                                         rigidBody->SetLinearVelocity(glm::vec3(0.0f));
                                         rigidBody->SetLinearDamping(treeManager.m_linearDamping);
                                         rigidBody->SetAngularDamping(treeManager.m_angularDamping);
-                                        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_angularSolverIteration);
+                                        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration,
+                                                                       treeManager.m_velocitySolverIteration);
                                         child.GetPrivateComponent<Joint>()->Link(currentInternode);
 #pragma endregion
                                         UpdateLevels(child, treeData);
@@ -2795,10 +2809,10 @@ void TreeManager::Init() {
     auto &manager = GetInstance();
 
     manager.m_density = 1.0f;
-    manager.m_linearDamping = 50.0f;
-    manager.m_angularDamping = 10.0f;
-    manager.m_positionSolverIteration = 4;
-    manager.m_angularSolverIteration = 1;
+    manager.m_linearDamping = 10.0f;
+    manager.m_angularDamping = 5.0f;
+    manager.m_positionSolverIteration = 8;
+    manager.m_velocitySolverIteration = 8;
 
     manager.m_voxelSpaceModule.Reset();
 

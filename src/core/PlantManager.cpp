@@ -69,7 +69,10 @@ void PlantManager::OnGui()
 			if (ImGui::Button("Recalculate illumination")) CalculateIlluminationForInternodes(manager);
 			static int pushAmount = 20;
 			ImGui::DragInt("Amount", &pushAmount, 1, 0, 60.0f / manager.m_deltaTime);
-			if (ImGui::Button("Push time (grow by iteration)")) manager.m_iterationsToGrow = pushAmount;
+			if (ImGui::Button("Push and start (grow by iteration)")){
+                manager.m_iterationsToGrow = pushAmount;
+                Application::SetPlaying(true);
+			}
 			if (Application::IsPlaying() && ImGui::Button("Push time (grow instantly)")) {
 				const float time = Application::Time().CurrentTime();
 				GrowAllPlants(pushAmount);

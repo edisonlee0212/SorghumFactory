@@ -53,7 +53,7 @@ namespace PlantFactory {
 	    float m_linearDamping = 50.0f;
 	    float m_angularDamping = 10.0f;
 	    int m_positionSolverIteration = 4;
-	    int m_angularSolverIteration = 1;
+	    int m_velocitySolverIteration = 1;
 
 #pragma endregion
 
