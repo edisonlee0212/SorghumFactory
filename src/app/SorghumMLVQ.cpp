@@ -24,6 +24,7 @@ int main() {
     const bool enableRayTracing = true;
     if (enableRayTracing) RayTracerManager::Init();
     Application::GetCurrentWorld()->GetSystem<PhysicsSystem>()->Disable();
+    Application::SetTimeStep(1.0 / 100.0f);
 #pragma region Engine Loop
     Application::RegisterUpdateFunction([&]() {
                                             PlantManager::Update();
