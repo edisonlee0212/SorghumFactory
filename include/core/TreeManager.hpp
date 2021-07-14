@@ -113,7 +113,7 @@ namespace PlantFactory {
 
 		
 #pragma region Internode debugging camera
-		std::unique_ptr<CameraComponent> m_internodeDebuggingCamera;
+        CameraComponent m_internodeDebuggingCamera;
 		int m_internodeDebuggingCameraResolutionX = 1;
 		int m_internodeDebuggingCameraResolutionY = 1;
 		float m_lastX = 0;
@@ -154,12 +154,12 @@ namespace PlantFactory {
 		static void TreeSkinnedMeshGenerator(std::vector<Entity>& internodes, std::vector<int>& parentIndices, std::vector<SkinnedVertex>& vertices, std::vector<unsigned>& indices);
 		static void GenerateMeshForTree(PlantManager& manager);
 		static void FormCandidates(PlantManager& manager, std::vector<InternodeCandidate>& candidates);
-		static float GetGrowthParameter(const GrowthParameterType& type, std::unique_ptr<TreeData>& treeData, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics);
+		static float GetGrowthParameter(const GrowthParameterType& type, TreeData& treeData, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics);
 		static void PruneTrees(PlantManager& manager, std::vector<Volume*>& obstacles);
 		static void UpdateTreesMetaData(PlantManager& manager);
 #pragma region Metadata
-		static void UpdateDistances(const Entity& internode, std::unique_ptr<TreeData>& treeData);
-		static void UpdateLevels(const Entity& internode, std::unique_ptr<TreeData>& treeData);
+		static void UpdateDistances(const Entity& internode, TreeData& treeData);
+		static void UpdateLevels(const Entity& internode, TreeData& treeData);
 #pragma endregion
 		static void ResetTimeForTree(const float& value);
 		static void ResetTimeForTree(const Entity& internode, const float& globalTime);

@@ -30,10 +30,10 @@ DefaultFoliageGenerator::DefaultFoliageGenerator()
 void DefaultFoliageGenerator::Generate()
 {
 	const auto tree = GetOwner();
-	auto treeTransform = EntityManager::GetComponentData<GlobalTransform>(tree);
+	auto treeTransform = tree.GetComponentData<GlobalTransform>();
 	Entity foliageEntity;
 	bool found = false;
-	EntityManager::ForEachChild(tree, [&found, &foliageEntity](Entity child)
+    tree.ForEachChild([&found, &foliageEntity](Entity child)
 		{
 			if (child.HasComponentData<DefaultFoliageInfo>())
 			{
@@ -45,20 +45,20 @@ void DefaultFoliageGenerator::Generate()
 	if (!found)
 	{
 		foliageEntity = EntityManager::CreateEntity(m_archetype, "Foliage");
-		EntityManager::SetParent(foliageEntity, tree);
-		auto particleSys = std::make_unique<Particles>();
-		particleSys->m_material = m_leafMaterial;
-		particleSys->m_mesh = DefaultResources::Primitives::Quad;
-		particleSys->m_forwardRendering = false;
+        foliageEntity.SetParent(tree);
+		auto& particleSys = foliageEntity.SetPrivateComponent<Particles>();
+		particleSys.m_material = m_leafMaterial;
+		particleSys.m_mesh = DefaultResources::Primitives::Quad;
+		particleSys.m_forwardRendering = false;
 		Transform transform;
 		transform.m_value = glm::translate(glm::vec3(0.0f)) * glm::scale(glm::vec3(1.0f));
-		foliageEntity.SetPrivateComponent(std::move(particleSys));
+
 		foliageEntity.SetComponentData(transform);
 		foliageEntity.SetComponentData(m_defaultFoliageInfo);
 	}
 	auto& particleSys = foliageEntity.GetPrivateComponent<Particles>();
-	particleSys->m_matrices.clear();
-	GenerateLeaves(EntityManager::GetChildren(tree)[0], treeTransform.m_value, particleSys->m_matrices, true);
+	particleSys.m_matrices.clear();
+	GenerateLeaves(tree.GetChildren()[0], treeTransform.m_value, particleSys.m_matrices, true);
 }
 
 void DefaultFoliageGenerator::OnGui()

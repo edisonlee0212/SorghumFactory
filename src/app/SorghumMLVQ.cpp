@@ -92,11 +92,10 @@ void EngineSetup() {
 #pragma endregion
 
     const Entity lightEntity = EntityManager::CreateEntity("Light source");
-    auto pointLight = std::make_unique<PointLight>();
-    pointLight->m_diffuseBrightness = 15;
-    pointLight->m_lightSize = 0.25f;
+    auto& pointLight = lightEntity.SetPrivateComponent<PointLight>();
+    pointLight.m_diffuseBrightness = 15;
+    pointLight.m_lightSize = 0.25f;
     transform.SetPosition(glm::vec3(0, 30, 0));
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetComponentData(transform);
-    lightEntity.SetPrivateComponent(std::move(pointLight));
 }

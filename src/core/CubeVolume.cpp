@@ -3,7 +3,7 @@ using namespace PlantFactory;
 void CubeVolume::ApplyMeshRendererBounds()
 {
 	auto& meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
-	const auto bound = meshRenderer->m_mesh->GetBound();
+	const auto bound = meshRenderer.m_mesh->GetBound();
 	const auto globalTransform = GetOwner().GetComponentData<GlobalTransform>();
 	m_minMaxBound.m_min = globalTransform.GetPosition() + glm::vec3(glm::vec4(bound.m_min, 1.0f) * globalTransform.m_value);
 	m_minMaxBound.m_max = globalTransform.GetPosition() + glm::vec3(glm::vec4(bound.m_max, 1.0f) * globalTransform.m_value);
@@ -24,7 +24,7 @@ void CubeVolume::OnGui()
 	ImGui::Checkbox("Display bounds", &m_displayBounds);
 	if (m_displayBounds)
 	{
-		RenderManager::DrawGizmoMesh(DefaultResources::Primitives::Cube.get(), RenderManager::GetMainCamera(), glm::vec4(0, 1, 0, 0.2), glm::translate(m_minMaxBound.Center()) * glm::scale(m_minMaxBound.Size()), 1);
+		RenderManager::DrawGizmoMesh(DefaultResources::Primitives::Cube.get(), *RenderManager::GetMainCamera(), glm::vec4(0, 1, 0, 0.2), glm::translate(m_minMaxBound.Center()) * glm::scale(m_minMaxBound.Size()), 1);
 	}
 	if (GetOwner().HasPrivateComponent<MeshRenderer>()) {
 		if (ImGui::Button("Apply mesh bound"))

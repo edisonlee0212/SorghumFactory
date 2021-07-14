@@ -43,7 +43,7 @@ void TreeLeaves::FormMesh(std::vector<unsigned>& boneIndices)
         offset += quadVerticesSize;
     }
     auto& meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
-    auto& mesh = meshRenderer->m_mesh;
+    auto& mesh = meshRenderer.m_mesh;
     mesh->SetVertices(17, vertices, triangles);
 
     offset = 0;
@@ -81,7 +81,7 @@ void TreeLeaves::FormMesh(std::vector<unsigned>& boneIndices)
         mi++;
     }
     auto& skinnedMeshRenderer = GetOwner().GetPrivateComponent<SkinnedMeshRenderer>();
-    auto& skinnedMesh = skinnedMeshRenderer->m_skinnedMesh;
+    auto& skinnedMesh = skinnedMeshRenderer.m_skinnedMesh;
     skinnedMesh->SetVertices(17, skinnedVertices, skinnedTriangles);
     skinnedMesh->m_boneAnimatorIndices = boneIndices;
 }

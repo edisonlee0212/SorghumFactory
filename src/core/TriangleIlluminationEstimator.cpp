@@ -33,11 +33,11 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 	SorghumManager::CollectEntities(m_entities, walker);
 	for (const auto& entity : m_entities)
 	{
-		if (EntityManager::HasPrivateComponent<MeshRenderer>(entity))
+		if (entity.HasPrivateComponent<MeshRenderer>())
 		{
 			auto globalTransform = entity.GetComponentData<GlobalTransform>();
 			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-			auto& mesh = meshRenderer->m_mesh;
+			auto& mesh = meshRenderer.m_mesh;
 			for (const auto& triangle : mesh->UnsafeGetTriangles()) {
 				auto& positions = mesh->UnsafeGetVertexPositions();
 				const auto position = (positions[triangle.x] + positions[triangle.y] + positions[triangle.z]) / 3.0f;
@@ -76,10 +76,10 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 	size_t i = 0;
 	for (const auto& entity : m_entities)
 	{
-		if (EntityManager::HasPrivateComponent<MeshRenderer>(entity))
+		if (entity.HasPrivateComponent<MeshRenderer>())
 		{
 			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-			auto& mesh = meshRenderer->m_mesh;
+			auto& mesh = meshRenderer.m_mesh;
 			std::vector<std::pair<size_t, glm::vec4>> colors;
 			colors.resize(mesh->GetVerticesAmount());
 			for(auto& i : colors)

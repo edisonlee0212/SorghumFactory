@@ -18,7 +18,7 @@ void TreeManager::ExportChains(int parentOrder, Entity internode, rapidxml::xml_
     if (order != parentOrder) {
         WriteChain(order, internode, chains, doc);
     }
-    EntityManager::ForEachChild(internode, [order, &chains, doc](Entity child) {
+    internode.ForEachChild([order, &chains, doc](Entity child) {
                                     ExportChains(order, child, chains, doc);
                                 }
     );
@@ -32,14 +32,14 @@ void TreeManager::WriteChain(int order, Entity internode, rapidxml::xml_node<> *
             doc->allocate_attribute("gravelius", doc->allocate_string(std::to_string(order + 1).c_str())));
     chains->append_node(chain);
     std::vector<rapidxml::xml_node<> *> nodes;
-    while (EntityManager::GetChildrenAmount(walker) != 0) {
+    while (walker.GetChildrenAmount() != 0) {
         auto *node = doc->allocate_node(rapidxml::node_element, "Node");
         node->append_attribute(
-                doc->allocate_attribute("id", doc->allocate_string(std::to_string(walker.m_index).c_str())));
+                doc->allocate_attribute("id", doc->allocate_string(std::to_string(walker.GetIndex()).c_str())));
         nodes.push_back(node);
         //chain->append_node(node);
         Entity temp;
-        EntityManager::ForEachChild(walker, [&temp, order](Entity child) {
+        walker.ForEachChild([&temp, order](Entity child) {
                                         if (child.GetComponentData<InternodeInfo>().m_order == order) {
                                             temp = child;
                                         }
@@ -51,10 +51,10 @@ void TreeManager::WriteChain(int order, Entity internode, rapidxml::xml_node<> *
     for (int i = nodes.size() - 1; i >= 0; i--) {
         chain->append_node(nodes[i]);
     }
-    if (EntityManager::GetParent(internode).HasComponentData<InternodeInfo>()) {
+    if (internode.GetParent().HasComponentData<InternodeInfo>()) {
         auto *node = doc->allocate_node(rapidxml::node_element, "Node");
         node->append_attribute(doc->allocate_attribute("id", doc->allocate_string(
-                std::to_string(EntityManager::GetParent(internode).m_index).c_str())));
+                std::to_string(internode.GetParent().GetIndex()).c_str())));
         chain->append_node(node);
     }
 }
@@ -64,7 +64,7 @@ Entity TreeManager::GetRootInternode(const Entity &tree) {
     if (!tree.HasComponentData<PlantInfo>() ||
         tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
-    EntityManager::ForEachChild(tree, [&](Entity child) {
+    tree.ForEachChild([&](Entity child) {
                                     if (child.HasComponentData<InternodeInfo>()) retVal = child;
                                 }
     );
@@ -76,42 +76,40 @@ Entity TreeManager::GetLeaves(const Entity &tree) {
     if (!tree.HasComponentData<PlantInfo>() ||
         tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
-    EntityManager::ForEachChild(tree, [&](Entity child) {
+    tree.ForEachChild([&](Entity child) {
                                     if (child.HasComponentData<TreeLeavesTag>()) retVal = child;
                                 }
     );
     if (!retVal.IsValid()) {
         const auto leaves = EntityManager::CreateEntity(GetInstance().m_leavesArchetype, "Leaves");
-        EntityManager::SetParent(leaves, tree, false);
-        leaves.SetPrivateComponent(std::make_unique<TreeLeaves>());
-        leaves.SetPrivateComponent(std::make_unique<MeshRenderer>());
-        leaves.SetPrivateComponent(std::make_unique<SkinnedMeshRenderer>());
-        leaves.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
-        auto &meshRenderer = leaves.GetPrivateComponent<MeshRenderer>();
+        leaves.SetParent(tree, false);
+        leaves.SetPrivateComponent<TreeLeaves>();
+        auto &meshRenderer = leaves.SetPrivateComponent<MeshRenderer>();
+        auto &skinnedMeshRenderer = leaves.SetPrivateComponent<SkinnedMeshRenderer>();
+        auto &rayTracerRenderer = leaves.SetPrivateComponent<RayTracedRenderer>();
 
-        auto &rayTracerMaterial = leaves.GetPrivateComponent<RayTracedRenderer>();
-        meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
-        meshRenderer->m_material->m_name = "Leaves mat";
-        meshRenderer->m_material->m_roughness = 1.0f;
-        meshRenderer->m_material->m_cullingMode = MaterialCullingMode::Off;
-        meshRenderer->m_material->m_metallic = 0.0f;
-        meshRenderer->m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
-        meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
-        rayTracerMaterial->SyncWithMeshRenderer();
-        meshRenderer->SetEnabled(false);
-        auto &skinnedMeshRenderer = leaves.GetPrivateComponent<SkinnedMeshRenderer>();
-        skinnedMeshRenderer->m_skinnedMesh = ResourceManager::CreateResource<SkinnedMesh>();
-        skinnedMeshRenderer->m_skinnedMesh->m_animation = tree.GetPrivateComponent<Animator>()->m_animation;
-        skinnedMeshRenderer->AttachAnimator(tree);
-        skinnedMeshRenderer->m_material = ResourceManager::LoadMaterial(false,
+        meshRenderer.m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
+        meshRenderer.m_material->m_name = "Leaves mat";
+        meshRenderer.m_material->m_roughness = 1.0f;
+        meshRenderer.m_material->m_cullingMode = MaterialCullingMode::Off;
+        meshRenderer.m_material->m_metallic = 0.0f;
+        meshRenderer.m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
+        meshRenderer.m_mesh = ResourceManager::CreateResource<Mesh>();
+        rayTracerRenderer.SyncWithMeshRenderer();
+        meshRenderer.SetEnabled(false);
+
+        skinnedMeshRenderer.m_skinnedMesh = ResourceManager::CreateResource<SkinnedMesh>();
+        skinnedMeshRenderer.m_skinnedMesh->m_animation = tree.GetPrivateComponent<Animator>().m_animation;
+        skinnedMeshRenderer.AttachAnimator(tree);
+        skinnedMeshRenderer.m_material = ResourceManager::LoadMaterial(false,
                                                                         DefaultResources::GLPrograms::StandardSkinnedProgram);
-        skinnedMeshRenderer->m_material->m_name = "Leaves mat";
-        skinnedMeshRenderer->m_material->m_roughness = 1.0f;
-        skinnedMeshRenderer->m_material->m_cullingMode = MaterialCullingMode::Off;
-        skinnedMeshRenderer->m_material->m_metallic = 0.0f;
-        skinnedMeshRenderer->m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
+        skinnedMeshRenderer.m_material->m_name = "Leaves mat";
+        skinnedMeshRenderer.m_material->m_roughness = 1.0f;
+        skinnedMeshRenderer.m_material->m_cullingMode = MaterialCullingMode::Off;
+        skinnedMeshRenderer.m_material->m_metallic = 0.0f;
+        skinnedMeshRenderer.m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
 
-        skinnedMeshRenderer->SetEnabled(true);
+        skinnedMeshRenderer.SetEnabled(true);
     }
     return retVal;
 }
@@ -121,14 +119,14 @@ Entity TreeManager::GetRbv(const Entity &tree) {
     if (!tree.HasComponentData<PlantInfo>() ||
         tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
-    EntityManager::ForEachChild(tree, [&](Entity child) {
+    tree.ForEachChild([&](Entity child) {
                                     if (child.HasComponentData<RbvTag>()) retVal = child;
                                 }
     );
     if (!retVal.IsValid()) {
         const auto rbv = EntityManager::CreateEntity(GetInstance().m_rbvArchetype, "RBV");
-        EntityManager::SetParent(rbv, tree, false);
-        rbv.SetPrivateComponent(std::make_unique<RadialBoundingVolume>());
+        rbv.SetParent(tree, false);
+        rbv.SetPrivateComponent<RadialBoundingVolume>();
     }
     return retVal;
 }
@@ -146,14 +144,13 @@ void TreeManager::UpdateBranchCylinder(const bool &displayThickness, const float
                 glm::vec3 skew;
                 glm::vec4 perspective;
                 glm::decompose(ltw.m_value, scale, rotation, translation, skew, perspective);
-                const glm::vec3 parentTranslation = EntityManager::GetParent(
-                        entity).GetComponentData<GlobalTransform>().GetPosition();
+                const glm::vec3 parentTranslation = entity.GetParent().GetComponentData<GlobalTransform>().GetPosition();
                 const auto direction = glm::normalize(parentTranslation - translation);
                 rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
                 rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
                 const glm::mat4 rotationTransform = glm::mat4_cast(rotation);
 
-                if (EntityManager::HasPrivateComponent<TreeData>(EntityManager::GetParent(entity))) {
+                if (entity.GetParent().HasPrivateComponent<TreeData>()) {
                     c.m_value = glm::translate((translation + parentTranslation) / 2.0f) * rotationTransform *
                                 glm::scale(glm::vec3(0.0f));
                     branchCylinderWidth.m_value = 0;
@@ -378,7 +375,7 @@ void TreeManager::UpdateBranchColors() {
                         auto &manager = GetInstance();
                         auto &internodeData = entity.GetPrivateComponent<InternodeData>();
                         float totalResource = 0;
-                        for (const auto &bud : internodeData->m_buds) totalResource += bud.m_currentResource.m_nutrient;
+                        for (const auto &bud : internodeData.m_buds) totalResource += bud.m_currentResource.m_nutrient;
                         float value = totalResource;
                         if (manager.m_enableBranchDataCompress) value = glm::pow(value, manager.m_branchCompressFactor);
                         ColorSet(internodeRenderColor.m_value, value);
@@ -672,16 +669,16 @@ void TreeManager::Update() {
         manager.m_rightMouseButtonHold = false;
         manager.m_startMouse = false;
     }
-    manager.m_internodeDebuggingCamera->ResizeResolution(manager.m_internodeDebuggingCameraResolutionX,
+    manager.m_internodeDebuggingCamera.ResizeResolution(manager.m_internodeDebuggingCameraResolutionX,
                                                          manager.m_internodeDebuggingCameraResolutionY);
-    manager.m_internodeDebuggingCamera->Clear();
+    manager.m_internodeDebuggingCamera.Clear();
 
 #pragma region Internode debug camera
-    CameraComponent::m_cameraInfoBlock.UpdateMatrices(EditorManager::GetInstance().m_sceneCamera.get(),
+    CameraComponent::m_cameraInfoBlock.UpdateMatrices(EditorManager::GetInstance().m_sceneCamera,
                                                       EditorManager::GetInstance().m_sceneCameraPosition,
                                                       EditorManager::GetInstance().m_sceneCameraRotation
     );
-    CameraComponent::m_cameraInfoBlock.UploadMatrices(EditorManager::GetInstance().m_sceneCamera.get());
+    CameraComponent::m_cameraInfoBlock.UploadMatrices(EditorManager::GetInstance().m_sceneCamera);
     RenderManager::RenderBackGround(manager.m_internodeDebuggingCamera);
 #pragma endregion
 
@@ -701,14 +698,14 @@ void TreeManager::Update() {
             UpdateBranchColors();
             UpdateBranchCylinder(manager.m_displayThickness, manager.m_connectionWidth);
         }
-        if (manager.m_internodeDebuggingCamera->IsEnabled()) RenderBranchCylinders(manager.m_displayTime);
+        if (manager.m_internodeDebuggingCamera.IsEnabled()) RenderBranchCylinders(manager.m_displayTime);
     }
     if (manager.m_drawPointers) {
         if (manager.m_alwaysUpdate || manager.m_updatePointer || needUpdate) {
             manager.m_updatePointer = false;
             UpdateBranchPointer(manager.m_pointerLength, manager.m_pointerWidth);
         }
-        if (manager.m_internodeDebuggingCamera->IsEnabled()) RenderBranchPointers(manager.m_displayTime);
+        if (manager.m_internodeDebuggingCamera.IsEnabled()) RenderBranchPointers(manager.m_displayTime);
     }
 #pragma endregion
 }
@@ -720,57 +717,49 @@ Entity TreeManager::CreateTree(const Transform &transform) {
     }
     auto &manager = GetInstance();
     const auto plant = PlantManager::CreatePlant(PlantType::GeneralTree, transform);
-
-    const auto rootInternode = EntityManager::GetChildren(plant)[0];
-    rootInternode.SetPrivateComponent<RigidBody>(std::make_unique<RigidBody>());
-    auto &rigidBody = rootInternode.GetPrivateComponent<RigidBody>();
-    rigidBody->SetShapeType(ShapeType::Sphere);
-    rigidBody->SetKinematic(true);
+    const auto rootInternode = plant.GetChildren()[0];
+    auto &rigidBody = rootInternode.SetPrivateComponent<RigidBody>();
+    rigidBody.SetShapeType(ShapeType::Sphere);
+    rigidBody.SetKinematic(true);
     // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-    rigidBody->SetShapeParam(glm::vec3(0.01f));
-    rigidBody->SetEnabled(true);
+    rigidBody.SetShapeParam(glm::vec3(0.01f));
+    rigidBody.SetEnabled(true);
 
-    auto animator = std::make_unique<Animator>();
-    animator->m_animation = ResourceManager::CreateResource<Animation>();
-    plant.SetPrivateComponent(std::move(animator));
+    auto& animator = plant.SetPrivateComponent<Animator>();
+    animator.m_animation = ResourceManager::CreateResource<Animation>();
 
     GetLeaves(plant);
     GetRbv(plant);
-    EntityManager::SetPrivateComponent(plant, std::make_unique<TreeData>());
+    auto& treeData = plant.SetPrivateComponent<TreeData>();
+    treeData.m_parameters = TreeParameters();
 
-    auto meshRenderer = std::make_unique<MeshRenderer>();
+    auto& meshRenderer = plant.SetPrivateComponent<MeshRenderer>();
+    meshRenderer.m_mesh = ResourceManager::CreateResource<Mesh>();
+    meshRenderer.m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
+    meshRenderer.m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
+    meshRenderer.m_material->m_roughness = 1.0f;
+    meshRenderer.m_material->m_metallic = 0.0f;
+    meshRenderer.m_material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
+    meshRenderer.m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
+    meshRenderer.SetEnabled(false);
 
-    meshRenderer->m_mesh = ResourceManager::CreateResource<Mesh>();
-    meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
-    meshRenderer->m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
-    meshRenderer->m_material->m_roughness = 1.0f;
-    meshRenderer->m_material->m_metallic = 0.0f;
-    meshRenderer->m_material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
-    meshRenderer->m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
-    plant.SetPrivateComponent(std::move(meshRenderer));
-    plant.GetPrivateComponent<MeshRenderer>()->SetEnabled(false);
-
-    auto skinnedMeshRenderer = std::make_unique<SkinnedMeshRenderer>();
-    skinnedMeshRenderer->m_skinnedMesh = ResourceManager::CreateResource<SkinnedMesh>();
-    skinnedMeshRenderer->m_skinnedMesh->m_animation = plant.GetPrivateComponent<Animator>()->m_animation;
-    skinnedMeshRenderer->m_material = ResourceManager::LoadMaterial(false,
+    auto& skinnedMeshRenderer = plant.SetPrivateComponent<SkinnedMeshRenderer>();
+    skinnedMeshRenderer.m_skinnedMesh = ResourceManager::CreateResource<SkinnedMesh>();
+    skinnedMeshRenderer.m_skinnedMesh->m_animation = plant.GetPrivateComponent<Animator>().m_animation;
+    skinnedMeshRenderer.m_material = ResourceManager::LoadMaterial(false,
                                                                     DefaultResources::GLPrograms::StandardSkinnedProgram);
-    skinnedMeshRenderer->m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
-    skinnedMeshRenderer->m_material->m_roughness = 1.0f;
-    skinnedMeshRenderer->m_material->m_metallic = 0.0f;
-    skinnedMeshRenderer->m_material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
-    skinnedMeshRenderer->m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
-    skinnedMeshRenderer->AttachAnimator(plant);
-    plant.SetPrivateComponent(std::move(skinnedMeshRenderer));
+    skinnedMeshRenderer.m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
+    skinnedMeshRenderer.m_material->m_roughness = 1.0f;
+    skinnedMeshRenderer.m_material->m_metallic = 0.0f;
+    skinnedMeshRenderer.m_material->SetTexture(TextureType::Normal, manager.m_defaultBranchNormalTexture);
+    skinnedMeshRenderer.m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
+    skinnedMeshRenderer.AttachAnimator(plant);
 
-    auto rtt = std::make_unique<RayTracedRenderer>();
-    rtt->m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
-    rtt->m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
-    rtt->m_mesh = plant.GetPrivateComponent<MeshRenderer>()->m_mesh;
-    plant.SetPrivateComponent(std::move(rtt));
+    auto& rtt = plant.SetPrivateComponent<RayTracedRenderer>();
+    rtt.m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
+    rtt.m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
+    rtt.m_mesh = plant.GetPrivateComponent<MeshRenderer>().m_mesh;
 
-    auto &treeData = plant.GetPrivateComponent<TreeData>();
-    treeData->m_parameters = TreeParameters();
     return plant;
 }
 
@@ -972,7 +961,7 @@ void TreeManager::OnGui() {
                         treeTransform.SetPosition(newTreePositions[i]);
                         treeTransform.SetEulerRotation(glm::radians(newTreeRotations[i]));
                         Entity tree = CreateTree(treeTransform);
-                        tree.GetPrivateComponent<TreeData>()->m_parameters = newTreeParameters[i];
+                        tree.GetPrivateComponent<TreeData>().m_parameters = newTreeParameters[i];
                     }
                     ImGui::CloseCurrentPopup();
                 }
@@ -1099,7 +1088,7 @@ void TreeManager::OnGui() {
             manager.m_internodeDebuggingCameraResolutionX = viewPortSize.x;
             manager.m_internodeDebuggingCameraResolutionY = viewPortSize.y;
             ImGui::Image(
-                    reinterpret_cast<ImTextureID>(manager.m_internodeDebuggingCamera->GetTexture()->Texture()->Id()),
+                    reinterpret_cast<ImTextureID>(manager.m_internodeDebuggingCamera.GetTexture()->Texture()->Id()),
                     viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
             glm::vec2 mousePosition = glm::vec2(FLT_MAX, FLT_MIN);
             if (ImGui::IsWindowFocused()) {
@@ -1184,7 +1173,7 @@ void TreeManager::OnGui() {
                         GlobalTransform cameraLtw;
                         cameraLtw.m_value = glm::translate(EditorManager::GetInstance().m_sceneCameraPosition) *
                                             glm::mat4_cast(EditorManager::GetInstance().m_sceneCameraRotation);
-                        const Ray cameraRay = manager.m_internodeDebuggingCamera->ScreenPointToRay(
+                        const Ray cameraRay = manager.m_internodeDebuggingCamera.ScreenPointToRay(
                                 cameraLtw, mousePosition);
                         EntityManager::ForEach<GlobalTransform, BranchCylinderWidth, InternodeGrowth>(
                                 JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
@@ -1194,8 +1183,7 @@ void TreeManager::OnGui() {
                                                           BranchCylinderWidth &width,
                                                           InternodeGrowth &internodeGrowth) {
                                     const glm::vec3 position = ltw.m_value[3];
-                                    const auto parentPosition = EntityManager::GetParent(
-                                            entity).GetComponentData<GlobalTransform>().GetPosition();
+                                    const auto parentPosition = entity.GetParent().GetComponentData<GlobalTransform>().GetPosition();
                                     const auto center = (position +
                                                          parentPosition) /
                                                         2.0f;
@@ -1273,7 +1261,7 @@ void TreeManager::OnGui() {
         }
         ImGui::EndChild();
         auto *window = ImGui::FindWindowByName("Tree Internodes");
-        manager.m_internodeDebuggingCamera->SetEnabled(!(window->Hidden && !window->Collapsed));
+        manager.m_internodeDebuggingCamera.SetEnabled(!(window->Hidden && !window->Collapsed));
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -1303,12 +1291,11 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
     for (const auto &i : rootInternodes) {
         auto gt = i.GetComponentData<GlobalTransform>();
         float thickness = 0.1f;
-        if (EntityManager::GetChildrenAmount(i) > 0)
-            thickness = glm::max(0.05f, EntityManager::GetChildren(
-                    i)[0].GetComponentData<InternodeGrowth>().m_thickness);
+        if (i.GetChildrenAmount() > 0)
+            thickness = glm::max(0.05f, i.GetChildren()[0].GetComponentData<InternodeGrowth>().m_thickness);
         RenderManager::DrawGizmoMesh(
                 DefaultResources::Primitives::Sphere.get(),
-                manager.m_internodeDebuggingCamera.get(),
+                manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition,
                 EditorManager::GetInstance().m_sceneCameraRotation,
                 EditorManager::GetSelectedEntity() == i ? glm::vec4(1) : manager.m_currentFocusingInternode == i
@@ -1319,7 +1306,7 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
 
     if (!branchCylinders.empty())
         RenderManager::DrawGizmoMeshInstancedColored(
-                DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(),
+                DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
                 (glm::vec4 *) branchColors.data(), (glm::mat4 *) branchCylinders.data(), branchCylinders.size(),
                 glm::mat4(1.0f), 1.0f);
@@ -1336,7 +1323,7 @@ void TreeManager::RenderBranchPointers(const float &displayTime) {
     });
     if (!branchPointers.empty())
         RenderManager::DrawGizmoMeshInstanced(
-                DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera.get(),
+                DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
                 manager.m_pointerColor, reinterpret_cast<glm::mat4 *>(branchPointers.data()), branchPointers.size(),
                 glm::mat4(1.0f), 1.0f);
@@ -1352,7 +1339,7 @@ TreeManager::TreeNodeWalker(std::vector<Entity> &boundEntities, std::vector<int>
     auto info = node.GetComponentData<InternodeInfo>();
     info.m_index = currentIndex;
     node.SetComponentData(info);
-    EntityManager::ForEachChild(node, [&](Entity child) {
+    node.ForEachChild([&](Entity child) {
         TreeNodeWalker(boundEntities, parentIndices, currentIndex, child);
     });
 }
@@ -1368,25 +1355,25 @@ void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector
     int parentStep = -1;
     for (int internodeIndex = 1; internodeIndex < internodes.size(); internodeIndex++) {
         auto &internode = internodes[internodeIndex];
-        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>()->m_normalDir;
+        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>().m_normalDir;
         const glm::vec3 front =
                 internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
-        auto &list = EntityManager::GetPrivateComponent<InternodeData>(internode);
-        if (list->m_rings.empty()) {
+        auto &list = internode.GetPrivateComponent<InternodeData>();
+        if (list.m_rings.empty()) {
             continue;
         }
-        auto step = list->m_step;
+        auto step = list.m_step;
         //For stitching
         const int pStep = parentStep > 0 ? parentStep : step;
         parentStep = step;
-        list->m_normalDir = newNormalDir;
+        list.m_normalDir = newNormalDir;
         float angleStep = 360.0f / static_cast<float>(pStep);
         int vertexIndex = vertices.size();
         Vertex archetype;
         float textureXStep = 1.0f / pStep * 4.0f;
         for (int i = 0; i < pStep; i++) {
-            archetype.m_position = list->m_rings.at(0).GetPoint(newNormalDir, angleStep * i, true);
+            archetype.m_position = list.m_rings.at(0).GetPoint(newNormalDir, angleStep * i, true);
             const float x = i < pStep / 2 ? i * textureXStep : (pStep - i) * textureXStep;
             archetype.m_texCoords = glm::vec2(x, 0.0f);
             vertices.push_back(archetype);
@@ -1448,10 +1435,10 @@ void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector
 
         vertexIndex += pStep;
         textureXStep = 1.0f / step * 4.0f;
-        const int ringSize = list->m_rings.size();
+        const int ringSize = list.m_rings.size();
         for (auto ringIndex = 0; ringIndex < ringSize; ringIndex++) {
             for (auto i = 0; i < step; i++) {
-                archetype.m_position = list->m_rings.at(ringIndex).GetPoint(newNormalDir, angleStep * i, false);
+                archetype.m_position = list.m_rings.at(ringIndex).GetPoint(newNormalDir, angleStep * i, false);
                 const auto x = i < (step / 2) ? i * textureXStep : (step - i) * textureXStep;
                 const auto y = ringIndex % 2 == 0 ? 1.0f : 0.0f;
                 archetype.m_texCoords = glm::vec2(x, y);
@@ -1487,28 +1474,28 @@ void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes, std:
     int parentStep = -1;
     for (int internodeIndex = 1; internodeIndex < internodes.size(); internodeIndex++) {
         auto &internode = internodes[internodeIndex];
-        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>()->m_normalDir;
+        glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>().m_normalDir;
         const glm::vec3 front =
                 internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
-        auto &list = EntityManager::GetPrivateComponent<InternodeData>(internode);
-        if (list->m_rings.empty()) {
+        auto &list = internode.GetPrivateComponent<InternodeData>();
+        if (list.m_rings.empty()) {
             continue;
         }
-        auto step = list->m_step;
+        auto step = list.m_step;
         //For stitching
         const int pStep = parentStep > 0 ? parentStep : step;
         parentStep = step;
-        list->m_normalDir = newNormalDir;
+        list.m_normalDir = newNormalDir;
         float angleStep = 360.0f / static_cast<float>(pStep);
         int vertexIndex = vertices.size();
         SkinnedVertex archetype;
         float textureXStep = 1.0f / pStep * 4.0f;
 
-        const auto startPosition = list->m_rings.at(0).m_startPosition;
-        const auto endPosition = list->m_rings.back().m_endPosition;
+        const auto startPosition = list.m_rings.at(0).m_startPosition;
+        const auto endPosition = list.m_rings.back().m_endPosition;
         for (int i = 0; i < pStep; i++) {
-            archetype.m_position = list->m_rings.at(0).GetPoint(newNormalDir, angleStep * i, true);
+            archetype.m_position = list.m_rings.at(0).GetPoint(newNormalDir, angleStep * i, true);
 
             float distanceToStart = 0;
             float distanceToEnd = 1;
@@ -1579,13 +1566,13 @@ void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes, std:
 
         vertexIndex += pStep;
         textureXStep = 1.0f / step * 4.0f;
-        const int ringSize = list->m_rings.size();
+        const int ringSize = list.m_rings.size();
         for (auto ringIndex = 0; ringIndex < ringSize; ringIndex++) {
             for (auto i = 0; i < step; i++) {
-                archetype.m_position = list->m_rings.at(ringIndex).GetPoint(newNormalDir, angleStep * i, false);
+                archetype.m_position = list.m_rings.at(ringIndex).GetPoint(newNormalDir, angleStep * i, false);
 
-                float distanceToStart = glm::distance(list->m_rings.at(ringIndex).m_endPosition, startPosition);
-                float distanceToEnd = glm::distance(list->m_rings.at(ringIndex).m_endPosition, endPosition);
+                float distanceToStart = glm::distance(list.m_rings.at(ringIndex).m_endPosition, startPosition);
+                float distanceToEnd = glm::distance(list.m_rings.at(ringIndex).m_endPosition, endPosition);
                 archetype.m_bondId = glm::ivec4(internodeIndex, parentIndices[internodeIndex], -1, -1);
                 archetype.m_bondId2 = glm::ivec4(-1, -1, -1, -1);
                 archetype.m_weight = glm::vec4(distanceToStart / (distanceToStart + distanceToEnd),
@@ -1642,8 +1629,8 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
         }
         Entity leaves = GetLeaves(plant);
         if (leaves.IsValid()) {
-            leaves.GetPrivateComponent<TreeLeaves>()->m_transforms.clear();
-            leaves.GetPrivateComponent<TreeLeaves>()->m_targetBoneIndices.clear();
+            leaves.GetPrivateComponent<TreeLeaves>().m_transforms.clear();
+            leaves.GetPrivateComponent<TreeLeaves>().m_targetBoneIndices.clear();
         }
     }
 #pragma region Prepare rings for branch mesh.
@@ -1658,20 +1645,16 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                  if (internodeInfo.m_plantType !=
                      PlantType::GeneralTree)
                      return;
-                 const Entity parent = EntityManager::GetParent(
-                         internode);
+                 const Entity parent = internode.GetParent();
                  if (parent ==
                      internodeInfo.m_plant)
                      return;
                  bool isRootInternode = false;
-                 if (EntityManager::GetParent(
-                         parent) ==
-                     internodeInfo.m_plant)
+                 if (parent.GetParent() == internodeInfo.m_plant)
                      isRootInternode = true;
 
-                 auto &list = EntityManager::GetPrivateComponent<InternodeData>(
-                         internode);
-                 list->m_rings.clear();
+                 auto &list = internode.GetPrivateComponent<InternodeData>();
+                 list.m_rings.clear();
                  glm::mat4 treeTransform = internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value;
                  GlobalTransform parentGlobalTransform;
                  parentGlobalTransform.m_value =
@@ -1752,7 +1735,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                             treeManager.m_meshResolution;
                  if (step < 4) step = 4;
                  if (step % 2 != 0) step++;
-                 list->m_step = step;
+                 list.m_step = step;
                  int amount = static_cast<int>(
                          0.5f + distance *
                                 treeManager.m_meshSubdivision);
@@ -1785,7 +1768,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                      float endThickness =
                              static_cast<float>(i) *
                              radiusStep;
-                     list->m_rings.emplace_back(
+                     list.m_rings.emplace_back(
                              curve.GetPoint(
                                      posStep *
                                      (i - 1)),
@@ -1805,7 +1788,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                              endThickness);
                  }
                  if (amount > 1)
-                     list->m_rings.emplace_back(
+                     list.m_rings.emplace_back(
                              curve.GetPoint(
                                      1.0f -
                                      posStep),
@@ -1816,7 +1799,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                              radiusStep,
                              internodeGrowth.m_thickness);
                  else
-                     list->m_rings.emplace_back(
+                     list.m_rings.emplace_back(
                              parentTranslation,
                              translation,
                              fromDir, dir,
@@ -1838,7 +1821,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                 if (internodeStatistics.m_longestDistanceToAnyEndNode > 0.5f) return;
                 auto &treeLeaves = GetLeaves(internodeInfo.m_plant).GetPrivateComponent<TreeLeaves>();
                 auto &internodeData = internode.GetPrivateComponent<InternodeData>();
-                internodeData->m_leavesTransforms.clear();
+                internodeData.m_leavesTransforms.clear();
                 const glm::quat rotation = globalTransform.GetRotation();
                 const glm::vec3 left = rotation * glm::vec3(1, 0, 0);
                 const glm::vec3 right = rotation * glm::vec3(-1, 0, 0);
@@ -1857,9 +1840,9 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                                                            glm::vec3(treeManager.m_leafSize.x, 1.0f,
                                                                      treeManager.m_leafSize.y))
                                            );
-                    internodeData->m_leavesTransforms.push_back(transform);
-                    treeLeaves->m_transforms.push_back(transform);
-                    treeLeaves->m_targetBoneIndices.push_back(internodeInfo.m_index);
+                    internodeData.m_leavesTransforms.push_back(transform);
+                    treeLeaves.m_transforms.push_back(transform);
+                    treeLeaves.m_targetBoneIndices.push_back(internodeInfo.m_index);
                 }
                 /*
 			internodeData->m_leavesTransforms.push_back(globalTransform.m_value *
@@ -1881,9 +1864,9 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
         if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
         if (!plant.HasPrivateComponent<MeshRenderer>() || !plant.HasPrivateComponent<TreeData>()) continue;
         auto &animator = plant.GetPrivateComponent<Animator>();
-        auto &meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(plant);
-        auto &skinnedMeshRenderer = EntityManager::GetPrivateComponent<SkinnedMeshRenderer>(plant);
-        auto &treeData = EntityManager::GetPrivateComponent<TreeData>(plant);
+        auto &meshRenderer = plant.GetPrivateComponent<MeshRenderer>();
+        auto &skinnedMeshRenderer = plant.GetPrivateComponent<SkinnedMeshRenderer>();
+        auto &treeData = plant.GetPrivateComponent<TreeData>();
         if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull()) {
             const auto plantGlobalTransform = plant.GetComponentData<GlobalTransform>();
 #pragma region Branch mesh
@@ -1899,26 +1882,26 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                                                  boundEntitiesLists[plantIndex][i].GetComponentData<GlobalTransform>().m_value);
                 boneIndicesLists[plantIndex][i] = i;
             }
-            animator->Setup(boundEntitiesLists[plantIndex], names, offsetMatrices);
+            animator.Setup(boundEntitiesLists[plantIndex], names, offsetMatrices);
 #pragma endregion
-            if (EntityManager::GetChildrenAmount(rootInternode) != 0) {
+            if (rootInternode.GetChildrenAmount() != 0) {
                 std::vector<unsigned> indices;
                 std::vector<Vertex> vertices;
                 TreeMeshGenerator(boundEntitiesLists[plantIndex], parentIndicesLists[plantIndex], vertices, indices);
-                meshRenderer->m_mesh->SetVertices(17, vertices, indices);
+                meshRenderer.m_mesh->SetVertices(17, vertices, indices);
 
                 std::vector<unsigned> skinnedIndices;
                 std::vector<SkinnedVertex> skinnedVertices;
                 TreeSkinnedMeshGenerator(boundEntitiesLists[plantIndex], parentIndicesLists[plantIndex],
                                          skinnedVertices, skinnedIndices);
-                skinnedMeshRenderer->m_skinnedMesh->SetVertices(17, skinnedVertices, skinnedIndices);
-                skinnedMeshRenderer->m_skinnedMesh->m_boneAnimatorIndices = boneIndicesLists[plantIndex];
+                skinnedMeshRenderer.m_skinnedMesh->SetVertices(17, skinnedVertices, skinnedIndices);
+                skinnedMeshRenderer.m_skinnedMesh->m_boneAnimatorIndices = boneIndicesLists[plantIndex];
 
-                treeData->m_meshGenerated = true;
+                treeData.m_meshGenerated = true;
             }
 #pragma endregion
             Entity leaves = GetLeaves(plant);
-            if (leaves.IsValid()) leaves.GetPrivateComponent<TreeLeaves>()->FormMesh(boneIndicesLists[plantIndex]);
+            if (leaves.IsValid()) leaves.GetPrivateComponent<TreeLeaves>().FormMesh(boneIndicesLists[plantIndex]);
         }
 
     }
@@ -1939,8 +1922,8 @@ void TreeManager::FormCandidates(PlantManager &manager,
                 if (!internodeInfo.m_plant.IsEnabled()) return;
                 auto &internodeData = internode.GetPrivateComponent<InternodeData>();
 #pragma region Go through each bud
-                for (int i = 0; i < internodeData->m_buds.size(); i++) {
-                    auto &bud = internodeData->m_buds[i];
+                for (int i = 0; i < internodeData.m_buds.size(); i++) {
+                    auto &bud = internodeData.m_buds[i];
                     if (!bud.m_active || !bud.m_enoughForGrowth) continue;
                     bud.m_active = false;
                     bud.m_deathGlobalTime = globalTime;
@@ -1948,7 +1931,7 @@ void TreeManager::FormCandidates(PlantManager &manager,
 #pragma region Form candidate
                     glm::quat prevGlobalRotation = globalTransform.GetRotation();
                     auto candidate = InternodeCandidate();
-                    candidate.m_owner = internodeData->m_owner;
+                    candidate.m_owner = internodeData.m_owner;
                     candidate.m_parent = internode;
 
 
@@ -1986,7 +1969,7 @@ void TreeManager::FormCandidates(PlantManager &manager,
                     glm::quat globalDesiredRotation = prevGlobalRotation * desiredRotation;
                     glm::vec3 desiredFront = globalDesiredRotation * glm::vec3(0.0f, 0.0f, -1.0f);
                     glm::vec3 desiredUp = globalDesiredRotation * glm::vec3(0.0f, 1.0f, 0.0f);
-                    PlantManager::ApplyTropism(-treeData->m_gravityDirection,
+                    PlantManager::ApplyTropism(-treeData.m_gravityDirection,
                                                GetGrowthParameter(GrowthParameterType::Gravitropism, treeData,
                                                                   internodeInfo, internodeGrowth, internodeStatistics),
                                                desiredFront, desiredUp);
@@ -2003,7 +1986,7 @@ void TreeManager::FormCandidates(PlantManager &manager,
                     glm::quat globalRotation =
                             globalTransform.GetRotation() * candidate.m_growth.m_desiredLocalRotation;
                     glm::vec3 front = globalRotation * glm::vec3(0, 0, -1);
-                    glm::vec3 positionDelta = front * treeData->m_parameters.m_internodeLengthBase;
+                    glm::vec3 positionDelta = front * treeData.m_parameters.m_internodeLengthBase;
                     glm::vec3 newInternodePosition = globalTransform.GetPosition() + positionDelta;
                     candidate.m_globalTransform.m_value = glm::translate(newInternodePosition)
                                                           * glm::mat4_cast(globalRotation) *
@@ -2075,44 +2058,44 @@ void TreeManager::FormCandidates(PlantManager &manager,
 }
 
 float TreeManager::GetGrowthParameter(const GrowthParameterType &type,
-                                      std::unique_ptr<TreeData> &treeData, InternodeInfo &internodeInfo,
+                                      TreeData &treeData, InternodeInfo &internodeInfo,
                                       InternodeGrowth &internodeGrowth,
                                       InternodeStatistics &internodeStatistics) {
     float value = 0;
     switch (type) {
         case GrowthParameterType::InhibitorTransmitFactor:
-            value = treeData->m_parameters.m_inhibitorDistanceFactor;
+            value = treeData.m_parameters.m_inhibitorDistanceFactor;
             break;
         case GrowthParameterType::Gravitropism:
-            value = treeData->m_parameters.m_gravitropism;
+            value = treeData.m_parameters.m_gravitropism;
             break;
         case GrowthParameterType::Phototropism:
-            value = treeData->m_parameters.m_phototropism;
+            value = treeData.m_parameters.m_phototropism;
             break;
         case GrowthParameterType::BranchingAngle:
-            value = glm::radians(glm::gaussRand(treeData->m_parameters.m_branchingAngleMean,
-                                                treeData->m_parameters.m_branchingAngleVariance));
+            value = glm::radians(glm::gaussRand(treeData.m_parameters.m_branchingAngleMean,
+                                                treeData.m_parameters.m_branchingAngleVariance));
             break;
         case GrowthParameterType::ApicalAngle:
-            value = glm::radians(glm::gaussRand(treeData->m_parameters.m_apicalAngleMean,
-                                                treeData->m_parameters.m_apicalAngleVariance));
+            value = glm::radians(glm::gaussRand(treeData.m_parameters.m_apicalAngleMean,
+                                                treeData.m_parameters.m_apicalAngleVariance));
             break;
         case GrowthParameterType::RollAngle:
             value = glm::radians(
-                    glm::gaussRand(treeData->m_parameters.m_rollAngleMean, treeData->m_parameters.m_rollAngleVariance));
+                    glm::gaussRand(treeData.m_parameters.m_rollAngleMean, treeData.m_parameters.m_rollAngleVariance));
             break;
         case GrowthParameterType::LateralBudPerNode:
-            value = treeData->m_parameters.m_lateralBudPerNode;
+            value = treeData.m_parameters.m_lateralBudPerNode;
             break;
         case GrowthParameterType::ResourceWeightApical:
-            value = treeData->m_parameters.m_resourceWeightApical *
-                    (1.0f + glm::gaussRand(0.0f, treeData->m_parameters.m_resourceWeightVariance));
+            value = treeData.m_parameters.m_resourceWeightApical *
+                    (1.0f + glm::gaussRand(0.0f, treeData.m_parameters.m_resourceWeightVariance));
             break;
         case GrowthParameterType::ResourceWeightLateral:
-            value = 1.0f + glm::gaussRand(0.0f, treeData->m_parameters.m_resourceWeightVariance);
+            value = 1.0f + glm::gaussRand(0.0f, treeData.m_parameters.m_resourceWeightVariance);
             break;
         case GrowthParameterType::AvoidanceAngle:
-            value = treeData->m_parameters.m_avoidanceAngle;
+            value = treeData.m_parameters.m_avoidanceAngle;
             break;
     }
     return value;
@@ -2149,15 +2132,14 @@ void TreeManager::PruneTrees(PlantManager &manager, std::vector<Volume *> &obsta
         if (manager.m_plants[i].HasPrivateComponent<TreeData>()) {
             auto &treeData = manager.m_plants[i].GetPrivateComponent<TreeData>();
             distanceLimits[i] = 0;
-            EntityManager::ForEachChild(manager.m_plants[i],
-                                        [&](Entity child) { if (child.HasComponentData<InternodeInfo>()) distanceLimits[i] = child.GetComponentData<InternodeStatistics>().m_longestDistanceToAnyEndNode; });
-            distanceLimits[i] *= treeData->m_parameters.m_lowBranchCutOff;
-            randomCutOffs[i] = treeData->m_parameters.m_randomCutOff;
-            randomCutOffAgeFactors[i] = treeData->m_parameters.m_randomCutOffAgeFactor;
-            randomCutOffMaxes[i] = treeData->m_parameters.m_randomCutOffMax;
-            avoidanceAngles[i] = treeData->m_parameters.m_avoidanceAngle;
-            internodeLengths[i] = treeData->m_parameters.m_internodeLengthBase;
-            rbvs[i] = GetRbv(manager.m_plants[i]).GetPrivateComponent<RadialBoundingVolume>().get();
+            manager.m_plants[i].ForEachChild([&](Entity child) { if (child.HasComponentData<InternodeInfo>()) distanceLimits[i] = child.GetComponentData<InternodeStatistics>().m_longestDistanceToAnyEndNode; });
+            distanceLimits[i] *= treeData.m_parameters.m_lowBranchCutOff;
+            randomCutOffs[i] = treeData.m_parameters.m_randomCutOff;
+            randomCutOffAgeFactors[i] = treeData.m_parameters.m_randomCutOffAgeFactor;
+            randomCutOffMaxes[i] = treeData.m_parameters.m_randomCutOffMax;
+            avoidanceAngles[i] = treeData.m_parameters.m_avoidanceAngle;
+            internodeLengths[i] = treeData.m_parameters.m_internodeLengthBase;
+            rbvs[i] = &GetRbv(manager.m_plants[i]).GetPrivateComponent<RadialBoundingVolume>();
         }
     }
     std::vector<Entity> cutOff;
@@ -2204,8 +2186,7 @@ void TreeManager::PruneTrees(PlantManager &manager, std::vector<Volume *> &obsta
                                                                                          direction,
                                                                                          internodeInfo.m_plant,
                                                                                          internode,
-                                                                                         EntityManager::GetParent(
-                                                                                                 internode),
+                                                                                         internode.GetParent(),
                                                                                          internodeLengths[targetIndex])) {
                     std::lock_guard lock(mutex);
                     cutOff.push_back(internode);
@@ -2258,21 +2239,21 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
         if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
         if (!plant.HasPrivateComponent<TreeData>()) continue;
         if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull()) {
-            auto &treeData = EntityManager::GetPrivateComponent<TreeData>(plant);
+            auto &treeData = plant.GetPrivateComponent<TreeData>();
             UpdateLevels(rootInternode, treeData);
         }
     }
 }
 
-void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeData> &treeData) {
+void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
     Entity currentInternode = internode;
     auto currentInternodeInfo = internode.GetComponentData<InternodeInfo>();
     auto currentInternodeGrowth = internode.GetComponentData<InternodeGrowth>();
     auto currentInternodeStatistics = internode.GetComponentData<InternodeStatistics>();
 #pragma region Single child chain from root to branch
-    while (EntityManager::GetChildrenAmount(currentInternode) == 1) {
+    while (currentInternode.GetChildrenAmount() == 1) {
 #pragma region Retrive child status
-        Entity child = EntityManager::GetChildren(currentInternode)[0];
+        Entity child = currentInternode.GetChildren()[0];
         auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
         auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
         auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
@@ -2283,7 +2264,7 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
         childInternodeGrowth.m_desiredGlobalRotation =
                 currentInternodeGrowth.m_desiredGlobalRotation * childInternodeGrowth.m_desiredLocalRotation;
         childInternodeGrowth.m_desiredGlobalPosition = currentInternodeGrowth.m_desiredGlobalPosition +
-                                                       treeData->m_parameters.m_internodeLengthBase *
+                                                       treeData.m_parameters.m_internodeLengthBase *
                                                        (currentInternodeGrowth.m_desiredGlobalRotation *
                                                         glm::vec3(0, 0, -1));
 #pragma endregion
@@ -2311,9 +2292,9 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
     currentInternodeGrowth.m_MassOfChildren = 0.0f;
 #pragma endregion
 #pragma endregion
-    if (EntityManager::GetChildrenAmount(currentInternode) != 0) {
+    if (currentInternode.GetChildrenAmount() != 0) {
         float maxThickness = 0;
-        EntityManager::ForEachChild(currentInternode, [&](Entity child) {
+        currentInternode.ForEachChild([&](Entity child) {
 #pragma region From root to end
 #pragma region Retrive child status
                                         auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
@@ -2328,7 +2309,7 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
                                         childInternodeGrowth.m_desiredGlobalRotation =
                                                 currentInternodeGrowth.m_desiredGlobalRotation * childInternodeGrowth.m_desiredLocalRotation;
                                         childInternodeGrowth.m_desiredGlobalPosition = currentInternodeGrowth.m_desiredGlobalPosition +
-                                                                                       treeData->m_parameters.m_internodeLengthBase *
+                                                                                       treeData.m_parameters.m_internodeLengthBase *
                                                                                        (currentInternodeGrowth.m_desiredGlobalRotation *
                                                                                         glm::vec3(0, 0, -1));
 
@@ -2348,9 +2329,9 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
 #pragma endregion
 #pragma region Update self status
                                         auto &childInternodeData = child.GetPrivateComponent<InternodeData>();
-                                        for (const auto &bud : childInternodeData->m_buds)
+                                        for (const auto &bud : childInternodeData.m_buds)
                                             if (bud.m_active && bud.m_isApical)
-                                                currentInternodeGrowth.m_inhibitor += treeData->m_parameters.m_inhibitorBase;
+                                                currentInternodeGrowth.m_inhibitor += treeData.m_parameters.m_inhibitorBase;
                                         currentInternodeGrowth.m_inhibitor +=
                                                 childInternodeGrowth.m_inhibitor * childInternodeGrowth.m_inhibitorTransmitFactor;
                                         currentInternodeStatistics.m_childrenEndNodeAmount += childInternodeStatistics.m_childrenEndNodeAmount;
@@ -2378,18 +2359,18 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
                                     }
         );
         currentInternodeGrowth.m_thickness =
-                glm::pow(currentInternodeGrowth.m_thickness, 0.5f) * treeData->m_parameters.m_thicknessControlFactor;
+                glm::pow(currentInternodeGrowth.m_thickness, 0.5f) * treeData.m_parameters.m_thicknessControlFactor;
         currentInternodeGrowth.m_childMeanPosition =
                 currentInternodeGrowth.m_childrenTotalTorque / currentInternodeGrowth.m_MassOfChildren;
         const float strength = currentInternodeGrowth.m_MassOfChildren * glm::distance(
                 glm::vec2(currentInternodeGrowth.m_childMeanPosition.x, currentInternodeGrowth.m_childMeanPosition.z),
                 glm::vec2(currentInternodeGrowth.m_desiredGlobalPosition.x,
                           currentInternodeGrowth.m_desiredGlobalPosition.z));
-        currentInternodeGrowth.m_sagging = glm::min(treeData->m_parameters.m_gravityBendingMax,
-                                                    strength * treeData->m_parameters.m_gravityBendingFactor / glm::pow(
+        currentInternodeGrowth.m_sagging = glm::min(treeData.m_parameters.m_gravityBendingMax,
+                                                    strength * treeData.m_parameters.m_gravityBendingFactor / glm::pow(
                                                             currentInternodeGrowth.m_thickness /
-                                                            treeData->m_parameters.m_endNodeThickness,
-                                                            treeData->m_parameters.m_gravityBendingThicknessFactor));
+                                                            treeData.m_parameters.m_endNodeThickness,
+                                                            treeData.m_parameters.m_gravityBendingThicknessFactor));
     } else {
 #pragma region Update self status (end node)
         currentInternodeStatistics.m_childrenEndNodeAmount = 1;
@@ -2397,7 +2378,7 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
         currentInternodeStatistics.m_maxChildOrder = currentInternodeInfo.m_order;
         currentInternodeStatistics.m_totalLength = 0;
         currentInternodeStatistics.m_longestDistanceToAnyEndNode = 0;
-        currentInternodeGrowth.m_thickness = treeData->m_parameters.m_endNodeThickness;
+        currentInternodeGrowth.m_thickness = treeData.m_parameters.m_endNodeThickness;
         currentInternodeGrowth.m_thickestChild = Entity();
 #pragma endregion
     }
@@ -2412,7 +2393,7 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
 #pragma region Retarget to parent
         auto &childInternodeData = currentInternode.GetPrivateComponent<InternodeData>();
         Entity child = currentInternode;
-        currentInternode = EntityManager::GetParent(currentInternode);
+        currentInternode = currentInternode.GetParent();
         auto childInternodeInfo = currentInternodeInfo;
         auto childInternodeGrowth = currentInternodeGrowth;
         auto childInternodeStatistics = currentInternodeStatistics;
@@ -2432,9 +2413,9 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
         currentInternodeGrowth.m_MassOfChildren = 0.0f;
 #pragma endregion
 #pragma region Update self status
-        for (const auto &bud : childInternodeData->m_buds)
+        for (const auto &bud : childInternodeData.m_buds)
             if (bud.m_active && bud.m_isApical)
-                currentInternodeGrowth.m_inhibitor += treeData->m_parameters.m_inhibitorBase;
+                currentInternodeGrowth.m_inhibitor += treeData.m_parameters.m_inhibitorBase;
         currentInternodeGrowth.m_inhibitor +=
                 childInternodeGrowth.m_inhibitor * childInternodeGrowth.m_inhibitorTransmitFactor;
         currentInternodeStatistics.m_childrenEndNodeAmount = childInternodeStatistics.m_childrenEndNodeAmount;
@@ -2457,9 +2438,9 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
                 glm::vec2(currentInternodeGrowth.m_childMeanPosition.x, currentInternodeGrowth.m_childMeanPosition.z),
                 glm::vec2(currentInternodeGrowth.m_desiredGlobalPosition.x,
                           currentInternodeGrowth.m_desiredGlobalPosition.z));
-        currentInternodeGrowth.m_sagging = strength * treeData->m_parameters.m_gravityBendingFactor / glm::pow(
-                currentInternodeGrowth.m_thickness / treeData->m_parameters.m_endNodeThickness,
-                treeData->m_parameters.m_gravityBendingThicknessFactor);
+        currentInternodeGrowth.m_sagging = strength * treeData.m_parameters.m_gravityBendingFactor / glm::pow(
+                currentInternodeGrowth.m_thickness / treeData.m_parameters.m_endNodeThickness,
+                treeData.m_parameters.m_gravityBendingThicknessFactor);
         currentInternodeGrowth.m_thickestChild = child;
 #pragma endregion
     }
@@ -2471,15 +2452,15 @@ void TreeManager::UpdateDistances(const Entity &internode, std::unique_ptr<TreeD
 #pragma endregion
 }
 
-void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData> &treeData) {
+void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     auto &treeManager = GetInstance();
     auto currentInternode = internode;
     auto currentInternodeInfo = internode.GetComponentData<InternodeInfo>();
     auto currentInternodeGlobalTransform = internode.GetComponentData<GlobalTransform>();
 #pragma region Single child chain from root to branch
-    while (EntityManager::GetChildrenAmount(currentInternode) == 1) {
+    while (currentInternode.GetChildrenAmount() == 1) {
 #pragma region Retrive child status
-        Entity child = EntityManager::GetChildren(currentInternode)[0];
+        Entity child = currentInternode.GetChildren()[0];
         auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
         auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
 #pragma endregion
@@ -2495,7 +2476,7 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         PlantManager::ApplyTropism(glm::vec3(0, -1, 0), childInternodeGrowth.m_sagging, front, up);
         globalRotation = glm::quatLookAt(front, up);
         const glm::vec3 globalPosition =
-                currentInternodeGlobalTransform.GetPosition() + front * treeData->m_parameters.m_internodeLengthBase;
+                currentInternodeGlobalTransform.GetPosition() + front * treeData.m_parameters.m_internodeLengthBase;
         childInternodeGlobalTransform.SetValue(globalPosition, globalRotation, glm::vec3(1.0f));
         childInternodeTransform.m_value =
                 glm::inverse(currentInternodeGlobalTransform.m_value) * childInternodeGlobalTransform.m_value;
@@ -2508,14 +2489,14 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         child.SetComponentData(childInternodeGrowth);
         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-        rigidBody->SetDensityAndMassCenter(
+        rigidBody.SetDensityAndMassCenter(
                 treeManager.m_density * childInternodeGrowth.m_thickness * childInternodeGrowth.m_thickness);
-        rigidBody->SetAngularVelocity(glm::vec3(0.0f));
-        rigidBody->SetLinearVelocity(glm::vec3(0.0f));
-        rigidBody->SetLinearDamping(treeManager.m_linearDamping);
-        rigidBody->SetAngularDamping(treeManager.m_angularDamping);
-        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_velocitySolverIteration);
-        child.GetPrivateComponent<Joint>()->Link(currentInternode);
+        rigidBody.SetAngularVelocity(glm::vec3(0.0f));
+        rigidBody.SetLinearVelocity(glm::vec3(0.0f));
+        rigidBody.SetLinearDamping(treeManager.m_linearDamping);
+        rigidBody.SetAngularDamping(treeManager.m_angularDamping);
+        rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration, treeManager.m_velocitySolverIteration);
+        child.GetPrivateComponent<Joint>().Link(currentInternode);
 
 #pragma endregion
 #pragma region Retarget current internode
@@ -2526,12 +2507,12 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
     }
     auto currentInternodeStatistics = currentInternode.GetComponentData<InternodeStatistics>();
 #pragma endregion
-    if (EntityManager::GetChildrenAmount(currentInternode) != 0) {
+    if (currentInternode.GetChildrenAmount() != 0) {
 #pragma region Select max child
         float maxChildLength = 0;
         int minChildOrder = 9999;
         Entity maxChild = Entity();
-        EntityManager::ForEachChild(currentInternode, [&](Entity child) {
+        currentInternode.ForEachChild([&](Entity child) {
                                         const auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
                                         const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
                                         if (maxChildLength <= childInternodeStatistics.m_totalLength &&
@@ -2544,7 +2525,7 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         );
 #pragma endregion
 #pragma region Apply level
-        EntityManager::ForEachChild(currentInternode, [&](Entity child) {
+        currentInternode.ForEachChild([&](Entity child) {
                                         auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
                                         auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
                                         auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
@@ -2568,7 +2549,7 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                                 childInternodeGrowth.m_sagging, front, up);
                                         globalRotation = glm::quatLookAt(front, up);
                                         const glm::vec3 globalPosition = currentInternodeGlobalTransform.GetPosition() +
-                                                                         front * treeData->m_parameters.m_internodeLengthBase;
+                                                                         front * treeData.m_parameters.m_internodeLengthBase;
                                         childInternodeGlobalTransform.SetValue(globalPosition, globalRotation, glm::vec3(1.0f));
                                         childInternodeTransform.m_value =
                                                 glm::inverse(currentInternodeGlobalTransform.m_value) * childInternodeGlobalTransform.m_value;
@@ -2582,15 +2563,15 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
                                         child.SetComponentData(childInternodeGrowth);
                                         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
                                         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-                                        rigidBody->SetDensityAndMassCenter(
+                                        rigidBody.SetDensityAndMassCenter(
                                                 treeManager.m_density * childInternodeGrowth.m_thickness * childInternodeGrowth.m_thickness);
-                                        rigidBody->SetAngularVelocity(glm::vec3(0.0f));
-                                        rigidBody->SetLinearVelocity(glm::vec3(0.0f));
-                                        rigidBody->SetLinearDamping(treeManager.m_linearDamping);
-                                        rigidBody->SetAngularDamping(treeManager.m_angularDamping);
-                                        rigidBody->SetSolverIterations(treeManager.m_positionSolverIteration,
+                                        rigidBody.SetAngularVelocity(glm::vec3(0.0f));
+                                        rigidBody.SetLinearVelocity(glm::vec3(0.0f));
+                                        rigidBody.SetLinearDamping(treeManager.m_linearDamping);
+                                        rigidBody.SetAngularDamping(treeManager.m_angularDamping);
+                                        rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration,
                                                                        treeManager.m_velocitySolverIteration);
-                                        child.GetPrivateComponent<Joint>()->Link(currentInternode);
+                                        child.GetPrivateComponent<Joint>().Link(currentInternode);
 #pragma endregion
                                         UpdateLevels(child, treeData);
                                         childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
@@ -2608,7 +2589,7 @@ void TreeManager::UpdateLevels(const Entity &internode, std::unique_ptr<TreeData
         currentInternode.SetComponentData(currentInternodeStatistics);
 #pragma endregion
 #pragma region Retarget to parent
-        currentInternode = EntityManager::GetParent(currentInternode);
+        currentInternode = currentInternode.GetParent();
         const auto childInternodeStatistics = currentInternodeStatistics;
         currentInternodeStatistics = currentInternode.GetComponentData<InternodeStatistics>();
 #pragma endregion
@@ -2643,7 +2624,7 @@ void TreeManager::ResetTimeForTree(const float &value) {
     EntityManager::ForEach<InternodeInfo>(JobManager::PrimaryWorkers(), manager.m_internodeQuery,
                                           [value](int i, Entity internode, InternodeInfo &internodeInfo) {
                                               auto &childInternodeData = internode.GetPrivateComponent<InternodeData>();
-                                              for (auto &bud : childInternodeData->m_buds) {
+                                              for (auto &bud : childInternodeData.m_buds) {
                                                   if (!bud.m_active && bud.m_deathGlobalTime > value) {
                                                       bud.m_active = true;
                                                       bud.m_deathGlobalTime = -1;
@@ -2667,8 +2648,8 @@ void TreeManager::ResetTimeForTree(const float &value) {
 
 void TreeManager::ResetTimeForTree(const Entity &internode, const float &globalTime) {
     Entity currentInternode = internode;
-    while (EntityManager::GetChildrenAmount(currentInternode) == 1) {
-        Entity child = EntityManager::GetChildren(currentInternode)[0];
+    while (currentInternode.GetChildrenAmount() == 1) {
+        Entity child = currentInternode.GetChildren()[0];
         const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
         if (childInternodeInfo.m_startGlobalTime > globalTime) {
             EntityManager::DeleteEntity(child);
@@ -2677,9 +2658,9 @@ void TreeManager::ResetTimeForTree(const Entity &internode, const float &globalT
         currentInternode = child;
     }
 
-    if (EntityManager::GetChildrenAmount(currentInternode) != 0) {
+    if (currentInternode.GetChildrenAmount() != 0) {
         std::vector<Entity> childrenToDelete;
-        EntityManager::ForEachChild(currentInternode, [globalTime, &childrenToDelete](Entity child) {
+        currentInternode.ForEachChild([globalTime, &childrenToDelete](Entity child) {
                                         const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
                                         if (childInternodeInfo.m_startGlobalTime > globalTime) {
                                             childrenToDelete.push_back(child);
@@ -2719,14 +2700,14 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
         if (plants[i].HasPrivateComponent<TreeData>()) {
             auto &treeData = plants[i].GetPrivateComponent<TreeData>();
             divisors[i] = 0;
-            apicalControlLevelFactors[i] = treeData->m_parameters.m_apicalControlLevelFactor;
-            apicalIlluminationRequirements[i] = treeData->m_parameters.m_apicalIlluminationRequirement;
-            lateralIlluminationRequirements[i] = treeData->m_parameters.m_lateralIlluminationRequirement;
+            apicalControlLevelFactors[i] = treeData.m_parameters.m_apicalControlLevelFactor;
+            apicalIlluminationRequirements[i] = treeData.m_parameters.m_apicalIlluminationRequirement;
+            lateralIlluminationRequirements[i] = treeData.m_parameters.m_lateralIlluminationRequirement;
             requirementMaximums[i] = 0;
             treePositions[i] = plants[i].GetComponentData<GlobalTransform>().GetPosition();
-            heightResourceBase[i] = treeData->m_parameters.m_heightResourceHeightDecreaseBase;
-            heightResourceFactor[i] = treeData->m_parameters.m_heightResourceHeightDecreaseFactor;
-            heightResourceFactorMin[i] = treeData->m_parameters.m_heightResourceHeightDecreaseMin;
+            heightResourceBase[i] = treeData.m_parameters.m_heightResourceHeightDecreaseBase;
+            heightResourceFactor[i] = treeData.m_parameters.m_heightResourceHeightDecreaseFactor;
+            heightResourceFactorMin[i] = treeData.m_parameters.m_heightResourceHeightDecreaseMin;
         }
     }
     std::mutex maximumLock;
@@ -2745,7 +2726,7 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
                                 * glm::pow(apicalControlLevelFactors[i], static_cast<float>(internodeInfo.m_level));
                         auto &internodeData = internode.GetPrivateComponent<InternodeData>();
                         float budsRequirement = 0;
-                        for (const auto &bud : internodeData->m_buds) {
+                        for (const auto &bud : internodeData.m_buds) {
                             if (bud.m_active && !bud.m_enoughForGrowth) {
                                 budsRequirement += bud.m_resourceWeight;
                                 std::lock_guard<std::mutex> lock(maximumLock);
@@ -2772,7 +2753,7 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
                     if (plants[i] == internodeInfo.m_plant) {
                         auto &internodeData = internode.GetPrivateComponent<InternodeData>();
                         float budsRequirement = 0;
-                        for (const auto &bud : internodeData->m_buds) {
+                        for (const auto &bud : internodeData.m_buds) {
                             if (bud.m_active && !bud.m_enoughForGrowth) budsRequirement += bud.m_resourceWeight;
                         }
                         const float internodeRequirement =
@@ -2786,7 +2767,7 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
                                          manager.m_deltaTime) * budsRequirement * internodeRequirement /
                                 requirementMaximums[i];
                         const float internodeCarbon = illumination.m_currentIntensity * manager.m_deltaTime;
-                        for (auto &bud : internodeData->m_buds) {
+                        for (auto &bud : internodeData.m_buds) {
                             if (bud.m_active && !bud.m_enoughForGrowth) {
                                 ResourceParcel resourceParcel = ResourceParcel(
                                         internodeNutrient / budsRequirement * bud.m_resourceWeight,
@@ -2826,9 +2807,8 @@ void TreeManager::Init() {
     }
 
 #pragma region Internode camera
-    manager.m_internodeDebuggingCamera = std::make_unique<CameraComponent>();
-    manager.m_internodeDebuggingCamera->m_useClearColor = true;
-    manager.m_internodeDebuggingCamera->m_clearColor = glm::vec3(0.1f);
+    manager.m_internodeDebuggingCamera.m_useClearColor = true;
+    manager.m_internodeDebuggingCamera.m_clearColor = glm::vec3(0.1f);
 #pragma endregion
 
     manager.m_leavesArchetype = EntityManager::CreateEntityArchetype("Tree Leaves", TreeLeavesTag());
@@ -2880,7 +2860,7 @@ void TreeManager::Init() {
     EditorManager::RegisterPrivateComponentMenu<CubeVolume>([](Entity owner) {
                                                                 if (owner.HasPrivateComponent<CubeVolume>()) return;
                                                                 if (ImGui::SmallButton("CubeVolume")) {
-                                                                    owner.SetPrivateComponent(std::make_unique<CubeVolume>());
+                                                                    owner.SetPrivateComponent<CubeVolume>();
                                                                 }
                                                             }
     );
@@ -2947,9 +2927,9 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
     );
     Entity rootInternode;
     unsigned rootNodeIndex = 0;
-    EntityManager::ForEachChild(treeEntity, [&rootNodeIndex, &rootInternode](Entity child) {
+    treeEntity.ForEachChild([&rootNodeIndex, &rootInternode](Entity child) {
         if (child.HasComponentData<InternodeInfo>()) {
-            rootNodeIndex = child.m_index - 1;
+            rootNodeIndex = child.GetIndex() - 1;
             rootInternode = child;
         }
     });
@@ -2960,7 +2940,7 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
         auto internodeStatistics = i.GetComponentData<InternodeStatistics>();
         auto *node = doc.allocate_node(rapidxml::node_element, "Node", "Position");
         node->append_attribute(
-                doc.allocate_attribute("id", doc.allocate_string(std::to_string(i.m_index - rootNodeIndex).c_str())));
+                doc.allocate_attribute("id", doc.allocate_string(std::to_string(i.GetIndex() - rootNodeIndex).c_str())));
         node->append_attribute(doc.allocate_attribute("additional", doc.allocate_string(std::to_string(0).c_str())));
         nodes->append_node(node);
         auto globalTransform = i.GetComponentData<GlobalTransform>().m_value;
@@ -2988,10 +2968,10 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
                 std::to_string(internodeStatistics.m_longestDistanceToAnyEndNode).c_str())));
         node->append_node(maxLength);
 
-        unsigned parentIndex = EntityManager::GetParent(i).m_index;
+        unsigned parentIndex = i.GetParent().GetIndex();
         float thicknessVal = 0;
-        if (parentIndex != treeEntity.m_index) {
-            thicknessVal = EntityManager::GetParent(i).GetComponentData<InternodeGrowth>().m_thickness;
+        if (parentIndex != treeEntity.GetIndex()) {
+            thicknessVal = i.GetParent().GetComponentData<InternodeGrowth>().m_thickness;
         } else {
             auto *root = doc.allocate_node(rapidxml::node_element, "Root");
             root->append_attribute(doc.allocate_attribute("value", "true"));
@@ -3003,14 +2983,14 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
         parent->append_attribute(
                 doc.allocate_attribute("thickness", doc.allocate_string(std::to_string(thicknessVal).c_str())));
         node->append_node(parent);
-        if (EntityManager::GetChildrenAmount(i) != 0) {
+        if (i.GetChildrenAmount() != 0) {
             auto *children = doc.allocate_node(rapidxml::node_element, "Children", "Child");
             node->append_node(children);
 
-            EntityManager::ForEachChild(i, [children, &doc, rootNodeIndex](Entity child) {
+            i.ForEachChild([children, &doc, rootNodeIndex](Entity child) {
                                             auto *childNode = doc.allocate_node(rapidxml::node_element, "Child");
                                             childNode->append_attribute(doc.allocate_attribute("id", doc.allocate_string(
-                                                    std::to_string(child.m_index - rootNodeIndex).c_str())));
+                                                    std::to_string(child.GetIndex() - rootNodeIndex).c_str())));
                                             children->append_node(childNode);
                                         }
             );
@@ -3028,7 +3008,7 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
     for (auto &i : internodes) {
         glm::vec3 nodePos = i.GetComponentData<GlobalTransform>().m_value[3];
         auto &internodeData = i.GetPrivateComponent<InternodeData>();
-        for (auto &leafTransform : internodeData->m_leavesTransforms) {
+        for (auto &leafTransform : internodeData.m_leavesTransforms) {
             auto *leaf = doc.allocate_node(rapidxml::node_element, "Leaf");
             leaf->append_attribute(doc.allocate_attribute("id", doc.allocate_string(std::to_string(counter).c_str())));
             counter++;
@@ -3036,7 +3016,7 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
 
             auto *nodeAtt = doc.allocate_node(rapidxml::node_element, "Node");
             nodeAtt->append_attribute(
-                    doc.allocate_attribute("id", doc.allocate_string(std::to_string(i.m_index).c_str())));
+                    doc.allocate_attribute("id", doc.allocate_string(std::to_string(i.GetIndex()).c_str())));
             leaf->append_node(nodeAtt);
 
             auto *posAtt = doc.allocate_node(rapidxml::node_element, "Center");

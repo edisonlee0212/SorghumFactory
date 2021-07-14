@@ -66,9 +66,9 @@ void RayTracedRenderer::SyncWithMeshRenderer()
 	if(owner.HasPrivateComponent<MeshRenderer>())
 	{
 		auto& mmr = owner.GetPrivateComponent<MeshRenderer>();
-		m_mesh = mmr->m_mesh;
-		m_roughness = mmr->m_material->m_roughness;
-		m_metallic = mmr->m_material->m_metallic;
-		m_surfaceColor = mmr->m_material->m_albedoColor;
+		m_mesh = mmr.m_mesh;
+		m_roughness = mmr.m_material->m_roughness;
+		m_metallic = mmr.m_material->m_metallic;
+		m_surfaceColor = mmr.m_material->m_albedoColor;
 	}
 }

@@ -58,7 +58,7 @@ void TreeData::OnGui()
 
 void TreeData::ExportModel(const std::string& filename, const bool& includeFoliage) const
 {
-	auto mesh = EntityManager::GetPrivateComponent<MeshRenderer>(GetOwner())->m_mesh;
+	auto mesh = GetOwner().GetPrivateComponent<MeshRenderer>().m_mesh;
 	if (!mesh) return;
 	if (mesh->GetVerticesAmount() == 0) {
 		Debug::Log("Mesh not generated!");
@@ -94,7 +94,7 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 		if (includeFoliage)
 		{
 			Entity foliageEntity;
-			EntityManager::ForEachChild(GetOwner(), [&foliageEntity](Entity child)
+            GetOwner().ForEachChild([&foliageEntity](Entity child)
 				{
 				/*
 					if (child.HasComponentData<WillowFoliageInfo>())
@@ -135,7 +135,7 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 			size_t branchletVerticesSize = 0;
 			if (foliageEntity.HasPrivateComponent<MeshRenderer>())
 			{
-				mesh = EntityManager::GetPrivateComponent<MeshRenderer>(foliageEntity)->m_mesh;
+				mesh = foliageEntity.GetPrivateComponent<MeshRenderer>().m_mesh;
 				triangles = mesh->UnsafeGetTriangles();
 				branchletVerticesSize += mesh->GetVerticesAmount();
 #pragma region Data collection
@@ -157,10 +157,10 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 
 			if (foliageEntity.HasPrivateComponent<Particles>())
 			{
-				auto& particles = EntityManager::GetPrivateComponent<Particles>(foliageEntity);
-				mesh = particles->m_mesh;
+				auto& particles = foliageEntity.GetPrivateComponent<Particles>();
+				mesh = particles.m_mesh;
 				triangles = mesh->UnsafeGetTriangles();
-				auto& matrices = particles->m_matrices;
+				auto& matrices = particles.m_matrices;
 				size_t offset = 0;
 				for (auto& matrix : matrices)
 				{

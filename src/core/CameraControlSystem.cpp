@@ -97,7 +97,7 @@ void CameraControlSystem::LateUpdate()
                 }
                 if (moved)
                 {
-                    EntityManager::SetComponentData(mainCamera->GetOwner(), transform);
+                    mainCamera->GetOwner().SetComponentData(transform);
                 }
 #pragma endregion
             }

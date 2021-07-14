@@ -8,7 +8,7 @@ SorghumData::SorghumData()
 SorghumData::~SorghumData()
 {
 	Entity rootInternode;
-	EntityManager::ForEachChild(GetOwner(), [&](Entity child)
+    GetOwner().ForEachChild([&](Entity child)
 		{
 			if (child.HasComponentData<InternodeInfo>()) rootInternode = child;
 		}

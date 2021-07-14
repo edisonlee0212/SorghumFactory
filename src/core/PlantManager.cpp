@@ -136,13 +136,13 @@ bool PlantManager::GrowAllPlants()
 	{
 		time = Application::Time().CurrentTime();
 		std::vector<Volume*> obstacles;
-		const auto* entities = EntityManager::GetPrivateComponentOwnersList<CubeVolume>();
+		const auto* entities = EntityManager::UnsafeGetPrivateComponentOwnersList<CubeVolume>();
 		if (entities) {
 			for (const auto& entity : *entities)
 			{
 				if (!entity.IsEnabled()) continue;
 				auto& volume = entity.GetPrivateComponent<CubeVolume>();
-				if (volume->IsEnabled() && volume->m_asObstacle) obstacles.push_back(volume.get());
+				if (volume.IsEnabled() && volume.m_asObstacle) obstacles.push_back(&volume);
 			}
 		}
 		for (auto& i : manager.m_plantInternodePruners)
@@ -185,22 +185,20 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
 		newInternode.SetComponentData(candidate.m_statistics);
 		newInternode.SetComponentData(candidate.m_globalTransform);
 		newInternode.SetComponentData(candidate.m_transform);
-		auto newInternodeData = std::make_unique<InternodeData>();
-		newInternodeData->m_buds.swap(candidate.m_buds);
-		newInternodeData->m_owner = candidate.m_owner;
-		EntityManager::SetPrivateComponent<InternodeData>(newInternode, std::move(newInternodeData));
-		EntityManager::SetParent(newInternode, candidate.m_parent);
+		auto& newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
+		newInternodeData.m_buds.swap(candidate.m_buds);
+		newInternodeData.m_owner = candidate.m_owner;
+        newInternode.SetParent(candidate.m_parent);
         if(candidate.m_info.m_plantType == PlantType::GeneralTree){
-            newInternode.SetPrivateComponent<RigidBody>(std::make_unique<RigidBody>());
-            auto& rigidBody = newInternode.GetPrivateComponent<RigidBody>();
-            rigidBody->SetShapeType(ShapeType::Sphere);
-            rigidBody->SetStatic(false);
+            auto& rigidBody = newInternode.SetPrivateComponent<RigidBody>();
+            rigidBody.SetShapeType(ShapeType::Sphere);
+            rigidBody.SetStatic(false);
             // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-            rigidBody->SetShapeParam(glm::vec3(0.1f));
-            rigidBody->SetEnabled(true);
-            newInternode.SetPrivateComponent<Joint>(std::make_unique<Joint>());
-            newInternode.GetPrivateComponent<Joint>()->SetType(JointType::Fixed);
-            newInternode.GetPrivateComponent<Joint>()->Link(candidate.m_parent);
+            rigidBody.SetShapeParam(glm::vec3(0.1f));
+            rigidBody.SetEnabled(true);
+            auto& joint = newInternode.SetPrivateComponent<Joint>();
+            joint.SetType(JointType::Fixed);
+            joint.Link(candidate.m_parent);
         }
 		i++;
 	}
@@ -307,13 +305,13 @@ Entity PlantManager::CreateCubeObstacle()
 	volumeEntity.SetComponentData(transform);
 	volumeEntity.SetComponentData(globalTransform);
 	volumeEntity.SetStatic(true);
-	volumeEntity.SetPrivateComponent(std::make_unique<CubeVolume>());
-	auto meshRenderer = std::make_unique<MeshRenderer>();
-	meshRenderer->m_mesh = DefaultResources::Primitives::Cube;
-	meshRenderer->m_material = DefaultResources::Materials::StandardMaterial;
-	volumeEntity.SetPrivateComponent(std::move(meshRenderer));
-	auto& volume = volumeEntity.GetPrivateComponent<CubeVolume>();
-	volume->ApplyMeshRendererBounds();
+
+	auto& meshRenderer = volumeEntity.SetPrivateComponent<MeshRenderer>();
+	meshRenderer.m_mesh = DefaultResources::Primitives::Cube;
+	meshRenderer.m_material = DefaultResources::Materials::StandardMaterial;
+
+	auto& volume = volumeEntity.SetPrivateComponent<CubeVolume>();
+	volume.ApplyMeshRendererBounds();
 	return volumeEntity;
 }
 
@@ -362,13 +360,12 @@ Entity PlantManager::CreatePlant(const PlantType& type, const Transform& transfo
 	rootInternode.SetComponentData(internodeStatistics);
 	rootInternode.SetComponentData(internodeGlobalTransform);
 
-	rootInternode.SetPrivateComponent(std::make_unique<InternodeData>());
-	auto& rootInternodeData = rootInternode.GetPrivateComponent<InternodeData>();
+	auto& rootInternodeData = rootInternode.SetPrivateComponent<InternodeData>();
 	Bud bud;
 	bud.m_isApical = true;
-	rootInternodeData->m_buds.push_back(bud);
-	rootInternodeData->m_owner = entity;
-	EntityManager::SetParent(rootInternode, entity);
+	rootInternodeData.m_buds.push_back(bud);
+	rootInternodeData.m_owner = entity;
+    rootInternode.SetParent(entity);
 
 
 #pragma endregion
@@ -384,8 +381,8 @@ Entity PlantManager::CreateInternode(const PlantType& type, const Entity& parent
 	internodeInfo.m_plant = parentEntity.GetComponentData<InternodeInfo>().m_plant;
 	internodeInfo.m_startAge = internodeInfo.m_plant.GetComponentData<PlantInfo>().m_age;
 	entity.SetComponentData(internodeInfo);
-	entity.SetPrivateComponent(std::make_unique<InternodeData>());
-	EntityManager::SetParent(entity, parentEntity);
+	entity.SetPrivateComponent<InternodeData>();
+    entity.SetParent(parentEntity);
 	return entity;
 }
 
@@ -407,14 +404,15 @@ void PlantManager::Init()
 
 #pragma region Ground
 	manager.m_ground = EntityManager::CreateEntity("Ground");
-	auto meshRenderer = std::make_unique<MeshRenderer>();
-	meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
-	meshRenderer->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
-	meshRenderer->m_material->m_name = "Ground mat";
-	meshRenderer->m_material->m_roughness = 1.0f;
-	meshRenderer->m_material->m_metallic = 0.5f;
-	meshRenderer->m_material->m_albedoColor = glm::vec3(1.0f);
-	manager.m_ground.SetPrivateComponent(std::move(meshRenderer));
+
+	auto& meshRenderer = manager.m_ground.SetPrivateComponent<MeshRenderer>();
+	meshRenderer.m_mesh = DefaultResources::Primitives::Quad;
+	meshRenderer.m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
+	meshRenderer.m_material->m_name = "Ground mat";
+	meshRenderer.m_material->m_roughness = 1.0f;
+	meshRenderer.m_material->m_metallic = 0.5f;
+	meshRenderer.m_material->m_albedoColor = glm::vec3(1.0f);
+
 	Transform groundTransform;
 	GlobalTransform groundGlobalTransform;
 	groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
@@ -423,15 +421,16 @@ void PlantManager::Init()
 	manager.m_ground.SetComponentData(groundTransform);
 	manager.m_ground.SetComponentData(groundGlobalTransform);
 	manager.m_ground.SetStatic(true);
-	manager.m_ground.SetPrivateComponent(std::make_unique<RayTracerFacility::RayTracedRenderer>());
-	auto& rayTracedRenderer = manager.m_ground.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
-	rayTracedRenderer->SyncWithMeshRenderer();
-	rayTracedRenderer->m_enableMLVQ = true;
-	auto cubeVolume = std::make_unique<CubeVolume>();
-	cubeVolume->m_asObstacle = true;
-	cubeVolume->m_minMaxBound.m_max = glm::vec3(500, -0.1f, 500);
-	cubeVolume->m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
-	manager.m_ground.SetPrivateComponent(std::move(cubeVolume));
+
+	auto& rayTracedRenderer = manager.m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
+	rayTracedRenderer.SyncWithMeshRenderer();
+	rayTracedRenderer.m_enableMLVQ = true;
+
+	auto& cubeVolume = manager.m_ground.SetPrivateComponent<CubeVolume>();
+	cubeVolume.m_asObstacle = true;
+	cubeVolume.m_minMaxBound.m_max = glm::vec3(500, -0.1f, 500);
+	cubeVolume.m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
+
 #pragma endregion
 
 #pragma region Mask material

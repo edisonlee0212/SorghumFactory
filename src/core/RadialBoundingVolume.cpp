@@ -138,7 +138,7 @@ void RadialBoundingVolume::FormEntity()
 {
 	if (!m_meshGenerated) CalculateVolume();
 	if (!m_meshGenerated) return;
-	auto children = EntityManager::GetChildren(GetOwner());
+	auto children = GetOwner().GetChildren();
 	for (auto& child : children)
 	{
 		EntityManager::DeleteEntity(child);
@@ -147,14 +147,14 @@ void RadialBoundingVolume::FormEntity()
 	for (auto i = 0; i < m_boundMeshes.size(); i++)
 	{
 		auto slice = EntityManager::CreateEntity( "RBV_" + std::to_string(i));
-		auto mmc = std::make_unique<MeshRenderer>();
-		mmc->m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
-		mmc->m_forwardRendering = false;
-		mmc->m_mesh = m_boundMeshes[i];
-		slice.SetPrivateComponent(std::move(mmc));
-		slice.SetPrivateComponent(std::make_unique<RayTracedRenderer>());
-		EntityManager::SetParent(slice, GetOwner(), false);
-		slice.GetPrivateComponent<RayTracedRenderer>()->SyncWithMeshRenderer();
+		auto& mmc = slice.SetPrivateComponent<MeshRenderer>();
+		mmc.m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
+		mmc.m_forwardRendering = false;
+		mmc.m_mesh = m_boundMeshes[i];
+
+		auto& rayTracedRenderer = slice.SetPrivateComponent<RayTracedRenderer>();
+        slice.SetParent(GetOwner(), false);
+        rayTracedRenderer.SyncWithMeshRenderer();
 	}
 }
 
@@ -265,9 +265,9 @@ void RadialBoundingVolume::Load(const std::string& path)
 
 void RadialBoundingVolume::CalculateVolume()
 {
-	const auto tree = EntityManager::GetParent(GetOwner());
+	const auto tree = GetOwner().GetParent();
 	EntityQuery internodeDataQuery = EntityManager::CreateEntityQuery();
-	EntityManager::SetEntityQueryAllFilters(internodeDataQuery, InternodeInfo());
+    internodeDataQuery.SetAllFilters(InternodeInfo());
 	std::vector<InternodeInfo> internodeInfos;
 	internodeDataQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(internodeInfos, [=](const InternodeInfo& info)
 		{
@@ -307,7 +307,7 @@ void RadialBoundingVolume::CalculateVolume()
 	for (auto& internode : internodes)
 	{
 		const auto internodeGrowth = internode.GetComponentData<InternodeGrowth>();
-		auto parentGlobalTransform = EntityManager::GetParent(internode).GetComponentData<GlobalTransform>().m_value;
+		auto parentGlobalTransform = internode.GetParent().GetComponentData<GlobalTransform>().m_value;
 		const glm::vec3 parentNodePosition = (glm::inverse(treeGlobalTransform) * parentGlobalTransform)[3];
 		const int segments = 3;
 		for (int i = 0; i < segments; i++) {
@@ -330,9 +330,9 @@ void RadialBoundingVolume::CalculateVolume()
 
 void RadialBoundingVolume::CalculateVolume(float maxHeight)
 {
-	const auto tree = EntityManager::GetParent(GetOwner());
+	const auto tree = GetOwner().GetParent();
 	EntityQuery internodeDataQuery = EntityManager::CreateEntityQuery();
-	EntityManager::SetEntityQueryAllFilters(internodeDataQuery, InternodeInfo());
+    internodeDataQuery.SetAllFilters(InternodeInfo());
 	std::vector<InternodeInfo> internodeInfos;
 	internodeDataQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(internodeInfos, [=](const InternodeInfo& info)
 		{
@@ -386,7 +386,7 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight)
 	for (auto& internode : internodes)
 	{
 		const auto internodeGrowth = internode.GetComponentData<InternodeGrowth>();
-		auto parentGlobalTransform = EntityManager::GetParent(internode).GetComponentData<GlobalTransform>().m_value;
+		auto parentGlobalTransform = internode.GetParent().GetComponentData<GlobalTransform>().m_value;
 		const glm::vec3 parentNodePosition = (glm::inverse(treeGlobalTransform) * parentGlobalTransform)[3];
 		const int segments = 3;
 		for (int i = 0; i < segments; i++) {
@@ -444,7 +444,7 @@ void RadialBoundingVolume::OnGui()
 	if (m_display && m_meshGenerated)
 	{
 		for (auto& i : m_boundMeshes) {
-			RenderManager::DrawGizmoMesh(i.get(), EditorManager::GetSceneCamera().get(), m_displayColor, GetOwner().GetComponentData<GlobalTransform>().m_value);
+			RenderManager::DrawGizmoMesh(i.get(), EditorManager::GetSceneCamera(), m_displayColor, GetOwner().GetComponentData<GlobalTransform>().m_value);
 		}
 	}
 }

@@ -52,7 +52,7 @@ void VoxelSpace::OnGui()
 	if (m_display)
 	{
 		if (ImGui::Button("Freeze Voxel")) Freeze();
-		RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube.get(), RenderManager::GetMainCamera(), glm::vec4(1, 1, 1, 0.5), m_frozenVoxels.data(), m_frozenVoxels.size());
+		RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube.get(), *RenderManager::GetMainCamera(), glm::vec4(1, 1, 1, 0.5), m_frozenVoxels.data(), m_frozenVoxels.size());
 	}
 }
 

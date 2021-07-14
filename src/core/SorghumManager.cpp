@@ -119,7 +119,7 @@ void SorghumManager::Init()
 		LeafInfo()
 	);
 	sorghumManager.m_leafQuery = EntityManager::CreateEntityQuery();
-	EntityManager::SetEntityQueryAllFilters(sorghumManager.m_leafQuery, LeafInfo());
+    sorghumManager.m_leafQuery.SetAllFilters(LeafInfo());
 
 	sorghumManager.m_leafMaterial = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
 	sorghumManager.m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
@@ -160,7 +160,7 @@ Entity SorghumManager::CreateSorghum()
 	Transform transform;
 	transform.SetScale(glm::vec3(1.0f));
 	const Entity entity = PlantManager::CreatePlant(PlantType::Sorghum, transform);
-	EntityManager::ForEachChild(entity, [](Entity child)
+    entity.ForEachChild([](Entity child)
 		{
 			if (child.HasComponentData<InternodeInfo>())
 			{
@@ -170,10 +170,10 @@ Entity SorghumManager::CreateSorghum()
 			}
 		}
 	);
-	EntityManager::SetPrivateComponent(entity, std::make_unique<Spline>());
-	EntityManager::SetPrivateComponent(entity, std::make_unique<SorghumData>());
+    entity.SetPrivateComponent<Spline>();
+    entity.SetPrivateComponent<SorghumData>();
 	entity.SetName("Sorghum");
-	EntityManager::SetPrivateComponent(entity, std::make_unique<TriangleIlluminationEstimator>());
+    entity.SetPrivateComponent<TriangleIlluminationEstimator>();
 	return entity;
 }
 
@@ -181,24 +181,23 @@ Entity SorghumManager::CreateSorghumLeaf(const Entity& plantEntity)
 {
 	const Entity entity = EntityManager::CreateEntity(GetInstance().m_leafArchetype);
 	entity.SetName("Leaf");
-	EntityManager::SetParent(entity, plantEntity);
+    entity.SetParent(plantEntity);
 	Transform transform;
 	transform.SetScale(glm::vec3(1.0f));
-	auto spline = std::make_unique<Spline>();
-	EntityManager::SetPrivateComponent(entity, std::move(spline));
-	EntityManager::SetComponentData(entity, transform);
+    auto& spline = entity.SetPrivateComponent<Spline>();
+    entity.SetComponentData(transform);
 
-	auto mmc = std::make_unique<MeshRenderer>();
-	mmc->m_material = GetInstance().m_leafMaterial;
-	mmc->m_mesh = ResourceManager::CreateResource<Mesh>();
+	auto& mmc = entity.SetPrivateComponent<MeshRenderer>();
+	mmc.m_material = GetInstance().m_leafMaterial;
+	mmc.m_mesh = ResourceManager::CreateResource<Mesh>();
 	
-	auto rtt = std::make_unique<RayTracedRenderer>();
-	rtt->m_mesh = mmc->m_mesh;
-	rtt->m_albedoTexture = GetInstance().m_leafSurfaceTexture;
-	if (GetInstance().m_leafNormalTexture) rtt->m_normalTexture = GetInstance().m_leafNormalTexture;
+	auto& rtt = entity.SetPrivateComponent<RayTracedRenderer>();
+	rtt.m_mesh = mmc.m_mesh;
+	rtt.m_albedoTexture = GetInstance().m_leafSurfaceTexture;
+	if (GetInstance().m_leafNormalTexture) rtt.m_normalTexture = GetInstance().m_leafNormalTexture;
 
-	entity.SetPrivateComponent(std::move(mmc));
-	entity.SetPrivateComponent(std::move(rtt));
+
+
 	return entity;
 }
 
@@ -208,39 +207,39 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 	EntityManager::ForEach<GlobalTransform>(JobManager::PrimaryWorkers(), GetInstance().m_leafQuery, [&meshMutex, segmentAmount, step]
 	(int index, Entity entity, GlobalTransform& ltw)
 		{
-			auto& spline = EntityManager::GetPrivateComponent<Spline>(entity);
-			spline->m_nodes.clear();
+			auto& spline = entity.GetPrivateComponent<Spline>();
+			spline.m_nodes.clear();
 			int stemNodeCount = 0;
-			if (spline->m_startingPoint != -1) {
-				auto& truckSpline = EntityManager::GetPrivateComponent<Spline>(EntityManager::GetParent(entity));
-				float width = 0.1f - spline->m_startingPoint * 0.05f;
-				for (float i = 0.0f; i < spline->m_startingPoint - 0.05f; i += 0.05f)
+			if (spline.m_startingPoint != -1) {
+				auto& truckSpline = entity.GetParent().GetPrivateComponent<Spline>();
+				float width = 0.1f - spline.m_startingPoint * 0.05f;
+				for (float i = 0.0f; i < spline.m_startingPoint - 0.05f; i += 0.05f)
 				{
-					spline->m_nodes.emplace_back(truckSpline->EvaluatePointFromCurve(i), 180.0f, width, truckSpline->EvaluateAxisFromCurve(i), false);
+					spline.m_nodes.emplace_back(truckSpline.EvaluatePointFromCurve(i), 180.0f, width, truckSpline.EvaluateAxisFromCurve(i), false);
 
 				}
-				stemNodeCount = spline->m_nodes.size();
+				stemNodeCount = spline.m_nodes.size();
 				for (float i = 0.05f; i <= 1.0f; i += 0.05f)
 				{
 					float w = 0.2f;
 					if (i > 0.75f) w -= (i - 0.75f) * 0.75f;
-					spline->m_nodes.emplace_back(spline->EvaluatePointFromCurve(i), i == 0.05f ? 60.0f : 10.0f, w, spline->EvaluateAxisFromCurve(i), true);
+					spline.m_nodes.emplace_back(spline.EvaluatePointFromCurve(i), i == 0.05f ? 60.0f : 10.0f, w, spline.EvaluateAxisFromCurve(i), true);
 				}
 			}
 			else
 			{
 				for (float i = 0.0f; i <= 1.0f; i += 0.05f)
 				{
-					spline->m_nodes.emplace_back(spline->EvaluatePointFromCurve(i), 180.0f, 0.04f, spline->EvaluateAxisFromCurve(i), false);
+					spline.m_nodes.emplace_back(spline.EvaluatePointFromCurve(i), 180.0f, 0.04f, spline.EvaluateAxisFromCurve(i), false);
 				}
-				auto endPoint = spline->EvaluatePointFromCurve(1.0f);
-				auto endAxis = spline->EvaluateAxisFromCurve(1.0f);
-				spline->m_nodes.emplace_back(endPoint + endAxis * 0.05f, 10.0f, 0.001f, endAxis, false);
-				stemNodeCount = spline->m_nodes.size();
+				auto endPoint = spline.EvaluatePointFromCurve(1.0f);
+				auto endAxis = spline.EvaluateAxisFromCurve(1.0f);
+				spline.m_nodes.emplace_back(endPoint + endAxis * 0.05f, 10.0f, 0.001f, endAxis, false);
+				stemNodeCount = spline.m_nodes.size();
 			}
-			spline->m_vertices.clear();
-			spline->m_indices.clear();
-			spline->m_segments.clear();
+			spline.m_vertices.clear();
+			spline.m_indices.clear();
+			spline.m_segments.clear();
 
 
 			float temp = 0.0f;
@@ -253,13 +252,13 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 			float rightFlatnessFactor = glm::gaussRand(1.25f, 0.2f);//glm::linearRand(1.0f, 2.5f);
 
 			int stemSegmentCount = 0;
-			for (int i = 1; i < spline->m_nodes.size(); i++)
+			for (int i = 1; i < spline.m_nodes.size(); i++)
 			{
-				auto& prev = spline->m_nodes.at(i - 1);
-				auto& curr = spline->m_nodes.at(i);
+				auto& prev = spline.m_nodes.at(i - 1);
+				auto& curr = spline.m_nodes.at(i);
 				if (i == stemNodeCount)
 				{
-					stemSegmentCount = spline->m_segments.size();
+					stemSegmentCount = spline.m_segments.size();
 				}
 				float distance = glm::distance(prev.m_position, curr.m_position);
 				BezierCurve curve = BezierCurve(prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis, curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
@@ -267,11 +266,11 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 				{
 					auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
 
-					auto up = glm::normalize(glm::cross(spline->m_left, front));
+					auto up = glm::normalize(glm::cross(spline.m_left, front));
 					if (prev.m_isLeaf) {
 						leftPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
 						rightPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
-						spline->m_segments.emplace_back(
+						spline.m_segments.emplace_back(
 							curve.GetPoint(div),
 							up,
 							front,
@@ -284,7 +283,7 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 					}
 					else
 					{
-						spline->m_segments.emplace_back(
+						spline.m_segments.emplace_back(
 							curve.GetPoint(div),
 							up,
 							front,
@@ -295,14 +294,14 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 				}
 			}
 
-			const int vertexIndex = spline->m_vertices.size();
+			const int vertexIndex = spline.m_vertices.size();
 			Vertex archetype;
 			const float xStep = 1.0f / step / 2.0f;
 			const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
-			const float yLeafStep = 0.5f / (spline->m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
-			for (int i = 0; i < spline->m_segments.size(); i++)
+			const float yLeafStep = 0.5f / (spline.m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
+			for (int i = 0; i < spline.m_segments.size(); i++)
 			{
-				auto& segment = spline->m_segments.at(i);
+				auto& segment = spline.m_segments.at(i);
 				const float angleStep = segment.m_theta / step;
 				const int vertsCount = step * 2 + 1;
 				for (int j = 0; j < vertsCount; j++)
@@ -311,18 +310,18 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 					archetype.m_position = glm::vec3(position.x, position.y, position.z);
 					float yPos = (i < stemSegmentCount) ? yStemStep * i : 0.5f + yLeafStep * (i - stemSegmentCount + 1);
 					archetype.m_texCoords = glm::vec2(j * xStep, yPos);
-					spline->m_vertices.push_back(archetype);
+					spline.m_vertices.push_back(archetype);
 				}
 				if (i != 0) {
 					for (int j = 0; j < vertsCount - 1; j++) {
 						//Down triangle
-						spline->m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
-						spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
-						spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j);
+						spline.m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
+						spline.m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
+						spline.m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j);
 						//Up triangle
-						spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
-						spline->m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
-						spline->m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j + 1);
+						spline.m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
+						spline.m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
+						spline.m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j + 1);
 					}
 				}
 			}
@@ -333,15 +332,15 @@ void SorghumManager::GenerateMeshForAllSorghums(int segmentAmount, int step)
 	PlantManager::GetInstance().m_plantQuery.ToEntityArray(plants);
 	for (auto& plant : plants) {
 		if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::Sorghum) continue;
-		EntityManager::ForEachChild(plant, [](Entity child)
+        plant.ForEachChild([](Entity child)
 			{
 				if (!child.HasPrivateComponent<Spline>()) return;
-				auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(child);
-				auto& spline = EntityManager::GetPrivateComponent<Spline>(child);
-				meshRenderer->m_mesh->SetVertices(17, spline->m_vertices, spline->m_indices);
+				auto& meshRenderer = child.GetPrivateComponent<MeshRenderer>();
+				auto& spline = child.GetPrivateComponent<Spline>();
+				meshRenderer.m_mesh->SetVertices(17, spline.m_vertices, spline.m_indices);
 			}
 		);
-		if (plant.HasPrivateComponent<SorghumData>())plant.GetPrivateComponent<SorghumData>()->m_meshGenerated = true;
+		if (plant.HasPrivateComponent<SorghumData>())plant.GetPrivateComponent<SorghumData>().m_meshGenerated = true;
 	}
 }
 
@@ -358,42 +357,42 @@ Entity SorghumManager::ImportPlant(const std::string& path, const std::string& n
 	file >> leafCount;
 	const auto sorghum = CreateSorghum();
 	sorghum.RemovePrivateComponent<SorghumData>();
-	auto children = EntityManager::GetChildren(sorghum);
+	auto children = sorghum.GetChildren();
 	for (const auto& child : children)
 	{
 		EntityManager::DeleteEntity(child);
 	}
 	sorghum.SetName(name);
-	auto& truckSpline = EntityManager::GetPrivateComponent<Spline>(sorghum);
-	truckSpline->m_startingPoint = -1;
-	truckSpline->Import(file);
+	auto& truckSpline = sorghum.GetPrivateComponent<Spline>();
+	truckSpline.m_startingPoint = -1;
+	truckSpline.Import(file);
 
 	//Recenter plant:
-	glm::vec3 posSum = truckSpline->m_curves.front().m_p0;
+	glm::vec3 posSum = truckSpline.m_curves.front().m_p0;
 
-	for (auto& curve : truckSpline->m_curves) {
+	for (auto& curve : truckSpline.m_curves) {
 		curve.m_p0 -= posSum;
 		curve.m_p1 -= posSum;
 		curve.m_p2 -= posSum;
 		curve.m_p3 -= posSum;
 	}
-	truckSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), truckSpline->m_curves.begin()->m_p0 - truckSpline->m_curves.back().m_p3);
+	truckSpline.m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), truckSpline.m_curves.begin()->m_p0 - truckSpline.m_curves.back().m_p3);
 	for (int i = 0; i < leafCount; i++) {
 		Entity leaf = CreateSorghumLeaf(sorghum);
-		auto& leafSpline = EntityManager::GetPrivateComponent<Spline>(leaf);
+		auto& leafSpline = leaf.GetPrivateComponent<Spline>();
 		float startingPoint;
 		file >> startingPoint;
 
-		leafSpline->m_startingPoint = startingPoint;
-		leafSpline->Import(file);
-		for (auto& curve : leafSpline->m_curves) {
-			curve.m_p0 += truckSpline->EvaluatePointFromCurve(startingPoint);
-			curve.m_p1 += truckSpline->EvaluatePointFromCurve(startingPoint);
-			curve.m_p2 += truckSpline->EvaluatePointFromCurve(startingPoint);
-			curve.m_p3 += truckSpline->EvaluatePointFromCurve(startingPoint);
+		leafSpline.m_startingPoint = startingPoint;
+		leafSpline.Import(file);
+		for (auto& curve : leafSpline.m_curves) {
+			curve.m_p0 += truckSpline.EvaluatePointFromCurve(startingPoint);
+			curve.m_p1 += truckSpline.EvaluatePointFromCurve(startingPoint);
+			curve.m_p2 += truckSpline.EvaluatePointFromCurve(startingPoint);
+			curve.m_p3 += truckSpline.EvaluatePointFromCurve(startingPoint);
 		}
 
-		leafSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), leafSpline->m_curves.begin()->m_p0 - leafSpline->m_curves.back().m_p3);
+		leafSpline.m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), leafSpline.m_curves.begin()->m_p0 - leafSpline.m_curves.back().m_p3);
 	}
 	return sorghum;
 }
@@ -549,7 +548,7 @@ void SorghumManager::OnGui()
 						sorghumTransform.SetPosition(newSorghumPositions[i]);
 						sorghumTransform.SetEulerRotation(glm::radians(newSorghumRotations[i]));
 						sorghum.SetComponentData(sorghumTransform);
-						sorghum.GetPrivateComponent<SorghumData>()->m_parameters = newSorghumParameters[i];
+						sorghum.GetPrivateComponent<SorghumData>().m_parameters = newSorghumParameters[i];
 					}
 					ImGui::CloseCurrentPopup();
 				}
@@ -598,7 +597,7 @@ void SorghumManager::OnGui()
 					if (!sorghum.HasPrivateComponent<SorghumData>()) continue;
 					sorghum.RemovePrivateComponent<SorghumData>();
 					Entity rootInternode;
-					EntityManager::ForEachChild(sorghum, [&](Entity child)
+                    sorghum.ForEachChild([&](Entity child)
 						{
 							if (child.HasComponentData<InternodeInfo>()) rootInternode = child;
 						}
@@ -646,7 +645,7 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 	{
 		Entity sorghum = CreateSorghum();
 		sorghum.RemovePrivateComponent<SorghumData>();
-		auto children = EntityManager::GetChildren(sorghum);
+		auto children = sorghum.GetChildren();
 		for (const auto& child : children)
 		{
 			EntityManager::DeleteEntity(child);
@@ -654,27 +653,26 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 		Transform transform;
 		transform.m_value = matrix;
 		sorghum.SetComponentData(transform);
-		auto newSpline = std::make_unique<Spline>();
-		auto& spline = EntityManager::GetPrivateComponent<Spline>(original);
-		*newSpline = *spline;
-		sorghum.SetPrivateComponent(std::move(newSpline));
-		EntityManager::ForEachChild(original, [&sorghum, &matrices](Entity child)
+		auto& newSpline = sorghum.SetPrivateComponent<Spline>();
+		auto& spline = original.GetPrivateComponent<Spline>();
+		newSpline = spline;
+
+        original.ForEachChild([&sorghum, &matrices](Entity child)
 			{
 				if (!child.HasComponentData<LeafInfo>()) return;
 				const auto newChild = CreateSorghumLeaf(sorghum);
-				newChild.SetComponentData(EntityManager::GetComponentData<LeafInfo>(child));
-				newChild.SetComponentData(EntityManager::GetComponentData<Transform>(child));
-				auto newSpline = std::make_unique<Spline>();
-				auto& spline = EntityManager::GetPrivateComponent<Spline>(child);
-				*newSpline = *spline;
-				newChild.SetPrivateComponent(std::move(newSpline));
+				newChild.SetComponentData(child.GetComponentData<LeafInfo>());
+				newChild.SetComponentData(child.GetComponentData<Transform>());
+				auto& newSpline = newChild.SetPrivateComponent<Spline>();
+				auto& spline = child.GetPrivateComponent<Spline>();
+				newSpline = spline;
 				auto& newMeshRenderer = newChild.GetPrivateComponent<MeshRenderer>();
-				auto& meshRenderer = EntityManager::GetPrivateComponent<MeshRenderer>(child);
-				newMeshRenderer->m_mesh = meshRenderer->m_mesh;
+				auto& meshRenderer = child.GetPrivateComponent<MeshRenderer>();
+				newMeshRenderer.m_mesh = meshRenderer.m_mesh;
 				auto& newRayTracedRenderer = newChild.GetPrivateComponent<RayTracedRenderer>();
-				newRayTracedRenderer->m_mesh = meshRenderer->m_mesh;
+				newRayTracedRenderer.m_mesh = meshRenderer.m_mesh;
 			});
-		EntityManager::SetParent(sorghum, parent, false);
+        sorghum.SetParent(parent, false);
 	}
 }
 
@@ -683,11 +681,11 @@ void SorghumManager::ExportSorghum(const Entity& sorghum, std::ofstream& of, uns
 	const std::string start = "#Sorghum\n";
 	of.write(start.c_str(), start.size());
 	of.flush();
-	const auto position = EntityManager::GetComponentData<GlobalTransform>(sorghum).GetPosition();
-	EntityManager::ForEachChild(sorghum, [&](Entity child)
+	const auto position = sorghum.GetComponentData<GlobalTransform>().GetPosition();
+    sorghum.ForEachChild([&](Entity child)
 		{
-			if (!EntityManager::HasPrivateComponent<MeshRenderer>(child)) return;
-			const auto& leafMesh = EntityManager::GetPrivateComponent<MeshRenderer>(child)->m_mesh;
+			if (!child.HasPrivateComponent<MeshRenderer>()) return;
+			const auto& leafMesh = child.GetPrivateComponent<MeshRenderer>().m_mesh;
 			ObjExportHelper(position, leafMesh, of, startIndex);
 		}
 	);
@@ -791,7 +789,7 @@ void SorghumManager::RenderLightProbes()
 {
 	auto& manager = GetInstance();
 	if (manager.m_probeTransforms.empty() || manager.m_probeColors.empty() || manager.m_probeTransforms.size() != manager.m_probeColors.size()) return;
-	RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(), EditorManager::GetSceneCamera().get(), manager.m_probeColors.data(), manager.m_probeTransforms.data(), manager.m_probeTransforms.size(), glm::mat4(1.0f), 0.2f);
+	RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(), EditorManager::GetSceneCamera(), manager.m_probeColors.data(), manager.m_probeTransforms.data(), manager.m_probeTransforms.size(), glm::mat4(1.0f), 0.2f);
 	/*
 	if (!EditorManager::GetSceneCamera()->IsEnabled()) return;
 #pragma region Render
@@ -849,7 +847,7 @@ void SorghumManager::RenderLightProbes()
 
 void SorghumManager::CollectEntities(std::vector<Entity>& entities, const Entity& walker)
 {
-	EntityManager::ForEachChild(walker, [&](Entity child)
+    walker.ForEachChild([&](Entity child)
 		{
 			if (!child.HasPrivateComponent<MeshRenderer>()) return;
 			entities.push_back(child);
@@ -860,7 +858,7 @@ void SorghumManager::CollectEntities(std::vector<Entity>& entities, const Entity
 void SorghumManager::CalculateIllumination(const IlluminationEstimationProperties& properties)
 {
 	auto& manager = GetInstance();
-	const auto* owners = EntityManager::GetPrivateComponentOwnersList<TriangleIlluminationEstimator>();
+	const auto* owners = EntityManager::UnsafeGetPrivateComponentOwnersList<TriangleIlluminationEstimator>();
 	if (!owners) return;
 	manager.m_processingEntities.clear();
 	manager.m_probeTransforms.clear();
@@ -884,7 +882,7 @@ void SorghumManager::GenerateLeavesForSorghum(PlantManager& manager)
 	{
 		if (!sorghum.HasPrivateComponent<SorghumData>()) continue;
 #pragma region Clear all child with spline.
-		auto children = EntityManager::GetChildren(sorghum);
+		auto children = sorghum.GetChildren();
 		for (const auto& child : children)
 		{
 			if (child.HasPrivateComponent<Spline>())
@@ -893,13 +891,13 @@ void SorghumManager::GenerateLeavesForSorghum(PlantManager& manager)
 			}
 		}
 #pragma endregion
-		auto truckSpline = std::make_unique<Spline>();
+		auto& truckSpline = sorghum.SetPrivateComponent<Spline>();
 		Entity walker = sorghum;
 		std::vector<Entity> centerNode;
 		while (!walker.IsNull())
 		{
 			Entity temp;
-			EntityManager::ForEachChild(walker, [&](Entity child)
+            walker.ForEachChild([&](Entity child)
 				{
 					if (child.HasComponentData<InternodeInfo>() && child.GetComponentData<InternodeInfo>().m_order == 1)
 					{
@@ -913,50 +911,50 @@ void SorghumManager::GenerateLeavesForSorghum(PlantManager& manager)
 		glm::vec3 startPosition = sorghum.GetComponentData<GlobalTransform>().GetPosition();
 		glm::vec3 endPosition = centerNode.back().GetComponentData<GlobalTransform>().GetPosition();
 		auto truckCurve = BezierCurve(glm::vec3(0.0f), (-startPosition + endPosition) / 2.0f, (-startPosition + endPosition) / 2.0f, endPosition - startPosition);
-		truckSpline->m_curves.push_back(truckCurve);
-		sorghum.SetPrivateComponent(std::move(truckSpline));
+		truckSpline.m_curves.push_back(truckCurve);
+
 		int leafAmount = 0;
 		for (int i = 0; i < centerNode.size(); i++)
 		{
 			glm::vec3 centerNodePosition = centerNode[i].GetComponentData<GlobalTransform>().GetPosition();
-			EntityManager::ForEachChild(centerNode[i], [&](Entity child)
+            centerNode[i].ForEachChild([&](Entity child)
 				{
 					if (child.HasComponentData<InternodeInfo>() && child.GetComponentData<InternodeInfo>().m_order == 2)
 					{
 						const auto leafEntity = CreateSorghumLeaf(sorghum);
-						auto leafSpline = std::make_unique<Spline>();
+						auto& leafSpline = leafEntity.SetPrivateComponent<Spline>();
 						auto cp0 = centerNodePosition;
 						auto cp1 = child.GetComponentData<GlobalTransform>().GetPosition();
-						auto child2 = EntityManager::GetChildren(child)[0];
+						auto child2 = child.GetChildren()[0];
 						auto cp2 = child2.GetComponentData<GlobalTransform>().GetPosition();
-						auto child3 = EntityManager::GetChildren(child2)[0];
+						auto child3 = child2.GetChildren()[0];
 						auto cp3 = child3.GetComponentData<GlobalTransform>().GetPosition();
 						auto leafCurve = BezierCurve(cp0 - startPosition, cp1 - startPosition, cp2 - startPosition, cp3 - startPosition);
-						leafSpline->m_curves.push_back(leafCurve);
+						leafSpline.m_curves.push_back(leafCurve);
 
-						auto child0 = EntityManager::GetChildren(child3)[0];
+						auto child0 = child3.GetChildren()[0];
 						cp0 = child0.GetComponentData<GlobalTransform>().GetPosition();
-						auto child1 = EntityManager::GetChildren(child0)[0];
+						auto child1 = child0.GetChildren()[0];
 						cp1 = child1.GetComponentData<GlobalTransform>().GetPosition();
-						child2 = EntityManager::GetChildren(child1)[0];
+						child2 = child1.GetChildren()[0];
 						cp2 = child2.GetComponentData<GlobalTransform>().GetPosition();
-						child3 = EntityManager::GetChildren(child2)[0];
+						child3 = child2.GetChildren()[0];
 						cp3 = child3.GetComponentData<GlobalTransform>().GetPosition();
 						leafCurve = BezierCurve(cp0 - startPosition, cp1 - startPosition, cp2 - startPosition, cp3 - startPosition);
-						leafSpline->m_curves.push_back(leafCurve);
+						leafSpline.m_curves.push_back(leafCurve);
 
-						leafSpline->m_startingPoint = static_cast<float>(i + 1) / (centerNode.size() + 1);
-						leafSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), leafSpline->m_curves.begin()->m_p0 - leafSpline->m_curves.back().m_p3);
-						leafEntity.SetPrivateComponent(std::move(leafSpline));
+						leafSpline.m_startingPoint = static_cast<float>(i + 1) / (centerNode.size() + 1);
+						leafSpline.m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), leafSpline.m_curves.begin()->m_p0 - leafSpline.m_curves.back().m_p3);
+
 						leafAmount++;
 					}
 				}
 			);
 		}
 
-		if (leafAmount == sorghum.GetPrivateComponent<SorghumData>()->m_parameters.m_leafCount)
+		if (leafAmount == sorghum.GetPrivateComponent<SorghumData>().m_parameters.m_leafCount)
 		{
-			sorghum.GetPrivateComponent<SorghumData>()->m_growthComplete = true;
+			sorghum.GetPrivateComponent<SorghumData>().m_growthComplete = true;
 		}
 
 	}
@@ -974,18 +972,18 @@ void SorghumManager::FormCandidates(PlantManager& manager,
 		[&, globalTime, sphereSize](int index, Entity internode, GlobalTransform& globalTransform, Transform& transform, InternodeInfo& internodeInfo, InternodeGrowth& internodeGrowth, InternodeStatistics& internodeStatistics, Illumination& internodeIllumination)
 		{
 			if (internodeInfo.m_plantType != PlantType::Sorghum) return;
-			if (EntityManager::GetChildrenAmount(internode) != 0) return;
+			if (internode.GetChildrenAmount() != 0) return;
 			if (!internodeInfo.m_plant.IsEnabled()) return;
 			auto& internodeData = internode.GetPrivateComponent<InternodeData>();
 			auto& sorghumData = internodeInfo.m_plant.GetPrivateComponent<SorghumData>();
-			if (sorghumData->m_growthComplete) return;
+			if (sorghumData.m_growthComplete) return;
 			auto plantInfo = internodeInfo.m_plant.GetComponentData<PlantInfo>();
-			auto parameters = sorghumData->m_parameters;
+			auto parameters = sorghumData.m_parameters;
 			if (internodeInfo.m_order == 1)
 			{
 				auto stemCandidate = InternodeCandidate();
 				stemCandidate.m_info.m_plantType = PlantType::Sorghum;
-				stemCandidate.m_owner = internodeData->m_owner;
+				stemCandidate.m_owner = internodeData.m_owner;
 				stemCandidate.m_parent = internode;
 				stemCandidate.m_info.m_startGlobalTime = globalTime;
 				stemCandidate.m_info.m_plant = internodeInfo.m_plant;
@@ -1012,7 +1010,7 @@ void SorghumManager::FormCandidates(PlantManager& manager,
 				{
 					auto leafCandidate = InternodeCandidate();
 					leafCandidate.m_info.m_plantType = PlantType::Sorghum;
-					leafCandidate.m_owner = internodeData->m_owner;
+					leafCandidate.m_owner = internodeData.m_owner;
 					leafCandidate.m_parent = internode;
 					leafCandidate.m_info.m_startGlobalTime = globalTime;
 					leafCandidate.m_info.m_plant = internodeInfo.m_plant;
@@ -1023,11 +1021,11 @@ void SorghumManager::FormCandidates(PlantManager& manager,
 					leafCandidate.m_statistics.m_isEndNode = true;
 					leafCandidate.m_buds = std::vector<Bud>();
 					leafCandidate.m_growth.m_desiredLocalRotation = glm::radians(glm::vec3(0.0f, 30.0f, 0.0f));
-					leafCandidate.m_growth.m_internodeLength = sorghumData->m_parameters.m_leafLengthBase;
+					leafCandidate.m_growth.m_internodeLength = sorghumData.m_parameters.m_leafLengthBase;
 #pragma region Calculate transform
 					glm::quat globalRotation = globalTransform.GetRotation() * leafCandidate.m_growth.m_desiredLocalRotation;
 					glm::vec3 front = globalRotation * glm::vec3(0, 0, -1);
-					glm::vec3 positionDelta = front * (sorghumData->m_parameters.m_leafLengthBase / 8.0f);
+					glm::vec3 positionDelta = front * (sorghumData.m_parameters.m_leafLengthBase / 8.0f);
 					glm::vec3 newInternodePosition = globalTransform.GetPosition() + positionDelta;
 					leafCandidate.m_globalTransform.m_value = glm::translate(newInternodePosition)
 						* glm::mat4_cast(globalRotation) * glm::scale(glm::vec3(sphereSize));
@@ -1054,7 +1052,7 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 			if (!internodeInfo.m_plant.IsEnabled()) return;
 			if (internodeInfo.m_order != 2) return;
 			auto& sorghumData = internodeInfo.m_plant.GetPrivateComponent<SorghumData>();
-			auto parameters = sorghumData->m_parameters;
+			auto parameters = sorghumData.m_parameters;
 			std::lock_guard lock(mutex);
 			candidates.push_back(std::make_pair(internode, parameters));
 		}
@@ -1062,16 +1060,17 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 	
 	for (auto& i : candidates)
 	{
-		if(EntityManager::GetChildrenAmount(i.first) != 0)EntityManager::DeleteEntity(EntityManager::GetChildren(i.first)[0]);
+		if(i.first.GetChildrenAmount() != 0)EntityManager::DeleteEntity(i.first.GetChildren()[0]);
 		const int level = i.first.GetComponentData<InternodeInfo>().m_level;
 		const float leafNodeDistance = i.second.m_leafLengthBase / 8.0f / manager.m_leafNodeSphereSize;
 		const float leafGravityBending = i.second.m_leafGravityBending;
 		const float leafGravityBendingIncrease = i.second.m_leafGravityBendingIncreaseFactor;
-		auto meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		i.first.SetPrivateComponent(std::move(meshRenderer));
+
+		auto& meshRenderer = i.first.SetPrivateComponent<MeshRenderer>();
+		meshRenderer.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 		InternodeGrowth internodeGrowth;
 		Entity leafNode = PlantManager::CreateInternode(PlantType::Sorghum, i.first);
 		auto internodeInfo = leafNode.GetComponentData<InternodeInfo>();
@@ -1082,11 +1081,12 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode.SetComponentData(transform);
 		leafNode.SetComponentData(internodeInfo);
 		leafNode.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode.SetPrivateComponent(std::move(meshRenderer));
+
+		auto& meshRenderer2 = leafNode.SetPrivateComponent<MeshRenderer>();
+		meshRenderer2.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer2.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer2.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 
 		Entity leafNode2 = PlantManager::CreateInternode(PlantType::Sorghum, leafNode);
 		internodeInfo = leafNode2.GetComponentData<InternodeInfo>();
@@ -1096,11 +1096,11 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode2.SetComponentData(transform);
 		leafNode2.SetComponentData(internodeInfo);
 		leafNode2.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode2.SetPrivateComponent(std::move(meshRenderer));
+		auto& meshRenderer3 = leafNode2.SetPrivateComponent<MeshRenderer>();
+		meshRenderer3.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer3.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer3.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 
 		Entity leafNode3 = PlantManager::CreateInternode(PlantType::Sorghum, leafNode2);
 		internodeInfo = leafNode3.GetComponentData<InternodeInfo>();
@@ -1110,11 +1110,11 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode3.SetComponentData(transform);
 		leafNode3.SetComponentData(internodeInfo);
 		leafNode3.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode3.SetPrivateComponent(std::move(meshRenderer));
+		auto& meshRenderer4 = leafNode3.SetPrivateComponent<MeshRenderer>();
+		meshRenderer4.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer4.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer4.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 
 		Entity leafNode4 = PlantManager::CreateInternode(PlantType::Sorghum, leafNode3);
 		internodeInfo = leafNode4.GetComponentData<InternodeInfo>();
@@ -1124,11 +1124,12 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode4.SetComponentData(transform);
 		leafNode4.SetComponentData(internodeInfo);
 		leafNode4.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode4.SetPrivateComponent(std::move(meshRenderer));
+
+		auto& meshRenderer5 = leafNode4.SetPrivateComponent<MeshRenderer>();
+		meshRenderer5.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer5.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer5.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 
 		Entity leafNode5 = PlantManager::CreateInternode(PlantType::Sorghum, leafNode4);
 		internodeInfo = leafNode5.GetComponentData<InternodeInfo>();
@@ -1138,11 +1139,12 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode5.SetComponentData(transform);
 		leafNode5.SetComponentData(internodeInfo);
 		leafNode5.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode5.SetPrivateComponent(std::move(meshRenderer));
+
+		auto& meshRenderer6 = leafNode5.SetPrivateComponent<MeshRenderer>();
+		meshRenderer6.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer6.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer6.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 
 		Entity leafNode7 = PlantManager::CreateInternode(PlantType::Sorghum, leafNode5);
 		internodeInfo = leafNode7.GetComponentData<InternodeInfo>();
@@ -1152,11 +1154,11 @@ void SorghumManager::FormLeafNodes(PlantManager& plantManager)
 		leafNode7.SetComponentData(transform);
 		leafNode7.SetComponentData(internodeInfo);
 		leafNode7.SetComponentData(internodeGrowth);
-		meshRenderer = std::make_unique<MeshRenderer>();
-		meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
-		meshRenderer->m_material = GetInstance().m_leafNodeMaterial;
-		meshRenderer->m_material->m_albedoColor = glm::vec3(0, 1, 0);
-		leafNode7.SetPrivateComponent(std::move(meshRenderer));
+		auto& meshRenderer8 = leafNode7.SetPrivateComponent<MeshRenderer>();
+		meshRenderer8.m_mesh = DefaultResources::Primitives::Sphere;
+		meshRenderer8.m_material = GetInstance().m_leafNodeMaterial;
+		meshRenderer8.m_material->m_albedoColor = glm::vec3(0, 1, 0);
+
 	}
 }
 
@@ -1165,7 +1167,7 @@ void SorghumManager::RemoveInternodes(const Entity& sorghum)
 	if (!sorghum.HasPrivateComponent<SorghumData>()) return;
 	sorghum.RemovePrivateComponent<SorghumData>();
 	Entity rootInternode;
-	EntityManager::ForEachChild(sorghum, [&](Entity child)
+    sorghum.ForEachChild([&](Entity child)
 		{
 			if (child.HasComponentData<InternodeInfo>()) rootInternode = child;
 		}
@@ -1192,9 +1194,9 @@ void SorghumManager::Update()
 		{
 			const float timer = Application::Time().CurrentTime();
 			auto& estimator = manager.m_processingEntities[manager.m_processingIndex].GetPrivateComponent<TriangleIlluminationEstimator>();
-			estimator->CalculateIllumination(manager.m_properties);
-			manager.m_probeTransforms.insert(manager.m_probeTransforms.end(), estimator->m_probeTransforms.begin(), estimator->m_probeTransforms.end());
-			manager.m_probeColors.insert(manager.m_probeColors.end(), estimator->m_probeColors.begin(), estimator->m_probeColors.end());
+			estimator.CalculateIllumination(manager.m_properties);
+			manager.m_probeTransforms.insert(manager.m_probeTransforms.end(), estimator.m_probeTransforms.begin(), estimator.m_probeTransforms.end());
+			manager.m_probeColors.insert(manager.m_probeColors.end(), estimator.m_probeColors.begin(), estimator.m_probeColors.end());
 			manager.m_perPlantCalculationTime = Application::Time().CurrentTime() - timer;
 			const auto count = manager.m_probeTransforms.size();
 			manager.m_lightProbeRenderingColorBuffer.SetData(static_cast<GLsizei>(count) * sizeof(glm::vec4), manager.m_probeColors.data(), GL_DYNAMIC_DRAW);
