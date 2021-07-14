@@ -8,7 +8,7 @@ namespace PlantFactory
     {
     public:
         void ApplyMeshRendererBounds();
-        CubeVolume();
+        void OnCreate() override;
         bool m_displayPoints = true;
         bool m_displayBounds = true;
         Bound m_minMaxBound;

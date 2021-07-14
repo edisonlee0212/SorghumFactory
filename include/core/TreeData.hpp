@@ -21,7 +21,6 @@ namespace PlantFactory {
 		bool m_foliageGenerated = false;
 		glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
 #pragma endregion
-		TreeData();
 		void OnGui() override;
 		void ExportModel(const std::string& filename, const bool& includeFoliage = true) const;
 	};

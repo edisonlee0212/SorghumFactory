@@ -89,6 +89,16 @@ void Spline::OnGui()
 	}
 }
 
+void Spline::Clone(const Spline &target) {
+    m_left = target.m_left;
+    m_startingPoint = target.m_startingPoint;
+    m_nodes = target.m_nodes;
+    m_segments = target.m_segments;
+    m_curves = target.m_curves;
+    m_vertices = target.m_vertices;
+    m_indices = target.m_indices;
+}
+
 void RectangularSorghumField::GenerateField(std::vector<std::vector<glm::mat4>>& matricesList)
 {
 	const int size = matricesList.size();
@@ -655,7 +665,7 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 		sorghum.SetComponentData(transform);
 		auto& newSpline = sorghum.SetPrivateComponent<Spline>();
 		auto& spline = original.GetPrivateComponent<Spline>();
-		newSpline = spline;
+		newSpline.Clone(spline);
 
         original.ForEachChild([&sorghum, &matrices](Entity child)
 			{
@@ -665,7 +675,7 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 				newChild.SetComponentData(child.GetComponentData<Transform>());
 				auto& newSpline = newChild.SetPrivateComponent<Spline>();
 				auto& spline = child.GetPrivateComponent<Spline>();
-				newSpline = spline;
+				newSpline.Clone(spline);
 				auto& newMeshRenderer = newChild.GetPrivateComponent<MeshRenderer>();
 				auto& meshRenderer = child.GetPrivateComponent<MeshRenderer>();
 				newMeshRenderer.m_mesh = meshRenderer.m_mesh;

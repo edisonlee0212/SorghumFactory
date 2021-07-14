@@ -37,7 +37,7 @@ namespace PlantFactory {
 		std::shared_ptr<Material> m_leafMaterial;
 		void GenerateLeaves(Entity& internode, glm::mat4& treeTransform, std::vector<glm::mat4>& leafTransforms, bool isLeft);
 	public:
-		DefaultFoliageGenerator();
+		void OnCreate() override;
 		void Generate() override;
 		void OnGui() override;
 	};

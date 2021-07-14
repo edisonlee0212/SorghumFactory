@@ -9,7 +9,7 @@ void DefaultFoliageGenerator::GenerateLeaves(Entity& internode, glm::mat4& treeT
 {
 }
 
-DefaultFoliageGenerator::DefaultFoliageGenerator()
+void DefaultFoliageGenerator::OnCreate()
 {
 	m_defaultFoliageInfo = DefaultFoliageInfo();
 	m_archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());

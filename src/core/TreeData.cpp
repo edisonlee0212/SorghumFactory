@@ -7,9 +7,6 @@
 
 using namespace PlantFactory;
 
-TreeData::TreeData()
-{
-}
 
 void TreeData::OnGui()
 {

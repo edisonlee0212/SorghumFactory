@@ -1,12 +1,10 @@
 #include <SorghumData.hpp>
 #include <SorghumManager.hpp>
 using namespace PlantFactory;
-SorghumData::SorghumData()
-{
+void SorghumData::OnCreate() {
 }
 
-SorghumData::~SorghumData()
-{
+void SorghumData::OnDestroy() {
 	Entity rootInternode;
     GetOwner().ForEachChild([&](Entity child)
 		{

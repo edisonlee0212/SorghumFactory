@@ -10,8 +10,8 @@ namespace PlantFactory {
 		glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
 		bool m_meshGenerated = false;
 		SorghumParameters m_parameters;
-		SorghumData();
-		~SorghumData();
+		void OnCreate() override;
+		void OnDestroy() override;
 		void OnGui() override;
 		void ExportModel(const std::string& filename, const bool& includeFoliage = true) const;
 	};

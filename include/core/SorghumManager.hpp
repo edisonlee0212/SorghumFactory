@@ -34,6 +34,8 @@ namespace PlantFactory {
 		glm::vec3 EvaluatePointFromCurve(float point);
 		glm::vec3 EvaluateAxisFromCurve(float point);
 		void OnGui() override;
+
+		void Clone(const Spline& target);
 	};
 
 

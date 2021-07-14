@@ -2809,6 +2809,7 @@ void TreeManager::Init() {
 #pragma region Internode camera
     manager.m_internodeDebuggingCamera.m_useClearColor = true;
     manager.m_internodeDebuggingCamera.m_clearColor = glm::vec3(0.1f);
+    manager.m_internodeDebuggingCamera.OnCreate();
 #pragma endregion
 
     manager.m_leavesArchetype = EntityManager::CreateEntityArchetype("Tree Leaves", TreeLeavesTag());
