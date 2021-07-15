@@ -420,7 +420,6 @@ void PlantManager::Init()
 	groundGlobalTransform.m_value = groundTransform.m_value;
 	manager.m_ground.SetComponentData(groundTransform);
 	manager.m_ground.SetComponentData(groundGlobalTransform);
-	manager.m_ground.SetStatic(true);
 
 	auto& rayTracedRenderer = manager.m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 	rayTracedRenderer.SyncWithMeshRenderer();

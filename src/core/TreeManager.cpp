@@ -725,6 +725,8 @@ Entity TreeManager::CreateTree(const Transform &transform) {
     rigidBody.SetShapeParam(glm::vec3(0.01f));
     rigidBody.SetEnabled(true);
 
+    plant.SetParent(PlantManager::GetInstance().m_ground);
+
     auto& animator = plant.SetPrivateComponent<Animator>();
     animator.m_animation = ResourceManager::CreateResource<Animation>();
 
