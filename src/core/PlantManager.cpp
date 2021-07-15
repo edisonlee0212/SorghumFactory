@@ -193,12 +193,11 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
             auto& rigidBody = newInternode.SetPrivateComponent<RigidBody>();
             rigidBody.SetShapeType(ShapeType::Sphere);
             rigidBody.SetStatic(false);
+            rigidBody.SetEnableGravity(false);
             // The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
             rigidBody.SetShapeParam(glm::vec3(0.1f));
             rigidBody.SetEnabled(true);
             auto& joint = newInternode.SetPrivateComponent<Joint>();
-            joint.SetType(JointType::Fixed);
-            joint.Link(candidate.m_parent);
         }
 		i++;
 	}
