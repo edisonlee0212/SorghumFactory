@@ -14,7 +14,7 @@ using namespace PlantFactory;
 
 void TreeManager::ExportChains(int parentOrder, Entity internode, rapidxml::xml_node<> *chains,
                                rapidxml::xml_document<> *doc) {
-    auto order = internode.GetComponentData<InternodeInfo>().m_order;
+    auto order = internode.GetDataComponent<InternodeInfo>().m_order;
     if (order != parentOrder) {
         WriteChain(order, internode, chains, doc);
     }
@@ -40,7 +40,7 @@ void TreeManager::WriteChain(int order, Entity internode, rapidxml::xml_node<> *
         //chain->append_node(node);
         Entity temp;
         walker.ForEachChild([&temp, order](Entity child) {
-                                if (child.GetComponentData<InternodeInfo>().m_order == order) {
+                                if (child.GetDataComponent<InternodeInfo>().m_order == order) {
                                     temp = child;
                                 }
                             }
@@ -51,7 +51,7 @@ void TreeManager::WriteChain(int order, Entity internode, rapidxml::xml_node<> *
     for (int i = nodes.size() - 1; i >= 0; i--) {
         chain->append_node(nodes[i]);
     }
-    if (internode.GetParent().HasComponentData<InternodeInfo>()) {
+    if (internode.GetParent().HasDataComponent<InternodeInfo>()) {
         auto *node = doc->allocate_node(rapidxml::node_element, "Node");
         node->append_attribute(doc->allocate_attribute("id", doc->allocate_string(
                 std::to_string(internode.GetParent().GetIndex()).c_str())));
@@ -61,11 +61,11 @@ void TreeManager::WriteChain(int order, Entity internode, rapidxml::xml_node<> *
 
 Entity TreeManager::GetRootInternode(const Entity &tree) {
     auto retVal = Entity();
-    if (!tree.HasComponentData<PlantInfo>() ||
-        tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
+    if (!tree.HasDataComponent<PlantInfo>() ||
+        tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
     tree.ForEachChild([&](Entity child) {
-                          if (child.HasComponentData<InternodeInfo>()) retVal = child;
+                          if (child.HasDataComponent<InternodeInfo>()) retVal = child;
                       }
     );
     return retVal;
@@ -73,11 +73,11 @@ Entity TreeManager::GetRootInternode(const Entity &tree) {
 
 Entity TreeManager::GetLeaves(const Entity &tree) {
     auto retVal = Entity();
-    if (!tree.HasComponentData<PlantInfo>() ||
-        tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
+    if (!tree.HasDataComponent<PlantInfo>() ||
+        tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
     tree.ForEachChild([&](Entity child) {
-                          if (child.HasComponentData<TreeLeavesTag>()) retVal = child;
+                          if (child.HasDataComponent<TreeLeavesTag>()) retVal = child;
                       }
     );
     if (!retVal.IsValid()) {
@@ -116,11 +116,11 @@ Entity TreeManager::GetLeaves(const Entity &tree) {
 
 Entity TreeManager::GetRbv(const Entity &tree) {
     auto retVal = Entity();
-    if (!tree.HasComponentData<PlantInfo>() ||
-        tree.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree)
+    if (!tree.HasDataComponent<PlantInfo>() ||
+        tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
         return retVal;
     tree.ForEachChild([&](Entity child) {
-                          if (child.HasComponentData<RbvTag>()) retVal = child;
+                          if (child.HasDataComponent<RbvTag>()) retVal = child;
                       }
     );
     if (!retVal.IsValid()) {
@@ -144,7 +144,7 @@ void TreeManager::UpdateBranchCylinder(const bool &displayThickness, const float
                 glm::vec3 skew;
                 glm::vec4 perspective;
                 glm::decompose(ltw.m_value, scale, rotation, translation, skew, perspective);
-                const glm::vec3 parentTranslation = entity.GetParent().GetComponentData<GlobalTransform>().GetPosition();
+                const glm::vec3 parentTranslation = entity.GetParent().GetDataComponent<GlobalTransform>().GetPosition();
                 const auto direction = glm::normalize(parentTranslation - translation);
                 rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
                 rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
@@ -1185,7 +1185,7 @@ void TreeManager::OnGui() {
                                                           BranchCylinderWidth &width,
                                                           InternodeGrowth &internodeGrowth) {
                                     const glm::vec3 position = ltw.m_value[3];
-                                    const auto parentPosition = entity.GetParent().GetComponentData<GlobalTransform>().GetPosition();
+                                    const auto parentPosition = entity.GetParent().GetDataComponent<GlobalTransform>().GetPosition();
                                     const auto center = (position +
                                                          parentPosition) /
                                                         2.0f;
@@ -1291,10 +1291,10 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
     });
 
     for (const auto &i : rootInternodes) {
-        auto gt = i.GetComponentData<GlobalTransform>();
+        auto gt = i.GetDataComponent<GlobalTransform>();
         float thickness = 0.1f;
         if (i.GetChildrenAmount() > 0)
-            thickness = glm::max(0.05f, i.GetChildren()[0].GetComponentData<InternodeGrowth>().m_thickness);
+            thickness = glm::max(0.05f, i.GetChildren()[0].GetDataComponent<InternodeGrowth>().m_thickness);
         RenderManager::DrawGizmoMesh(
                 DefaultResources::Primitives::Sphere.get(),
                 manager.m_internodeDebuggingCamera,
@@ -1338,9 +1338,9 @@ TreeManager::TreeNodeWalker(std::vector<Entity> &boundEntities, std::vector<int>
     boundEntities.push_back(node);
     parentIndices.push_back(parentIndex);
     const size_t currentIndex = boundEntities.size() - 1;
-    auto info = node.GetComponentData<InternodeInfo>();
+    auto info = node.GetDataComponent<InternodeInfo>();
     info.m_index = currentIndex;
-    node.SetComponentData(info);
+    node.SetDataComponent(info);
     node.ForEachChild([&](Entity child) {
         TreeNodeWalker(boundEntities, parentIndices, currentIndex, child);
     });
@@ -1359,7 +1359,7 @@ void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes, std::vector
         auto &internode = internodes[internodeIndex];
         glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>().m_normalDir;
         const glm::vec3 front =
-                internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
+                internode.GetDataComponent<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
         auto &list = internode.GetPrivateComponent<InternodeData>();
         if (list.m_rings.empty()) {
@@ -1478,7 +1478,7 @@ void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes, std:
         auto &internode = internodes[internodeIndex];
         glm::vec3 newNormalDir = internodes[parentIndices[internodeIndex]].GetPrivateComponent<InternodeData>().m_normalDir;
         const glm::vec3 front =
-                internode.GetComponentData<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
+                internode.GetDataComponent<InternodeGrowth>().m_desiredGlobalRotation * glm::vec3(0.0f, 0.0f, -1.0f);
         newNormalDir = glm::cross(glm::cross(front, newNormalDir), front);
         auto &list = internode.GetPrivateComponent<InternodeData>();
         if (list.m_rings.empty()) {
@@ -1626,7 +1626,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
     for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
         const auto &plant = manager.m_plants[plantIndex];
         if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull()) {
-            const auto plantGlobalTransform = plant.GetComponentData<GlobalTransform>();
+            const auto plantGlobalTransform = plant.GetDataComponent<GlobalTransform>();
             TreeNodeWalker(boundEntitiesLists[plantIndex], parentIndicesLists[plantIndex], -1, rootInternode);
         }
         Entity leaves = GetLeaves(plant);
@@ -1657,17 +1657,17 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
 
                  auto &list = internode.GetPrivateComponent<InternodeData>();
                  list.m_rings.clear();
-                 glm::mat4 treeTransform = internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value;
+                 glm::mat4 treeTransform = internodeInfo.m_plant.GetDataComponent<GlobalTransform>().m_value;
                  GlobalTransform parentGlobalTransform;
                  parentGlobalTransform.m_value =
                          glm::inverse(
                                  treeTransform) *
-                         parent.GetComponentData<GlobalTransform>().m_value;
+                         parent.GetDataComponent<GlobalTransform>().m_value;
                  float parentThickness = isRootInternode
                                          ?
                                          internodeGrowth.m_thickness *
                                          1.25f
-                                         : parent.GetComponentData<InternodeGrowth>().m_thickness;
+                                         : parent.GetDataComponent<InternodeGrowth>().m_thickness;
                  glm::vec3 parentScale;
                  glm::quat parentRotation;
                  glm::vec3 parentTranslation;
@@ -1706,7 +1706,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                      thickestChildTransform.m_value =
                              glm::inverse(
                                      treeTransform) *
-                             internodeGrowth.m_thickestChild.GetComponentData<GlobalTransform>().m_value;
+                             internodeGrowth.m_thickestChild.GetDataComponent<GlobalTransform>().m_value;
                      mainChildRotation = thickestChildTransform.GetRotation();
                  }
                  glm::vec3 mainChildDir =
@@ -1716,7 +1716,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                  parentThickestChildGlobalTransform.m_value =
                          glm::inverse(
                                  treeTransform) *
-                         parent.GetComponentData<InternodeGrowth>().m_thickestChild.GetComponentData<GlobalTransform>().m_value;
+                         parent.GetDataComponent<InternodeGrowth>().m_thickestChild.GetDataComponent<GlobalTransform>().m_value;
                  glm::vec3 parentMainChildDir =
                          parentThickestChildGlobalTransform.GetRotation() *
                          glm::vec3(0, 0, -1);
@@ -1830,7 +1830,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                 const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
                 std::lock_guard lock(mutex);
                 auto inversePlantGlobalTransform = glm::inverse(
-                        internodeInfo.m_plant.GetComponentData<GlobalTransform>().m_value);
+                        internodeInfo.m_plant.GetDataComponent<GlobalTransform>().m_value);
                 for (int i = 0; i < treeManager.m_leafAmount; i++) {
                     const auto transform = inversePlantGlobalTransform * globalTransform.m_value *
                                            (
@@ -1863,14 +1863,14 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
 #pragma endregion
     for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
         const auto &plant = manager.m_plants[plantIndex];
-        if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
+        if (plant.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
         if (!plant.HasPrivateComponent<MeshRenderer>() || !plant.HasPrivateComponent<TreeData>()) continue;
         auto &animator = plant.GetPrivateComponent<Animator>();
         auto &meshRenderer = plant.GetPrivateComponent<MeshRenderer>();
         auto &skinnedMeshRenderer = plant.GetPrivateComponent<SkinnedMeshRenderer>();
         auto &treeData = plant.GetPrivateComponent<TreeData>();
         if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull()) {
-            const auto plantGlobalTransform = plant.GetComponentData<GlobalTransform>();
+            const auto plantGlobalTransform = plant.GetDataComponent<GlobalTransform>();
 #pragma region Branch mesh
 #pragma region Animator
             std::vector<glm::mat4> offsetMatrices;
@@ -1881,7 +1881,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
             for (int i = 0; i < boundEntitiesLists[plantIndex].size(); i++) {
                 names[i] = boundEntitiesLists[plantIndex][i].GetName();
                 offsetMatrices[i] = glm::inverse(glm::inverse(plantGlobalTransform.m_value) *
-                                                 boundEntitiesLists[plantIndex][i].GetComponentData<GlobalTransform>().m_value);
+                                                 boundEntitiesLists[plantIndex][i].GetDataComponent<GlobalTransform>().m_value);
                 boneIndicesLists[plantIndex][i] = i;
             }
             animator.Setup(boundEntitiesLists[plantIndex], names, offsetMatrices);
@@ -1920,7 +1920,7 @@ void TreeManager::FormCandidates(PlantManager &manager,
                             InternodeStatistics &internodeStatistics, Illumination &internodeIllumination) {
                 if (internodeInfo.m_plantType != PlantType::GeneralTree) return;
                 auto &treeData = internodeInfo.m_plant.GetPrivateComponent<TreeData>();
-                auto plantInfo = internodeInfo.m_plant.GetComponentData<PlantInfo>();
+                auto plantInfo = internodeInfo.m_plant.GetDataComponent<PlantInfo>();
                 if (!internodeInfo.m_plant.IsEnabled()) return;
                 auto &internodeData = internode.GetPrivateComponent<InternodeData>();
 #pragma region Go through each bud
@@ -2135,7 +2135,7 @@ void TreeManager::PruneTrees(PlantManager &manager, std::vector<Volume *> &obsta
             auto &treeData = manager.m_plants[i].GetPrivateComponent<TreeData>();
             distanceLimits[i] = 0;
             manager.m_plants[i].ForEachChild(
-                    [&](Entity child) { if (child.HasComponentData<InternodeInfo>()) distanceLimits[i] = child.GetComponentData<InternodeStatistics>().m_longestDistanceToAnyEndNode; });
+                    [&](Entity child) { if (child.HasDataComponent<InternodeInfo>()) distanceLimits[i] = child.GetDataComponent<InternodeStatistics>().m_longestDistanceToAnyEndNode; });
             distanceLimits[i] *= treeData.m_parameters.m_lowBranchCutOff;
             randomCutOffs[i] = treeData.m_parameters.m_randomCutOff;
             randomCutOffAgeFactors[i] = treeData.m_parameters.m_randomCutOffAgeFactor;
@@ -2224,13 +2224,13 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
                                                            if (plantInfo.m_plantType != PlantType::GeneralTree) return;
                                                            const Entity rootInternode = GetRootInternode(tree);
                                                            if (rootInternode.IsValid()) {
-                                                               auto rootInternodeGrowth = rootInternode.GetComponentData<InternodeGrowth>();
+                                                               auto rootInternodeGrowth = rootInternode.GetDataComponent<InternodeGrowth>();
                                                                rootInternodeGrowth.m_desiredGlobalPosition = glm::vec3(
                                                                        0.0f);
                                                                rootInternodeGrowth.m_desiredGlobalRotation =
                                                                        globalTransform.GetRotation() *
                                                                        rootInternodeGrowth.m_desiredLocalRotation;
-                                                               rootInternode.SetComponentData(rootInternodeGrowth);
+                                                               rootInternode.SetDataComponent(rootInternodeGrowth);
                                                                auto &treeData = tree.GetPrivateComponent<TreeData>();
                                                                UpdateDistances(rootInternode, treeData);
                                                            }
@@ -2239,7 +2239,7 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
 
     for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
         const auto &plant = manager.m_plants[plantIndex];
-        if (plant.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
+        if (plant.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree) continue;
         if (!plant.HasPrivateComponent<TreeData>()) continue;
         if (Entity rootInternode = GetRootInternode(plant); !rootInternode.IsNull()) {
             auto &treeData = plant.GetPrivateComponent<TreeData>();
@@ -2250,16 +2250,16 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
 
 void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
     Entity currentInternode = internode;
-    auto currentInternodeInfo = internode.GetComponentData<InternodeInfo>();
-    auto currentInternodeGrowth = internode.GetComponentData<InternodeGrowth>();
-    auto currentInternodeStatistics = internode.GetComponentData<InternodeStatistics>();
+    auto currentInternodeInfo = internode.GetDataComponent<InternodeInfo>();
+    auto currentInternodeGrowth = internode.GetDataComponent<InternodeGrowth>();
+    auto currentInternodeStatistics = internode.GetDataComponent<InternodeStatistics>();
 #pragma region Single child chain from root to branch
     while (currentInternode.GetChildrenAmount() == 1) {
 #pragma region Retrive child status
         Entity child = currentInternode.GetChildren()[0];
-        auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
-        auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
-        auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
+        auto childInternodeGrowth = child.GetDataComponent<InternodeGrowth>();
+        auto childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
+        auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
 #pragma endregion
 #pragma region Update child status
         childInternodeGrowth.m_inhibitor = 0;
@@ -2272,9 +2272,9 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
                                                         glm::vec3(0, 0, -1));
 #pragma endregion
 #pragma region Apply child status
-        child.SetComponentData(childInternodeStatistics);
-        child.SetComponentData(childInternodeGrowth);
-        child.SetComponentData(childInternodeInfo);
+        child.SetDataComponent(childInternodeStatistics);
+        child.SetDataComponent(childInternodeGrowth);
+        child.SetDataComponent(childInternodeInfo);
 #pragma endregion
 #pragma region Retarget current internode
         currentInternode = child;
@@ -2300,9 +2300,9 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
         currentInternode.ForEachChild([&](Entity child) {
 #pragma region From root to end
 #pragma region Retrive child status
-                                          auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
-                                          auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
-                                          auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
+                                          auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
+                                          auto childInternodeGrowth = child.GetDataComponent<InternodeGrowth>();
+                                          auto childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
 #pragma endregion
 #pragma region Update child status
                                           childInternodeStatistics.m_distanceToBranchStart =
@@ -2318,17 +2318,17 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
 
 #pragma endregion
 #pragma region Apply child status
-                                          child.SetComponentData(childInternodeStatistics);
-                                          child.SetComponentData(childInternodeGrowth);
-                                          child.SetComponentData(childInternodeInfo);
+                                          child.SetDataComponent(childInternodeStatistics);
+                                          child.SetDataComponent(childInternodeGrowth);
+                                          child.SetDataComponent(childInternodeInfo);
 #pragma endregion
 #pragma endregion
                                           UpdateDistances(child, treeData);
 #pragma region From end to root
 #pragma region Retrive child status
-                                          childInternodeInfo = child.GetComponentData<InternodeInfo>();
-                                          childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
-                                          childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
+                                          childInternodeInfo = child.GetDataComponent<InternodeInfo>();
+                                          childInternodeGrowth = child.GetDataComponent<InternodeGrowth>();
+                                          childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
 #pragma endregion
 #pragma region Update self status
                                           auto &childInternodeData = child.GetPrivateComponent<InternodeData>();
@@ -2389,9 +2389,9 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
     currentInternodeStatistics.m_distanceToBranchEnd = 0;
     while (currentInternode != internode) {
 #pragma region Apply current status
-        currentInternode.SetComponentData(currentInternodeInfo);
-        currentInternode.SetComponentData(currentInternodeGrowth);
-        currentInternode.SetComponentData(currentInternodeStatistics);
+        currentInternode.SetDataComponent(currentInternodeInfo);
+        currentInternode.SetDataComponent(currentInternodeGrowth);
+        currentInternode.SetDataComponent(currentInternodeStatistics);
 #pragma endregion
 #pragma region Retarget to parent
         auto &childInternodeData = currentInternode.GetPrivateComponent<InternodeData>();
@@ -2400,9 +2400,9 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
         auto childInternodeInfo = currentInternodeInfo;
         auto childInternodeGrowth = currentInternodeGrowth;
         auto childInternodeStatistics = currentInternodeStatistics;
-        currentInternodeInfo = currentInternode.GetComponentData<InternodeInfo>();
-        currentInternodeGrowth = currentInternode.GetComponentData<InternodeGrowth>();
-        currentInternodeStatistics = currentInternode.GetComponentData<InternodeStatistics>();
+        currentInternodeInfo = currentInternode.GetDataComponent<InternodeInfo>();
+        currentInternodeGrowth = currentInternode.GetDataComponent<InternodeGrowth>();
+        currentInternodeStatistics = currentInternode.GetDataComponent<InternodeStatistics>();
 #pragma endregion
 #pragma region Reset current status
         currentInternodeGrowth.m_inhibitor = 0;
@@ -2449,23 +2449,23 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
     }
 #pragma endregion
 #pragma region Apply self status
-    currentInternode.SetComponentData(currentInternodeInfo);
-    currentInternode.SetComponentData(currentInternodeGrowth);
-    currentInternode.SetComponentData(currentInternodeStatistics);
+    currentInternode.SetDataComponent(currentInternodeInfo);
+    currentInternode.SetDataComponent(currentInternodeGrowth);
+    currentInternode.SetDataComponent(currentInternodeStatistics);
 #pragma endregion
 }
 
 void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     auto &treeManager = GetInstance();
     auto currentInternode = internode;
-    auto currentInternodeInfo = internode.GetComponentData<InternodeInfo>();
-    auto currentInternodeGlobalTransform = internode.GetComponentData<GlobalTransform>();
+    auto currentInternodeInfo = internode.GetDataComponent<InternodeInfo>();
+    auto currentInternodeGlobalTransform = internode.GetDataComponent<GlobalTransform>();
 #pragma region Single child chain from root to branch
     while (currentInternode.GetChildrenAmount() == 1) {
 #pragma region Retrive child status
         Entity child = currentInternode.GetChildren()[0];
-        auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
-        auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
+        auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
+        auto childInternodeGrowth = child.GetDataComponent<InternodeGrowth>();
 #pragma endregion
 #pragma region Update child status
         childInternodeInfo.m_level = currentInternodeInfo.m_level;
@@ -2486,10 +2486,10 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
 #pragma endregion
 #pragma endregion
 #pragma region Apply child status
-        child.SetComponentData(childInternodeInfo);
-        child.SetComponentData(childInternodeTransform);
-        child.SetComponentData(childInternodeGlobalTransform);
-        child.SetComponentData(childInternodeGrowth);
+        child.SetDataComponent(childInternodeInfo);
+        child.SetDataComponent(childInternodeTransform);
+        child.SetDataComponent(childInternodeGlobalTransform);
+        child.SetDataComponent(childInternodeGrowth);
         auto &rigidBody = child.GetPrivateComponent<RigidBody>();
         PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
         rigidBody.SetDensityAndMassCenter(
@@ -2511,7 +2511,7 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
         currentInternodeGlobalTransform = childInternodeGlobalTransform;
 #pragma endregion
     }
-    auto currentInternodeStatistics = currentInternode.GetComponentData<InternodeStatistics>();
+    auto currentInternodeStatistics = currentInternode.GetDataComponent<InternodeStatistics>();
 #pragma endregion
     if (currentInternode.GetChildrenAmount() != 0) {
 #pragma region Select max child
@@ -2519,8 +2519,8 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
         int minChildOrder = 9999;
         Entity maxChild = Entity();
         currentInternode.ForEachChild([&](Entity child) {
-                                          const auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
-                                          const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
+                                          const auto childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
+                                          const auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
                                           if (maxChildLength <= childInternodeStatistics.m_totalLength &&
                                               childInternodeInfo.m_order < minChildOrder) {
                                               minChildOrder = childInternodeInfo.m_order;
@@ -2532,9 +2532,9 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
 #pragma endregion
 #pragma region Apply level
         currentInternode.ForEachChild([&](Entity child) {
-                                          auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
-                                          auto childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
-                                          auto childInternodeGrowth = child.GetComponentData<InternodeGrowth>();
+                                          auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
+                                          auto childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
+                                          auto childInternodeGrowth = child.GetDataComponent<InternodeGrowth>();
 
                                           if (child == maxChild) {
                                               childInternodeStatistics.m_isMaxChild = true;
@@ -2562,11 +2562,11 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
 
 #pragma endregion
 #pragma region Apply child status
-                                          child.SetComponentData(childInternodeTransform);
-                                          child.SetComponentData(childInternodeGlobalTransform);
-                                          child.SetComponentData(childInternodeStatistics);
-                                          child.SetComponentData(childInternodeInfo);
-                                          child.SetComponentData(childInternodeGrowth);
+                                          child.SetDataComponent(childInternodeTransform);
+                                          child.SetDataComponent(childInternodeGlobalTransform);
+                                          child.SetDataComponent(childInternodeStatistics);
+                                          child.SetDataComponent(childInternodeInfo);
+                                          child.SetDataComponent(childInternodeGrowth);
                                           auto &rigidBody = child.GetPrivateComponent<RigidBody>();
                                           PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
                                           rigidBody.SetDensityAndMassCenter(
@@ -2584,7 +2584,7 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
                                           joint.SetMotion(MotionAxis::SwingZ, MotionType::Free);
 #pragma endregion
                                           UpdateLevels(child, treeData);
-                                          childInternodeStatistics = child.GetComponentData<InternodeStatistics>();
+                                          childInternodeStatistics = child.GetDataComponent<InternodeStatistics>();
                                           if (childInternodeStatistics.m_maxChildLevel >
                                               currentInternodeStatistics.m_maxChildLevel)
                                               currentInternodeStatistics.m_maxChildLevel = childInternodeStatistics.m_maxChildLevel;
@@ -2596,19 +2596,19 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     }
     while (currentInternode != internode) {
 #pragma region Apply current status
-        currentInternode.SetComponentData(currentInternodeStatistics);
+        currentInternode.SetDataComponent(currentInternodeStatistics);
 #pragma endregion
 #pragma region Retarget to parent
         currentInternode = currentInternode.GetParent();
         const auto childInternodeStatistics = currentInternodeStatistics;
-        currentInternodeStatistics = currentInternode.GetComponentData<InternodeStatistics>();
+        currentInternodeStatistics = currentInternode.GetDataComponent<InternodeStatistics>();
 #pragma endregion
 #pragma region Update self status
         currentInternodeStatistics.m_maxChildLevel = childInternodeStatistics.m_maxChildLevel;
 #pragma endregion
     }
 #pragma region Apply self status
-    currentInternode.SetComponentData(currentInternodeStatistics);
+    currentInternode.SetDataComponent(currentInternodeStatistics);
 #pragma endregion
 }
 
@@ -2619,13 +2619,13 @@ void TreeManager::ResetTimeForTree(const float &value) {
     std::vector<Entity> trees;
     manager.m_plantQuery.ToEntityArray(trees);
     for (const auto &tree : trees) {
-        auto plantInfo = tree.GetComponentData<PlantInfo>();
+        auto plantInfo = tree.GetDataComponent<PlantInfo>();
         if (plantInfo.m_startTime > value) {
             EntityManager::DeleteEntity(tree);
             continue;
         }
         plantInfo.m_age = value - plantInfo.m_startTime;
-        tree.SetComponentData(plantInfo);
+        tree.SetDataComponent(plantInfo);
         Entity rootInternode = GetRootInternode(tree);
         if (rootInternode.IsValid()) {
             ResetTimeForTree(rootInternode, value);
@@ -2660,7 +2660,7 @@ void TreeManager::ResetTimeForTree(const Entity &internode, const float &globalT
     Entity currentInternode = internode;
     while (currentInternode.GetChildrenAmount() == 1) {
         Entity child = currentInternode.GetChildren()[0];
-        const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
+        const auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
         if (childInternodeInfo.m_startGlobalTime > globalTime) {
             EntityManager::DeleteEntity(child);
             return;
@@ -2671,7 +2671,7 @@ void TreeManager::ResetTimeForTree(const Entity &internode, const float &globalT
     if (currentInternode.GetChildrenAmount() != 0) {
         std::vector<Entity> childrenToDelete;
         currentInternode.ForEachChild([globalTime, &childrenToDelete](Entity child) {
-                                          const auto childInternodeInfo = child.GetComponentData<InternodeInfo>();
+                                          const auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
                                           if (childInternodeInfo.m_startGlobalTime > globalTime) {
                                               childrenToDelete.push_back(child);
                                               return;
@@ -2714,7 +2714,7 @@ void TreeManager::DistributeResourcesForTree(PlantManager &manager,
             apicalIlluminationRequirements[i] = treeData.m_parameters.m_apicalIlluminationRequirement;
             lateralIlluminationRequirements[i] = treeData.m_parameters.m_lateralIlluminationRequirement;
             requirementMaximums[i] = 0;
-            treePositions[i] = plants[i].GetComponentData<GlobalTransform>().GetPosition();
+            treePositions[i] = plants[i].GetDataComponent<GlobalTransform>().GetPosition();
             heightResourceBase[i] = treeData.m_parameters.m_heightResourceHeightDecreaseBase;
             heightResourceFactor[i] = treeData.m_parameters.m_heightResourceHeightDecreaseFactor;
             heightResourceFactorMin[i] = treeData.m_parameters.m_heightResourceHeightDecreaseMin;
@@ -2901,7 +2901,7 @@ void TreeManager::SerializeScene(const std::string &filename) {
 
 void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &doc,
                             rapidxml::xml_node<> *sceneNode) {
-    if (treeEntity.GetComponentData<PlantInfo>().m_plantType != PlantType::GeneralTree) return;
+    if (treeEntity.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree) return;
     auto *tree = doc.allocate_node(rapidxml::node_element, "Tree", "Textures");
     sceneNode->append_node(tree);
 
@@ -2939,23 +2939,23 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
     Entity rootInternode;
     unsigned rootNodeIndex = 0;
     treeEntity.ForEachChild([&rootNodeIndex, &rootInternode](Entity child) {
-        if (child.HasComponentData<InternodeInfo>()) {
+        if (child.HasDataComponent<InternodeInfo>()) {
             rootNodeIndex = child.GetIndex() - 1;
             rootInternode = child;
         }
     });
     rootNodeIndex = 0;
     for (auto &i : internodes) {
-        auto internodeGrowth = i.GetComponentData<InternodeGrowth>();
-        auto internodeInfo = i.GetComponentData<InternodeInfo>();
-        auto internodeStatistics = i.GetComponentData<InternodeStatistics>();
+        auto internodeGrowth = i.GetDataComponent<InternodeGrowth>();
+        auto internodeInfo = i.GetDataComponent<InternodeInfo>();
+        auto internodeStatistics = i.GetDataComponent<InternodeStatistics>();
         auto *node = doc.allocate_node(rapidxml::node_element, "Node", "Position");
         node->append_attribute(
                 doc.allocate_attribute("id",
                                        doc.allocate_string(std::to_string(i.GetIndex() - rootNodeIndex).c_str())));
         node->append_attribute(doc.allocate_attribute("additional", doc.allocate_string(std::to_string(0).c_str())));
         nodes->append_node(node);
-        auto globalTransform = i.GetComponentData<GlobalTransform>().m_value;
+        auto globalTransform = i.GetDataComponent<GlobalTransform>().m_value;
         auto *position = doc.allocate_node(rapidxml::node_element, "Position");
         position->append_attribute(
                 doc.allocate_attribute("x", doc.allocate_string(std::to_string(globalTransform[3].x).c_str())));
@@ -2983,7 +2983,7 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
         unsigned parentIndex = i.GetParent().GetIndex();
         float thicknessVal = 0;
         if (parentIndex != treeEntity.GetIndex()) {
-            thicknessVal = i.GetParent().GetComponentData<InternodeGrowth>().m_thickness;
+            thicknessVal = i.GetParent().GetDataComponent<InternodeGrowth>().m_thickness;
         } else {
             auto *root = doc.allocate_node(rapidxml::node_element, "Root");
             root->append_attribute(doc.allocate_attribute("value", "true"));
@@ -3018,7 +3018,7 @@ void TreeManager::Serialize(const Entity &treeEntity, rapidxml::xml_document<> &
     tree->append_node(leaves);
     int counter = 0;
     for (auto &i : internodes) {
-        glm::vec3 nodePos = i.GetComponentData<GlobalTransform>().m_value[3];
+        glm::vec3 nodePos = i.GetDataComponent<GlobalTransform>().m_value[3];
         auto &internodeData = i.GetPrivateComponent<InternodeData>();
         for (auto &leafTransform : internodeData.m_leavesTransforms) {
             auto *leaf = doc.allocate_node(rapidxml::node_element, "Leaf");

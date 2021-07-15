@@ -118,7 +118,7 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 					{
 						foliageEntity = child;
 					}
-					else */if (child.HasComponentData<TreeLeavesTag>())
+					else */if (child.HasDataComponent<TreeLeavesTag>())
 					{
 						foliageEntity = child;
 					}

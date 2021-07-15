@@ -4,7 +4,7 @@ void CubeVolume::ApplyMeshRendererBounds()
 {
 	auto& meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
 	const auto bound = meshRenderer.m_mesh->GetBound();
-	const auto globalTransform = GetOwner().GetComponentData<GlobalTransform>();
+	const auto globalTransform = GetOwner().GetDataComponent<GlobalTransform>();
 	m_minMaxBound.m_min = globalTransform.GetPosition() + glm::vec3(glm::vec4(bound.m_min, 1.0f) * globalTransform.m_value);
 	m_minMaxBound.m_max = globalTransform.GetPosition() + glm::vec3(glm::vec4(bound.m_max, 1.0f) * globalTransform.m_value);
 }

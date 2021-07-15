@@ -10,7 +10,7 @@
 using namespace UniEngine;
 namespace RayTracerFacility {
 	class RAY_TRACER_FACILITY_API RayTracedRenderer :
-		public PrivateComponentBase
+		public IPrivateComponent
 	{
 	public:
 		float m_diffuseIntensity = 0;

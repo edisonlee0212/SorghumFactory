@@ -8,7 +8,7 @@ void SorghumData::OnDestroy() {
 	Entity rootInternode;
     GetOwner().ForEachChild([&](Entity child)
 		{
-			if (child.HasComponentData<InternodeInfo>()) rootInternode = child;
+			if (child.HasDataComponent<InternodeInfo>()) rootInternode = child;
 		}
 	);
 	if (rootInternode.IsValid()) EntityManager::DeleteEntity(rootInternode);

@@ -2,7 +2,7 @@
 #include <CUDAModule.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-	class TriangleIlluminationEstimator : public PrivateComponentBase
+	class TriangleIlluminationEstimator : public IPrivateComponent
 	{
 	public:
 		std::vector<Entity> m_entities;

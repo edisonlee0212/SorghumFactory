@@ -30,12 +30,12 @@ void DefaultFoliageGenerator::OnCreate()
 void DefaultFoliageGenerator::Generate()
 {
 	const auto tree = GetOwner();
-	auto treeTransform = tree.GetComponentData<GlobalTransform>();
+	auto treeTransform = tree.GetDataComponent<GlobalTransform>();
 	Entity foliageEntity;
 	bool found = false;
     tree.ForEachChild([&found, &foliageEntity](Entity child)
 		{
-			if (child.HasComponentData<DefaultFoliageInfo>())
+			if (child.HasDataComponent<DefaultFoliageInfo>())
 			{
 				found = true;
 				foliageEntity = child;
@@ -53,8 +53,8 @@ void DefaultFoliageGenerator::Generate()
 		Transform transform;
 		transform.m_value = glm::translate(glm::vec3(0.0f)) * glm::scale(glm::vec3(1.0f));
 
-		foliageEntity.SetComponentData(transform);
-		foliageEntity.SetComponentData(m_defaultFoliageInfo);
+		foliageEntity.SetDataComponent(transform);
+		foliageEntity.SetDataComponent(m_defaultFoliageInfo);
 	}
 	auto& particleSys = foliageEntity.GetPrivateComponent<Particles>();
 	particleSys.m_matrices.clear();

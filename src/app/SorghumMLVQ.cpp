@@ -23,7 +23,7 @@ int main() {
     TreeManager::Init();
     const bool enableRayTracing = true;
     if (enableRayTracing) RayTracerManager::Init();
-    Application::GetCurrentWorld()->GetSystem<PhysicsSystem>()->Disable();
+    EntityManager::GetCurrentWorld()->GetSystem<PhysicsSystem>()->Disable();
     Application::SetTimeStep(1.0 / 100.0f);
 #pragma region Engine Loop
     Application::RegisterUpdateFunction([&]() {
@@ -41,7 +41,7 @@ int main() {
                                             }
     );
     Application::RegisterFixedUpdateFunction([&]() {
-                                                 if(Application::IsPlaying()) Application::GetCurrentWorld()->GetSystem<PhysicsSystem>()->Simulate(0.016);
+                                                 if(Application::IsPlaying()) EntityManager::GetCurrentWorld()->GetSystem<PhysicsSystem>()->Simulate(0.016);
                                              }
     );
     Application::Run();
@@ -71,7 +71,7 @@ void EngineSetup() {
 
 #pragma region Preparations
     Application::SetTimeStep(0.016f);
-    auto &world = Application::GetCurrentWorld();
+    auto &world = EntityManager::GetCurrentWorld();
 
     const bool enableCameraControl = true;
     if (enableCameraControl) {
@@ -84,7 +84,7 @@ void EngineSetup() {
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));
     auto mainCamera = RenderManager::GetMainCamera();
     if (mainCamera) {
-        mainCamera->GetOwner().SetComponentData(transform);
+        mainCamera->GetOwner().SetDataComponent(transform);
         mainCamera->m_useClearColor = true;
         mainCamera->m_clearColor = glm::vec3(0.5f);
     }
@@ -97,5 +97,5 @@ void EngineSetup() {
     pointLight.m_lightSize = 0.25f;
     transform.SetPosition(glm::vec3(0, 30, 0));
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
-    lightEntity.SetComponentData(transform);
+    lightEntity.SetDataComponent(transform);
 }

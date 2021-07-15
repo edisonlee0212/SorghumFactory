@@ -288,7 +288,7 @@ bool VoxelSpace::HasObstacleConeSameOwner(const float& angle, const glm::vec3& p
 					const Entity compare = voxel.m_internodes[p];
 					if (parent != compare && internode != compare && owner == voxel.m_owners[p] && distance2 < selfRadius * selfRadius && dot > cosAngle)
 					{
-						if(internode.GetComponentData<InternodeInfo>().m_order > voxel.m_internodes[p].GetComponentData<InternodeInfo>().m_order)
+						if(internode.GetDataComponent<InternodeInfo>().m_order > voxel.m_internodes[p].GetDataComponent<InternodeInfo>().m_order)
 						return true;
 					}
 				}

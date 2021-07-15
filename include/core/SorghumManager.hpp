@@ -6,7 +6,7 @@
 #include <RayTracedRenderer.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-	struct LeafInfo : ComponentDataBase {
+	struct LeafInfo : IDataComponent {
 	};
 
 	struct PlantNode
@@ -19,7 +19,7 @@ namespace PlantFactory {
 		PlantNode(glm::vec3 position, float angle, float width, glm::vec3 axis, bool isLeaf);
 	};
 
-	class Spline : public PrivateComponentBase {
+	class Spline : public IPrivateComponent {
 	public:
 		glm::vec3 m_left;
 		float m_startingPoint;

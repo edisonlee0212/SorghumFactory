@@ -282,11 +282,11 @@ void RadialBoundingVolume::CalculateVolume()
 	);
 	m_maxHeight = 0;
 	m_maxRadius = 0;
-	const auto treeGlobalTransform = tree.GetComponentData<GlobalTransform>().m_value;
+	const auto treeGlobalTransform = tree.GetDataComponent<GlobalTransform>().m_value;
 	std::vector<glm::vec3> positions;
 	for (auto& i : internodes)
 	{
-		auto globalTransform = i.GetComponentData<GlobalTransform>().m_value;
+		auto globalTransform = i.GetDataComponent<GlobalTransform>().m_value;
 		const glm::vec3 position = (glm::inverse(treeGlobalTransform) * globalTransform)[3];
 		positions.push_back(position);
 		if (position.y > m_maxHeight) m_maxHeight = position.y;
@@ -306,8 +306,8 @@ void RadialBoundingVolume::CalculateVolume()
 	auto positionIndex = 0;
 	for (auto& internode : internodes)
 	{
-		const auto internodeGrowth = internode.GetComponentData<InternodeGrowth>();
-		auto parentGlobalTransform = internode.GetParent().GetComponentData<GlobalTransform>().m_value;
+		const auto internodeGrowth = internode.GetDataComponent<InternodeGrowth>();
+		auto parentGlobalTransform = internode.GetParent().GetDataComponent<GlobalTransform>().m_value;
 		const glm::vec3 parentNodePosition = (glm::inverse(treeGlobalTransform) * parentGlobalTransform)[3];
 		const int segments = 3;
 		for (int i = 0; i < segments; i++) {
@@ -347,11 +347,11 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight)
 	);
 	m_maxHeight = maxHeight;
 	m_maxRadius = 0;
-	const auto treeGlobalTransform = tree.GetComponentData<GlobalTransform>().m_value;
+	const auto treeGlobalTransform = tree.GetDataComponent<GlobalTransform>().m_value;
 	std::vector<glm::vec3> positions;
 	for (auto& i : internodes)
 	{
-		auto globalTransform = i.GetComponentData<GlobalTransform>().m_value;
+		auto globalTransform = i.GetDataComponent<GlobalTransform>().m_value;
 		const glm::vec3 position = (glm::inverse(treeGlobalTransform) * globalTransform)[3];
 		positions.push_back(position);
 		const float radius = glm::length(glm::vec2(position.x, position.z));
@@ -385,8 +385,8 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight)
 	auto positionIndex = 0;
 	for (auto& internode : internodes)
 	{
-		const auto internodeGrowth = internode.GetComponentData<InternodeGrowth>();
-		auto parentGlobalTransform = internode.GetParent().GetComponentData<GlobalTransform>().m_value;
+		const auto internodeGrowth = internode.GetDataComponent<InternodeGrowth>();
+		auto parentGlobalTransform = internode.GetParent().GetDataComponent<GlobalTransform>().m_value;
 		const glm::vec3 parentNodePosition = (glm::inverse(treeGlobalTransform) * parentGlobalTransform)[3];
 		const int segments = 3;
 		for (int i = 0; i < segments; i++) {
@@ -444,7 +444,7 @@ void RadialBoundingVolume::OnGui()
 	if (m_display && m_meshGenerated)
 	{
 		for (auto& i : m_boundMeshes) {
-			RenderManager::DrawGizmoMesh(i.get(), EditorManager::GetSceneCamera(), m_displayColor, GetOwner().GetComponentData<GlobalTransform>().m_value);
+			RenderManager::DrawGizmoMesh(i.get(), EditorManager::GetSceneCamera(), m_displayColor, GetOwner().GetDataComponent<GlobalTransform>().m_value);
 		}
 	}
 }

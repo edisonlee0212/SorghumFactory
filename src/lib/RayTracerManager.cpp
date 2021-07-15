@@ -19,7 +19,7 @@ void RayTracerManager::UpdateScene() const
 			auto& rayTracedRenderer = entity.GetPrivateComponent<RayTracedRenderer>();
 			if (!rayTracedRenderer.IsEnabled()) continue;
 			if (!rayTracedRenderer.m_mesh || rayTracedRenderer.m_mesh->UnsafeGetVertexPositions().empty()) continue;
-			auto globalTransform = entity.GetComponentData<GlobalTransform>().m_value;
+			auto globalTransform = entity.GetDataComponent<GlobalTransform>().m_value;
 			RayTracerInstance newRayTracerInstance;
 			RayTracerInstance* rayTracerInstance = &newRayTracerInstance;
 			bool needVerticesUpdate = false;

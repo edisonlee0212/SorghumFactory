@@ -3,7 +3,7 @@
 using namespace UniEngine;
 namespace PlantFactory
 {
-	class TreeLeaves final : public PrivateComponentBase
+	class TreeLeaves final : public IPrivateComponent
 	{
 	public:
 	    std::vector<int> m_targetBoneIndices;

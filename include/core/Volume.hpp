@@ -3,7 +3,7 @@ using namespace UniEngine;
 namespace PlantFactory
 {
 	class Volume :
-		public PrivateComponentBase
+		public IPrivateComponent
 	{
 	public:
 		bool m_asObstacle = false;

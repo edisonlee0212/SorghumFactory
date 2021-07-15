@@ -35,7 +35,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 	{
 		if (entity.HasPrivateComponent<MeshRenderer>())
 		{
-			auto globalTransform = entity.GetComponentData<GlobalTransform>();
+			auto globalTransform = entity.GetDataComponent<GlobalTransform>();
 			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
 			auto& mesh = meshRenderer.m_mesh;
 			for (const auto& triangle : mesh->UnsafeGetTriangles()) {

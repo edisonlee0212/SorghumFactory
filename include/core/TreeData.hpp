@@ -3,7 +3,7 @@
 using namespace UniEngine;
 namespace PlantFactory {	
 	class TreeData :
-		public PrivateComponentBase
+		public IPrivateComponent
 	{
 	public:
 #pragma region Info

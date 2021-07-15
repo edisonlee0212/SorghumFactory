@@ -119,9 +119,9 @@ bool PlantManager::GrowAllPlants()
 
 	for (const auto& plant : manager.m_plants)
 	{
-		auto plantInfo = plant.GetComponentData<PlantInfo>();
+		auto plantInfo = plant.GetDataComponent<PlantInfo>();
 		plantInfo.m_age += manager.m_deltaTime;
-		plant.SetComponentData(plantInfo);
+		plant.SetDataComponent(plantInfo);
 	}
 
 	time = Application::Time().CurrentTime();
@@ -180,11 +180,11 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate>& candidates)
 	int i = 0;
 	for (auto& candidate : candidates) {
 		auto newInternode = entities[i];
-		newInternode.SetComponentData(candidate.m_info);
-		newInternode.SetComponentData(candidate.m_growth);
-		newInternode.SetComponentData(candidate.m_statistics);
-		newInternode.SetComponentData(candidate.m_globalTransform);
-		newInternode.SetComponentData(candidate.m_transform);
+		newInternode.SetDataComponent(candidate.m_info);
+		newInternode.SetDataComponent(candidate.m_growth);
+		newInternode.SetDataComponent(candidate.m_statistics);
+		newInternode.SetDataComponent(candidate.m_globalTransform);
+		newInternode.SetDataComponent(candidate.m_transform);
 		auto& newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
 		newInternodeData.m_buds.swap(candidate.m_buds);
 		newInternodeData.m_owner = candidate.m_owner;
@@ -301,8 +301,8 @@ Entity PlantManager::CreateCubeObstacle()
 	transform.SetScale(glm::vec3(4, 2, 4));
 	GlobalTransform globalTransform;
 	globalTransform.m_value = transform.m_value;
-	volumeEntity.SetComponentData(transform);
-	volumeEntity.SetComponentData(globalTransform);
+	volumeEntity.SetDataComponent(transform);
+	volumeEntity.SetDataComponent(globalTransform);
 	volumeEntity.SetStatic(true);
 
 	auto& meshRenderer = volumeEntity.SetPrivateComponent<MeshRenderer>();
@@ -331,14 +331,14 @@ Entity PlantManager::CreatePlant(const PlantType& type, const Transform& transfo
 
 	GlobalTransform globalTransform;
 	globalTransform.m_value = transform.m_value;
-	entity.SetComponentData(globalTransform);
-	entity.SetComponentData(transform);
+	entity.SetDataComponent(globalTransform);
+	entity.SetDataComponent(transform);
 	entity.SetName("Tree");
 	PlantInfo treeInfo{};
 	treeInfo.m_plantType = type;
 	treeInfo.m_age = 0;
 	treeInfo.m_startTime = GetInstance().m_globalTime;
-	entity.SetComponentData(treeInfo);
+	entity.SetDataComponent(treeInfo);
 
 #pragma region Set root internode
 	const auto rootInternode = EntityManager::CreateEntity(GetInstance().m_internodeArchetype);
@@ -352,12 +352,12 @@ Entity PlantManager::CreatePlant(const PlantType& type, const Transform& transfo
 	internodeGrowth.m_desiredLocalRotation = glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
 
 	GlobalTransform internodeGlobalTransform;
-	internodeGlobalTransform.m_value = entity.GetComponentData<GlobalTransform>().m_value * glm::mat4_cast(internodeGrowth.m_desiredLocalRotation);
+	internodeGlobalTransform.m_value = entity.GetDataComponent<GlobalTransform>().m_value * glm::mat4_cast(internodeGrowth.m_desiredLocalRotation);
 	InternodeStatistics internodeStatistics;
-	rootInternode.SetComponentData(internodeInfo);
-	rootInternode.SetComponentData(internodeGrowth);
-	rootInternode.SetComponentData(internodeStatistics);
-	rootInternode.SetComponentData(internodeGlobalTransform);
+	rootInternode.SetDataComponent(internodeInfo);
+	rootInternode.SetDataComponent(internodeGrowth);
+	rootInternode.SetDataComponent(internodeStatistics);
+	rootInternode.SetDataComponent(internodeGlobalTransform);
 
 	auto& rootInternodeData = rootInternode.SetPrivateComponent<InternodeData>();
 	Bud bud;
@@ -377,9 +377,9 @@ Entity PlantManager::CreateInternode(const PlantType& type, const Entity& parent
 	entity.SetName("Internode");
 	InternodeInfo internodeInfo;
 	internodeInfo.m_plantType = type;
-	internodeInfo.m_plant = parentEntity.GetComponentData<InternodeInfo>().m_plant;
-	internodeInfo.m_startAge = internodeInfo.m_plant.GetComponentData<PlantInfo>().m_age;
-	entity.SetComponentData(internodeInfo);
+	internodeInfo.m_plant = parentEntity.GetDataComponent<InternodeInfo>().m_plant;
+	internodeInfo.m_startAge = internodeInfo.m_plant.GetDataComponent<PlantInfo>().m_age;
+	entity.SetDataComponent(internodeInfo);
 	entity.SetPrivateComponent<InternodeData>();
     entity.SetParent(parentEntity);
 	return entity;
@@ -417,8 +417,8 @@ void PlantManager::Init()
 	groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
 	groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
 	groundGlobalTransform.m_value = groundTransform.m_value;
-	manager.m_ground.SetComponentData(groundTransform);
-	manager.m_ground.SetComponentData(groundGlobalTransform);
+	manager.m_ground.SetDataComponent(groundTransform);
+	manager.m_ground.SetDataComponent(groundGlobalTransform);
 
 	auto& rayTracedRenderer = manager.m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 	rayTracedRenderer.SyncWithMeshRenderer();
@@ -486,7 +486,7 @@ void PlantManager::Init()
 #pragma endregion
 #pragma region GUI
 	EditorManager::RegisterComponentDataInspector<InternodeStatistics>(
-		[](Entity entity, ComponentDataBase* data, bool isRoot)
+		[](Entity entity, IDataComponent* data, bool isRoot)
 		{
 			auto* internodeStatistics = static_cast<InternodeStatistics*>(data);
 			ImGui::Text(("MaxChildOrder: " + std::to_string(internodeStatistics->m_maxChildOrder)).c_str());
@@ -502,7 +502,7 @@ void PlantManager::Init()
 	);
 
 	EditorManager::RegisterComponentDataInspector<InternodeGrowth>(
-		[](Entity entity, ComponentDataBase* data, bool isRoot)
+		[](Entity entity, IDataComponent* data, bool isRoot)
 		{
 			auto* internodeGrowth = static_cast<InternodeGrowth*>(data);
 			ImGui::Text(("Inhibitor: " + std::to_string(internodeGrowth->m_inhibitor)).c_str());
@@ -520,7 +520,7 @@ void PlantManager::Init()
 	);
 
 	EditorManager::RegisterComponentDataInspector<InternodeInfo>(
-		[](Entity entity, ComponentDataBase* data, bool isRoot)
+		[](Entity entity, IDataComponent* data, bool isRoot)
 		{
 			auto* internodeInfo = static_cast<InternodeInfo*>(data);
 			ImGui::Checkbox("Activated", &internodeInfo->m_activated);
@@ -532,7 +532,7 @@ void PlantManager::Init()
 	);
 
 	EditorManager::RegisterComponentDataInspector<Illumination>(
-		[](Entity entity, ComponentDataBase* data, bool isRoot)
+		[](Entity entity, IDataComponent* data, bool isRoot)
 		{
 			auto* illumination = static_cast<Illumination*>(data);
 			ImGui::Text(("CurrentIntensity: " + std::to_string(illumination->m_currentIntensity)).c_str());
@@ -541,7 +541,7 @@ void PlantManager::Init()
 	);
 
 	EditorManager::RegisterComponentDataInspector<PlantInfo>(
-		[](Entity entity, ComponentDataBase* data, bool isRoot)
+		[](Entity entity, IDataComponent* data, bool isRoot)
 		{
 			auto* info = static_cast<PlantInfo*>(data);
 			ImGui::Text(("Start time: " + std::to_string(info->m_startTime)).c_str());

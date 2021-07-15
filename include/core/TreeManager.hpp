@@ -19,12 +19,12 @@ namespace PlantFactory {
 		AvoidanceAngle
 	};
 
-	struct TreeLeavesTag : ComponentDataBase
+	struct TreeLeavesTag : IDataComponent
 	{
 		
 	};
 
-	struct RbvTag : ComponentDataBase
+	struct RbvTag : IDataComponent
 	{
 
 	};

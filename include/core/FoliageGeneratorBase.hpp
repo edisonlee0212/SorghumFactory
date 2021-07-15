@@ -8,13 +8,13 @@ namespace PlantFactory {
 		std::vector<glm::mat4> m_leafLocalTransforms;
 		glm::vec3 m_normal;
 	};
-	class FoliageGeneratorBase : public PrivateComponentBase
+	class FoliageGeneratorBase : public IPrivateComponent
 	{
 	public:
 		virtual void Generate() = 0;
 	};
 
-	struct DefaultFoliageInfo : ComponentDataBase
+	struct DefaultFoliageInfo : IDataComponent
 	{
 		glm::vec2 m_leafSize = glm::vec2(0.1f);
 		float m_leafIlluminationLimit = 0;

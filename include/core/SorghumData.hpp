@@ -3,7 +3,7 @@
 using namespace UniEngine;
 namespace PlantFactory {
 	class SorghumData :
-		public PrivateComponentBase
+		public IPrivateComponent
 	{
 	public:
 		bool m_growthComplete = false;

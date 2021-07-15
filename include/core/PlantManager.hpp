@@ -12,7 +12,7 @@ namespace PlantFactory {
 		Sorghum
 	};
 #pragma region Tree
-	struct PlantInfo : ComponentDataBase
+	struct PlantInfo : IDataComponent
 	{
 		PlantType m_plantType;
 		float m_startTime;
@@ -20,36 +20,36 @@ namespace PlantFactory {
 	};
 #pragma endregion	
 #pragma region Internode
-	struct BranchCylinder : ComponentDataBase {
+	struct BranchCylinder : IDataComponent {
 		glm::mat4 m_value;
 		bool operator ==(const BranchCylinder& other) const {
 			return other.m_value == m_value;
 		}
 	};
-	struct BranchCylinderWidth : ComponentDataBase {
+	struct BranchCylinderWidth : IDataComponent {
 		float m_value;
 		bool operator ==(const BranchCylinderWidth& other) const {
 			return other.m_value == m_value;
 		}
 	};
-	struct BranchPointer : ComponentDataBase {
+	struct BranchPointer : IDataComponent {
 		glm::mat4 m_value;
 		bool operator ==(const BranchCylinder& other) const {
 			return other.m_value == m_value;
 		}
 	};
 
-	struct Illumination : ComponentDataBase {
+	struct Illumination : IDataComponent {
 		float m_currentIntensity = 0;
 		glm::vec3 m_accumulatedDirection = glm::vec3(0.0f);
 	};
 
-	struct BranchColor : ComponentDataBase
+	struct BranchColor : IDataComponent
 	{
 		glm::vec4 m_value;
 	};
 	
-	struct InternodeInfo : ComponentDataBase
+	struct InternodeInfo : IDataComponent
 	{
 		PlantType m_plantType;
 		Entity m_plant = Entity();
@@ -61,7 +61,7 @@ namespace PlantFactory {
 		int m_level = 1;
 		int m_index = -1;
 	};
-	struct InternodeGrowth : ComponentDataBase
+	struct InternodeGrowth : IDataComponent
 	{
 		float m_inhibitor = 0;
 		float m_inhibitorTransmitFactor = 1;
@@ -82,7 +82,7 @@ namespace PlantFactory {
 		glm::vec3 m_desiredGlobalPosition = glm::vec3(0.0f);
 		Entity m_thickestChild;
 	};
-	struct InternodeStatistics : ComponentDataBase
+	struct InternodeStatistics : IDataComponent
 	{
 		int m_childrenEndNodeAmount = 0; //Ok
 		bool m_isMaxChild = false; //Ok
@@ -135,7 +135,7 @@ namespace PlantFactory {
 		float m_mainAngle = 0;
 	};
 #pragma endregion
-	class InternodeData : public PrivateComponentBase {
+	class InternodeData : public IPrivateComponent {
 	public:
 		Entity m_owner;
 		std::vector<InternodeCandidate> m_spaceColonizationGrowthModelCandidates;
