@@ -2,53 +2,53 @@
 #include <glm/glm.hpp>
 #include <Optix7.hpp>
 #include <BTFBase.cuh>
+#include <Vertex.hpp>
 namespace RayTracerFacility
 {
 	struct Mesh
 	{
-		glm::vec3* m_position;
-		glm::uvec3* m_triangle;
-		glm::vec3* m_normal;
-		glm::vec3* m_tangent;
-		glm::vec4* m_color;
-		glm::vec2* m_texCoord;
-
+		Vertex* m_vertices;
+        glm::uvec3* m_triangles;
+        glm::mat4 m_transform;
 		__device__
 			glm::uvec3 GetIndices(const int& primitiveId) const
 		{
-			return m_triangle[primitiveId];
+			return m_triangles[primitiveId];
 		}
 
 		__device__
 			glm::vec2 GetTexCoord(const float2& triangleBarycentrics, const glm::uvec3& triangleIndices) const
 		{
-			return (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_texCoord[triangleIndices.x]
-				+ triangleBarycentrics.x * m_texCoord[triangleIndices.y]
-				+ triangleBarycentrics.y * m_texCoord[triangleIndices.z];
+			return (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_vertices[triangleIndices.x].m_texCoords
+				+ triangleBarycentrics.x * m_vertices[triangleIndices.y].m_texCoords
+				+ triangleBarycentrics.y * m_vertices[triangleIndices.z].m_texCoords;
 		}
 		__device__
 			glm::vec3 GetPosition(const float2& triangleBarycentrics, const glm::uvec3& triangleIndices) const
 		{
-			const glm::vec3 pointA = m_position[triangleIndices.x];
-			const glm::vec3 pointB = m_position[triangleIndices.y];
-			const glm::vec3 pointC = m_position[triangleIndices.z];
-			return (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * pointA
+			const glm::vec3 pointA = m_vertices[triangleIndices.x].m_position;
+			const glm::vec3 pointB = m_vertices[triangleIndices.y].m_position;
+			const glm::vec3 pointC = m_vertices[triangleIndices.z].m_position;
+			const glm::vec3 position = (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * pointA
 				+ triangleBarycentrics.x * pointB
 				+ triangleBarycentrics.y * pointC;
+			return m_transform * glm::vec4(position, 1.0f);
 		}
 		__device__
 			glm::vec3 GetNormal(const float2& triangleBarycentrics, const glm::uvec3& triangleIndices) const
 		{
-			return (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_normal[triangleIndices.x]
-				+ triangleBarycentrics.x * m_normal[triangleIndices.y]
-				+ triangleBarycentrics.y * m_normal[triangleIndices.z];
+			glm::vec3 normal = (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_vertices[triangleIndices.x].m_normal
+				+ triangleBarycentrics.x * m_vertices[triangleIndices.y].m_normal
+				+ triangleBarycentrics.y * m_vertices[triangleIndices.z].m_normal;
+            return glm::normalize(m_transform * glm::vec4(normal, 0.0f));
 		}
 		__device__
 			glm::vec3 GetTangent(const float2& triangleBarycentrics, const glm::uvec3& triangleIndices) const
 		{
-			return (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_tangent[triangleIndices.x]
-				+ triangleBarycentrics.x * m_tangent[triangleIndices.y]
-				+ triangleBarycentrics.y * m_tangent[triangleIndices.z];
+            glm::vec3 tangent = (1.f - triangleBarycentrics.x - triangleBarycentrics.y) * m_vertices[triangleIndices.x].m_tangent
+				+ triangleBarycentrics.x * m_vertices[triangleIndices.y].m_tangent
+				+ triangleBarycentrics.y * m_vertices[triangleIndices.z].m_tangent;
+            return glm::normalize(m_transform * glm::vec4(tangent, 0.0f));
 		}
 	};
 

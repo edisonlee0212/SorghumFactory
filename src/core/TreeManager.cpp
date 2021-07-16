@@ -9,7 +9,7 @@
 #include <PhysicsManager.hpp>
 #include <SkinnedMeshRenderer.hpp>
 
-using namespace RayTracerFacility;
+using namespace UniEngine;
 using namespace PlantFactory;
 
 void TreeManager::ExportChains(int parentOrder, Entity internode, rapidxml::xml_node<> *chains,
@@ -86,7 +86,7 @@ Entity TreeManager::GetLeaves(const Entity &tree) {
         leaves.SetPrivateComponent<TreeLeaves>();
         auto &meshRenderer = leaves.SetPrivateComponent<MeshRenderer>();
         auto &skinnedMeshRenderer = leaves.SetPrivateComponent<SkinnedMeshRenderer>();
-        auto &rayTracerRenderer = leaves.SetPrivateComponent<RayTracedRenderer>();
+        auto &rayTracerRenderer = leaves.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 
         meshRenderer.m_material = ResourceManager::LoadMaterial(false, DefaultResources::GLPrograms::StandardProgram);
         meshRenderer.m_material->m_name = "Leaves mat";
@@ -757,7 +757,7 @@ Entity TreeManager::CreateTree(const Transform &transform) {
     skinnedMeshRenderer.m_material->SetTexture(TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
     skinnedMeshRenderer.AttachAnimator(plant);
 
-    auto &rtt = plant.SetPrivateComponent<RayTracedRenderer>();
+    auto &rtt = plant.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
     rtt.m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
     rtt.m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
     rtt.m_mesh = plant.GetPrivateComponent<MeshRenderer>().m_mesh;
@@ -1310,7 +1310,7 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
         RenderManager::DrawGizmoMeshInstancedColored(
                 DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
-                (glm::vec4 *) branchColors.data(), (glm::mat4 *) branchCylinders.data(), branchCylinders.size(),
+                *reinterpret_cast<std::vector<glm::vec4>*>(&branchColors), *reinterpret_cast<std::vector<glm::mat4>*>(&branchCylinders),
                 glm::mat4(1.0f), 1.0f);
 
 }
@@ -1327,7 +1327,7 @@ void TreeManager::RenderBranchPointers(const float &displayTime) {
         RenderManager::DrawGizmoMeshInstanced(
                 DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
-                manager.m_pointerColor, reinterpret_cast<glm::mat4 *>(branchPointers.data()), branchPointers.size(),
+                manager.m_pointerColor, *reinterpret_cast<std::vector<glm::mat4>*>(&branchPointers),
                 glm::mat4(1.0f), 1.0f);
 
 }

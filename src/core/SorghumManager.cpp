@@ -4,7 +4,7 @@
 #include <TriangleIlluminationEstimator.hpp>
 
 using namespace PlantFactory;
-using namespace RayTracerFacility;
+using namespace UniEngine;
 PlantNode::PlantNode(glm::vec3 position, float angle, float width, glm::vec3 axis, bool isLeaf)
 {
 	m_position = position;
@@ -201,7 +201,7 @@ Entity SorghumManager::CreateSorghumLeaf(const Entity& plantEntity)
 	mmc.m_material = GetInstance().m_leafMaterial;
 	mmc.m_mesh = ResourceManager::CreateResource<Mesh>();
 	
-	auto& rtt = entity.SetPrivateComponent<RayTracedRenderer>();
+	auto& rtt = entity.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 	rtt.m_mesh = mmc.m_mesh;
 	rtt.m_albedoTexture = GetInstance().m_leafSurfaceTexture;
 	if (GetInstance().m_leafNormalTexture) rtt.m_normalTexture = GetInstance().m_leafNormalTexture;
@@ -419,7 +419,7 @@ void SorghumManager::OnGui()
 			ImGui::DragInt("Seed", &manager.m_seed);
 			if (ImGui::Button("Calculate illumination"))
 			{
-				IlluminationEstimationProperties properties;
+                RayTracerFacility::IlluminationEstimationProperties properties;
 				properties.m_skylightPower = 1.0f;
 				properties.m_bounceLimit = 2;
 				properties.m_seed = glm::abs(manager.m_seed);
@@ -679,7 +679,7 @@ void SorghumManager::CloneSorghums(const Entity& parent, const Entity& original,
 				auto& newMeshRenderer = newChild.GetPrivateComponent<MeshRenderer>();
 				auto& meshRenderer = child.GetPrivateComponent<MeshRenderer>();
 				newMeshRenderer.m_mesh = meshRenderer.m_mesh;
-				auto& newRayTracedRenderer = newChild.GetPrivateComponent<RayTracedRenderer>();
+				auto& newRayTracedRenderer = newChild.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 				newRayTracedRenderer.m_mesh = meshRenderer.m_mesh;
 			});
         sorghum.SetParent(parent, false);
@@ -721,9 +721,9 @@ void SorghumManager::ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> m
 		std::string data;
 #pragma region Data collection
 
-		for (auto i = 0; i < mesh->UnsafeGetVertexPositions().size(); i++) {
-			auto& vertexPosition = mesh->UnsafeGetVertexPositions().at(i);
-			auto& color = mesh->UnsafeGetVertexColors().at(i);
+		for (auto i = 0; i < mesh->UnsafeGetVertices().size(); i++) {
+			auto& vertexPosition = mesh->UnsafeGetVertices().at(i).m_position;
+			auto& color = mesh->UnsafeGetVertices().at(i).m_color;
 			data += "v " + std::to_string(vertexPosition.x + position.x)
 				+ " " + std::to_string(vertexPosition.y + position.y)
 				+ " " + std::to_string(vertexPosition.z + position.z)
@@ -732,16 +732,16 @@ void SorghumManager::ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> m
 				+ " " + std::to_string(color.z)
 				+ "\n";
 		}
-		for (const auto& normal : mesh->UnsafeGetVertexNormals()) {
-			data += "vn " + std::to_string(normal.x)
-				+ " " + std::to_string(normal.y)
-				+ " " + std::to_string(normal.z)
+		for (const auto& vertex : mesh->UnsafeGetVertices()) {
+			data += "vn " + std::to_string(vertex.m_normal.x)
+				+ " " + std::to_string(vertex.m_normal.y)
+				+ " " + std::to_string(vertex.m_normal.z)
 				+ "\n";
 		}
 
-		for (const auto& texCoord : mesh->UnsafeGetVertexTexCoords()) {
-			data += "vt " + std::to_string(texCoord.x)
-				+ " " + std::to_string(texCoord.y)
+		for (const auto& vertex : mesh->UnsafeGetVertices()) {
+			data += "vt " + std::to_string(vertex.m_texCoords.x)
+				+ " " + std::to_string(vertex.m_texCoords.y)
 				+ "\n";
 		}
 		//data += "s off\n";
@@ -799,7 +799,7 @@ void SorghumManager::RenderLightProbes()
 {
 	auto& manager = GetInstance();
 	if (manager.m_probeTransforms.empty() || manager.m_probeColors.empty() || manager.m_probeTransforms.size() != manager.m_probeColors.size()) return;
-	RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(), EditorManager::GetSceneCamera(), manager.m_probeColors.data(), manager.m_probeTransforms.data(), manager.m_probeTransforms.size(), glm::mat4(1.0f), 0.2f);
+	RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(), EditorManager::GetSceneCamera(), manager.m_probeColors, manager.m_probeTransforms, glm::mat4(1.0f), 0.2f);
 	/*
 	if (!EditorManager::GetSceneCamera()->IsEnabled()) return;
 #pragma region Render
@@ -865,7 +865,7 @@ void SorghumManager::CollectEntities(std::vector<Entity>& entities, const Entity
 		});
 }
 
-void SorghumManager::CalculateIllumination(const IlluminationEstimationProperties& properties)
+void SorghumManager::CalculateIllumination(const RayTracerFacility::IlluminationEstimationProperties& properties)
 {
 	auto& manager = GetInstance();
 	const auto* owners = EntityManager::UnsafeGetPrivateComponentOwnersList<TriangleIlluminationEstimator>();

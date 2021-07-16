@@ -26,10 +26,10 @@ void TreeLeaves::FormMesh(std::vector<unsigned>& boneIndices)
     for (const auto& matrix : m_transforms)
     {
         for (auto i = 0; i < quadMesh->GetVerticesAmount(); i++) {
-            vertices[vi].m_position = matrix * glm::vec4(quadMesh->UnsafeGetVertexPositions()[i], 1.0f);
-            vertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexNormals()[i], 0.0f)));
-            vertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexTangents()[i], 0.0f)));
-            vertices[vi].m_texCoords = quadMesh->UnsafeGetVertexTexCoords()[i];
+            vertices[vi].m_position = matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_position, 1.0f);
+            vertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_normal, 0.0f)));
+            vertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_tangent, 0.0f)));
+            vertices[vi].m_texCoords = quadMesh->UnsafeGetVertices()[i].m_texCoords;
             vi++;
         }
         for (auto triangle : quadTriangles)
@@ -59,10 +59,10 @@ void TreeLeaves::FormMesh(std::vector<unsigned>& boneIndices)
     {
         auto boneIndex = m_targetBoneIndices[mi];
         for (auto i = 0; i < quadMesh->GetVerticesAmount(); i++) {
-            skinnedVertices[vi].m_position = matrix * glm::vec4(quadMesh->UnsafeGetVertexPositions()[i], 1.0f);
-            skinnedVertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexNormals()[i], 0.0f)));
-            skinnedVertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertexTangents()[i], 0.0f)));
-            skinnedVertices[vi].m_texCoords = quadMesh->UnsafeGetVertexTexCoords()[i];
+            skinnedVertices[vi].m_position = matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_position, 1.0f);
+            skinnedVertices[vi].m_normal = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_normal, 0.0f)));
+            skinnedVertices[vi].m_tangent = glm::normalize(glm::vec3(matrix * glm::vec4(quadMesh->UnsafeGetVertices()[i].m_tangent, 0.0f)));
+            skinnedVertices[vi].m_texCoords = quadMesh->UnsafeGetVertices()[i].m_texCoords;
             skinnedVertices[vi].m_bondId = glm::ivec4(boneIndex, -1, -1, -1);
             skinnedVertices[vi].m_weight = glm::vec4(1, 0, 0, 0);
             skinnedVertices[vi].m_bondId2 = glm::ivec4(-1, -1, -1, -1);

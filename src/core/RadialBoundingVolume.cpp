@@ -4,7 +4,7 @@
 #include <RayTracer.hpp>
 
 using namespace PlantFactory;
-using namespace RayTracerFacility;
+using namespace UniEngine;
 glm::vec3 RadialBoundingVolume::GetRandomPoint()
 {
 	if(!m_meshGenerated) return glm::vec3(0);
@@ -152,7 +152,7 @@ void RadialBoundingVolume::FormEntity()
 		mmc.m_forwardRendering = false;
 		mmc.m_mesh = m_boundMeshes[i];
 
-		auto& rayTracedRenderer = slice.SetPrivateComponent<RayTracedRenderer>();
+		auto& rayTracedRenderer = slice.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
         slice.SetParent(GetOwner(), false);
         rayTracedRenderer.SyncWithMeshRenderer();
 	}
@@ -211,10 +211,10 @@ void RadialBoundingVolume::ExportAsObj(const std::string& filename)
 		int offset = 1;
 #pragma region Data collection
 		for (auto& mesh : meshes) {
-			for (const auto& position : mesh->UnsafeGetVertexPositions()) {
-				data += "v " + std::to_string(position.x)
-					+ " " + std::to_string(-position.y)
-					+ " " + std::to_string(position.z)
+			for (const auto& vertices : mesh->UnsafeGetVertices()) {
+				data += "v " + std::to_string(vertices.m_position.x)
+					+ " " + std::to_string(-vertices.m_position.y)
+					+ " " + std::to_string(vertices.m_position.z)
 					+ "\n";
 			}
 		}

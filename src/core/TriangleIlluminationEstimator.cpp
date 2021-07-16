@@ -39,11 +39,11 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 			auto& meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
 			auto& mesh = meshRenderer.m_mesh;
 			for (const auto& triangle : mesh->UnsafeGetTriangles()) {
-				auto& positions = mesh->UnsafeGetVertexPositions();
-				const auto position = (positions[triangle.x] + positions[triangle.y] + positions[triangle.z]) / 3.0f;
-				const float a = glm::distance(positions[triangle.x], positions[triangle.y]);
-				const float b = glm::distance(positions[triangle.y], positions[triangle.z]);
-				const float c = glm::distance(positions[triangle.z], positions[triangle.x]);
+				auto& vertices = mesh->UnsafeGetVertices();
+				const auto position = (vertices[triangle.x].m_position + vertices[triangle.y].m_position + vertices[triangle.z].m_position) / 3.0f;
+				const float a = glm::distance(vertices[triangle.x].m_position, vertices[triangle.y].m_position);
+				const float b = glm::distance(vertices[triangle.y].m_position, vertices[triangle.z].m_position);
+				const float c = glm::distance(vertices[triangle.z].m_position, vertices[triangle.x].m_position);
 				const float p = (a + b + c) * 0.5f;
 				const float area = glm::sqrt(p * (p - a) * (p - b) * (p - c));
 				m_triangleAreas.push_back(area);
@@ -51,7 +51,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 				RayTracerFacility::LightSensor<float> lightProbe;
 				lightProbe.m_direction = glm::vec3(0.0f);
 				lightProbe.m_energy = 0.0f;
-				lightProbe.m_surfaceNormal = glm::cross(positions[triangle.x] - positions[triangle.y], positions[triangle.y] - positions[triangle.z]);
+				lightProbe.m_surfaceNormal = glm::cross(vertices[triangle.x].m_position - vertices[triangle.y].m_position, vertices[triangle.y].m_position - vertices[triangle.z].m_position);
 				lightProbe.m_position = globalTransform.m_value * glm::vec4(position, 1.0f);
 				m_lightProbes.push_back(lightProbe);
 			}
@@ -101,9 +101,9 @@ void TriangleIlluminationEstimator::CalculateIllumination(
 				i++;
 			}
 			ti = 0;
-			for (auto& color : mesh->UnsafeGetVertexColors())
+			for (auto& vertices : mesh->UnsafeGetVertices())
 			{
-				color = colors[ti].second / static_cast<float>(colors[ti].first);
+                vertices.m_color = colors[ti].second / static_cast<float>(colors[ti].first);
 				ti++;
 			}
 		}

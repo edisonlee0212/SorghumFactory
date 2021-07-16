@@ -18,7 +18,7 @@ void RayTracerManager::UpdateScene() const
 			if (!entity.IsEnabled()) continue;
 			auto& rayTracedRenderer = entity.GetPrivateComponent<RayTracedRenderer>();
 			if (!rayTracedRenderer.IsEnabled()) continue;
-			if (!rayTracedRenderer.m_mesh || rayTracedRenderer.m_mesh->UnsafeGetVertexPositions().empty()) continue;
+			if (!rayTracedRenderer.m_mesh || rayTracedRenderer.m_mesh->UnsafeGetVertices().empty()) continue;
 			auto globalTransform = entity.GetDataComponent<GlobalTransform>().m_value;
 			RayTracerInstance newRayTracerInstance;
 			RayTracerInstance* rayTracerInstance = &newRayTracerInstance;
@@ -110,12 +110,8 @@ void RayTracerManager::UpdateScene() const
 					rayTracerInstance->m_transformUpdateFlag = true;
 					rayTracerInstance->m_globalTransform = globalTransform;
 				}
-				rayTracerInstance->m_positions = &rayTracedRenderer.m_mesh->UnsafeGetVertexPositions();
-				rayTracerInstance->m_normals = &rayTracedRenderer.m_mesh->UnsafeGetVertexNormals();
-				rayTracerInstance->m_tangents = &rayTracedRenderer.m_mesh->UnsafeGetVertexTangents();
-				rayTracerInstance->m_colors = &rayTracedRenderer.m_mesh->UnsafeGetVertexColors();
+				rayTracerInstance->m_vertices = reinterpret_cast<std::vector<Vertex>*>(&rayTracedRenderer.m_mesh->UnsafeGetVertices());
 				rayTracerInstance->m_triangles = &rayTracedRenderer.m_mesh->UnsafeGetTriangles();
-				rayTracerInstance->m_texCoords = &rayTracedRenderer.m_mesh->UnsafeGetVertexTexCoords();
 			}
 			else if (needTransformUpdate)
 			{

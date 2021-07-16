@@ -14,7 +14,6 @@
 #include <filesystem>
 #include <FileIO.hpp>
 #include <imgui.h>
-
 using namespace RayTracerFacility;
 
 void Camera::Set(const glm::quat& rotation, const glm::vec3& position, const float& fov, const glm::ivec2& size)
@@ -440,22 +439,22 @@ void RayTracer::CreateHitGroupPrograms()
 
 __global__ void ApplyTransformKernel(
 	int size, glm::mat4 globalTransform,
-	glm::vec3* positions, glm::vec3* normals, glm::vec3* tangents,
-	glm::vec3* targetPositions, glm::vec3* targetNormals, glm::vec3* targetTangents)
+	Vertex* vertices,
+	glm::vec3* targetPositions)
 {
 	const int idx = threadIdx.x + blockIdx.x * blockDim.x;
 	if (idx < size)
 	{
-		targetPositions[idx] = globalTransform * glm::vec4(positions[idx], 1.0f);
-		targetNormals[idx] = glm::normalize(globalTransform * glm::vec4(normals[idx], 0.0f));
-		targetTangents[idx] = glm::normalize(globalTransform * glm::vec4(tangents[idx], 0.0f));
+		targetPositions[idx] = globalTransform * glm::vec4(vertices[idx].m_position, 1.0f);
+		//targetNormals[idx] = glm::normalize(globalTransform * glm::vec4(vertices[idx].m_normal, 0.0f));
+		//targetTangents[idx] = glm::normalize(globalTransform * glm::vec4(vertices[idx].m_tangent, 0.0f));
 	}
 }
 
 void RayTracer::BuildAccelerationStructure()
 {
 	bool uploadVertices = false;
-	if (m_positionsBuffer.size() != m_instances.size()) uploadVertices = true;
+	if (m_verticesBuffer.size() != m_instances.size()) uploadVertices = true;
 	else {
 		for (auto& i : m_instances)
 		{
@@ -466,34 +465,16 @@ void RayTracer::BuildAccelerationStructure()
 		}
 	}
 	if (uploadVertices) {
-		for (auto& i : m_positionsBuffer) i.Free();
+		for (auto& i : m_verticesBuffer) i.Free();
 		for (auto& i : m_trianglesBuffer) i.Free();
-		for (auto& i : m_normalsBuffer) i.Free();
-		for (auto& i : m_tangentsBuffer) i.Free();
-		for (auto& i : m_colorsBuffer) i.Free();
-		for (auto& i : m_texCoordsBuffer) i.Free();
 		for (auto& i : m_transformedPositionsBuffer) i.Free();
-		for (auto& i : m_transformedNormalsBuffer) i.Free();
-		for (auto& i : m_transformedTangentsBuffer) i.Free();
 
-		m_positionsBuffer.clear();
+        m_verticesBuffer.clear();
 		m_trianglesBuffer.clear();
-		m_normalsBuffer.clear();
-		m_tangentsBuffer.clear();
-		m_colorsBuffer.clear();
-		m_texCoordsBuffer.clear();
 		m_transformedPositionsBuffer.clear();
-		m_transformedNormalsBuffer.clear();
-		m_transformedTangentsBuffer.clear();
 
-		m_positionsBuffer.resize(m_instances.size());
+        m_verticesBuffer.resize(m_instances.size());
 		m_trianglesBuffer.resize(m_instances.size());
-		m_normalsBuffer.resize(m_instances.size());
-		m_tangentsBuffer.resize(m_instances.size());
-		m_colorsBuffer.resize(m_instances.size());
-		m_texCoordsBuffer.resize(m_instances.size());
-		m_transformedTangentsBuffer.resize(m_instances.size());
-		m_transformedNormalsBuffer.resize(m_instances.size());
 		m_transformedPositionsBuffer.resize(m_instances.size());
 	}
 	OptixTraversableHandle asHandle = 0;
@@ -512,32 +493,25 @@ void RayTracer::BuildAccelerationStructure()
 		RayTracerInstance& triangleMesh = m_instances[meshID];
 		if (uploadVertices)
 		{
-			m_positionsBuffer[meshID].Upload(*triangleMesh.m_positions);
-			m_tangentsBuffer[meshID].Upload(*triangleMesh.m_tangents);
-			m_normalsBuffer[meshID].Upload(*triangleMesh.m_normals);
-			m_transformedPositionsBuffer[meshID].Resize(triangleMesh.m_positions->size() * sizeof(glm::vec3));
-			m_transformedNormalsBuffer[meshID].Resize(triangleMesh.m_normals->size() * sizeof(glm::vec3));
-			m_transformedTangentsBuffer[meshID].Resize(triangleMesh.m_tangents->size() * sizeof(glm::vec3));
+            m_verticesBuffer[meshID].Upload(*triangleMesh.m_vertices);
+			m_transformedPositionsBuffer[meshID].Resize(triangleMesh.m_vertices->size() * sizeof(glm::vec3));
 		}
 
 		if (uploadVertices || triangleMesh.m_transformUpdateFlag) {
 			int blockSize = 0;      // The launch configurator returned block size 
 			int minGridSize = 0;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
 			int gridSize = 0;       // The actual grid size needed, based on input size
-			int size = triangleMesh.m_positions->size();
+			int size = triangleMesh.m_vertices->size();
 			cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, ApplyTransformKernel, 0, size);
 			gridSize = (size + blockSize - 1) / blockSize;
 			ApplyTransformKernel << <gridSize, blockSize >> > (size, triangleMesh.m_globalTransform,
-				static_cast<glm::vec3*>(m_positionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_normalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_tangentsBuffer[meshID].m_dPtr),
-				static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedNormalsBuffer[meshID].m_dPtr), static_cast<glm::vec3*>(m_transformedTangentsBuffer[meshID].m_dPtr));
+				static_cast<Vertex*>(m_verticesBuffer[meshID].m_dPtr),
+				static_cast<glm::vec3*>(m_transformedPositionsBuffer[meshID].m_dPtr));
 			CUDA_SYNC_CHECK();
 		}
 
 		triangleMesh.m_verticesUpdateFlag = false;
 		triangleMesh.m_transformUpdateFlag = false;
-
-		m_texCoordsBuffer[meshID].Upload(*triangleMesh.m_texCoords);
-		m_colorsBuffer[meshID].Upload(*triangleMesh.m_colors);
 		m_trianglesBuffer[meshID].Upload(*triangleMesh.m_triangles);
 		triangleInput[meshID] = {};
 		triangleInput[meshID].type
@@ -550,7 +524,7 @@ void RayTracer::BuildAccelerationStructure()
 
 		triangleInput[meshID].triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
 		triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(glm::vec3);
-		triangleInput[meshID].triangleArray.numVertices = static_cast<int>(triangleMesh.m_positions->size());
+		triangleInput[meshID].triangleArray.numVertices = static_cast<int>(triangleMesh.m_vertices->size());
 		triangleInput[meshID].triangleArray.vertexBuffers = &deviceVertexPositions[meshID];
 
 		//triangleInput[meshID].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_MATRIX_FLOAT12;
@@ -799,19 +773,15 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 		// we don't actually have any objects in this example, but let's
 		// create a dummy one so the SBT doesn't have any null pointers
 		// (which the sanity checks in compilation would complain about)
-		const int numObjects = m_positionsBuffer.size();
+		const int numObjects = m_verticesBuffer.size();
 		std::vector<DefaultRenderingRayHitRecord> hitGroupRecords;
 		for (int i = 0; i < numObjects; i++) {
 			for (int rayID = 0; rayID < static_cast<int>(DefaultRenderingRayType::RayTypeCount); rayID++) {
 				DefaultRenderingRayHitRecord rec;
 				OPTIX_CHECK(optixSbtRecordPackHeader(m_defaultRenderingPipeline.m_hitGroupProgramGroups[rayID], &rec));
-				rec.m_data.m_mesh.m_position = reinterpret_cast<glm::vec3*>(m_transformedPositionsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_triangle = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_normal = reinterpret_cast<glm::vec3*>(m_transformedNormalsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_tangent = reinterpret_cast<glm::vec3*>(m_transformedTangentsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
-
+				rec.m_data.m_mesh.m_vertices = reinterpret_cast<Vertex*>(m_verticesBuffer[i].DevicePointer());
+				rec.m_data.m_mesh.m_triangles = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
+				rec.m_data.m_mesh.m_transform = m_instances[i].m_globalTransform;
 				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
 				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
 				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
@@ -939,20 +909,16 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
 		// we don't actually have any objects in this example, but let's
 		// create a dummy one so the SBT doesn't have any null pointers
 		// (which the sanity checks in compilation would complain about)
-		const int numObjects = m_positionsBuffer.size();
+		const int numObjects = m_verticesBuffer.size();
 		std::vector<DefaultIlluminationEstimationRayHitRecord> hitGroupRecords;
 		for (int i = 0; i < numObjects; i++) {
 			for (int rayID = 0; rayID < static_cast<int>(DefaultIlluminationEstimationRayType::RayTypeCount); rayID++) {
 				DefaultIlluminationEstimationRayHitRecord rec;
 				OPTIX_CHECK(optixSbtRecordPackHeader(m_defaultIlluminationEstimationPipeline.m_hitGroupProgramGroups[rayID], &rec));
-				rec.m_data.m_mesh.m_position = reinterpret_cast<glm::vec3*>(m_transformedPositionsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_triangle = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_normal = reinterpret_cast<glm::vec3*>(m_transformedNormalsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_tangent = reinterpret_cast<glm::vec3*>(m_transformedTangentsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_color = reinterpret_cast<glm::vec4*>(m_colorsBuffer[i].DevicePointer());
-				rec.m_data.m_mesh.m_texCoord = reinterpret_cast<glm::vec2*>(m_texCoordsBuffer[i].DevicePointer());
-
-				rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
+                rec.m_data.m_mesh.m_vertices = reinterpret_cast<Vertex*>(m_verticesBuffer[i].DevicePointer());
+                rec.m_data.m_mesh.m_triangles = reinterpret_cast<glm::uvec3*>(m_trianglesBuffer[i].DevicePointer());
+                rec.m_data.m_mesh.m_transform = m_instances[i].m_globalTransform;
+                rec.m_data.m_material.m_surfaceColor = m_instances[i].m_surfaceColor;
 				rec.m_data.m_material.m_roughness = m_instances[i].m_roughness;
 				rec.m_data.m_material.m_metallic = m_instances[i].m_metallic;
 				rec.m_data.m_material.m_albedoTexture = 0;

@@ -6,6 +6,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <BTFBase.cuh>
+#include <Vertex.hpp>
 namespace RayTracerFacility {
 	struct RAY_TRACER_FACILITY_API Camera {
 		bool m_modified = false;
@@ -131,12 +132,8 @@ namespace RayTracerFacility {
 
 #pragma endregion
 	struct RAY_TRACER_FACILITY_API RayTracerInstance {
-		std::vector<glm::vec3>* m_positions;
-		std::vector<glm::vec3>* m_normals;
-		std::vector<glm::vec3>* m_tangents;
-		std::vector<glm::vec4>* m_colors;
+		std::vector<Vertex>* m_vertices;
 		std::vector<glm::uvec3>* m_triangles;
-		std::vector<glm::vec2>* m_texCoords;
 
 		size_t m_version;
 		size_t m_entityId = 0;
@@ -259,24 +256,11 @@ namespace RayTracerFacility {
 		bool m_hasAccelerationStructure = false;
 
 		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_positionsBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_normalsBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_tangentsBuffer;
-		/*! one buffer per input mesh */
+		std::vector<CudaBuffer> m_verticesBuffer;
 		std::vector<CudaBuffer> m_transformedPositionsBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_transformedNormalsBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_transformedTangentsBuffer;
 
 		/*! one buffer per input mesh */
 		std::vector<CudaBuffer> m_trianglesBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_texCoordsBuffer;
-		/*! one buffer per input mesh */
-		std::vector<CudaBuffer> m_colorsBuffer;
 		//! buffer that keeps the (final, compacted) acceleration structure
 		CudaBuffer m_acceleratedStructuresBuffer;
 #pragma endregion

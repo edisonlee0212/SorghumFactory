@@ -73,10 +73,10 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 		std::string branchletIndices;
 		std::string leafIndices;
 #pragma region Data collection
-		for (const auto& position : mesh->UnsafeGetVertexPositions()) {
-			branchVertices += "v " + std::to_string(position.x)
-				+ " " + std::to_string(position.y)
-				+ " " + std::to_string(position.z)
+		for (const auto& vertex : mesh->UnsafeGetVertices()) {
+			branchVertices += "v " + std::to_string(vertex.m_position.x)
+				+ " " + std::to_string(vertex.m_position.y)
+				+ " " + std::to_string(vertex.m_position.z)
 				+ "\n";
 		}
 		for (int i = 0; i < triangles.size(); i++) {
@@ -136,10 +136,10 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 				triangles = mesh->UnsafeGetTriangles();
 				branchletVerticesSize += mesh->GetVerticesAmount();
 #pragma region Data collection
-				for (const auto& position : mesh->UnsafeGetVertexPositions()) {
-					branchletVertices += "v " + std::to_string(position.x)
-						+ " " + std::to_string(position.y)
-						+ " " + std::to_string(position.z)
+				for (const auto& vertex : mesh->UnsafeGetVertices()) {
+					branchletVertices += "v " + std::to_string(vertex.m_position.x)
+						+ " " + std::to_string(vertex.m_position.y)
+						+ " " + std::to_string(vertex.m_position.z)
 						+ "\n";
 				}
 				for (auto triangle : triangles)
@@ -161,8 +161,8 @@ void TreeData::ExportModel(const std::string& filename, const bool& includeFolia
 				size_t offset = 0;
 				for (auto& matrix : matrices)
 				{
-					for (const auto& vertexPosition : mesh->UnsafeGetVertexPositions()) {
-						glm::vec3 position = matrix * glm::vec4(vertexPosition, 1);
+					for (const auto& vertex : mesh->UnsafeGetVertices()) {
+						glm::vec3 position = matrix * glm::vec4(vertex.m_position, 1);
 						leafVertices += "v " + std::to_string(position.x)
 							+ " " + std::to_string(position.y)
 							+ " " + std::to_string(position.z)
