@@ -9,8 +9,8 @@ namespace PlantFactory
     public:
         void ApplyMeshRendererBounds();
         void OnCreate() override;
-        bool m_displayPoints = true;
-        bool m_displayBounds = true;
+        bool m_displayPoints = false;
+        bool m_displayBounds = false;
         Bound m_minMaxBound;
     	void OnGui() override;
     	bool InVolume(const glm::vec3& position) override;

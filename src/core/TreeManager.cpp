@@ -679,7 +679,7 @@ void TreeManager::Update() {
                                                       EditorManager::GetInstance().m_sceneCameraRotation
     );
     CameraComponent::m_cameraInfoBlock.UploadMatrices(EditorManager::GetInstance().m_sceneCamera);
-    RenderManager::RenderBackGround(manager.m_internodeDebuggingCamera);
+    //RenderManager::RenderBackGround(manager.m_internodeDebuggingCamera);
 #pragma endregion
 
     auto &plantManager = PlantManager::GetInstance();
