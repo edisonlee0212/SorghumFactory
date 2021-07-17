@@ -2983,7 +2983,7 @@ void TreeManager::DistributeResourcesForTree(
 
 void TreeManager::Init() {
   auto &manager = GetInstance();
-  
+
   manager.m_voxelSpaceModule.Reset();
 
   manager.m_colorMapSegmentAmount = 3;

@@ -344,7 +344,7 @@ Entity PlantManager::CreatePlant(const PlantType &type,
   treeInfo.m_age = 0;
   treeInfo.m_startTime = GetInstance().m_globalTime;
   entity.SetDataComponent(treeInfo);
-  entity.SetParent(GetInstance().m_ground, true);
+  //entity.SetParent(GetInstance().m_ground, true);
 #pragma region Set root internode
   const auto rootInternode =
       EntityManager::CreateEntity(GetInstance().m_internodeArchetype);
