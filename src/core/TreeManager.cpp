@@ -1310,7 +1310,8 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
         RenderManager::DrawGizmoMeshInstancedColored(
                 DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
-                *reinterpret_cast<std::vector<glm::vec4>*>(&branchColors), *reinterpret_cast<std::vector<glm::mat4>*>(&branchCylinders),
+                *reinterpret_cast<std::vector<glm::vec4> *>(&branchColors),
+                *reinterpret_cast<std::vector<glm::mat4> *>(&branchCylinders),
                 glm::mat4(1.0f), 1.0f);
 
 }
@@ -1327,7 +1328,7 @@ void TreeManager::RenderBranchPointers(const float &displayTime) {
         RenderManager::DrawGizmoMeshInstanced(
                 DefaultResources::Primitives::Cylinder.get(), manager.m_internodeDebuggingCamera,
                 EditorManager::GetInstance().m_sceneCameraPosition, EditorManager::GetInstance().m_sceneCameraRotation,
-                manager.m_pointerColor, *reinterpret_cast<std::vector<glm::mat4>*>(&branchPointers),
+                manager.m_pointerColor, *reinterpret_cast<std::vector<glm::mat4> *>(&branchPointers),
                 glm::mat4(1.0f), 1.0f);
 
 }

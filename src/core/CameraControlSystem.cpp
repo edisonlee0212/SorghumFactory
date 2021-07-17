@@ -2,13 +2,13 @@
 #include <CameraComponent.hpp>
 #include <InputManager.hpp>
 #include <RenderManager.hpp>
+
 using namespace UniEngine;
 using namespace PlantFactory;
-void CameraControlSystem::LateUpdate()
-{
+
+void CameraControlSystem::LateUpdate() {
     auto *mainCamera = RenderManager::GetMainCamera();
-    if (EditorManager::MainCameraWindowFocused())
-    {
+    if (EditorManager::MainCameraWindowFocused()) {
 #pragma region Scene Camera Controller
         auto transform = mainCamera->GetOwner().GetDataComponent<Transform>();
         const auto rotation = transform.GetRotation();
@@ -16,48 +16,39 @@ void CameraControlSystem::LateUpdate()
         const auto front = rotation * glm::vec3(0, 0, -1);
         const auto right = rotation * glm::vec3(1, 0, 0);
         auto moved = false;
-        if (InputManager::GetKey(GLFW_KEY_W))
-        {
+        if (InputManager::GetKey(GLFW_KEY_W)) {
             position += front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
             moved = true;
         }
-        if (InputManager::GetKey(GLFW_KEY_S))
-        {
+        if (InputManager::GetKey(GLFW_KEY_S)) {
             position -= front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
             moved = true;
         }
-        if (InputManager::GetKey(GLFW_KEY_A))
-        {
+        if (InputManager::GetKey(GLFW_KEY_A)) {
             position -= right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
             moved = true;
         }
-        if (InputManager::GetKey(GLFW_KEY_D))
-        {
+        if (InputManager::GetKey(GLFW_KEY_D)) {
             position += right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
             moved = true;
         }
-        if (InputManager::GetKey(GLFW_KEY_LEFT_SHIFT))
-        {
+        if (InputManager::GetKey(GLFW_KEY_LEFT_SHIFT)) {
             position.y += m_velocity * static_cast<float>(Application::Time().DeltaTime());
             moved = true;
         }
-        if (InputManager::GetKey(GLFW_KEY_LEFT_CONTROL))
-        {
+        if (InputManager::GetKey(GLFW_KEY_LEFT_CONTROL)) {
             position.y -= m_velocity * static_cast<float>(Application::Time().DeltaTime());
             moved = true;
         }
-        if (moved)
-        {
+        if (moved) {
             transform.SetPosition(position);
         }
         glm::vec2 mousePosition;
         bool valid = InputManager::GetMousePosition(mousePosition);
         float xOffset = 0;
         float yOffset = 0;
-        if (valid)
-        {
-            if (!m_startMouse)
-            {
+        if (valid) {
+            if (!m_startMouse) {
                 m_lastX = mousePosition.x;
                 m_lastY = mousePosition.y;
                 m_startMouse = true;
@@ -67,10 +58,8 @@ void CameraControlSystem::LateUpdate()
             m_lastX = mousePosition.x;
             m_lastY = mousePosition.y;
         }
-        if (InputManager::GetMouse(GLFW_MOUSE_BUTTON_RIGHT))
-        {
-            if (xOffset != 0 || yOffset != 0)
-            {
+        if (InputManager::GetMouse(GLFW_MOUSE_BUTTON_RIGHT)) {
+            if (xOffset != 0 || yOffset != 0) {
                 moved = true;
                 m_sceneCameraYawAngle += xOffset * m_sensitivity;
                 m_sceneCameraPitchAngle += yOffset * m_sensitivity;
@@ -84,20 +73,17 @@ void CameraControlSystem::LateUpdate()
                         CameraComponent::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false));
             }
         }
-        if (moved)
-        {
+        if (moved) {
             mainCamera->GetOwner().SetDataComponent(transform);
         }
 #pragma endregion
     }
 }
 
-void CameraControlSystem::SetVelocity(float velocity)
-{
+void CameraControlSystem::SetVelocity(float velocity) {
     m_velocity = velocity;
 }
 
-void CameraControlSystem::SetSensitivity(float sensitivity)
-{
+void CameraControlSystem::SetSensitivity(float sensitivity) {
     m_sensitivity = sensitivity;
 }
