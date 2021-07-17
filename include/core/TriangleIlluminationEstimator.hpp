@@ -2,18 +2,19 @@
 #include <CUDAModule.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-	class TriangleIlluminationEstimator : public IPrivateComponent
-	{
-	public:
-		std::vector<Entity> m_entities;
-		std::vector<glm::mat4> m_probeTransforms;
-		std::vector<glm::vec4> m_probeColors;
-		std::vector<float> m_triangleAreas;
-		std::vector<RayTracerFacility::LightSensor<float>> m_lightProbes;
-		float m_totalArea = 0.0f;
-		float m_totalEnergy = 0.0f;
-		float m_radiantFlux = 0.0f;
-		void OnGui() override;
-		void CalculateIllumination(const RayTracerFacility::IlluminationEstimationProperties& properties = RayTracerFacility::IlluminationEstimationProperties());
-	};
-}
+class TriangleIlluminationEstimator : public IPrivateComponent {
+public:
+  std::vector<Entity> m_entities;
+  std::vector<glm::mat4> m_probeTransforms;
+  std::vector<glm::vec4> m_probeColors;
+  std::vector<float> m_triangleAreas;
+  std::vector<RayTracerFacility::LightSensor<float>> m_lightProbes;
+  float m_totalArea = 0.0f;
+  float m_totalEnergy = 0.0f;
+  float m_radiantFlux = 0.0f;
+  void OnGui() override;
+  void CalculateIllumination(
+      const RayTracerFacility::IlluminationEstimationProperties &properties =
+          RayTracerFacility::IlluminationEstimationProperties());
+};
+} // namespace PlantFactory
