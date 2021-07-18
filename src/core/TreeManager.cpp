@@ -698,11 +698,9 @@ Entity TreeManager::CreateTree(const Transform &transform) {
       PlantManager::CreatePlant(PlantType::GeneralTree, transform);
   const auto rootInternode = plant.GetChildren()[0];
   auto &rigidBody = rootInternode.SetPrivateComponent<RigidBody>();
-  rigidBody.SetShapeType(ShapeType::Sphere);
   rigidBody.SetKinematic(true);
   // The rigidbody can only apply mesh bound after it's attached to an entity
   // with mesh renderer.
-  rigidBody.SetShapeParam(glm::vec3(0.01f));
   rigidBody.SetEnabled(true);
   rigidBody.SetEnableGravity(false);
   plant.SetParent(PlantManager::GetInstance().m_ground);

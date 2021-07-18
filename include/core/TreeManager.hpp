@@ -47,9 +47,9 @@ public:
   float m_density = 1.0f;
   float m_linearDamping = 1.0f;
   float m_angularDamping = 1.0f;
-  int m_positionSolverIteration = 8;
-  int m_velocitySolverIteration = 8;
-  float m_jointDriveStiffnessFactor = 500.0f;
+  int m_positionSolverIteration = 64;
+  int m_velocitySolverIteration = 64;
+  float m_jointDriveStiffnessFactor = 10000.0f;
   float m_jointDriveStiffnessThicknessFactor = 4.0f;
   float m_jointDriveDampingFactor = 1.0f;
   float m_jointDriveDampingThicknessFactor = 1.0f;

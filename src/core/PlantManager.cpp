@@ -9,6 +9,7 @@
 #include <TreeManager.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
+#include <PhysicsManager.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -190,16 +191,22 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternode.SetParent(candidate.m_parent);
     if (candidate.m_info.m_plantType == PlantType::GeneralTree) {
       auto &rigidBody = newInternode.SetPrivateComponent<RigidBody>();
-      rigidBody.SetShapeType(ShapeType::Sphere);
+      PhysicsManager::UploadTransform(candidate.m_globalTransform, rigidBody);
       rigidBody.SetStatic(false);
       rigidBody.SetEnableGravity(false);
       // The rigidbody can only apply mesh bound after it's attached to an
       // entity with mesh renderer.
-      rigidBody.SetShapeParam(glm::vec3(0.1f));
       rigidBody.SetEnabled(true);
       auto &joint = newInternode.SetPrivateComponent<Joint>();
       joint.Link(candidate.m_parent);
       joint.SetType(JointType::D6);
+      /*
+      auto collider = ResourceManager::CreateResource<Collider>();
+      collider->SetShapeType(ShapeType::Sphere);
+      collider->SetShapeParam(glm::vec3(0.1f));
+      rigidBody.AttachCollider(collider);
+      rigidBody.SetDensityAndMassCenter(0.01f);
+      */
     }
     i++;
   }
