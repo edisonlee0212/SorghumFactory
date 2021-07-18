@@ -179,7 +179,7 @@ public:
                               std::vector<InternodeCandidate> &candidates)>>
       m_plantGrowthModels;
   std::map<PlantType, std::function<void(PlantManager &manager,
-                                         std::vector<Volume *> &obstacles)>>
+                                         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
       m_plantInternodePruners;
   std::map<PlantType, std::function<void(PlantManager &manager)>>
       m_plantMetaDataCalculators;

@@ -134,7 +134,7 @@ bool PlantManager::GrowAllPlants() {
 
   if (GrowCandidates(candidates)) {
     time = Application::Time().CurrentTime();
-    std::vector<Volume *> obstacles;
+    std::vector<std::pair<GlobalTransform, Volume *>> obstacles;
     const auto *entities =
         EntityManager::UnsafeGetPrivateComponentOwnersList<CubeVolume>();
     if (entities) {
@@ -143,7 +143,7 @@ bool PlantManager::GrowAllPlants() {
           continue;
         auto &volume = entity.GetPrivateComponent<CubeVolume>();
         if (volume.IsEnabled() && volume.m_asObstacle)
-          obstacles.push_back(&volume);
+          obstacles.emplace_back(volume.GetOwner().GetDataComponent<GlobalTransform>(), &volume);
       }
     }
     for (auto &i : manager.m_plantInternodePruners) {

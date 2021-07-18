@@ -2176,7 +2176,7 @@ float TreeManager::GetGrowthParameter(
 }
 
 void TreeManager::PruneTrees(PlantManager &manager,
-                             std::vector<Volume *> &obstacles) {
+                             std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
   auto &treeManager = GetInstance();
   treeManager.m_voxelSpaceModule.Clear();
   EntityManager::ForEach<GlobalTransform, InternodeInfo>(
@@ -2233,8 +2233,8 @@ void TreeManager::PruneTrees(PlantManager &manager,
           return;
         int targetIndex = 0;
         const auto position = globalTransform.GetPosition();
-        for (auto *obstacle : obstacles) {
-          if (obstacle->InVolume(position)) {
+        for (auto& obstacle : obstacles) {
+          if (obstacle.second->InVolume(obstacle.first, position)) {
             std::lock_guard lock(mutex);
             cutOff.push_back(internode);
             return;
@@ -3045,7 +3045,7 @@ void TreeManager::Init() {
 
   plantManager.m_plantInternodePruners.insert_or_assign(
       PlantType::GeneralTree,
-      [](PlantManager &manager, std::vector<Volume *> &obstacles) {
+      [](PlantManager &manager, std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
         PruneTrees(manager, obstacles);
       });
 

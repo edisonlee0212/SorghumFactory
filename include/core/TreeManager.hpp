@@ -165,7 +165,7 @@ public:
                                   InternodeGrowth &internodeGrowth,
                                   InternodeStatistics &internodeStatistics);
   static void PruneTrees(PlantManager &manager,
-                         std::vector<Volume *> &obstacles);
+                         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles);
   static void UpdateTreesMetaData(PlantManager &manager);
 #pragma region Metadata
   static void UpdateDistances(const Entity &internode, TreeData &treeData);

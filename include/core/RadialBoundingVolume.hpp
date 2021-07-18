@@ -35,6 +35,7 @@ public:
   bool m_displayBounds = true;
   Bound m_minMaxBound;
   void OnGui() override;
+  bool InVolume(const GlobalTransform& globalTransform, const glm::vec3 &position) override;
   bool InVolume(const glm::vec3 &position) override;
 };
 } // namespace PlantFactory
