@@ -22,7 +22,7 @@ void CubeVolume::OnGui() {
     const auto globalTransform = GetOwner().GetDataComponent<GlobalTransform>();
     RenderManager::DrawGizmoMesh(
         DefaultResources::Primitives::Cube.get(),
-        *RenderManager::GetMainCamera(), glm::vec4(0, 1, 0, 0.2),
+        glm::vec4(0, 1, 0, 0.2),
         globalTransform.m_value * glm::translate(m_minMaxBound.Center()) *
             glm::scale(m_minMaxBound.Size()),
         1);

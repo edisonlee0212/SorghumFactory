@@ -780,12 +780,13 @@ void TreeManager::OnGui() {
       ImGui::Text("Physics");
       ImGui::DragFloat("Internode Density", &manager.m_density, 0.1f, 0.01f,
                        1000.0f);
-      ImGui::DragFloat2("RigidBody Damping", &manager.m_linearDamping, 0.1f, 0.01f,
-                       1000.0f);
-      ImGui::DragFloat2("Drive Stiffness", &manager.m_jointDriveStiffnessFactor, 0.1f, 0.01f,
-                       1000000.0f);
-      ImGui::DragFloat2("Drive Damping", &manager.m_jointDriveDampingFactor, 0.1f, 0.01f,
-                       1000000.0f);
+      ImGui::DragFloat2("RigidBody Damping", &manager.m_linearDamping, 0.1f,
+                        0.01f, 1000.0f);
+      ImGui::DragFloat2("Drive Stiffness", &manager.m_jointDriveStiffnessFactor,
+                        0.1f, 0.01f, 1000000.0f);
+      ImGui::DragFloat2("Drive Damping", &manager.m_jointDriveDampingFactor,
+                        0.1f, 0.01f, 1000000.0f);
+      ImGui::Checkbox("Use acceleration", &manager.m_enableAccelerationForDrive);
 
       int pi = manager.m_positionSolverIteration;
       int vi = manager.m_velocitySolverIteration;
@@ -2173,8 +2174,9 @@ float TreeManager::GetGrowthParameter(
   return value;
 }
 
-void TreeManager::PruneTrees(PlantManager &manager,
-                             std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
+void TreeManager::PruneTrees(
+    PlantManager &manager,
+    std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
   auto &treeManager = GetInstance();
   treeManager.m_voxelSpaceModule.Clear();
   EntityManager::ForEach<GlobalTransform, InternodeInfo>(
@@ -2231,7 +2233,7 @@ void TreeManager::PruneTrees(PlantManager &manager,
           return;
         int targetIndex = 0;
         const auto position = globalTransform.GetPosition();
-        for (auto& obstacle : obstacles) {
+        for (auto &obstacle : obstacles) {
           if (obstacle.second->InVolume(obstacle.first, position)) {
             std::lock_guard lock(mutex);
             cutOff.push_back(internode);
@@ -2638,8 +2640,15 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     joint.SetMotion(MotionAxis::SwingY, MotionType::Free);
     joint.SetMotion(MotionAxis::SwingZ, MotionType::Free);
     joint.SetDrive(DriveType::Swing,
-                   glm::pow(childInternodeGrowth.m_thickness / treeData.m_parameters.m_endNodeThickness, treeManager.m_jointDriveStiffnessThicknessFactor) * treeManager.m_jointDriveStiffnessFactor,
-                   glm::pow(childInternodeGrowth.m_thickness / treeData.m_parameters.m_endNodeThickness, treeManager.m_jointDriveDampingThicknessFactor) * treeManager.m_jointDriveDampingFactor, true);
+                   glm::pow(childInternodeGrowth.m_thickness /
+                                treeData.m_parameters.m_endNodeThickness,
+                            treeManager.m_jointDriveStiffnessThicknessFactor) *
+                       treeManager.m_jointDriveStiffnessFactor,
+                   glm::pow(childInternodeGrowth.m_thickness /
+                                treeData.m_parameters.m_endNodeThickness,
+                            treeManager.m_jointDriveDampingThicknessFactor) *
+                       treeManager.m_jointDriveDampingFactor,
+                   treeManager.m_enableAccelerationForDrive);
 #pragma endregion
 #pragma region Retarget current internode
     currentInternode = child;
@@ -2724,9 +2733,17 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
       joint.SetType(JointType::D6);
       joint.SetMotion(MotionAxis::SwingY, MotionType::Free);
       joint.SetMotion(MotionAxis::SwingZ, MotionType::Free);
-      joint.SetDrive(DriveType::Swing,
-                     glm::pow(childInternodeGrowth.m_thickness / treeData.m_parameters.m_endNodeThickness, treeManager.m_jointDriveStiffnessThicknessFactor) * treeManager.m_jointDriveStiffnessFactor,
-                     glm::pow(childInternodeGrowth.m_thickness / treeData.m_parameters.m_endNodeThickness, treeManager.m_jointDriveDampingThicknessFactor) * treeManager.m_jointDriveDampingFactor, true);
+      joint.SetDrive(
+          DriveType::Swing,
+          glm::pow(childInternodeGrowth.m_thickness /
+                       treeData.m_parameters.m_endNodeThickness,
+                   treeManager.m_jointDriveStiffnessThicknessFactor) *
+              treeManager.m_jointDriveStiffnessFactor,
+          glm::pow(childInternodeGrowth.m_thickness /
+                       treeData.m_parameters.m_endNodeThickness,
+                   treeManager.m_jointDriveDampingThicknessFactor) *
+              treeManager.m_jointDriveDampingFactor,
+          treeManager.m_enableAccelerationForDrive);
 
 #pragma endregion
       UpdateLevels(child, treeData);
@@ -3043,8 +3060,16 @@ void TreeManager::Init() {
 
   plantManager.m_plantInternodePruners.insert_or_assign(
       PlantType::GeneralTree,
-      [](PlantManager &manager, std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
+      [](PlantManager &manager,
+         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
         PruneTrees(manager, obstacles);
+      });
+
+  plantManager.m_plantInternodePostProcessors.insert_or_assign(
+      PlantType::GeneralTree,
+      [](PlantManager &manager, const Entity &newInternode,
+         const InternodeCandidate &candidate) {
+        InternodePostProcessor(manager, newInternode, candidate);
       });
 
   plantManager.m_plantMetaDataCalculators.insert_or_assign(
@@ -3301,4 +3326,45 @@ void TreeManager::Serialize(const Entity &treeEntity,
       leaf->append_node(distAtt);
     }
   }
+}
+void TreeManager::InternodePostProcessor(PlantManager &manager,
+                                         const Entity &newInternode,
+                                         const InternodeCandidate &candidate) {
+  auto &treeManager = GetInstance();
+  auto &rigidBody = newInternode.SetPrivateComponent<RigidBody>();
+  PhysicsManager::UploadTransform(candidate.m_globalTransform, rigidBody);
+  rigidBody.SetDensityAndMassCenter(treeManager.m_density *
+                                    candidate.m_growth.m_thickness *
+                                    candidate.m_growth.m_thickness);
+  rigidBody.SetAngularVelocity(glm::vec3(0.0f));
+  rigidBody.SetLinearVelocity(glm::vec3(0.0f));
+  rigidBody.SetLinearDamping(treeManager.m_linearDamping);
+  rigidBody.SetAngularDamping(treeManager.m_angularDamping);
+  rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration,
+                                treeManager.m_velocitySolverIteration);
+  rigidBody.SetStatic(false);
+  rigidBody.SetEnableGravity(false);
+  // The rigidbody can only apply mesh bound after it's attached to an
+  // entity with mesh renderer.
+  rigidBody.SetEnabled(true);
+  auto &joint = newInternode.SetPrivateComponent<Joint>();
+  joint.Link(candidate.m_parent);
+  joint.SetType(JointType::D6);
+  joint.SetMotion(MotionAxis::SwingY, MotionType::Free);
+  joint.SetMotion(MotionAxis::SwingZ, MotionType::Free);
+  joint.SetDrive(DriveType::Swing,
+                 glm::pow(1.0f, treeManager.m_jointDriveStiffnessThicknessFactor) *
+                 treeManager.m_jointDriveStiffnessFactor,
+                 glm::pow(1.0f, treeManager.m_jointDriveDampingThicknessFactor) *
+                 treeManager.m_jointDriveDampingFactor,
+                 treeManager.m_enableAccelerationForDrive);
+  /*
+  auto physicsMaterial = ResourceManager::CreateResource<UniEngine::PhysicsMaterial>();
+  physicsMaterial->SetRestitution(0);
+  auto collider = ResourceManager::CreateResource<Collider>();
+  collider->SetShapeType(ShapeType::Sphere);
+  collider->SetShapeParam(glm::vec3(0.01f));
+  collider->SetMaterial(physicsMaterial);
+  rigidBody.AttachCollider(collider);
+  */
 }

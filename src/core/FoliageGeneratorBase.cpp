@@ -24,7 +24,7 @@ void DefaultFoliageGenerator::OnCreate() {
     m_leafMaterial->m_albedoColor = glm::normalize(glm::vec3(60.0f / 256.0f, 140.0f / 256.0f, 0.0f));
     m_leafMaterial->m_metallic = 0.0f;
     m_leafMaterial->m_roughness = 0.3f;
-    m_leafMaterial->m_ambientOcclusion = glm::linearRand(0.4f, 0.8f);
+    m_leafMaterial->m_ambient = 1.0f;
 }
 
 void DefaultFoliageGenerator::Generate() {

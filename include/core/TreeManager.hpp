@@ -47,12 +47,13 @@ public:
   float m_density = 1.0f;
   float m_linearDamping = 1.0f;
   float m_angularDamping = 1.0f;
-  int m_positionSolverIteration = 64;
-  int m_velocitySolverIteration = 64;
-  float m_jointDriveStiffnessFactor = 10000.0f;
+  int m_positionSolverIteration = 32;
+  int m_velocitySolverIteration = 8;
+  float m_jointDriveStiffnessFactor = 3000.0f;
   float m_jointDriveStiffnessThicknessFactor = 4.0f;
-  float m_jointDriveDampingFactor = 1.0f;
-  float m_jointDriveDampingThicknessFactor = 1.0f;
+  float m_jointDriveDampingFactor = 10.0f;
+  float m_jointDriveDampingThicknessFactor = 4.0f;
+  bool m_enableAccelerationForDrive = true;
 #pragma endregion
 
 #pragma region Rendering
@@ -134,6 +135,8 @@ public:
   static void Update();
   static Entity CreateTree(const Transform &transform);
   static void OnGui();
+
+  static void InternodePostProcessor(PlantManager &manager, const Entity& newInternode, const InternodeCandidate& candidate);
 
   static void UpdateBranchCylinder(const bool &displayThickness,
                                    const float &width = 0.01f);

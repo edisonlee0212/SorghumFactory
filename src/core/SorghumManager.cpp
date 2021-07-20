@@ -784,7 +784,7 @@ void SorghumManager::RenderLightProbes() {
         manager.m_probeTransforms.size() != manager.m_probeColors.size())
         return;
     RenderManager::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube.get(),
-                                                 EditorManager::GetSceneCamera(), manager.m_probeColors,
+                                                 manager.m_probeColors,
                                                  manager.m_probeTransforms, glm::mat4(1.0f), 0.2f);
     /*
     if (!EditorManager::GetSceneCamera()->IsEnabled()) return;

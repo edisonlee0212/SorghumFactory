@@ -181,6 +181,9 @@ public:
   std::map<PlantType, std::function<void(PlantManager &manager,
                                          std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
       m_plantInternodePruners;
+  std::map<PlantType, std::function<void(PlantManager &manager, const Entity& newInternode, const InternodeCandidate& candidate)>>
+      m_plantInternodePostProcessors;
+
   std::map<PlantType, std::function<void(PlantManager &manager)>>
       m_plantMetaDataCalculators;
   std::map<PlantType, std::function<void(PlantManager &manager)>>

@@ -172,11 +172,12 @@ bool PlantManager::GrowAllPlants(const unsigned &iterations) {
 }
 
 bool PlantManager::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
+  auto& plantManager = GetInstance();
   const float time = Application::Time().CurrentTime();
   if (candidates.empty())
     return false;
   auto entities = EntityManager::CreateEntities(
-      GetInstance().m_internodeArchetype, candidates.size(), "Internode");
+      plantManager.m_internodeArchetype, candidates.size(), "Internode");
   int i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
@@ -189,28 +190,13 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternodeData.m_buds.swap(candidate.m_buds);
     newInternodeData.m_owner = candidate.m_owner;
     newInternode.SetParent(candidate.m_parent);
-    if (candidate.m_info.m_plantType == PlantType::GeneralTree) {
-      auto &rigidBody = newInternode.SetPrivateComponent<RigidBody>();
-      PhysicsManager::UploadTransform(candidate.m_globalTransform, rigidBody);
-      rigidBody.SetStatic(false);
-      rigidBody.SetEnableGravity(false);
-      // The rigidbody can only apply mesh bound after it's attached to an
-      // entity with mesh renderer.
-      rigidBody.SetEnabled(true);
-      auto &joint = newInternode.SetPrivateComponent<Joint>();
-      joint.Link(candidate.m_parent);
-      joint.SetType(JointType::D6);
-      /*
-      auto collider = ResourceManager::CreateResource<Collider>();
-      collider->SetShapeType(ShapeType::Sphere);
-      collider->SetShapeParam(glm::vec3(0.1f));
-      rigidBody.AttachCollider(collider);
-      rigidBody.SetDensityAndMassCenter(0.01f);
-      */
+    const auto search = plantManager.m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
+    if(search != plantManager.m_plantInternodePostProcessors.end()){
+      search->second(plantManager, newInternode, candidate);
     }
     i++;
   }
-  GetInstance().m_internodeCreateTimer =
+  plantManager.m_internodeCreateTimer =
       Application::Time().CurrentTime() - time;
   return true;
 }
