@@ -65,7 +65,7 @@ void EngineSetup() {
 
     const bool enableCameraControl = true;
     if (enableCameraControl) {
-        auto *ccs = world->CreateSystem<CameraControlSystem>(SystemGroup::SimulationSystemGroup);
+        auto ccs = world->CreateSystem<CameraControlSystem>("CameraControlSystem", SystemGroup::SimulationSystemGroup);
         ccs->Enable();
         ccs->SetVelocity(15.0f);
     }
