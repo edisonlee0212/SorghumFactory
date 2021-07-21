@@ -3358,13 +3358,4 @@ void TreeManager::InternodePostProcessor(PlantManager &manager,
                  glm::pow(1.0f, treeManager.m_jointDriveDampingThicknessFactor) *
                  treeManager.m_jointDriveDampingFactor,
                  treeManager.m_enableAccelerationForDrive);
-  /*
-  auto physicsMaterial = ResourceManager::CreateResource<UniEngine::PhysicsMaterial>();
-  physicsMaterial->SetRestitution(0);
-  auto collider = ResourceManager::CreateResource<Collider>();
-  collider->SetShapeType(ShapeType::Sphere);
-  collider->SetShapeParam(glm::vec3(0.01f));
-  collider->SetMaterial(physicsMaterial);
-  rigidBody.AttachCollider(collider);
-  */
 }

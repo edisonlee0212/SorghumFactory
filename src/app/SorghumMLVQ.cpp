@@ -49,15 +49,11 @@ void EngineSetup() {
     Application::Init();
 #pragma region Engine Setup
 #pragma region Global light settings
-    RenderManager::GetInstance().m_lightSettings.m_blockerSearchAmount = 6;
-    RenderManager::GetInstance().m_lightSettings.m_pcfSampleAmount = 16;
-    RenderManager::GetInstance().m_lightSettings.m_scaleFactor = 1.0f;
     RenderManager::GetInstance().m_lightSettings.m_ambientLight = 0.2f;
-    RenderManager::SetShadowMapResolution(8192);
     RenderManager::GetInstance().m_stableFit = false;
-    RenderManager::GetInstance().m_lightSettings.m_seamFixRatio = 0.05f;
     RenderManager::GetInstance().m_maxShadowDistance = 100;
     RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
+
 #pragma endregion
 
     Transform transform;
@@ -78,6 +74,9 @@ void EngineSetup() {
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));
     auto mainCamera = RenderManager::GetMainCamera();
     if (mainCamera) {
+        auto& postProcessing = mainCamera->GetOwner().SetPrivateComponent<PostProcessing>();
+        auto* ssao = postProcessing.GetLayer<SSAO>();
+        ssao->m_kernelRadius = 0.1;
         mainCamera->GetOwner().SetDataComponent(transform);
         mainCamera->m_useClearColor = true;
         mainCamera->m_clearColor = glm::vec3(0.5f);
@@ -89,6 +88,9 @@ void EngineSetup() {
     auto& pointLight = lightEntity.SetPrivateComponent<PointLight>();
     pointLight.m_diffuseBrightness = 15;
     pointLight.m_lightSize = 0.25f;
+    pointLight.m_quadratic = 0.0001f;
+    pointLight.m_linear = 0.01f;
+    pointLight.m_lightSize = 0.08f;
     transform.SetPosition(glm::vec3(0, 30, 0));
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
