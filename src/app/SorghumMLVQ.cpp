@@ -12,6 +12,11 @@
 #include <RayTracerManager.hpp>
 #include <SorghumSystem.hpp>
 #include <TreeSystem.hpp>
+#include <TreeLeaves.hpp>
+#include <CubeVolume.hpp>
+#include <RadialBoundingVolume.hpp>
+#include <SorghumData.hpp>
+#include <TriangleIlluminationEstimator.hpp>
 using namespace PlantFactory;
 using namespace RayTracerFacility;
 
@@ -19,6 +24,34 @@ void EngineSetup();
 
 int main() {
   EngineSetup();
+
+  ComponentFactory::RegisterDataComponent<LeafInfo>("LeafInfo");
+  ComponentFactory::RegisterSerializable<Spline>("Spline");
+  ComponentFactory::RegisterSerializable<SorghumData>("SorghumData");
+  ComponentFactory::RegisterSerializable<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
+  ComponentFactory::RegisterDataComponent<TreeLeavesTag>("TreeLeavesTag");
+  ComponentFactory::RegisterDataComponent<RbvTag>("RbvTag");
+  ComponentFactory::RegisterSerializable<TreeData>("TreeData");
+  ComponentFactory::RegisterSerializable<TreeLeaves>("TreeLeaves");
+  ComponentFactory::RegisterSerializable<RadialBoundingVolume>("RadialBoundingVolume");
+  ComponentFactory::RegisterSerializable<CubeVolume>("CubeVolume");
+  ComponentFactory::RegisterDataComponent<PlantInfo>("PlantInfo");
+  ComponentFactory::RegisterDataComponent<BranchCylinder>("BranchCylinder");
+  ComponentFactory::RegisterDataComponent<BranchCylinderWidth>("BranchCylinderWidth");
+  ComponentFactory::RegisterDataComponent<BranchPointer>("BranchPointer");
+  ComponentFactory::RegisterDataComponent<Illumination>("Illumination");
+  ComponentFactory::RegisterDataComponent<BranchColor>("BranchColor");
+
+  ComponentFactory::RegisterDataComponent<InternodeInfo>("InternodeInfo");
+  ComponentFactory::RegisterDataComponent<InternodeGrowth>("InternodeGrowth");
+  ComponentFactory::RegisterDataComponent<InternodeStatistics>("InternodeStatistics");
+
+  ComponentFactory::RegisterSerializable<InternodeData>("InternodeData");
+
+  const bool enableRayTracing = true;
+  if (enableRayTracing)
+    RayTracerManager::Init();
+
   auto plantSystem =
       EntityManager::GetOrCreateSystem<PlantSystem>(
           "PlantSystem", SystemGroup::SimulationSystemGroup);
@@ -28,9 +61,7 @@ int main() {
       EntityManager::GetOrCreateSystem<SorghumSystem>(
           "SorghumSystem", SystemGroup::SimulationSystemGroup + 0.1f);
 
-  const bool enableRayTracing = true;
-  if (enableRayTracing)
-    RayTracerManager::Init();
+
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion

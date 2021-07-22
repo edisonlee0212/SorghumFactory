@@ -8,7 +8,7 @@
 #include <SkinnedMeshRenderer.hpp>
 #include <TreeLeaves.hpp>
 #include <TreeSystem.hpp>
-
+#include <Volume.hpp>
 using namespace UniEngine;
 using namespace PlantFactory;
 
@@ -2936,8 +2936,9 @@ void TreeSystem::DistributeResourcesForTree(
 }
 
 void TreeSystem::OnCreate() {
-  m_plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>(
-      "PlantSystem", SystemGroup::SimulationSystemGroup);
+
+
+  m_plantSystem = EntityManager::GetSystem<PlantSystem>();
   m_voxelSpaceModule.Reset();
 
   m_colorMapSegmentAmount = 3;
@@ -3070,7 +3071,7 @@ void TreeSystem::Serialize(const Entity &treeEntity,
 
   std::vector<InternodeInfo> internodeInfos;
   std::vector<Entity> internodes;
-  auto plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>("PlantSystem", SystemGroup::SimulationSystemGroup);
+  auto plantSystem = EntityManager::GetSystem<PlantSystem>();
   plantSystem->m_internodeQuery.ToEntityArray<InternodeInfo>(
       internodes,
       [treeEntity](const Entity &entity, const InternodeInfo &internodeInfo) {

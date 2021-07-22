@@ -109,8 +109,8 @@ void RectangularSorghumField::GenerateField(
 }
 
 void SorghumSystem::OnCreate() {
-  m_plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>(
-      "PlantSystem", SystemGroup::SimulationSystemGroup);
+
+  m_plantSystem = EntityManager::GetSystem<PlantSystem>();
 
   m_leafNodeMaterial = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);

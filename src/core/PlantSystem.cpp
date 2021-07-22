@@ -390,6 +390,8 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
 #pragma endregion
 #pragma region Runtime
 void PlantSystem::OnCreate() {
+
+
 #pragma region Ground
 
   m_ground = EntityManager::CreateEntity("Ground");
@@ -414,7 +416,6 @@ void PlantSystem::OnCreate() {
   m_ground.SetDataComponent(groundGlobalTransform);
 
   auto &rayTracedRenderer =
-
       m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
   rayTracedRenderer.SyncWithMeshRenderer();
   rayTracedRenderer.m_enableMLVQ = true;
@@ -425,7 +426,6 @@ void PlantSystem::OnCreate() {
   cubeVolume.m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
 
 #pragma endregion
-
 #pragma region Mask material
   std::string vertShaderCode =
       std::string("#version 460 core\n") +
