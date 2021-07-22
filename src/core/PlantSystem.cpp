@@ -1,15 +1,15 @@
 #include <CUDAModule.hpp>
 #include <CubeVolume.hpp>
 #include <Joint.hpp>
-#include <PlantManager.hpp>
+#include <PhysicsManager.hpp>
+#include <PlantSystem.hpp>
 #include <RayTracedRenderer.hpp>
 #include <RayTracerManager.hpp>
 #include <RigidBody.hpp>
-#include <SorghumManager.hpp>
-#include <TreeManager.hpp>
+#include <SorghumSystem.hpp>
+#include <TreeSystem.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
-#include <PhysicsManager.hpp>
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -42,9 +42,7 @@ void InternodeData::OnGui() {
   }
 }
 
-void PlantManager::OnGui() {
-  auto &manager = GetInstance();
-
+void PlantSystem::OnGui() {
   if (ImGui::Begin("Plant Manager")) {
     if (ImGui::Button("Delete all plants")) {
       ImGui::OpenPopup("Delete Warning");
@@ -54,7 +52,6 @@ void PlantManager::OnGui() {
       ImGui::Text("Are you sure? All plants will be removed!");
       if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
         DeleteAllPlants();
-        TreeManager::GenerateMeshForTree(manager);
         ImGui::CloseCurrentPopup();
       }
       ImGui::SetItemDefaultFocus();
@@ -64,16 +61,17 @@ void PlantManager::OnGui() {
       }
       ImGui::EndPopup();
     }
-    ImGui::Text("%s", ("Internode amount: " +
-                       std::to_string(manager.m_internodes.size()))
-                          .c_str());
+    ImGui::Text(
+        "%s",
+        ("Internode amount: " + std::to_string(m_internodes.size())).c_str());
     if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::Button("Recalculate illumination"))
-        CalculateIlluminationForInternodes(manager);
+        CalculateIlluminationForInternodes();
       static int pushAmount = 20;
-      ImGui::DragInt("Amount", &pushAmount, 1, 0, 60.0f / manager.m_deltaTime);
+      ImGui::DragInt("Amount", &pushAmount, 1, 0, 60.0f / m_deltaTime);
       if (ImGui::Button("Push and start (grow by iteration)")) {
-        manager.m_iterationsToGrow = pushAmount;
+
+        m_iterationsToGrow = pushAmount;
         Application::SetPlaying(true);
       }
       if (Application::IsPlaying() &&
@@ -85,16 +83,18 @@ void PlantManager::OnGui() {
         Debug::Log("Growth finished in " + spendTime + " sec.");
       }
 
-      ImGui::SliderFloat("Time speed", &manager.m_deltaTime, 0.1f, 1.0f);
+      ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
 
       if (ImGui::TreeNode("Timers")) {
         ImGui::Text("Resource allocation: %.3fs",
-                    manager.m_resourceAllocationTimer);
-        ImGui::Text("Form internodes: %.3fs", manager.m_internodeFormTimer);
-        ImGui::Text("Create internodes: %.3fs", manager.m_internodeCreateTimer);
+
+                    m_resourceAllocationTimer);
+        ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
+        ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
         ImGui::Text("Illumination: %.3fs",
-                    manager.m_illuminationCalculationTimer);
-        ImGui::Text("Pruning & Metadata: %.3fs", manager.m_metaDataTimer);
+
+                    m_illuminationCalculationTimer);
+        ImGui::Text("Pruning & Metadata: %.3fs", m_metaDataTimer);
         ImGui::TreePop();
       }
     }
@@ -103,35 +103,37 @@ void PlantManager::OnGui() {
 }
 #pragma endregion
 #pragma region Growth related
-bool PlantManager::GrowAllPlants() {
-  auto &manager = GetInstance();
+bool PlantSystem::GrowAllPlants() {
   Refresh();
-  manager.m_globalTime += manager.m_deltaTime;
+
+  m_globalTime += m_deltaTime;
   float time = Application::Time().CurrentTime();
   std::vector<ResourceParcel> totalResources;
-  totalResources.resize(manager.m_plants.size());
+  totalResources.resize(m_plants.size());
   std::vector<ResourceParcel> resourceAvailable;
-  resourceAvailable.resize(manager.m_plants.size());
+  resourceAvailable.resize(m_plants.size());
   for (auto &i : resourceAvailable)
     i.m_nutrient = 5000000.0f;
-  CollectNutrient(manager.m_plants, totalResources, resourceAvailable);
-  for (auto &i : manager.m_plantResourceAllocators) {
-    i.second(manager, totalResources);
+  CollectNutrient(m_plants, totalResources, resourceAvailable);
+  for (auto &i : m_plantResourceAllocators) {
+    i.second(totalResources);
   }
-  manager.m_resourceAllocationTimer = Application::Time().CurrentTime() - time;
 
-  for (const auto &plant : manager.m_plants) {
+  m_resourceAllocationTimer = Application::Time().CurrentTime() - time;
+
+  for (const auto &plant : m_plants) {
     auto plantInfo = plant.GetDataComponent<PlantInfo>();
-    plantInfo.m_age += manager.m_deltaTime;
+    plantInfo.m_age += m_deltaTime;
     plant.SetDataComponent(plantInfo);
   }
 
   time = Application::Time().CurrentTime();
   std::vector<InternodeCandidate> candidates;
-  for (auto &i : manager.m_plantGrowthModels) {
-    i.second(manager, candidates);
+  for (auto &i : m_plantGrowthModels) {
+    i.second(candidates);
   }
-  manager.m_internodeFormTimer = Application::Time().CurrentTime() - time;
+
+  m_internodeFormTimer = Application::Time().CurrentTime() - time;
 
   if (GrowCandidates(candidates)) {
     time = Application::Time().CurrentTime();
@@ -144,23 +146,26 @@ bool PlantManager::GrowAllPlants() {
           continue;
         auto &volume = entity.GetPrivateComponent<CubeVolume>();
         if (volume.IsEnabled() && volume.m_asObstacle)
-          obstacles.emplace_back(volume.GetOwner().GetDataComponent<GlobalTransform>(), &volume);
+          obstacles.emplace_back(
+              volume.GetOwner().GetDataComponent<GlobalTransform>(), &volume);
       }
     }
-    for (auto &i : manager.m_plantInternodePruners) {
-      i.second(manager, obstacles);
+    for (auto &i : m_plantInternodePruners) {
+      i.second(obstacles);
     }
-    manager.m_pruningTimer = Application::Time().CurrentTime() - time;
+
+    m_pruningTimer = Application::Time().CurrentTime() - time;
     time = Application::Time().CurrentTime();
-    for (auto &i : manager.m_plantMetaDataCalculators) {
-      i.second(manager);
+    for (auto &i : m_plantMetaDataCalculators) {
+      i.second();
     }
-    manager.m_metaDataTimer = Application::Time().CurrentTime() - time;
+
+    m_metaDataTimer = Application::Time().CurrentTime() - time;
     return true;
   }
   return false;
 }
-bool PlantManager::GrowAllPlants(const unsigned &iterations) {
+bool PlantSystem::GrowAllPlants(const unsigned &iterations) {
   bool grew = false;
   for (unsigned i = 0; i < iterations; i++) {
     const bool grewInThisIteration = GrowAllPlants();
@@ -171,13 +176,12 @@ bool PlantManager::GrowAllPlants(const unsigned &iterations) {
   return grew;
 }
 
-bool PlantManager::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
-  auto& plantManager = GetInstance();
+bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
   const float time = Application::Time().CurrentTime();
   if (candidates.empty())
     return false;
-  auto entities = EntityManager::CreateEntities(
-      plantManager.m_internodeArchetype, candidates.size(), "Internode");
+  auto entities = EntityManager::CreateEntities(m_internodeArchetype,
+                                                candidates.size(), "Internode");
   int i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
@@ -190,19 +194,19 @@ bool PlantManager::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternodeData.m_buds.swap(candidate.m_buds);
     newInternodeData.m_owner = candidate.m_owner;
     newInternode.SetParent(candidate.m_parent);
-    const auto search = plantManager.m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
-    if(search != plantManager.m_plantInternodePostProcessors.end()){
-      search->second(plantManager, newInternode, candidate);
+    const auto search =
+        m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
+    if (search != m_plantInternodePostProcessors.end()) {
+      search->second(newInternode, candidate);
     }
     i++;
   }
-  plantManager.m_internodeCreateTimer =
-      Application::Time().CurrentTime() - time;
+  m_internodeCreateTimer = Application::Time().CurrentTime() - time;
   return true;
 }
 
-void PlantManager::CalculateIlluminationForInternodes(PlantManager &manager) {
-  if (manager.m_internodeTransforms.empty())
+void PlantSystem::CalculateIlluminationForInternodes() {
+  if (m_internodeTransforms.empty())
     return;
   const float time = Application::Time().CurrentTime();
   // Upload geometries to OptiX.
@@ -215,9 +219,9 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager &manager) {
   properties.m_skylightPower = 1.0f;
   properties.m_pushNormal = true;
   std::vector<RayTracerFacility::LightSensor<float>> lightProbes;
-  lightProbes.resize(manager.m_internodeQuery.GetEntityAmount());
+  lightProbes.resize(m_internodeQuery.GetEntityAmount());
   EntityManager::ForEach<GlobalTransform>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_internodeQuery,
       [&](int i, Entity leafEntity, GlobalTransform &globalTransform) {
         lightProbes[i].m_position = globalTransform.GetPosition();
         lightProbes[i].m_surfaceNormal =
@@ -230,19 +234,18 @@ void PlantManager::CalculateIlluminationForInternodes(PlantManager &manager) {
                                                                 lightProbes);
 
   EntityManager::ForEach<Illumination>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_internodeQuery,
       [&](int i, Entity leafEntity, Illumination &illumination) {
         const auto &lightProbe = lightProbes[i];
         illumination.m_accumulatedDirection +=
-            lightProbe.m_direction * manager.m_deltaTime;
+            lightProbe.m_direction * m_deltaTime;
         illumination.m_currentIntensity = lightProbe.m_energy;
       },
       false);
 
-  manager.m_illuminationCalculationTimer =
-      Application::Time().CurrentTime() - time;
+  m_illuminationCalculationTimer = Application::Time().CurrentTime() - time;
 }
-void PlantManager::CollectNutrient(
+void PlantSystem::CollectNutrient(
     std::vector<Entity> &trees, std::vector<ResourceParcel> &totalNutrients,
     std::vector<ResourceParcel> &nutrientsAvailable) {
   for (int i = 0; i < trees.size(); i++) {
@@ -250,8 +253,8 @@ void PlantManager::CollectNutrient(
   }
 }
 
-void PlantManager::ApplyTropism(const glm::vec3 &targetDir, float tropism,
-                                glm::vec3 &front, glm::vec3 &up) {
+void PlantSystem::ApplyTropism(const glm::vec3 &targetDir, float tropism,
+                               glm::vec3 &front, glm::vec3 &up) {
   const glm::vec3 dir = glm::normalize(targetDir);
   const float dotP = glm::abs(glm::dot(front, dir));
   if (dotP < 0.99f && dotP > -0.99f) {
@@ -290,7 +293,7 @@ bool ResourceParcel::IsEnough() const {
 #pragma endregion
 #pragma region Helpers
 
-Entity PlantManager::CreateCubeObstacle() {
+Entity PlantSystem::CreateCubeObstacle() {
   const auto volumeEntity = EntityManager::CreateEntity("Volume");
   volumeEntity.SetEnabled(false);
   Transform transform;
@@ -311,21 +314,19 @@ Entity PlantManager::CreateCubeObstacle() {
   return volumeEntity;
 }
 
-void PlantManager::DeleteAllPlants() {
-  GetInstance().m_globalTime = 0;
+void PlantSystem::DeleteAllPlants() {
+  m_globalTime = 0;
   std::vector<Entity> trees;
-  GetInstance().m_plantQuery.ToEntityArray(trees);
+  m_plantQuery.ToEntityArray(trees);
   for (const auto &tree : trees)
     EntityManager::DeleteEntity(tree);
   Refresh();
-  SorghumManager::GetInstance().m_probeColors.clear();
-  SorghumManager::GetInstance().m_probeTransforms.clear();
+  for(auto& i : m_deleteAllPlants) i.second();
 }
 
-Entity PlantManager::CreatePlant(const PlantType &type,
-                                 const Transform &transform) {
-  const auto entity =
-      EntityManager::CreateEntity(GetInstance().m_plantArchetype);
+Entity PlantSystem::CreatePlant(const PlantType &type,
+                                const Transform &transform) {
+  const auto entity = EntityManager::CreateEntity(m_plantArchetype);
 
   GlobalTransform globalTransform;
   globalTransform.m_value = transform.m_value;
@@ -335,12 +336,10 @@ Entity PlantManager::CreatePlant(const PlantType &type,
   PlantInfo treeInfo{};
   treeInfo.m_plantType = type;
   treeInfo.m_age = 0;
-  treeInfo.m_startTime = GetInstance().m_globalTime;
+  treeInfo.m_startTime = m_globalTime;
   entity.SetDataComponent(treeInfo);
-  //entity.SetParent(GetInstance().m_ground, true);
 #pragma region Set root internode
-  const auto rootInternode =
-      EntityManager::CreateEntity(GetInstance().m_internodeArchetype);
+  const auto rootInternode = EntityManager::CreateEntity(m_internodeArchetype);
   rootInternode.SetName("Internode");
   InternodeInfo internodeInfo;
   internodeInfo.m_plantType = type;
@@ -372,10 +371,9 @@ Entity PlantManager::CreatePlant(const PlantType &type,
   return entity;
 }
 
-Entity PlantManager::CreateInternode(const PlantType &type,
-                                     const Entity &parentEntity) {
-  const auto entity =
-      EntityManager::CreateEntity(GetInstance().m_internodeArchetype);
+Entity PlantSystem::CreateInternode(const PlantType &type,
+                                    const Entity &parentEntity) {
+  const auto entity = EntityManager::CreateEntity(m_internodeArchetype);
   entity.SetName("Internode");
   InternodeInfo internodeInfo;
   internodeInfo.m_plantType = type;
@@ -391,18 +389,12 @@ Entity PlantManager::CreateInternode(const PlantType &type,
 
 #pragma endregion
 #pragma region Runtime
-PlantManager &PlantManager::GetInstance() {
-  static PlantManager instance;
-  return instance;
-}
-
-void PlantManager::Init() {
-  auto &manager = GetInstance();
-
+void PlantSystem::OnCreate() {
 #pragma region Ground
-  manager.m_ground = EntityManager::CreateEntity("Ground");
 
-  auto &meshRenderer = manager.m_ground.SetPrivateComponent<MeshRenderer>();
+  m_ground = EntityManager::CreateEntity("Ground");
+
+  auto &meshRenderer = m_ground.SetPrivateComponent<MeshRenderer>();
   meshRenderer.m_mesh = DefaultResources::Primitives::Quad;
   meshRenderer.m_material = ResourceManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);
@@ -416,16 +408,18 @@ void PlantManager::Init() {
   groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
   groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
   groundGlobalTransform.m_value = groundTransform.m_value;
-  manager.m_ground.SetDataComponent(groundTransform);
-  manager.m_ground.SetDataComponent(groundGlobalTransform);
+
+  m_ground.SetDataComponent(groundTransform);
+
+  m_ground.SetDataComponent(groundGlobalTransform);
 
   auto &rayTracedRenderer =
-      manager.m_ground
-          .SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
+
+      m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
   rayTracedRenderer.SyncWithMeshRenderer();
   rayTracedRenderer.m_enableMLVQ = true;
 
-  auto &cubeVolume = manager.m_ground.SetPrivateComponent<CubeVolume>();
+  auto &cubeVolume = m_ground.SetPrivateComponent<CubeVolume>();
   cubeVolume.m_asObstacle = true;
   cubeVolume.m_minMaxBound.m_max = glm::vec3(500, -0.1f, 500);
   cubeVolume.m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
@@ -473,18 +467,21 @@ void PlantManager::Init() {
   leafProgram->Link(standardVert, standardFrag);
 #pragma endregion
 #pragma region Entity
-  manager.m_internodeArchetype = EntityManager::CreateEntityArchetype(
+
+  m_internodeArchetype = EntityManager::CreateEntityArchetype(
       "Internode", BranchCylinder(), BranchCylinderWidth(), BranchPointer(),
       BranchColor(), Ray(), Illumination(), InternodeInfo(), InternodeGrowth(),
       InternodeStatistics());
-  manager.m_plantArchetype =
-      EntityManager::CreateEntityArchetype("Tree", PlantInfo());
 
-  manager.m_internodeQuery = EntityManager::CreateEntityQuery();
-  manager.m_internodeQuery.SetAllFilters(InternodeInfo());
+  m_plantArchetype = EntityManager::CreateEntityArchetype("Tree", PlantInfo());
 
-  manager.m_plantQuery = EntityManager::CreateEntityQuery();
-  manager.m_plantQuery.SetAllFilters(PlantInfo());
+  m_internodeQuery = EntityManager::CreateEntityQuery();
+
+  m_internodeQuery.SetAllFilters(InternodeInfo());
+
+  m_plantQuery = EntityManager::CreateEntityQuery();
+
+  m_plantQuery.SetAllFilters(PlantInfo());
 #pragma endregion
 #pragma region GUI
   EditorManager::RegisterComponentDataInspector<InternodeStatistics>(
@@ -585,42 +582,50 @@ void PlantManager::Init() {
         ImGui::Text(("Age: " + std::to_string(info->m_age)).c_str());
       });
 #pragma endregion
-  manager.m_ready = true;
-  manager.m_globalTime = 0;
+
+  m_ready = true;
+
+  m_globalTime = 0;
+  Enable();
 }
 
-void PlantManager::Update() {
-  auto &manager = GetInstance();
+void PlantSystem::Update() {
   if (Application::IsPlaying()) {
-    if (manager.m_iterationsToGrow > 0) {
-      manager.m_iterationsToGrow--;
+    if (m_iterationsToGrow > 0) {
+      m_iterationsToGrow--;
       if (GrowAllPlants()) {
-        manager.m_endUpdate = true;
+        m_endUpdate = true;
       }
-    } else if (manager.m_endUpdate) {
+    } else if (m_endUpdate) {
       Refresh();
-      manager.m_endUpdate = false;
+      m_endUpdate = false;
     }
   }
 }
 
-void PlantManager::Refresh() {
-  auto &manager = GetInstance();
-  manager.m_plants.resize(0);
-  manager.m_plantQuery.ToEntityArray(manager.m_plants);
-  manager.m_internodes.resize(0);
-  manager.m_internodeTransforms.resize(0);
-  manager.m_internodeQuery.ToComponentDataArray(manager.m_internodeTransforms);
-  manager.m_internodeQuery.ToEntityArray(manager.m_internodes);
+void PlantSystem::Refresh() {
+
+  m_plants.resize(0);
+
+  m_plantQuery.ToEntityArray(m_plants);
+
+  m_internodes.resize(0);
+
+  m_internodeTransforms.resize(0);
+
+  m_internodeQuery.ToComponentDataArray(m_internodeTransforms);
+
+  m_internodeQuery.ToEntityArray(m_internodes);
 
   float time = Application::Time().CurrentTime();
-  for (auto &i : manager.m_plantMeshGenerators) {
-    i.second(manager);
+  for (auto &i : m_plantMeshGenerators) {
+    i.second();
   }
-  manager.m_meshGenerationTimer = Application::Time().CurrentTime() - time;
-  CalculateIlluminationForInternodes(manager);
+
+  m_meshGenerationTimer = Application::Time().CurrentTime() - time;
+  CalculateIlluminationForInternodes();
 }
 
-void PlantManager::End() {}
+void PlantSystem::End() {}
 
 #pragma endregion

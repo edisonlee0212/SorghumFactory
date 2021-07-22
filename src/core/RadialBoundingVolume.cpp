@@ -1,4 +1,4 @@
-#include <PlantManager.hpp>
+#include <PlantSystem.hpp>
 #include <RadialBoundingVolume.hpp>
 #include <RayTracedRenderer.hpp>
 #include <RayTracer.hpp>

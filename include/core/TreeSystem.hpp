@@ -1,5 +1,5 @@
 #pragma once
-#include <PlantManager.hpp>
+#include <PlantSystem.hpp>
 #include <rapidxml.hpp>
 #include <rapidxml_print.hpp>
 #include <rapidxml_utils.hpp>
@@ -22,15 +22,9 @@ struct TreeLeavesTag : IDataComponent {};
 
 struct RbvTag : IDataComponent {};
 
-class TreeManager {
-protected:
-#pragma region Class related
-  TreeManager() = default;
-  TreeManager(TreeManager &&) = default;
-  TreeManager(const TreeManager &) = default;
-  TreeManager &operator=(TreeManager &&) = default;
-  TreeManager &operator=(const TreeManager &) = default;
-#pragma endregion
+class TreeSystem : public ISystem {
+  std::shared_ptr<PlantSystem> m_plantSystem;
+
 #pragma region Helpers
   static void ExportChains(int parentOrder, Entity internode,
                            rapidxml::xml_node<> *chains,
@@ -38,9 +32,9 @@ protected:
   static void WriteChain(int order, Entity internode,
                          rapidxml::xml_node<> *chains,
                          rapidxml::xml_document<> *doc);
-  static Entity GetRootInternode(const Entity &tree);
-  static Entity GetLeaves(const Entity &tree);
-  static Entity GetRbv(const Entity &tree);
+  Entity GetRootInternode(const Entity &tree);
+  Entity GetLeaves(const Entity &tree);
+  Entity GetRbv(const Entity &tree);
 #pragma endregion
 public:
 #pragma region Physics
@@ -132,57 +126,55 @@ public:
   std::shared_ptr<Texture2D> m_defaultBranchAlbedoTexture;
   std::shared_ptr<Texture2D> m_defaultBranchNormalTexture;
 
-  static void Update();
-  static Entity CreateTree(const Transform &transform);
-  static void OnGui();
+  void Update() override;
+  Entity CreateTree(const Transform &transform);
+  void OnGui() override;
 
-  static void InternodePostProcessor(PlantManager &manager, const Entity& newInternode, const InternodeCandidate& candidate);
+  void InternodePostProcessor(const Entity& newInternode, const InternodeCandidate& candidate);
 
-  static void UpdateBranchCylinder(const bool &displayThickness,
+  void UpdateBranchCylinder(const bool &displayThickness,
                                    const float &width = 0.01f);
-  static void UpdateBranchPointer(const float &length,
+  void UpdateBranchPointer(const float &length,
                                   const float &width = 0.01f);
-  static void UpdateBranchColors();
-  static void ColorSet(glm::vec4 &target, const float &value);
+  void UpdateBranchColors();
+  void ColorSet(glm::vec4 &target, const float &value);
 
-  static void RenderBranchCylinders(const float &displayTime);
-  static void RenderBranchPointers(const float &displayTime);
-  static void TreeNodeWalker(std::vector<Entity> &boundEntities,
+  void RenderBranchCylinders(const float &displayTime);
+  void RenderBranchPointers(const float &displayTime);
+  void TreeNodeWalker(std::vector<Entity> &boundEntities,
                              std::vector<int> &parentIndices,
                              const int &parentIndex, const Entity &node);
-  static TreeManager &GetInstance();
-  static void TreeMeshGenerator(std::vector<Entity> &internodes,
+  void TreeMeshGenerator(std::vector<Entity> &internodes,
                                 std::vector<int> &parentIndices,
                                 std::vector<Vertex> &vertices,
                                 std::vector<unsigned> &indices);
-  static void TreeSkinnedMeshGenerator(std::vector<Entity> &internodes,
+  void TreeSkinnedMeshGenerator(std::vector<Entity> &internodes,
                                        std::vector<int> &parentIndices,
                                        std::vector<SkinnedVertex> &vertices,
                                        std::vector<unsigned> &indices);
-  static void GenerateMeshForTree(PlantManager &manager);
-  static void FormCandidates(PlantManager &manager,
-                             std::vector<InternodeCandidate> &candidates);
-  static float GetGrowthParameter(const GrowthParameterType &type,
+  void GenerateMeshForTree();
+  void FormCandidates(std::vector<InternodeCandidate> &candidates);
+  float GetGrowthParameter(const GrowthParameterType &type,
                                   TreeData &treeData,
                                   InternodeInfo &internodeInfo,
                                   InternodeGrowth &internodeGrowth,
                                   InternodeStatistics &internodeStatistics);
-  static void PruneTrees(PlantManager &manager,
-                         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles);
-  static void UpdateTreesMetaData(PlantManager &manager);
+  void PruneTrees(std::vector<std::pair<GlobalTransform, Volume *>> &obstacles);
+  void UpdateTreesMetaData();
 #pragma region Metadata
-  static void UpdateDistances(const Entity &internode, TreeData &treeData);
-  static void UpdateLevels(const Entity &internode, TreeData &treeData);
+  void UpdateDistances(const Entity &internode, TreeData &treeData);
+  void UpdateLevels(const Entity &internode, TreeData &treeData);
 #pragma endregion
-  static void ResetTimeForTree(const float &value);
-  static void ResetTimeForTree(const Entity &internode,
+  void ResetTimeForTree(const float &value);
+  void ResetTimeForTree(const Entity &internode,
                                const float &globalTime);
-  static void
-  DistributeResourcesForTree(PlantManager &manager,
-                             std::vector<ResourceParcel> &totalNutrients);
-  static void Init();
-  static void SerializeScene(const std::string &filename);
+  void
+  DistributeResourcesForTree(std::vector<ResourceParcel> &totalNutrients);
+  void OnCreate() override;
+  void SerializeScene(const std::string &filename);
   static void Serialize(const Entity &treeEntity, rapidxml::xml_document<> &doc,
                         rapidxml::xml_node<> *sceneNode);
+
+  void DeleteAllPlantsHelper();
 };
 } // namespace PlantFactory

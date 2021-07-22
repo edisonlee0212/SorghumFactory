@@ -1,5 +1,5 @@
 #include <SorghumData.hpp>
-#include <SorghumManager.hpp>
+#include <SorghumSystem.hpp>
 
 using namespace PlantFactory;
 
@@ -40,7 +40,7 @@ void SorghumData::ExportModel(const std::string &filename, const bool &includeFo
         of.write(start.c_str(), start.size());
         of.flush();
         unsigned startIndex = 1;
-        SorghumManager::ExportSorghum(GetOwner(), of, startIndex);
+        SorghumSystem::ExportSorghum(GetOwner(), of, startIndex);
         of.close();
         Debug::Log("Sorghums saved as " + filename);
     } else {

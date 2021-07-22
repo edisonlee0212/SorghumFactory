@@ -7,14 +7,14 @@
 #include <RigidBody.hpp>
 #include <SkinnedMeshRenderer.hpp>
 #include <TreeLeaves.hpp>
-#include <TreeManager.hpp>
+#include <TreeSystem.hpp>
 
 using namespace UniEngine;
 using namespace PlantFactory;
 
-void TreeManager::ExportChains(int parentOrder, Entity internode,
-                               rapidxml::xml_node<> *chains,
-                               rapidxml::xml_document<> *doc) {
+void TreeSystem::ExportChains(int parentOrder, Entity internode,
+                              rapidxml::xml_node<> *chains,
+                              rapidxml::xml_document<> *doc) {
   auto order = internode.GetDataComponent<InternodeInfo>().m_order;
   if (order != parentOrder) {
     WriteChain(order, internode, chains, doc);
@@ -24,9 +24,9 @@ void TreeManager::ExportChains(int parentOrder, Entity internode,
   });
 }
 
-void TreeManager::WriteChain(int order, Entity internode,
-                             rapidxml::xml_node<> *chains,
-                             rapidxml::xml_document<> *doc) {
+void TreeSystem::WriteChain(int order, Entity internode,
+                            rapidxml::xml_node<> *chains,
+                            rapidxml::xml_document<> *doc) {
   Entity walker = internode;
   rapidxml::xml_node<> *chain =
       doc->allocate_node(rapidxml::node_element, "Chain", "Node");
@@ -62,7 +62,7 @@ void TreeManager::WriteChain(int order, Entity internode,
   }
 }
 
-Entity TreeManager::GetRootInternode(const Entity &tree) {
+Entity TreeSystem::GetRootInternode(const Entity &tree) {
   auto retVal = Entity();
   if (!tree.HasDataComponent<PlantInfo>() ||
       tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
@@ -74,7 +74,7 @@ Entity TreeManager::GetRootInternode(const Entity &tree) {
   return retVal;
 }
 
-Entity TreeManager::GetLeaves(const Entity &tree) {
+Entity TreeSystem::GetLeaves(const Entity &tree) {
   auto retVal = Entity();
   if (!tree.HasDataComponent<PlantInfo>() ||
       tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
@@ -85,7 +85,7 @@ Entity TreeManager::GetLeaves(const Entity &tree) {
   });
   if (!retVal.IsValid()) {
     const auto leaves =
-        EntityManager::CreateEntity(GetInstance().m_leavesArchetype, "Leaves");
+        EntityManager::CreateEntity(m_leavesArchetype, "Leaves");
     leaves.SetParent(tree, false);
     leaves.SetPrivateComponent<TreeLeaves>();
     auto &meshRenderer = leaves.SetPrivateComponent<MeshRenderer>();
@@ -123,7 +123,7 @@ Entity TreeManager::GetLeaves(const Entity &tree) {
   return retVal;
 }
 
-Entity TreeManager::GetRbv(const Entity &tree) {
+Entity TreeSystem::GetRbv(const Entity &tree) {
   auto retVal = Entity();
   if (!tree.HasDataComponent<PlantInfo>() ||
       tree.GetDataComponent<PlantInfo>().m_plantType != PlantType::GeneralTree)
@@ -134,19 +134,18 @@ Entity TreeManager::GetRbv(const Entity &tree) {
   });
   if (!retVal.IsValid()) {
     const auto rbv =
-        EntityManager::CreateEntity(GetInstance().m_rbvArchetype, "RBV");
+        EntityManager::CreateEntity(m_rbvArchetype, "RBV");
     rbv.SetParent(tree, false);
     rbv.SetPrivateComponent<RadialBoundingVolume>();
   }
   return retVal;
 }
 
-void TreeManager::UpdateBranchCylinder(const bool &displayThickness,
-                                       const float &width) {
-  auto &plantManager = PlantManager::GetInstance();
+void TreeSystem::UpdateBranchCylinder(const bool &displayThickness,
+                                      const float &width) {
   EntityManager::ForEach<GlobalTransform, BranchCylinder, BranchCylinderWidth,
                          InternodeGrowth, InternodeInfo>(
-      JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [displayThickness,
        width](int i, Entity entity, GlobalTransform &ltw, BranchCylinder &c,
               BranchCylinderWidth &branchCylinderWidth,
@@ -187,13 +186,11 @@ void TreeManager::UpdateBranchCylinder(const bool &displayThickness,
       false);
 }
 
-void TreeManager::UpdateBranchPointer(const float &length, const float &width) {
-  auto &manager = GetInstance();
-  auto &plantManager = PlantManager::GetInstance();
-  switch (manager.m_pointerRenderType) {
+void TreeSystem::UpdateBranchPointer(const float &length, const float &width) {
+  switch (m_pointerRenderType) {
   case PointerRenderType::Illumination:
     EntityManager::ForEach<GlobalTransform, BranchPointer, Illumination>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [length, width](int i, Entity entity, GlobalTransform &ltw,
                         BranchPointer &c, Illumination &internodeIllumination) {
           const glm::vec3 start = ltw.GetPosition();
@@ -215,7 +212,7 @@ void TreeManager::UpdateBranchPointer(const float &length, const float &width) {
     break;
   case PointerRenderType::Bending:
     EntityManager::ForEach<GlobalTransform, BranchPointer, InternodeGrowth>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [length, width](int i, Entity entity, GlobalTransform &ltw,
                         BranchPointer &c, InternodeGrowth &internodeGrowth) {
           const glm::vec3 start = ltw.GetPosition();
@@ -238,27 +235,24 @@ void TreeManager::UpdateBranchPointer(const float &length, const float &width) {
   }
 }
 
-void TreeManager::UpdateBranchColors() {
-  auto &plantManager = PlantManager::GetInstance();
-  auto globalTime = plantManager.m_globalTime;
+void TreeSystem::UpdateBranchColors() {
+  auto globalTime = m_plantSystem->m_globalTime;
 
-  auto &manager = GetInstance();
   auto focusingInternode = Entity();
   auto selectedEntity = Entity();
-  if (manager.m_currentFocusingInternode.IsValid()) {
-    focusingInternode = manager.m_currentFocusingInternode;
+  if (m_currentFocusingInternode.IsValid()) {
+    focusingInternode = m_currentFocusingInternode;
   }
-  if (EditorManager::GetInstance().GetSelectedEntity().IsValid()) {
-    selectedEntity = EditorManager::GetInstance().GetSelectedEntity();
+  if (EditorManager::GetSelectedEntity().IsValid()) {
+    selectedEntity = EditorManager::GetSelectedEntity();
   }
 #pragma region Process internode color
-  switch (GetInstance().m_branchRenderType) {
+  switch (m_branchRenderType) {
   case BranchRenderType::Illumination: {
     EntityManager::ForEach<BranchColor, Illumination, InternodeInfo>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             Illumination &illumination, InternodeInfo &internodeInfo) {
-          auto &manager = GetInstance();
           if (focusingInternode == entity) {
             internodeRenderColor.m_value = glm::vec4(1, 1, 1, 1);
             return;
@@ -268,18 +262,17 @@ void TreeManager::UpdateBranchColors() {
             return;
           }
           auto value = illumination.m_currentIntensity;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::Inhibitor: {
     EntityManager::ForEach<BranchColor, InternodeGrowth>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeGrowth &internodeGrowth) {
-          auto &manager = GetInstance();
           if (focusingInternode == entity) {
             internodeRenderColor.m_value = glm::vec4(1, 1, 1, 1);
             return;
@@ -289,18 +282,17 @@ void TreeManager::UpdateBranchColors() {
             return;
           }
           auto value = internodeGrowth.m_inhibitor;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::Sagging: {
     EntityManager::ForEach<BranchColor, InternodeGrowth>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeGrowth &internodeGrowth) {
-          auto &manager = GetInstance();
           if (focusingInternode == entity) {
             internodeRenderColor.m_value = glm::vec4(1, 1, 1, 1);
             return;
@@ -310,18 +302,17 @@ void TreeManager::UpdateBranchColors() {
             return;
           }
           auto value = internodeGrowth.m_sagging;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::InhibitorTransmitFactor: {
     EntityManager::ForEach<BranchColor, InternodeGrowth>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeGrowth &internodeGrowth) {
-          auto &manager = GetInstance();
           if (focusingInternode == entity) {
             internodeRenderColor.m_value = glm::vec4(1, 1, 1, 1);
             return;
@@ -331,8 +322,8 @@ void TreeManager::UpdateBranchColors() {
             return;
           }
           auto value = internodeGrowth.m_inhibitorTransmitFactor;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -340,7 +331,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::ResourceToGrow: {
     EntityManager::ForEach<BranchColor, InternodeGrowth>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeGrowth &internodeGrowth) {
           if (focusingInternode == entity) {
@@ -351,14 +342,13 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           auto &internodeData = entity.GetPrivateComponent<InternodeData>();
           float totalResource = 0;
           for (const auto &bud : internodeData.m_buds)
             totalResource += bud.m_currentResource.m_nutrient;
           float value = totalResource;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -366,7 +356,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::Order: {
     EntityManager::ForEach<BranchColor, InternodeInfo>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeInfo &internodeInfo) {
           if (focusingInternode == entity) {
@@ -377,10 +367,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeInfo.m_order;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -388,7 +377,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::MaxChildOrder: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -399,10 +388,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_maxChildOrder;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -410,7 +398,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::Level: {
     EntityManager::ForEach<BranchColor, InternodeInfo>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeInfo &internodeInfo) {
           if (focusingInternode == entity) {
@@ -421,10 +409,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeInfo.m_level;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -432,7 +419,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::MaxChildLevel: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -443,10 +430,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_maxChildLevel;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -454,7 +440,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::IsMaxChild: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -465,7 +451,6 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           auto value = internodeStatistics.m_isMaxChild ? 1.0f : 0.2f;
           ColorSet(internodeRenderColor.m_value, value);
         },
@@ -473,7 +458,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::ChildrenEndNodeAmount: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -484,10 +469,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_childrenEndNodeAmount;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -495,7 +479,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::IsEndNode: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -506,7 +490,6 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           auto value = internodeStatistics.m_isEndNode ? 1.0f : 0.2f;
           ColorSet(internodeRenderColor.m_value, value);
         },
@@ -514,7 +497,7 @@ void TreeManager::UpdateBranchColors() {
   } break;
   case BranchRenderType::DistanceToBranchEnd: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -525,17 +508,16 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_distanceToBranchEnd;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::DistanceToBranchStart: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -546,17 +528,16 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_distanceToBranchStart;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::TotalLength: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -567,17 +548,16 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_totalLength;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
   } break;
   case BranchRenderType::LongestDistanceToAnyEndNode: {
     EntityManager::ForEach<BranchColor, InternodeStatistics>(
-        JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+        JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
         [=](int i, Entity entity, BranchColor &internodeRenderColor,
             InternodeStatistics &internodeStatistics) {
           if (focusingInternode == entity) {
@@ -588,10 +568,9 @@ void TreeManager::UpdateBranchColors() {
             internodeRenderColor.m_value = glm::vec4(1, 0, 0, 1);
             return;
           }
-          auto &manager = GetInstance();
           float value = internodeStatistics.m_longestDistanceToAnyEndNode;
-          if (manager.m_enableBranchDataCompress)
-            value = glm::pow(value, manager.m_branchCompressFactor);
+          if (m_enableBranchDataCompress)
+            value = glm::pow(value, m_branchCompressFactor);
           ColorSet(internodeRenderColor.m_value, value);
         },
         false);
@@ -600,52 +579,50 @@ void TreeManager::UpdateBranchColors() {
 #pragma endregion
 }
 
-void TreeManager::ColorSet(glm::vec4 &target, const float &value) {
-  auto &manager = GetInstance();
-  if (manager.m_useColorMap) {
+void TreeSystem::ColorSet(glm::vec4 &target, const float &value) {
+  if (m_useColorMap) {
     int compareResult = -1;
-    for (int i = 0; i < manager.m_colorMapValues.size(); i++) {
-      if (value > manager.m_colorMapValues[i])
+    for (int i = 0; i < m_colorMapValues.size(); i++) {
+      if (value > m_colorMapValues[i])
         compareResult = i;
     }
     glm::vec3 color;
     if (compareResult == -1) {
-      color = manager.m_colorMapColors[0];
-    } else if (compareResult == manager.m_colorMapValues.size() - 1) {
-      color = manager.m_colorMapColors.back();
+      color = m_colorMapColors[0];
+    } else if (compareResult == m_colorMapValues.size() - 1) {
+      color = m_colorMapColors.back();
     } else {
-      const auto value1 = manager.m_colorMapValues[compareResult];
-      const auto value2 = manager.m_colorMapValues[compareResult + 1];
-      const auto color1 = manager.m_colorMapColors[compareResult];
-      const auto color2 = manager.m_colorMapColors[compareResult + 1];
+      const auto value1 = m_colorMapValues[compareResult];
+      const auto value2 = m_colorMapValues[compareResult + 1];
+      const auto color1 = m_colorMapColors[compareResult];
+      const auto color2 = m_colorMapColors[compareResult + 1];
       const auto left = value - value1;
       const auto right = value2 - value1;
       color = color1 * left / right + color2 * (1.0f - left / right);
     }
-    if (manager.m_useTransparency)
-      target = glm::vec4(color.x, color.y, color.z, manager.m_transparency);
+    if (m_useTransparency)
+      target = glm::vec4(color.x, color.y, color.z, m_transparency);
     else
       target = glm::vec4(color.x, color.y, color.z, 1.0f);
   } else {
-    if (manager.m_useTransparency)
-      target = glm::vec4(value, value, value, manager.m_transparency);
+    if (m_useTransparency)
+      target = glm::vec4(value, value, value, m_transparency);
     else
       target = glm::vec4(value, value, value, 1.0f);
   }
 }
 
-void TreeManager::Update() {
-  auto &manager = GetInstance();
-  if (manager.m_rightMouseButtonHold &&
+void TreeSystem::Update() {
+  if (m_rightMouseButtonHold &&
       !InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
                                       WindowManager::GetWindow())) {
-    manager.m_rightMouseButtonHold = false;
-    manager.m_startMouse = false;
+    m_rightMouseButtonHold = false;
+    m_startMouse = false;
   }
-  manager.m_internodeDebuggingCamera.ResizeResolution(
-      manager.m_internodeDebuggingCameraResolutionX,
-      manager.m_internodeDebuggingCameraResolutionY);
-  manager.m_internodeDebuggingCamera.Clear();
+  m_internodeDebuggingCamera.ResizeResolution(
+      m_internodeDebuggingCameraResolutionX,
+      m_internodeDebuggingCameraResolutionY);
+  m_internodeDebuggingCamera.Clear();
 
 #pragma region Internode debug camera
   CameraComponent::m_cameraInfoBlock.UpdateMatrices(
@@ -654,48 +631,45 @@ void TreeManager::Update() {
       EditorManager::GetInstance().m_sceneCameraRotation);
   CameraComponent::m_cameraInfoBlock.UploadMatrices(
       EditorManager::GetInstance().m_sceneCamera);
-  // RenderManager::RenderBackGround(manager.m_internodeDebuggingCamera);
+  // RenderManager::RenderBackGround(m_internodeDebuggingCamera);
 #pragma endregion
 
-  auto &plantManager = PlantManager::GetInstance();
   bool needUpdate = false;
-  if (plantManager.m_globalTime != manager.m_previousGlobalTime) {
-    manager.m_previousGlobalTime = plantManager.m_globalTime;
-    if (manager.m_displayTime != manager.m_previousGlobalTime) {
-      manager.m_displayTime = manager.m_previousGlobalTime;
+  if (m_plantSystem->m_globalTime != m_previousGlobalTime) {
+    m_previousGlobalTime = m_plantSystem->m_globalTime;
+    if (m_displayTime != m_previousGlobalTime) {
+      m_displayTime = m_previousGlobalTime;
       needUpdate = true;
     }
   }
 #pragma region Rendering
-  if (manager.m_drawBranches) {
-    if (manager.m_alwaysUpdate || manager.m_updateBranch || needUpdate) {
-      manager.m_updateBranch = false;
+  if (m_drawBranches) {
+    if (m_alwaysUpdate || m_updateBranch || needUpdate) {
+      m_updateBranch = false;
       UpdateBranchColors();
-      UpdateBranchCylinder(manager.m_displayThickness,
-                           manager.m_connectionWidth);
+      UpdateBranchCylinder(m_displayThickness, m_connectionWidth);
     }
-    if (manager.m_internodeDebuggingCamera.IsEnabled())
-      RenderBranchCylinders(manager.m_displayTime);
+    if (m_internodeDebuggingCamera.IsEnabled())
+      RenderBranchCylinders(m_displayTime);
   }
-  if (manager.m_drawPointers) {
-    if (manager.m_alwaysUpdate || manager.m_updatePointer || needUpdate) {
-      manager.m_updatePointer = false;
-      UpdateBranchPointer(manager.m_pointerLength, manager.m_pointerWidth);
+  if (m_drawPointers) {
+    if (m_alwaysUpdate || m_updatePointer || needUpdate) {
+      m_updatePointer = false;
+      UpdateBranchPointer(m_pointerLength, m_pointerWidth);
     }
-    if (manager.m_internodeDebuggingCamera.IsEnabled())
-      RenderBranchPointers(manager.m_displayTime);
+    if (m_internodeDebuggingCamera.IsEnabled())
+      RenderBranchPointers(m_displayTime);
   }
 #pragma endregion
 }
 
-Entity TreeManager::CreateTree(const Transform &transform) {
+Entity TreeSystem::CreateTree(const Transform &transform) {
   if (Application::IsPlaying()) {
     UNIENGINE_ERROR("Pause game to create tree!");
     return Entity();
   }
-  auto &manager = GetInstance();
   const auto plant =
-      PlantManager::CreatePlant(PlantType::GeneralTree, transform);
+      m_plantSystem->CreatePlant(PlantType::GeneralTree, transform);
   const auto rootInternode = plant.GetChildren()[0];
   auto &rigidBody = rootInternode.SetPrivateComponent<RigidBody>();
   rigidBody.SetKinematic(true);
@@ -703,7 +677,7 @@ Entity TreeManager::CreateTree(const Transform &transform) {
   // with mesh renderer.
   rigidBody.SetEnabled(true);
   rigidBody.SetEnableGravity(false);
-  plant.SetParent(PlantManager::GetInstance().m_ground);
+  plant.SetParent(m_plantSystem->m_ground);
 
   auto &animator = plant.SetPrivateComponent<Animator>();
   animator.m_animation = ResourceManager::CreateResource<Animation>();
@@ -721,9 +695,9 @@ Entity TreeManager::CreateTree(const Transform &transform) {
   meshRenderer.m_material->m_roughness = 1.0f;
   meshRenderer.m_material->m_metallic = 0.0f;
   meshRenderer.m_material->SetTexture(TextureType::Normal,
-                                      manager.m_defaultBranchNormalTexture);
+                                      m_defaultBranchNormalTexture);
   meshRenderer.m_material->SetTexture(TextureType::Albedo,
-                                      manager.m_defaultBranchAlbedoTexture);
+                                      m_defaultBranchAlbedoTexture);
   meshRenderer.SetEnabled(false);
 
   auto &skinnedMeshRenderer = plant.SetPrivateComponent<SkinnedMeshRenderer>();
@@ -736,15 +710,15 @@ Entity TreeManager::CreateTree(const Transform &transform) {
   skinnedMeshRenderer.m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
   skinnedMeshRenderer.m_material->m_roughness = 1.0f;
   skinnedMeshRenderer.m_material->m_metallic = 0.0f;
-  skinnedMeshRenderer.m_material->SetTexture(
-      TextureType::Normal, manager.m_defaultBranchNormalTexture);
-  skinnedMeshRenderer.m_material->SetTexture(
-      TextureType::Albedo, manager.m_defaultBranchAlbedoTexture);
+  skinnedMeshRenderer.m_material->SetTexture(TextureType::Normal,
+                                             m_defaultBranchNormalTexture);
+  skinnedMeshRenderer.m_material->SetTexture(TextureType::Albedo,
+                                             m_defaultBranchAlbedoTexture);
   skinnedMeshRenderer.AttachAnimator(plant);
 
   auto &rtt = plant.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
-  rtt.m_albedoTexture = manager.m_defaultRayTracingBranchAlbedoTexture;
-  rtt.m_normalTexture = manager.m_defaultRayTracingBranchNormalTexture;
+  rtt.m_albedoTexture = m_defaultRayTracingBranchAlbedoTexture;
+  rtt.m_normalTexture = m_defaultRayTracingBranchNormalTexture;
   rtt.m_mesh = plant.GetPrivateComponent<MeshRenderer>().m_mesh;
 
   return plant;
@@ -771,48 +745,44 @@ const char *BranchRenderTypes[]{"Illumination",
 
 const char *PointerRenderTypes[]{"Illumination", "Bending"};
 
-void TreeManager::OnGui() {
-  auto &manager = GetInstance();
-  auto &plantManager = PlantManager::GetInstance();
+void TreeSystem::OnGui() {
 #pragma region Main menu
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("Tree Manager")) {
       ImGui::Text("Physics");
-      ImGui::DragFloat("Internode Density", &manager.m_density, 0.1f, 0.01f,
-                       1000.0f);
-      ImGui::DragFloat2("RigidBody Damping", &manager.m_linearDamping, 0.1f,
-                        0.01f, 1000.0f);
-      ImGui::DragFloat2("Drive Stiffness", &manager.m_jointDriveStiffnessFactor,
-                        0.1f, 0.01f, 1000000.0f);
-      ImGui::DragFloat2("Drive Damping", &manager.m_jointDriveDampingFactor,
-                        0.1f, 0.01f, 1000000.0f);
-      ImGui::Checkbox("Use acceleration", &manager.m_enableAccelerationForDrive);
+      ImGui::DragFloat("Internode Density", &m_density, 0.1f, 0.01f, 1000.0f);
+      ImGui::DragFloat2("RigidBody Damping", &m_linearDamping, 0.1f, 0.01f,
+                        1000.0f);
+      ImGui::DragFloat2("Drive Stiffness", &m_jointDriveStiffnessFactor, 0.1f,
+                        0.01f, 1000000.0f);
+      ImGui::DragFloat2("Drive Damping", &m_jointDriveDampingFactor, 0.1f,
+                        0.01f, 1000000.0f);
+      ImGui::Checkbox("Use acceleration", &m_enableAccelerationForDrive);
 
-      int pi = manager.m_positionSolverIteration;
-      int vi = manager.m_velocitySolverIteration;
+      int pi = m_positionSolverIteration;
+      int vi = m_velocitySolverIteration;
       if (ImGui::DragInt("Velocity solver iteration", &vi, 1, 1, 100)) {
-        manager.m_velocitySolverIteration = vi;
+        m_velocitySolverIteration = vi;
       }
       if (ImGui::DragInt("Position solver iteration", &pi, 1, 1, 100)) {
-        manager.m_positionSolverIteration = pi;
+        m_positionSolverIteration = pi;
       }
       ImGui::Separator();
       ImGui::Text("Foliage");
-      ImGui::DragInt("Leaf amount", &manager.m_leafAmount, 0, 0, 50);
-      ImGui::DragFloat("Generation radius", &manager.m_radius, 0.01, 0.01, 10);
-      ImGui::DragFloat2("Leaf size", &manager.m_leafSize.x, 0.01, 0.01, 10);
+      ImGui::DragInt("Leaf amount", &m_leafAmount, 0, 0, 50);
+      ImGui::DragFloat("Generation radius", &m_radius, 0.01, 0.01, 10);
+      ImGui::DragFloat2("Leaf size", &m_leafSize.x, 0.01, 0.01, 10);
       ImGui::Separator();
       ImGui::Text("Crown shyness");
-      ImGui::DragFloat("Crown shyness D", &manager.m_crownShynessDiameter,
-                       0.01f, 0.0f, 2.0f);
-      if (manager.m_crownShynessDiameter >
-          manager.m_voxelSpaceModule.GetDiameter())
+      ImGui::DragFloat("Crown shyness D", &m_crownShynessDiameter, 0.01f, 0.0f,
+                       2.0f);
+      if (m_crownShynessDiameter > m_voxelSpaceModule.GetDiameter())
         Debug::Error("Diameter too large!");
 
       ImGui::Separator();
       ImGui::Text("Metadata");
       if (ImGui::Button("Update metadata")) {
-        UpdateTreesMetaData(PlantManager::GetInstance());
+        UpdateTreesMetaData();
       }
       ImGui::Separator();
 
@@ -821,15 +791,13 @@ void TreeManager::OnGui() {
         Application::SetPlaying(false);
       }
 
-      ImGui::DragFloat("Mesh resolution", &manager.m_meshResolution, 0.001f, 0,
-                       1);
-      ImGui::DragFloat("Mesh subdivision", &manager.m_meshSubdivision, 0.001f,
-                       0, 1);
+      ImGui::DragFloat("Mesh resolution", &m_meshResolution, 0.001f, 0, 1);
+      ImGui::DragFloat("Mesh subdivision", &m_meshSubdivision, 0.001f, 0, 1);
       if (ImGui::Button("Generate mesh")) {
-        GenerateMeshForTree(PlantManager::GetInstance());
+        GenerateMeshForTree();
       }
       FileIO::SaveFile("Save scene as XML", ".xml",
-                       [](const std::string &path) { SerializeScene(path); });
+                       [this](const std::string &path) { SerializeScene(path); });
       const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
       ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
       if (ImGui::BeginPopupModal("New tree wizard", nullptr,
@@ -991,115 +959,105 @@ void TreeManager::OnGui() {
       if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Settings")) {
 #pragma region Menu
-          ImGui::Checkbox("Force update", &manager.m_alwaysUpdate);
-          ImGui::SliderFloat("Display Time", &manager.m_displayTime, 0.0f,
-                             plantManager.m_globalTime);
+          ImGui::Checkbox("Force update", &m_alwaysUpdate);
+          ImGui::SliderFloat("Display Time", &m_displayTime, 0.0f,
+                             m_plantSystem->m_globalTime);
           if (ImGui::ButtonEx("To present", ImVec2(0, 0),
-                              manager.m_displayTime != plantManager.m_globalTime
+                              m_displayTime != m_plantSystem->m_globalTime
                                   ? 0
                                   : ImGuiButtonFlags_Disabled))
-            manager.m_displayTime = plantManager.m_globalTime;
-          if (manager.m_displayTime != plantManager.m_globalTime) {
+            m_displayTime = m_plantSystem->m_globalTime;
+          if (m_displayTime != m_plantSystem->m_globalTime) {
             ImGui::SameLine();
             if (ImGui::Button("Start from here.")) {
-              ResetTimeForTree(manager.m_displayTime);
+              ResetTimeForTree(m_displayTime);
             }
           }
 
-          ImGui::Checkbox("Connections", &manager.m_drawBranches);
-          if (manager.m_drawBranches) {
+          ImGui::Checkbox("Connections", &m_drawBranches);
+          if (m_drawBranches) {
             if (ImGui::TreeNodeEx("Connection settings",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Render type", (int *)&manager.m_branchRenderType,
+              ImGui::Combo("Render type", (int *)&m_branchRenderType,
                            BranchRenderTypes, IM_ARRAYSIZE(BranchRenderTypes));
-              ImGui::Checkbox("As transparency", &manager.m_useTransparency);
-              if (manager.m_useTransparency)
-                ImGui::SliderFloat("Alpha", &manager.m_transparency, 0, 1);
-              ImGui::Checkbox("Compress", &manager.m_enableBranchDataCompress);
-              if (manager.m_enableBranchDataCompress)
-                ImGui::DragFloat("Compress factor",
-                                 &manager.m_branchCompressFactor, 0.01f, 0.01f,
-                                 1.0f);
-              ImGui::Checkbox("Color Map", &manager.m_useColorMap);
-              if (manager.m_useColorMap) {
+              ImGui::Checkbox("As transparency", &m_useTransparency);
+              if (m_useTransparency)
+                ImGui::SliderFloat("Alpha", &m_transparency, 0, 1);
+              ImGui::Checkbox("Compress", &m_enableBranchDataCompress);
+              if (m_enableBranchDataCompress)
+                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
+                                 0.01f, 0.01f, 1.0f);
+              ImGui::Checkbox("Color Map", &m_useColorMap);
+              if (m_useColorMap) {
                 static int savedAmount = 3;
-                ImGui::SliderInt("Slot amount",
-                                 &manager.m_colorMapSegmentAmount, 2, 10);
-                if (savedAmount != manager.m_colorMapSegmentAmount) {
-                  manager.m_colorMapValues.resize(
-                      manager.m_colorMapSegmentAmount);
-                  manager.m_colorMapColors.resize(
-                      manager.m_colorMapSegmentAmount);
-                  for (int i = 0; i < manager.m_colorMapSegmentAmount; i++) {
-                    if (i != 0 && manager.m_colorMapValues[i] <
-                                      manager.m_colorMapValues[i - 1])
-                      manager.m_colorMapValues[i] =
-                          manager.m_colorMapValues[i - 1] + 1;
+                ImGui::SliderInt("Slot amount", &m_colorMapSegmentAmount, 2,
+                                 10);
+                if (savedAmount != m_colorMapSegmentAmount) {
+                  m_colorMapValues.resize(m_colorMapSegmentAmount);
+                  m_colorMapColors.resize(m_colorMapSegmentAmount);
+                  for (int i = 0; i < m_colorMapSegmentAmount; i++) {
+                    if (i != 0 && m_colorMapValues[i] < m_colorMapValues[i - 1])
+                      m_colorMapValues[i] = m_colorMapValues[i - 1] + 1;
                     if (i >= savedAmount)
-                      manager.m_colorMapColors[i] =
+                      m_colorMapColors[i] =
                           glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
                   }
-                  savedAmount = manager.m_colorMapSegmentAmount;
+                  savedAmount = m_colorMapSegmentAmount;
                 }
-                for (int i = 0; i < manager.m_colorMapValues.size(); i++) {
+                for (int i = 0; i < m_colorMapValues.size(); i++) {
                   if (i == 0) {
-                    ImGui::DragFloat("Value 0", &manager.m_colorMapValues[0],
-                                     0.1f, 0.0f, manager.m_colorMapValues[1]);
-                    ImGui::ColorEdit3("Color 0",
-                                      &manager.m_colorMapColors[0].x);
-                  } else if (i == manager.m_colorMapValues.size() - 1) {
+                    ImGui::DragFloat("Value 0", &m_colorMapValues[0], 0.1f,
+                                     0.0f, m_colorMapValues[1]);
+                    ImGui::ColorEdit3("Color 0", &m_colorMapColors[0].x);
+                  } else if (i == m_colorMapValues.size() - 1) {
                     ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
-                                     &manager.m_colorMapValues[i], 0.1f,
-                                     manager.m_colorMapValues[i - 1] + 0.1f,
-                                     9999.0f);
+                                     &m_colorMapValues[i], 0.1f,
+                                     m_colorMapValues[i - 1] + 0.1f, 9999.0f);
                     ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
-                                      &manager.m_colorMapColors[i].x);
+                                      &m_colorMapColors[i].x);
                   } else {
                     ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
-                                     &manager.m_colorMapValues[i], 0.1f,
-                                     manager.m_colorMapValues[i - 1] + 0.1f,
-                                     manager.m_colorMapValues[i + 1]);
+                                     &m_colorMapValues[i], 0.1f,
+                                     m_colorMapValues[i - 1] + 0.1f,
+                                     m_colorMapValues[i + 1]);
                     ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
-                                      &manager.m_colorMapColors[i].x);
+                                      &m_colorMapColors[i].x);
                   }
                 }
               }
 
-              if (ImGui::Checkbox("Display thickness",
-                                  &manager.m_displayThickness))
-                manager.m_updateBranch = true;
-              if (!manager.m_displayThickness)
-                if (ImGui::DragFloat("Connection width",
-                                     &manager.m_connectionWidth, 0.01f, 0.01f,
-                                     1.0f))
-                  manager.m_updateBranch = true;
+              if (ImGui::Checkbox("Display thickness", &m_displayThickness))
+                m_updateBranch = true;
+              if (!m_displayThickness)
+                if (ImGui::DragFloat("Connection width", &m_connectionWidth,
+                                     0.01f, 0.01f, 1.0f))
+                  m_updateBranch = true;
               ImGui::TreePop();
             }
           }
-          ImGui::Checkbox("Pointers", &manager.m_drawPointers);
-          if (manager.m_drawPointers) {
+          ImGui::Checkbox("Pointers", &m_drawPointers);
+          if (m_drawPointers) {
             if (ImGui::TreeNodeEx("Pointer settings",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Render type", (int *)&manager.m_pointerRenderType,
+              ImGui::Combo("Render type", (int *)&m_pointerRenderType,
                            PointerRenderTypes,
                            IM_ARRAYSIZE(PointerRenderTypes));
-              ImGui::Checkbox("Compress", &manager.m_enablePointerDataCompress);
-              if (manager.m_pointerCompressFactor)
-                ImGui::DragFloat("Compress factor",
-                                 &manager.m_branchCompressFactor, 0.01f, 0.01f,
-                                 1.0f);
-              if (ImGui::ColorEdit4("Pointer color", &manager.m_pointerColor.x))
-                manager.m_updatePointer = true;
-              if (ImGui::DragFloat("Pointer length", &manager.m_pointerLength,
-                                   0.01f, 0.01f, 3.0f))
-                manager.m_updatePointer = true;
-              if (ImGui::DragFloat("Pointer width", &manager.m_pointerWidth,
-                                   0.01f, 0.01f, 1.0f))
-                manager.m_updatePointer = true;
+              ImGui::Checkbox("Compress", &m_enablePointerDataCompress);
+              if (m_pointerCompressFactor)
+                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
+                                 0.01f, 0.01f, 1.0f);
+              if (ImGui::ColorEdit4("Pointer color", &m_pointerColor.x))
+                m_updatePointer = true;
+              if (ImGui::DragFloat("Pointer length", &m_pointerLength, 0.01f,
+                                   0.01f, 3.0f))
+                m_updatePointer = true;
+              if (ImGui::DragFloat("Pointer width", &m_pointerWidth, 0.01f,
+                                   0.01f, 1.0f))
+                m_updatePointer = true;
               ImGui::TreePop();
             }
           }
-          manager.m_voxelSpaceModule.OnGui();
+          m_voxelSpaceModule.OnGui();
 
 #pragma endregion
           ImGui::EndMenu();
@@ -1110,11 +1068,11 @@ void TreeManager::OnGui() {
       viewPortSize.y -= 20;
       if (viewPortSize.y < 0)
         viewPortSize.y = 0;
-      manager.m_internodeDebuggingCameraResolutionX = viewPortSize.x;
-      manager.m_internodeDebuggingCameraResolutionY = viewPortSize.y;
+      m_internodeDebuggingCameraResolutionX = viewPortSize.x;
+      m_internodeDebuggingCameraResolutionY = viewPortSize.y;
       ImGui::Image(
           reinterpret_cast<ImTextureID>(
-              manager.m_internodeDebuggingCamera.GetTexture()->Texture()->Id()),
+              m_internodeDebuggingCamera.GetTexture()->Texture()->Id()),
           viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
       glm::vec2 mousePosition = glm::vec2(FLT_MAX, FLT_MIN);
       if (ImGui::IsWindowFocused()) {
@@ -1124,22 +1082,22 @@ void TreeManager::OnGui() {
         float xOffset = 0;
         float yOffset = 0;
         if (valid) {
-          if (!manager.m_startMouse) {
-            manager.m_lastX = mousePosition.x;
-            manager.m_lastY = mousePosition.y;
-            manager.m_startMouse = true;
+          if (!m_startMouse) {
+            m_lastX = mousePosition.x;
+            m_lastY = mousePosition.y;
+            m_startMouse = true;
           }
-          xOffset = mousePosition.x - manager.m_lastX;
-          yOffset = -mousePosition.y + manager.m_lastY;
-          manager.m_lastX = mousePosition.x;
-          manager.m_lastY = mousePosition.y;
+          xOffset = mousePosition.x - m_lastX;
+          yOffset = -mousePosition.y + m_lastY;
+          m_lastX = mousePosition.x;
+          m_lastY = mousePosition.y;
 #pragma region Scene Camera Controller
-          if (!manager.m_rightMouseButtonHold &&
+          if (!m_rightMouseButtonHold &&
               InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
                                              WindowManager::GetWindow())) {
-            manager.m_rightMouseButtonHold = true;
+            m_rightMouseButtonHold = true;
           }
-          if (manager.m_rightMouseButtonHold &&
+          if (m_rightMouseButtonHold &&
               !EditorManager::GetInstance().m_lockCamera) {
             glm::vec3 front =
                 EditorManager::GetInstance().m_sceneCameraRotation *
@@ -1201,9 +1159,9 @@ void TreeManager::OnGui() {
             }
           }
 #pragma endregion
-          if (manager.m_drawBranches) {
+          if (m_drawBranches) {
 #pragma region Ray selection
-            manager.m_currentFocusingInternode = Entity();
+            m_currentFocusingInternode = Entity();
             std::mutex writeMutex;
             auto windowPos = ImGui::GetWindowPos();
             auto windowSize = ImGui::GetWindowSize();
@@ -1217,12 +1175,11 @@ void TreeManager::OnGui() {
                     EditorManager::GetInstance().m_sceneCameraPosition) *
                 glm::mat4_cast(
                     EditorManager::GetInstance().m_sceneCameraRotation);
-            const Ray cameraRay =
-                manager.m_internodeDebuggingCamera.ScreenPointToRay(
-                    cameraLtw, mousePosition);
+            const Ray cameraRay = m_internodeDebuggingCamera.ScreenPointToRay(
+                cameraLtw, mousePosition);
             EntityManager::ForEach<GlobalTransform, BranchCylinderWidth,
                                    InternodeGrowth>(
-                JobManager::PrimaryWorkers(), plantManager.m_internodeQuery,
+                JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
                 [&, cameraLtw, cameraRay](int i, Entity entity,
                                           GlobalTransform &ltw,
                                           BranchCylinderWidth &width,
@@ -1282,14 +1239,13 @@ void TreeManager::OnGui() {
                   std::lock_guard<std::mutex> lock(writeMutex);
                   if (distance < minDistance) {
                     minDistance = distance;
-                    manager.m_currentFocusingInternode = entity;
+                    m_currentFocusingInternode = entity;
                   }
                 });
             if (InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT,
                                                WindowManager::GetWindow())) {
-              if (!manager.m_currentFocusingInternode.IsNull()) {
-                EditorManager::SetSelectedEntity(
-                    manager.m_currentFocusingInternode);
+              if (!m_currentFocusingInternode.IsNull()) {
+                EditorManager::SetSelectedEntity(m_currentFocusingInternode);
               }
             }
 #pragma endregion
@@ -1299,7 +1255,7 @@ void TreeManager::OnGui() {
     }
     ImGui::EndChild();
     auto *window = ImGui::FindWindowByName("Tree Internodes");
-    manager.m_internodeDebuggingCamera.SetEnabled(
+    m_internodeDebuggingCamera.SetEnabled(
         !(window->Hidden && !window->Collapsed));
   }
   ImGui::End();
@@ -1308,23 +1264,21 @@ void TreeManager::OnGui() {
 #pragma endregion
 }
 
-void TreeManager::RenderBranchCylinders(const float &displayTime) {
+void TreeSystem::RenderBranchCylinders(const float &displayTime) {
   std::vector<BranchCylinder> branchCylinders;
-  auto &plantManager = PlantManager::GetInstance();
-  auto &manager = GetInstance();
-  plantManager.m_internodeQuery
+  m_plantSystem->m_internodeQuery
       .ToComponentDataArray<BranchCylinder, InternodeInfo>(
           branchCylinders, [displayTime](const InternodeInfo &internodeInfo) {
             return internodeInfo.m_startGlobalTime <= displayTime;
           });
   std::vector<BranchColor> branchColors;
-  plantManager.m_internodeQuery
+  m_plantSystem->m_internodeQuery
       .ToComponentDataArray<BranchColor, InternodeInfo>(
           branchColors, [displayTime](const InternodeInfo &internodeInfo) {
             return internodeInfo.m_startGlobalTime <= displayTime;
           });
   std::vector<Entity> rootInternodes;
-  plantManager.m_internodeQuery.ToEntityArray<InternodeGrowth>(
+  m_plantSystem->m_internodeQuery.ToEntityArray<InternodeGrowth>(
       rootInternodes, [displayTime](const Entity &entity,
                                     const InternodeGrowth &internodeGrowth) {
         return internodeGrowth.m_distanceToRoot == 0;
@@ -1338,20 +1292,19 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
           0.05f,
           i.GetChildren()[0].GetDataComponent<InternodeGrowth>().m_thickness);
     RenderManager::DrawGizmoMesh(
-        DefaultResources::Primitives::Sphere.get(),
-        manager.m_internodeDebuggingCamera,
+        DefaultResources::Primitives::Sphere.get(), m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation,
-        EditorManager::GetSelectedEntity() == i   ? glm::vec4(1)
-        : manager.m_currentFocusingInternode == i ? glm::vec4(0, 0, 1, 1)
-                                                  : glm::vec4(1, 0, 1, 1),
+        EditorManager::GetSelectedEntity() == i ? glm::vec4(1)
+        : m_currentFocusingInternode == i       ? glm::vec4(0, 0, 1, 1)
+                                                : glm::vec4(1, 0, 1, 1),
         gt.m_value, thickness * 2.0f);
   }
 
   if (!branchCylinders.empty())
     RenderManager::DrawGizmoMeshInstancedColored(
         DefaultResources::Primitives::Cylinder.get(),
-        manager.m_internodeDebuggingCamera,
+        m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation,
         *reinterpret_cast<std::vector<glm::vec4> *>(&branchColors),
@@ -1359,11 +1312,9 @@ void TreeManager::RenderBranchCylinders(const float &displayTime) {
         glm::mat4(1.0f), 1.0f);
 }
 
-void TreeManager::RenderBranchPointers(const float &displayTime) {
+void TreeSystem::RenderBranchPointers(const float &displayTime) {
   std::vector<BranchPointer> branchPointers;
-  auto &plantManager = PlantManager::GetInstance();
-  auto &manager = GetInstance();
-  plantManager.m_internodeQuery
+  m_plantSystem->m_internodeQuery
       .ToComponentDataArray<BranchPointer, InternodeInfo>(
           branchPointers, [displayTime](const InternodeInfo &internodeInfo) {
             return internodeInfo.m_startGlobalTime <= displayTime;
@@ -1371,17 +1322,16 @@ void TreeManager::RenderBranchPointers(const float &displayTime) {
   if (!branchPointers.empty())
     RenderManager::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Cylinder.get(),
-        manager.m_internodeDebuggingCamera,
+        m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
-        EditorManager::GetInstance().m_sceneCameraRotation,
-        manager.m_pointerColor,
+        EditorManager::GetInstance().m_sceneCameraRotation, m_pointerColor,
         *reinterpret_cast<std::vector<glm::mat4> *>(&branchPointers),
         glm::mat4(1.0f), 1.0f);
 }
 
-void TreeManager::TreeNodeWalker(std::vector<Entity> &boundEntities,
-                                 std::vector<int> &parentIndices,
-                                 const int &parentIndex, const Entity &node) {
+void TreeSystem::TreeNodeWalker(std::vector<Entity> &boundEntities,
+                                std::vector<int> &parentIndices,
+                                const int &parentIndex, const Entity &node) {
   boundEntities.push_back(node);
   parentIndices.push_back(parentIndex);
   const size_t currentIndex = boundEntities.size() - 1;
@@ -1393,15 +1343,10 @@ void TreeManager::TreeNodeWalker(std::vector<Entity> &boundEntities,
   });
 }
 
-TreeManager &TreeManager::GetInstance() {
-  static TreeManager instance;
-  return instance;
-}
-
-void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes,
-                                    std::vector<int> &parentIndices,
-                                    std::vector<Vertex> &vertices,
-                                    std::vector<unsigned> &indices) {
+void TreeSystem::TreeMeshGenerator(std::vector<Entity> &internodes,
+                                   std::vector<int> &parentIndices,
+                                   std::vector<Vertex> &vertices,
+                                   std::vector<unsigned> &indices) {
   int parentStep = -1;
   for (int internodeIndex = 1; internodeIndex < internodes.size();
        internodeIndex++) {
@@ -1527,10 +1472,10 @@ void TreeManager::TreeMeshGenerator(std::vector<Entity> &internodes,
   }
 }
 
-void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes,
-                                           std::vector<int> &parentIndices,
-                                           std::vector<SkinnedVertex> &vertices,
-                                           std::vector<unsigned> &indices) {
+void TreeSystem::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes,
+                                          std::vector<int> &parentIndices,
+                                          std::vector<SkinnedVertex> &vertices,
+                                          std::vector<unsigned> &indices) {
   int parentStep = -1;
   for (int internodeIndex = 1; internodeIndex < internodes.size();
        internodeIndex++) {
@@ -1683,21 +1628,20 @@ void TreeManager::TreeSkinnedMeshGenerator(std::vector<Entity> &internodes,
   }
 }
 
-void TreeManager::GenerateMeshForTree(PlantManager &manager) {
-  auto &treeManager = GetInstance();
-  if (treeManager.m_meshResolution <= 0.0f) {
-    Debug::Error("TreeManager: Resolution must be larger than 0!");
+void TreeSystem::GenerateMeshForTree() {
+  if (m_meshResolution <= 0.0f) {
+    Debug::Error("TreeSystem: Resolution must be larger than 0!");
     return;
   }
-  int plantSize = manager.m_plants.size();
+  int plantSize = m_plantSystem->m_plants.size();
   std::vector<std::vector<Entity>> boundEntitiesLists;
   std::vector<std::vector<unsigned>> boneIndicesLists;
   std::vector<std::vector<int>> parentIndicesLists;
   boundEntitiesLists.resize(plantSize);
   boneIndicesLists.resize(plantSize);
   parentIndicesLists.resize(plantSize);
-  for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
-    const auto &plant = manager.m_plants[plantIndex];
+  for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size(); plantIndex++) {
+    const auto &plant = m_plantSystem->m_plants[plantIndex];
     if (Entity rootInternode = GetRootInternode(plant);
         !rootInternode.IsNull()) {
       const auto plantGlobalTransform =
@@ -1714,8 +1658,8 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
 #pragma region Prepare rings for branch mesh.
   EntityManager::ForEach<GlobalTransform, Transform, InternodeGrowth,
                          InternodeInfo>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
-      [&](int i, Entity internode, GlobalTransform &globalTransform,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
+      [this](int i, Entity internode, GlobalTransform &globalTransform,
           Transform &transform, InternodeGrowth &internodeGrowth,
           InternodeInfo &internodeInfo) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
@@ -1783,14 +1727,14 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
 #pragma region Subdivision internode here.
         auto distance = glm::distance(parentTranslation, translation);
 
-        int step = parentThickness / treeManager.m_meshResolution;
+        int step = parentThickness / m_meshResolution;
         if (step < 4)
           step = 4;
         if (step % 2 != 0)
           step++;
         list.m_step = step;
         int amount =
-            static_cast<int>(0.5f + distance * treeManager.m_meshSubdivision);
+            static_cast<int>(0.5f + distance * m_meshSubdivision);
         if (amount % 2 != 0)
           amount++;
         BezierCurve curve = BezierCurve(
@@ -1828,7 +1772,7 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
   std::mutex mutex;
   EntityManager::ForEach<GlobalTransform, InternodeInfo, InternodeStatistics,
                          Illumination>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform,
           InternodeInfo &internodeInfo,
           InternodeStatistics &internodeStatistics,
@@ -1850,16 +1794,16 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
         std::lock_guard lock(mutex);
         auto inversePlantGlobalTransform = glm::inverse(
             internodeInfo.m_plant.GetDataComponent<GlobalTransform>().m_value);
-        for (int i = 0; i < treeManager.m_leafAmount; i++) {
+        for (int i = 0; i < m_leafAmount; i++) {
           const auto transform =
               inversePlantGlobalTransform * globalTransform.m_value *
               (glm::translate(
-                   glm::linearRand(glm::vec3(-treeManager.m_radius),
-                                   glm::vec3(treeManager.m_radius))) *
+                   glm::linearRand(glm::vec3(-m_radius),
+                                   glm::vec3(m_radius))) *
                glm::mat4_cast(glm::quat(glm::radians(
                    glm::linearRand(glm::vec3(0.0f), glm::vec3(360.0f))))) *
-               glm::scale(glm::vec3(treeManager.m_leafSize.x, 1.0f,
-                                    treeManager.m_leafSize.y)));
+               glm::scale(glm::vec3(m_leafSize.x, 1.0f,
+                                    m_leafSize.y)));
           internodeData.m_leavesTransforms.push_back(transform);
           treeLeaves.m_transforms.push_back(transform);
           treeLeaves.m_targetBoneIndices.push_back(internodeInfo.m_index);
@@ -1884,8 +1828,8 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
                 */
       });
 #pragma endregion
-  for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
-    const auto &plant = manager.m_plants[plantIndex];
+  for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size(); plantIndex++) {
+    const auto &plant = m_plantSystem->m_plants[plantIndex];
     if (plant.GetDataComponent<PlantInfo>().m_plantType !=
         PlantType::GeneralTree)
       continue;
@@ -1948,14 +1892,12 @@ void TreeManager::GenerateMeshForTree(PlantManager &manager) {
   }
 }
 
-void TreeManager::FormCandidates(PlantManager &manager,
-                                 std::vector<InternodeCandidate> &candidates) {
-  const float globalTime = manager.m_globalTime;
+void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
+  const float globalTime = m_plantSystem->m_globalTime;
   std::mutex mutex;
   EntityManager::ForEach<GlobalTransform, Transform, InternodeInfo,
                          InternodeGrowth, InternodeStatistics, Illumination>(
-      JobManager::PrimaryWorkers(),
-      PlantManager::GetInstance().m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&, globalTime](int index, Entity internode,
                       GlobalTransform &globalTransform, Transform &transform,
                       InternodeInfo &internodeInfo,
@@ -2026,14 +1968,14 @@ void TreeManager::FormCandidates(PlantManager &manager,
               globalDesiredRotation * glm::vec3(0.0f, 0.0f, -1.0f);
           glm::vec3 desiredUp =
               globalDesiredRotation * glm::vec3(0.0f, 1.0f, 0.0f);
-          PlantManager::ApplyTropism(
+          m_plantSystem->ApplyTropism(
               -treeData.m_gravityDirection,
               GetGrowthParameter(GrowthParameterType::Gravitropism, treeData,
                                  internodeInfo, internodeGrowth,
                                  internodeStatistics),
               desiredFront, desiredUp);
           if (internodeIllumination.m_accumulatedDirection != glm::vec3(0.0f))
-            PlantManager::ApplyTropism(
+            m_plantSystem->ApplyTropism(
                 glm::normalize(internodeIllumination.m_accumulatedDirection),
                 GetGrowthParameter(GrowthParameterType::Phototropism, treeData,
                                    internodeInfo, internodeGrowth,
@@ -2125,10 +2067,11 @@ void TreeManager::FormCandidates(PlantManager &manager,
       false);
 }
 
-float TreeManager::GetGrowthParameter(
-    const GrowthParameterType &type, TreeData &treeData,
-    InternodeInfo &internodeInfo, InternodeGrowth &internodeGrowth,
-    InternodeStatistics &internodeStatistics) {
+float TreeSystem::GetGrowthParameter(const GrowthParameterType &type,
+                                     TreeData &treeData,
+                                     InternodeInfo &internodeInfo,
+                                     InternodeGrowth &internodeGrowth,
+                                     InternodeStatistics &internodeStatistics) {
   float value = 0;
   switch (type) {
   case GrowthParameterType::InhibitorTransmitFactor:
@@ -2174,16 +2117,14 @@ float TreeManager::GetGrowthParameter(
   return value;
 }
 
-void TreeManager::PruneTrees(
-    PlantManager &manager,
+void TreeSystem::PruneTrees(
     std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
-  auto &treeManager = GetInstance();
-  treeManager.m_voxelSpaceModule.Clear();
+  m_voxelSpaceModule.Clear();
   EntityManager::ForEach<GlobalTransform, InternodeInfo>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform,
           InternodeInfo &internodeInfo) {
-        treeManager.m_voxelSpaceModule.Push(globalTransform.GetPosition(),
+        m_voxelSpaceModule.Push(globalTransform.GetPosition(),
                                             internodeInfo.m_plant, internode);
       });
 
@@ -2194,18 +2135,18 @@ void TreeManager::PruneTrees(
   std::vector<float> avoidanceAngles;
   std::vector<float> internodeLengths;
   std::vector<RadialBoundingVolume *> rbvs;
-  distanceLimits.resize(manager.m_plants.size());
-  randomCutOffs.resize(manager.m_plants.size());
-  randomCutOffAgeFactors.resize(manager.m_plants.size());
-  randomCutOffMaxes.resize(manager.m_plants.size());
-  avoidanceAngles.resize(manager.m_plants.size());
-  internodeLengths.resize(manager.m_plants.size());
-  rbvs.resize(manager.m_plants.size());
-  for (int i = 0; i < manager.m_plants.size(); i++) {
-    if (manager.m_plants[i].HasPrivateComponent<TreeData>()) {
-      auto &treeData = manager.m_plants[i].GetPrivateComponent<TreeData>();
+  distanceLimits.resize(m_plantSystem->m_plants.size());
+  randomCutOffs.resize(m_plantSystem->m_plants.size());
+  randomCutOffAgeFactors.resize(m_plantSystem->m_plants.size());
+  randomCutOffMaxes.resize(m_plantSystem->m_plants.size());
+  avoidanceAngles.resize(m_plantSystem->m_plants.size());
+  internodeLengths.resize(m_plantSystem->m_plants.size());
+  rbvs.resize(m_plantSystem->m_plants.size());
+  for (int i = 0; i < m_plantSystem->m_plants.size(); i++) {
+    if (m_plantSystem->m_plants[i].HasPrivateComponent<TreeData>()) {
+      auto &treeData = m_plantSystem->m_plants[i].GetPrivateComponent<TreeData>();
       distanceLimits[i] = 0;
-      manager.m_plants[i].ForEachChild([&](Entity child) {
+      m_plantSystem->m_plants[i].ForEachChild([&](Entity child) {
         if (child.HasDataComponent<InternodeInfo>())
           distanceLimits[i] = child.GetDataComponent<InternodeStatistics>()
                                   .m_longestDistanceToAnyEndNode;
@@ -2216,15 +2157,15 @@ void TreeManager::PruneTrees(
       randomCutOffMaxes[i] = treeData.m_parameters.m_randomCutOffMax;
       avoidanceAngles[i] = treeData.m_parameters.m_avoidanceAngle;
       internodeLengths[i] = treeData.m_parameters.m_internodeLengthBase;
-      rbvs[i] = &GetRbv(manager.m_plants[i])
-                     .GetPrivateComponent<RadialBoundingVolume>();
+      rbvs[i] =
+          &GetRbv(m_plantSystem->m_plants[i]).GetPrivateComponent<RadialBoundingVolume>();
     }
   }
   std::vector<Entity> cutOff;
   std::mutex mutex;
   EntityManager::ForEach<GlobalTransform, InternodeInfo, Illumination,
                          InternodeStatistics, InternodeGrowth>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform,
           InternodeInfo &internodeInfo, Illumination &illumination,
           InternodeStatistics &internodeStatistics,
@@ -2240,8 +2181,8 @@ void TreeManager::PruneTrees(
             return;
           }
         }
-        for (int i = 0; i < manager.m_plants.size(); i++) {
-          if (manager.m_plants[i] == internodeInfo.m_plant) {
+        for (int i = 0; i < m_plantSystem->m_plants.size(); i++) {
+          if (m_plantSystem->m_plants[i] == internodeInfo.m_plant) {
             targetIndex = i;
             break;
           }
@@ -2264,7 +2205,7 @@ void TreeManager::PruneTrees(
             globalTransform.GetRotation() * glm::vec3(0, 0, -1);
         const float angle = avoidanceAngles[targetIndex];
         if (angle > 0 &&
-            treeManager.m_voxelSpaceModule.HasObstacleConeSameOwner(
+            m_voxelSpaceModule.HasObstacleConeSameOwner(
                 angle,
                 globalTransform.GetPosition() -
                     direction * internodeLengths[targetIndex],
@@ -2274,18 +2215,18 @@ void TreeManager::PruneTrees(
           cutOff.push_back(internode);
           return;
         }
-        if (treeManager.m_voxelSpaceModule.HasNeighborFromDifferentOwner(
+        if (m_voxelSpaceModule.HasNeighborFromDifferentOwner(
                 globalTransform.GetPosition(), internodeInfo.m_plant,
-                treeManager.m_crownShynessDiameter)) {
+                m_crownShynessDiameter)) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
         }
-        const float randomCutOffProb = glm::min(
-            manager.m_deltaTime * randomCutOffMaxes[targetIndex],
-            manager.m_deltaTime * randomCutOffs[targetIndex] +
-                (manager.m_globalTime - internodeInfo.m_startGlobalTime) *
-                    randomCutOffAgeFactors[targetIndex]);
+        const float randomCutOffProb =
+            glm::min(m_plantSystem->m_deltaTime * randomCutOffMaxes[targetIndex],
+                     m_plantSystem->m_deltaTime * randomCutOffs[targetIndex] +
+                         (m_plantSystem->m_globalTime - internodeInfo.m_startGlobalTime) *
+                             randomCutOffAgeFactors[targetIndex]);
         if (glm::linearRand(0.0f, 1.0f) < randomCutOffProb) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
@@ -2297,10 +2238,10 @@ void TreeManager::PruneTrees(
     EntityManager::DeleteEntity(i);
 }
 
-void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
+void TreeSystem::UpdateTreesMetaData() {
   EntityManager::ForEach<PlantInfo, GlobalTransform>(
-      JobManager::PrimaryWorkers(), manager.m_plantQuery,
-      [](int i, Entity tree, PlantInfo &plantInfo,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_plantQuery,
+      [this](int i, Entity tree, PlantInfo &plantInfo,
          GlobalTransform &globalTransform) {
         if (plantInfo.m_plantType != PlantType::GeneralTree)
           return;
@@ -2319,8 +2260,8 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
       },
       false);
 
-  for (int plantIndex = 0; plantIndex < manager.m_plants.size(); plantIndex++) {
-    const auto &plant = manager.m_plants[plantIndex];
+  for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size(); plantIndex++) {
+    const auto &plant = m_plantSystem->m_plants[plantIndex];
     if (plant.GetDataComponent<PlantInfo>().m_plantType !=
         PlantType::GeneralTree)
       continue;
@@ -2334,7 +2275,7 @@ void TreeManager::UpdateTreesMetaData(PlantManager &manager) {
   }
 }
 
-void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
+void TreeSystem::UpdateDistances(const Entity &internode, TreeData &treeData) {
   Entity currentInternode = internode;
   auto currentInternodeInfo = internode.GetDataComponent<InternodeInfo>();
   auto currentInternodeGrowth = internode.GetDataComponent<InternodeGrowth>();
@@ -2583,8 +2524,7 @@ void TreeManager::UpdateDistances(const Entity &internode, TreeData &treeData) {
 #pragma endregion
 }
 
-void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
-  auto &treeManager = GetInstance();
+void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
   auto currentInternode = internode;
   auto currentInternodeInfo = internode.GetDataComponent<InternodeInfo>();
   auto currentInternodeGlobalTransform =
@@ -2605,8 +2545,8 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
                                childInternodeGrowth.m_desiredLocalRotation;
     glm::vec3 front = globalRotation * glm::vec3(0, 0, -1);
     glm::vec3 up = globalRotation * glm::vec3(0, 1, 0);
-    PlantManager::ApplyTropism(glm::vec3(0, -1, 0),
-                               childInternodeGrowth.m_sagging, front, up);
+    m_plantSystem->ApplyTropism(glm::vec3(0, -1, 0),
+                              childInternodeGrowth.m_sagging, front, up);
     globalRotation = glm::quatLookAt(front, up);
     const glm::vec3 globalPosition =
         currentInternodeGlobalTransform.GetPosition() +
@@ -2625,15 +2565,15 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     child.SetDataComponent(childInternodeGrowth);
     auto &rigidBody = child.GetPrivateComponent<RigidBody>();
     PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-    rigidBody.SetDensityAndMassCenter(treeManager.m_density *
+    rigidBody.SetDensityAndMassCenter(m_density *
                                       childInternodeGrowth.m_thickness *
                                       childInternodeGrowth.m_thickness);
     rigidBody.SetAngularVelocity(glm::vec3(0.0f));
     rigidBody.SetLinearVelocity(glm::vec3(0.0f));
-    rigidBody.SetLinearDamping(treeManager.m_linearDamping);
-    rigidBody.SetAngularDamping(treeManager.m_angularDamping);
-    rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration,
-                                  treeManager.m_velocitySolverIteration);
+    rigidBody.SetLinearDamping(m_linearDamping);
+    rigidBody.SetAngularDamping(m_angularDamping);
+    rigidBody.SetSolverIterations(m_positionSolverIteration,
+                                  m_velocitySolverIteration);
     auto &joint = child.GetPrivateComponent<Joint>();
     joint.Link(currentInternode);
     joint.SetType(JointType::D6);
@@ -2642,13 +2582,13 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
     joint.SetDrive(DriveType::Swing,
                    glm::pow(childInternodeGrowth.m_thickness /
                                 treeData.m_parameters.m_endNodeThickness,
-                            treeManager.m_jointDriveStiffnessThicknessFactor) *
-                       treeManager.m_jointDriveStiffnessFactor,
+                            m_jointDriveStiffnessThicknessFactor) *
+                       m_jointDriveStiffnessFactor,
                    glm::pow(childInternodeGrowth.m_thickness /
                                 treeData.m_parameters.m_endNodeThickness,
-                            treeManager.m_jointDriveDampingThicknessFactor) *
-                       treeManager.m_jointDriveDampingFactor,
-                   treeManager.m_enableAccelerationForDrive);
+                            m_jointDriveDampingThicknessFactor) *
+                       m_jointDriveDampingFactor,
+                   m_enableAccelerationForDrive);
 #pragma endregion
 #pragma region Retarget current internode
     currentInternode = child;
@@ -2697,9 +2637,9 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
                                  childInternodeGrowth.m_desiredLocalRotation;
       glm::vec3 front = globalRotation * glm::vec3(0, 0, -1);
       glm::vec3 up = globalRotation * glm::vec3(0, 1, 0);
-      PlantManager::ApplyTropism(childInternodeGrowth.m_desiredGlobalPosition -
-                                     childInternodeGrowth.m_childMeanPosition,
-                                 childInternodeGrowth.m_sagging, front, up);
+      m_plantSystem->ApplyTropism(childInternodeGrowth.m_desiredGlobalPosition -
+                                    childInternodeGrowth.m_childMeanPosition,
+                                childInternodeGrowth.m_sagging, front, up);
       globalRotation = glm::quatLookAt(front, up);
       const glm::vec3 globalPosition =
           currentInternodeGlobalTransform.GetPosition() +
@@ -2719,15 +2659,15 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
       child.SetDataComponent(childInternodeGrowth);
       auto &rigidBody = child.GetPrivateComponent<RigidBody>();
       PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
-      rigidBody.SetDensityAndMassCenter(treeManager.m_density *
+      rigidBody.SetDensityAndMassCenter(m_density *
                                         childInternodeGrowth.m_thickness *
                                         childInternodeGrowth.m_thickness);
       rigidBody.SetAngularVelocity(glm::vec3(0.0f));
       rigidBody.SetLinearVelocity(glm::vec3(0.0f));
-      rigidBody.SetLinearDamping(treeManager.m_linearDamping);
-      rigidBody.SetAngularDamping(treeManager.m_angularDamping);
-      rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration,
-                                    treeManager.m_velocitySolverIteration);
+      rigidBody.SetLinearDamping(m_linearDamping);
+      rigidBody.SetAngularDamping(m_angularDamping);
+      rigidBody.SetSolverIterations(m_positionSolverIteration,
+                                    m_velocitySolverIteration);
       auto &joint = child.GetPrivateComponent<Joint>();
       joint.Link(currentInternode);
       joint.SetType(JointType::D6);
@@ -2737,13 +2677,13 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
           DriveType::Swing,
           glm::pow(childInternodeGrowth.m_thickness /
                        treeData.m_parameters.m_endNodeThickness,
-                   treeManager.m_jointDriveStiffnessThicknessFactor) *
-              treeManager.m_jointDriveStiffnessFactor,
+                   m_jointDriveStiffnessThicknessFactor) *
+              m_jointDriveStiffnessFactor,
           glm::pow(childInternodeGrowth.m_thickness /
                        treeData.m_parameters.m_endNodeThickness,
-                   treeManager.m_jointDriveDampingThicknessFactor) *
-              treeManager.m_jointDriveDampingFactor,
-          treeManager.m_enableAccelerationForDrive);
+                   m_jointDriveDampingThicknessFactor) *
+              m_jointDriveDampingFactor,
+          m_enableAccelerationForDrive);
 
 #pragma endregion
       UpdateLevels(child, treeData);
@@ -2777,13 +2717,12 @@ void TreeManager::UpdateLevels(const Entity &internode, TreeData &treeData) {
 #pragma endregion
 }
 
-void TreeManager::ResetTimeForTree(const float &value) {
-  auto &manager = PlantManager::GetInstance();
-  if (value < 0 || value >= manager.m_globalTime)
+void TreeSystem::ResetTimeForTree(const float &value) {
+  if (value < 0 || value >= m_plantSystem->m_globalTime)
     return;
-  manager.m_globalTime = value;
+  m_plantSystem->m_globalTime = value;
   std::vector<Entity> trees;
-  manager.m_plantQuery.ToEntityArray(trees);
+  m_plantSystem->m_plantQuery.ToEntityArray(trees);
   for (const auto &tree : trees) {
     auto plantInfo = tree.GetDataComponent<PlantInfo>();
     if (plantInfo.m_startTime > value) {
@@ -2798,7 +2737,7 @@ void TreeManager::ResetTimeForTree(const float &value) {
     }
   }
   EntityManager::ForEach<InternodeInfo>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [value](int i, Entity internode, InternodeInfo &internodeInfo) {
         auto &childInternodeData =
             internode.GetPrivateComponent<InternodeData>();
@@ -2823,11 +2762,11 @@ void TreeManager::ResetTimeForTree(const float &value) {
         }
       },
       false);
-  UpdateTreesMetaData(manager);
+  UpdateTreesMetaData();
 }
 
-void TreeManager::ResetTimeForTree(const Entity &internode,
-                                   const float &globalTime) {
+void TreeSystem::ResetTimeForTree(const Entity &internode,
+                                  const float &globalTime) {
   Entity currentInternode = internode;
   while (currentInternode.GetChildrenAmount() == 1) {
     Entity child = currentInternode.GetChildren()[0];
@@ -2841,7 +2780,7 @@ void TreeManager::ResetTimeForTree(const Entity &internode,
 
   if (currentInternode.GetChildrenAmount() != 0) {
     std::vector<Entity> childrenToDelete;
-    currentInternode.ForEachChild([globalTime,
+    currentInternode.ForEachChild([this, globalTime,
                                    &childrenToDelete](Entity child) {
       const auto childInternodeInfo = child.GetDataComponent<InternodeInfo>();
       if (childInternodeInfo.m_startGlobalTime > globalTime) {
@@ -2855,9 +2794,9 @@ void TreeManager::ResetTimeForTree(const Entity &internode,
   }
 }
 
-void TreeManager::DistributeResourcesForTree(
-    PlantManager &manager, std::vector<ResourceParcel> &totalNutrients) {
-  auto &plants = manager.m_plants;
+void TreeSystem::DistributeResourcesForTree(
+    std::vector<ResourceParcel> &totalNutrients) {
+  auto &plants = m_plantSystem->m_plants;
   std::vector<float> divisors;
   std::vector<float> apicalControlLevelFactors;
   std::vector<float> resourceAllocationDistFactors;
@@ -2902,7 +2841,7 @@ void TreeManager::DistributeResourcesForTree(
   std::mutex maximumLock;
   EntityManager::ForEach<GlobalTransform, InternodeInfo, InternodeGrowth,
                          InternodeStatistics>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform,
           InternodeInfo &internodeInfo, InternodeGrowth &internodeGrowth,
           InternodeStatistics &internodeStatistics) {
@@ -2939,11 +2878,11 @@ void TreeManager::DistributeResourcesForTree(
         }
       },
       false);
-  const auto globalTime = manager.m_globalTime;
+  const auto globalTime = m_plantSystem->m_globalTime;
   EntityManager::ForEach<GlobalTransform, Illumination, InternodeInfo,
                          InternodeGrowth, InternodeStatistics>(
-      JobManager::PrimaryWorkers(), manager.m_internodeQuery,
-      [=, &manager](int index, Entity internode,
+      JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
+      [&](int index, Entity internode,
                     GlobalTransform &globalTransform,
                     Illumination &illumination, InternodeInfo &internodeInfo,
                     InternodeGrowth &internodeGrowth,
@@ -2971,10 +2910,10 @@ void TreeManager::DistributeResourcesForTree(
             const float internodeNutrient =
                 glm::min(totalNutrients[i].m_nutrient /
                              (divisors[i] / requirementMaximums[i]),
-                         manager.m_deltaTime) *
+                         m_plantSystem->m_deltaTime) *
                 budsRequirement * internodeRequirement / requirementMaximums[i];
             const float internodeCarbon =
-                illumination.m_currentIntensity * manager.m_deltaTime;
+                illumination.m_currentIntensity * m_plantSystem->m_deltaTime;
             for (auto &bud : internodeData.m_buds) {
               if (bud.m_active && !bud.m_enoughForGrowth) {
                 ResourceParcel resourceParcel = ResourceParcel(
@@ -2996,85 +2935,79 @@ void TreeManager::DistributeResourcesForTree(
       false);
 }
 
-void TreeManager::Init() {
-  auto &manager = GetInstance();
+void TreeSystem::OnCreate() {
+  m_plantSystem = EntityManager::GetCurrentWorld()->CreateSystem<PlantSystem>(
+      "PlantSystem", SystemGroup::SimulationSystemGroup);
+  m_voxelSpaceModule.Reset();
 
-  manager.m_voxelSpaceModule.Reset();
-
-  manager.m_colorMapSegmentAmount = 3;
-  manager.m_colorMapValues.resize(manager.m_colorMapSegmentAmount);
-  manager.m_colorMapColors.resize(manager.m_colorMapSegmentAmount);
-  for (int i = 0; i < manager.m_colorMapSegmentAmount; i++) {
-    manager.m_colorMapValues[i] = i;
-    manager.m_colorMapColors[i] =
-        glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
+  m_colorMapSegmentAmount = 3;
+  m_colorMapValues.resize(m_colorMapSegmentAmount);
+  m_colorMapColors.resize(m_colorMapSegmentAmount);
+  for (int i = 0; i < m_colorMapSegmentAmount; i++) {
+    m_colorMapValues[i] = i;
+    m_colorMapColors[i] = glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
   }
 
 #pragma region Internode camera
-  manager.m_internodeDebuggingCamera.m_useClearColor = true;
-  manager.m_internodeDebuggingCamera.m_clearColor = glm::vec3(0.1f);
-  manager.m_internodeDebuggingCamera.OnCreate();
+  m_internodeDebuggingCamera.m_useClearColor = true;
+  m_internodeDebuggingCamera.m_clearColor = glm::vec3(0.1f);
+  m_internodeDebuggingCamera.OnCreate();
 #pragma endregion
 
-  manager.m_leavesArchetype =
+  m_leavesArchetype =
       EntityManager::CreateEntityArchetype("Tree Leaves", TreeLeavesTag());
-  manager.m_rbvArchetype =
-      EntityManager::CreateEntityArchetype("RBV", RbvTag());
-
-  auto &plantManager = PlantManager::GetInstance();
+  m_rbvArchetype = EntityManager::CreateEntityArchetype("RBV", RbvTag());
 #pragma region Materials
   for (int i = 0; i < 64; i++) {
-    manager.m_randomColors.emplace_back(glm::linearRand(0.0f, 1.0f),
-                                        glm::linearRand(0.0f, 1.0f),
-                                        glm::linearRand(0.0f, 1.0f));
+    m_randomColors.emplace_back(glm::linearRand(0.0f, 1.0f),
+                                glm::linearRand(0.0f, 1.0f),
+                                glm::linearRand(0.0f, 1.0f));
   }
-  manager.m_defaultRayTracingBranchAlbedoTexture = ResourceManager::LoadTexture(
+  m_defaultRayTracingBranchAlbedoTexture = ResourceManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
-  manager.m_defaultRayTracingBranchNormalTexture = ResourceManager::LoadTexture(
+  m_defaultRayTracingBranchNormalTexture = ResourceManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_normal.jpg");
-  manager.m_defaultBranchAlbedoTexture = ResourceManager::LoadTexture(
+  m_defaultBranchAlbedoTexture = ResourceManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
-  manager.m_defaultBranchNormalTexture = ResourceManager::LoadTexture(
+  m_defaultBranchNormalTexture = ResourceManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_normal.jpg");
 #pragma endregion
 #pragma region General tree growth
-  plantManager.m_plantMeshGenerators.insert_or_assign(
-      PlantType::GeneralTree,
-      [](PlantManager &manager) { GenerateMeshForTree(manager); });
+  m_plantSystem->m_plantMeshGenerators.insert_or_assign(
+      PlantType::GeneralTree, [&]() { GenerateMeshForTree(); });
 
-  plantManager.m_plantResourceAllocators.insert_or_assign(
-      PlantType::GeneralTree,
-      [](PlantManager &manager, std::vector<ResourceParcel> &resources) {
-        DistributeResourcesForTree(manager, resources);
+  m_plantSystem->m_plantResourceAllocators.insert_or_assign(
+      PlantType::GeneralTree, [&](std::vector<ResourceParcel> &resources) {
+        DistributeResourcesForTree(resources);
       });
 
-  plantManager.m_plantGrowthModels.insert_or_assign(
-      PlantType::GeneralTree,
-      [](PlantManager &manager, std::vector<InternodeCandidate> &candidates) {
-        FormCandidates(manager, candidates);
+  m_plantSystem->m_plantGrowthModels.insert_or_assign(
+      PlantType::GeneralTree, [&](std::vector<InternodeCandidate> &candidates) {
+        FormCandidates(candidates);
       });
 
-  plantManager.m_plantInternodePruners.insert_or_assign(
+  m_plantSystem->m_plantInternodePruners.insert_or_assign(
       PlantType::GeneralTree,
-      [](PlantManager &manager,
-         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
-        PruneTrees(manager, obstacles);
+      [&](std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
+        PruneTrees(obstacles);
       });
 
-  plantManager.m_plantInternodePostProcessors.insert_or_assign(
+  m_plantSystem->m_plantInternodePostProcessors.insert_or_assign(
       PlantType::GeneralTree,
-      [](PlantManager &manager, const Entity &newInternode,
-         const InternodeCandidate &candidate) {
-        InternodePostProcessor(manager, newInternode, candidate);
+      [&](const Entity &newInternode, const InternodeCandidate &candidate) {
+        InternodePostProcessor(newInternode, candidate);
       });
 
-  plantManager.m_plantMetaDataCalculators.insert_or_assign(
-      PlantType::GeneralTree,
-      [](PlantManager &manager) { UpdateTreesMetaData(manager); });
+  m_plantSystem->m_plantMetaDataCalculators.insert_or_assign(
+      PlantType::GeneralTree, [&]() { UpdateTreesMetaData(); });
+
+  m_plantSystem->m_deleteAllPlants.insert_or_assign(PlantType::GeneralTree, [this](){
+    DeleteAllPlantsHelper();
+  });
 #pragma endregion
   EditorManager::RegisterPrivateComponentMenu<CubeVolume>([](Entity owner) {
     if (owner.HasPrivateComponent<CubeVolume>())
@@ -3083,9 +3016,10 @@ void TreeManager::Init() {
       owner.SetPrivateComponent<CubeVolume>();
     }
   });
+  Enable();
 }
 
-void TreeManager::SerializeScene(const std::string &filename) {
+void TreeSystem::SerializeScene(const std::string &filename) {
   std::ofstream ofs;
   ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::trunc);
   if (!ofs.is_open()) {
@@ -3098,7 +3032,7 @@ void TreeManager::SerializeScene(const std::string &filename) {
   auto *scene = doc.allocate_node(rapidxml::node_element, "Scene", "Tree");
   doc.append_node(scene);
   std::vector<Entity> trees;
-  PlantManager::GetInstance().m_plantQuery.ToEntityArray(trees);
+  m_plantSystem->m_plantQuery.ToEntityArray(trees);
   for (const auto &plant : trees) {
     Serialize(plant, doc, scene);
   }
@@ -3107,9 +3041,9 @@ void TreeManager::SerializeScene(const std::string &filename) {
   ofs.close();
 }
 
-void TreeManager::Serialize(const Entity &treeEntity,
-                            rapidxml::xml_document<> &doc,
-                            rapidxml::xml_node<> *sceneNode) {
+void TreeSystem::Serialize(const Entity &treeEntity,
+                           rapidxml::xml_document<> &doc,
+                           rapidxml::xml_node<> *sceneNode) {
   if (treeEntity.GetDataComponent<PlantInfo>().m_plantType !=
       PlantType::GeneralTree)
     return;
@@ -3136,13 +3070,13 @@ void TreeManager::Serialize(const Entity &treeEntity,
 
   std::vector<InternodeInfo> internodeInfos;
   std::vector<Entity> internodes;
-  PlantManager::GetInstance().m_internodeQuery.ToEntityArray<InternodeInfo>(
+  auto plantSystem = EntityManager::GetCurrentWorld()->GetSystem<PlantSystem>();
+  plantSystem->m_internodeQuery.ToEntityArray<InternodeInfo>(
       internodes,
       [treeEntity](const Entity &entity, const InternodeInfo &internodeInfo) {
         return treeEntity == internodeInfo.m_plant;
       });
-  PlantManager::GetInstance()
-      .m_internodeQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(
+  plantSystem->m_internodeQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(
           internodeInfos, [treeEntity](const InternodeInfo &internodeInfo) {
             return treeEntity == internodeInfo.m_plant;
           });
@@ -3327,21 +3261,19 @@ void TreeManager::Serialize(const Entity &treeEntity,
     }
   }
 }
-void TreeManager::InternodePostProcessor(PlantManager &manager,
-                                         const Entity &newInternode,
-                                         const InternodeCandidate &candidate) {
-  auto &treeManager = GetInstance();
+void TreeSystem::InternodePostProcessor(const Entity &newInternode,
+                                        const InternodeCandidate &candidate) {
   auto &rigidBody = newInternode.SetPrivateComponent<RigidBody>();
   PhysicsManager::UploadTransform(candidate.m_globalTransform, rigidBody);
-  rigidBody.SetDensityAndMassCenter(treeManager.m_density *
+  rigidBody.SetDensityAndMassCenter(m_density *
                                     candidate.m_growth.m_thickness *
                                     candidate.m_growth.m_thickness);
   rigidBody.SetAngularVelocity(glm::vec3(0.0f));
   rigidBody.SetLinearVelocity(glm::vec3(0.0f));
-  rigidBody.SetLinearDamping(treeManager.m_linearDamping);
-  rigidBody.SetAngularDamping(treeManager.m_angularDamping);
-  rigidBody.SetSolverIterations(treeManager.m_positionSolverIteration,
-                                treeManager.m_velocitySolverIteration);
+  rigidBody.SetLinearDamping(m_linearDamping);
+  rigidBody.SetAngularDamping(m_angularDamping);
+  rigidBody.SetSolverIterations(m_positionSolverIteration,
+                                m_velocitySolverIteration);
   rigidBody.SetStatic(false);
   rigidBody.SetEnableGravity(false);
   // The rigidbody can only apply mesh bound after it's attached to an
@@ -3352,10 +3284,14 @@ void TreeManager::InternodePostProcessor(PlantManager &manager,
   joint.SetType(JointType::D6);
   joint.SetMotion(MotionAxis::SwingY, MotionType::Free);
   joint.SetMotion(MotionAxis::SwingZ, MotionType::Free);
-  joint.SetDrive(DriveType::Swing,
-                 glm::pow(1.0f, treeManager.m_jointDriveStiffnessThicknessFactor) *
-                 treeManager.m_jointDriveStiffnessFactor,
-                 glm::pow(1.0f, treeManager.m_jointDriveDampingThicknessFactor) *
-                 treeManager.m_jointDriveDampingFactor,
-                 treeManager.m_enableAccelerationForDrive);
+  joint.SetDrive(
+      DriveType::Swing,
+      glm::pow(1.0f, m_jointDriveStiffnessThicknessFactor) *
+          m_jointDriveStiffnessFactor,
+      glm::pow(1.0f, m_jointDriveDampingThicknessFactor) *
+          m_jointDriveDampingFactor,
+      m_enableAccelerationForDrive);
+}
+void TreeSystem::DeleteAllPlantsHelper() {
+  GenerateMeshForTree();
 }

@@ -2,7 +2,7 @@
 #include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
-#include <PlantManager.hpp>
+#include <PlantSystem.hpp>
 #include <RayTracedRenderer.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
@@ -51,13 +51,8 @@ public:
   GenerateField(std::vector<std::vector<glm::mat4>> &matricesList) override;
 };
 
-class SorghumManager {
-protected:
-  SorghumManager() = default;
-  SorghumManager(SorghumManager &&) = default;
-  SorghumManager(const SorghumManager &) = default;
-  SorghumManager &operator=(SorghumManager &&) = default;
-  SorghumManager &operator=(const SorghumManager &) = default;
+class SorghumSystem : public ISystem {
+  std::shared_ptr<PlantSystem> m_plantSystem;
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
 
@@ -86,31 +81,31 @@ public:
   std::shared_ptr<Material> m_leafNodeMaterial;
   std::shared_ptr<Material> m_leafMaterial;
   std::shared_ptr<Material> m_instancedLeafMaterial;
-  static SorghumManager &GetInstance();
-  static void Init();
-  static Entity CreateSorghum();
-  static Entity CreateSorghumLeaf(const Entity &plantEntity);
-  static void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
-  static Entity ImportPlant(const std::string &path, const std::string &name);
-  static void OnGui();
-  static void Update();
-  static void CreateGrid(SorghumField &field,
+  void OnCreate() override;
+  Entity CreateSorghum();
+  Entity CreateSorghumLeaf(const Entity &plantEntity);
+  void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
+  Entity ImportPlant(const std::string &path, const std::string &name);
+  void OnGui() override;
+  void Update() override;
+  void CreateGrid(SorghumField &field,
                          const std::vector<Entity> &candidates);
-  static void CloneSorghums(const Entity &parent, const Entity &original,
+  void CloneSorghums(const Entity &parent, const Entity &original,
                             std::vector<glm::mat4> &matrices);
   static void ExportSorghum(const Entity &sorghum, std::ofstream &of,
                             unsigned &startIndex);
-  static void ExportAllSorghumsModel(const std::string &filename);
-  static void RenderLightProbes();
+  void ExportAllSorghumsModel(const std::string &filename);
+  void RenderLightProbes();
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
-  static void CalculateIllumination(
+  void CalculateIllumination(
       const RayTracerFacility::IlluminationEstimationProperties &properties =
           RayTracerFacility::IlluminationEstimationProperties());
-  static void GenerateLeavesForSorghum(PlantManager &manager);
-  static void FormCandidates(PlantManager &manager,
-                             std::vector<InternodeCandidate> &candidates);
-  static void FormLeafNodes(PlantManager &plantManager);
-  static void RemoveInternodes(const Entity &sorghum);
+  void GenerateLeavesForSorghum();
+  void FormCandidates(std::vector<InternodeCandidate> &candidates);
+  void FormLeafNodes();
+  void RemoveInternodes(const Entity &sorghum);
+
+  void DeleteAllPlantsHelper();
 };
 } // namespace PlantFactory

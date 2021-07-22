@@ -1,5 +1,5 @@
 #include <FoliageGeneratorBase.hpp>
-#include <PlantManager.hpp>
+#include <PlantSystem.hpp>
 
 using namespace PlantFactory;
 std::shared_ptr<Texture2D> DefaultFoliageGenerator::m_leafSurfaceTex = nullptr;

@@ -1,9 +1,9 @@
-#include <TreeData.hpp>
 #include <FoliageGeneratorBase.hpp>
+#include <PlantSystem.hpp>
+#include <TreeData.hpp>
+#include <TreeSystem.hpp>
 #include <rapidxml.hpp>
 #include <rapidxml_print.hpp>
-#include <PlantManager.hpp>
-#include <TreeManager.hpp>
 
 using namespace PlantFactory;
 
@@ -28,7 +28,7 @@ void TreeData::OnGui() {
                              doc.append_node(type);
                              auto *scene = doc.allocate_node(rapidxml::node_element, "Tree", "Tree");
                              doc.append_node(scene);
-                             TreeManager::Serialize(GetOwner(), doc, scene);
+                             TreeSystem::Serialize(GetOwner(), doc, scene);
                              ofs << doc;
                              ofs.flush();
                              ofs.close();

@@ -160,43 +160,35 @@ enum class BranchRenderType {
 
 enum class PointerRenderType { Illumination, Bending };
 #pragma endregion
-class PlantManager {
-protected:
-#pragma region Class related
-  PlantManager() = default;
-  PlantManager(PlantManager &&) = default;
-  PlantManager(const PlantManager &) = default;
-  PlantManager &operator=(PlantManager &&) = default;
-  PlantManager &operator=(const PlantManager &) = default;
-#pragma endregion
+class PlantSystem : public ISystem {
 public:
   std::map<PlantType,
-           std::function<void(PlantManager &manager,
-                              std::vector<ResourceParcel> &resources)>>
+           std::function<void(std::vector<ResourceParcel> &resources)>>
       m_plantResourceAllocators;
   std::map<PlantType,
-           std::function<void(PlantManager &manager,
-                              std::vector<InternodeCandidate> &candidates)>>
+           std::function<void(std::vector<InternodeCandidate> &candidates)>>
       m_plantGrowthModels;
-  std::map<PlantType, std::function<void(PlantManager &manager,
-                                         std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
+  std::map<PlantType, std::function<void(std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
       m_plantInternodePruners;
-  std::map<PlantType, std::function<void(PlantManager &manager, const Entity& newInternode, const InternodeCandidate& candidate)>>
+  std::map<PlantType, std::function<void(const Entity& newInternode, const InternodeCandidate& candidate)>>
       m_plantInternodePostProcessors;
 
-  std::map<PlantType, std::function<void(PlantManager &manager)>>
+  std::map<PlantType, std::function<void()>>
       m_plantMetaDataCalculators;
-  std::map<PlantType, std::function<void(PlantManager &manager)>>
+  std::map<PlantType, std::function<void()>>
       m_plantMeshGenerators;
+
+  std::map<PlantType, std::function<void()>>
+      m_deleteAllPlants;
 #pragma region Growth
-  static bool GrowAllPlants();
-  static bool GrowAllPlants(const unsigned &iterations);
-  static bool GrowCandidates(std::vector<InternodeCandidate> &candidates);
-  static void CalculateIlluminationForInternodes(PlantManager &manager);
-  static void CollectNutrient(std::vector<Entity> &trees,
+  bool GrowAllPlants();
+  bool GrowAllPlants(const unsigned &iterations);
+  bool GrowCandidates(std::vector<InternodeCandidate> &candidates);
+  void CalculateIlluminationForInternodes();
+  void CollectNutrient(std::vector<Entity> &trees,
                               std::vector<ResourceParcel> &totalNutrients,
                               std::vector<ResourceParcel> &nutrientsAvailable);
-  static void ApplyTropism(const glm::vec3 &targetDir, float tropism,
+  void ApplyTropism(const glm::vec3 &targetDir, float tropism,
                            glm::vec3 &front, glm::vec3 &up);
 #pragma endregion
 #pragma region Members
@@ -243,20 +235,19 @@ public:
 
 #pragma endregion
 #pragma region Helpers
-  static Entity CreateCubeObstacle();
-  static void DeleteAllPlants();
-  static Entity CreatePlant(const PlantType &type, const Transform &transform);
-  static Entity CreateInternode(const PlantType &type,
+  Entity CreateCubeObstacle();
+  void DeleteAllPlants();
+  Entity CreatePlant(const PlantType &type, const Transform &transform);
+  Entity CreateInternode(const PlantType &type,
                                 const Entity &parentEntity);
 
 #pragma endregion
 #pragma region Runtime
-  static void OnGui();
-  static PlantManager &GetInstance();
-  static void Init();
-  static void Update();
-  static void Refresh();
-  static void End();
+  void OnGui() override;
+  void OnCreate() override;
+  void Update() override;
+  void Refresh();
+  void End();
 #pragma endregion
 };
 } // namespace PlantFactory

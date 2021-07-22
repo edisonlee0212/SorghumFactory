@@ -1,16 +1,16 @@
 // PlantFactory.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-#include <FileIO.hpp>
 #include <Application.hpp>
-#include <CameraControlSystem.hpp>
-#include <PlantManager.hpp>
-#include <PostProcessing.hpp>
 #include <CUDAModule.hpp>
-#include <TreeManager.hpp>
-#include <SorghumManager.hpp>
+#include <CameraControlSystem.hpp>
 #include <EditorManager.hpp>
-#include <RayTracerManager.hpp>
+#include <FileIO.hpp>
 #include <PhysicsManager.hpp>
+#include <PlantSystem.hpp>
+#include <PostProcessing.hpp>
+#include <RayTracerManager.hpp>
+#include <SorghumSystem.hpp>
+#include <TreeSystem.hpp>
 using namespace PlantFactory;
 using namespace RayTracerFacility;
 
@@ -18,26 +18,14 @@ void EngineSetup();
 
 int main() {
     EngineSetup();
-    PlantManager::Init();
-    SorghumManager::Init();
-    TreeManager::Init();
-    const bool enableRayTracing = true;
+    auto plantSystem = EntityManager::GetCurrentWorld()->CreateSystem<PlantSystem>("PlantSystem", SystemGroup::SimulationSystemGroup);
+  auto treeSystem = EntityManager::GetCurrentWorld()->CreateSystem<TreeSystem>("TreeSystem", SystemGroup::SimulationSystemGroup + 0.1f);
+  auto sorghumSystem = EntityManager::GetCurrentWorld()->CreateSystem<SorghumSystem>("SorghumSystem", SystemGroup::SimulationSystemGroup + 0.1f);
+
+
+  const bool enableRayTracing = true;
     if (enableRayTracing) RayTracerManager::Init();
 #pragma region Engine Loop
-    Application::RegisterUpdateFunction([&]() {
-                                            PlantManager::Update();
-                                            SorghumManager::Update();
-                                            TreeManager::Update();
-                                            if (enableRayTracing) RayTracerManager::Update();
-                                        }
-    );
-    Application::RegisterLateUpdateFunction([&]() {
-                                                PlantManager::OnGui();
-                                                TreeManager::OnGui();
-                                                SorghumManager::OnGui();
-                                                if (enableRayTracing) RayTracerManager::OnGui();
-                                            }
-    );
     Application::Run();
 #pragma endregion
     if (enableRayTracing) RayTracerManager::End();
@@ -86,7 +74,7 @@ void EngineSetup() {
 
     const Entity lightEntity = EntityManager::CreateEntity("Light source");
     auto& pointLight = lightEntity.SetPrivateComponent<PointLight>();
-    pointLight.m_diffuseBrightness = 15;
+    pointLight.m_diffuseBrightness = 6;
     pointLight.m_lightSize = 0.25f;
     pointLight.m_quadratic = 0.0001f;
     pointLight.m_linear = 0.01f;

@@ -1,5 +1,5 @@
 #pragma once
-#include <TreeManager.hpp>
+#include <TreeSystem.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
 class TreeLeaves final : public IPrivateComponent {
