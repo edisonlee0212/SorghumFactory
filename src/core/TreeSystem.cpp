@@ -94,23 +94,23 @@ Entity TreeSystem::GetLeaves(const Entity &tree) {
     auto &rayTracerRenderer =
         leaves.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
 
-    meshRenderer.m_material = ResourceManager::LoadMaterial(
+    meshRenderer.m_material = AssetManager::LoadMaterial(
         false, DefaultResources::GLPrograms::StandardProgram);
     meshRenderer.m_material->m_name = "Leaves mat";
     meshRenderer.m_material->m_roughness = 1.0f;
     meshRenderer.m_material->m_cullingMode = MaterialCullingMode::Off;
     meshRenderer.m_material->m_metallic = 0.0f;
     meshRenderer.m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
-    meshRenderer.m_mesh = ResourceManager::CreateResource<Mesh>();
+    meshRenderer.m_mesh = AssetManager::CreateResource<Mesh>();
     rayTracerRenderer.SyncWithMeshRenderer();
     meshRenderer.SetEnabled(false);
 
     skinnedMeshRenderer.m_skinnedMesh =
-        ResourceManager::CreateResource<SkinnedMesh>();
+        AssetManager::CreateResource<SkinnedMesh>();
     skinnedMeshRenderer.m_skinnedMesh->m_animation =
         tree.GetPrivateComponent<Animator>().m_animation;
     skinnedMeshRenderer.AttachAnimator(tree);
-    skinnedMeshRenderer.m_material = ResourceManager::LoadMaterial(
+    skinnedMeshRenderer.m_material = AssetManager::LoadMaterial(
         false, DefaultResources::GLPrograms::StandardSkinnedProgram);
     skinnedMeshRenderer.m_material->m_name = "Leaves mat";
     skinnedMeshRenderer.m_material->m_roughness = 1.0f;
@@ -625,11 +625,11 @@ void TreeSystem::Update() {
   m_internodeDebuggingCamera.Clear();
 
 #pragma region Internode debug camera
-  CameraComponent::m_cameraInfoBlock.UpdateMatrices(
+  Camera::m_cameraInfoBlock.UpdateMatrices(
       EditorManager::GetInstance().m_sceneCamera,
       EditorManager::GetInstance().m_sceneCameraPosition,
       EditorManager::GetInstance().m_sceneCameraRotation);
-  CameraComponent::m_cameraInfoBlock.UploadMatrices(
+  Camera::m_cameraInfoBlock.UploadMatrices(
       EditorManager::GetInstance().m_sceneCamera);
   // RenderManager::RenderBackGround(m_internodeDebuggingCamera);
 #pragma endregion
@@ -680,7 +680,7 @@ Entity TreeSystem::CreateTree(const Transform &transform) {
   plant.SetParent(m_plantSystem->m_ground);
 
   auto &animator = plant.SetPrivateComponent<Animator>();
-  animator.m_animation = ResourceManager::CreateResource<Animation>();
+  animator.m_animation = AssetManager::CreateResource<Animation>();
 
   GetLeaves(plant);
   GetRbv(plant);
@@ -688,8 +688,8 @@ Entity TreeSystem::CreateTree(const Transform &transform) {
   treeData.m_parameters = TreeParameters();
 
   auto &meshRenderer = plant.SetPrivateComponent<MeshRenderer>();
-  meshRenderer.m_mesh = ResourceManager::CreateResource<Mesh>();
-  meshRenderer.m_material = ResourceManager::LoadMaterial(
+  meshRenderer.m_mesh = AssetManager::CreateResource<Mesh>();
+  meshRenderer.m_material = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);
   meshRenderer.m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
   meshRenderer.m_material->m_roughness = 1.0f;
@@ -702,10 +702,10 @@ Entity TreeSystem::CreateTree(const Transform &transform) {
 
   auto &skinnedMeshRenderer = plant.SetPrivateComponent<SkinnedMeshRenderer>();
   skinnedMeshRenderer.m_skinnedMesh =
-      ResourceManager::CreateResource<SkinnedMesh>();
+      AssetManager::CreateResource<SkinnedMesh>();
   skinnedMeshRenderer.m_skinnedMesh->m_animation =
       plant.GetPrivateComponent<Animator>().m_animation;
-  skinnedMeshRenderer.m_material = ResourceManager::LoadMaterial(
+  skinnedMeshRenderer.m_material = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardSkinnedProgram);
   skinnedMeshRenderer.m_material->m_albedoColor = glm::vec3(0.7f, 0.3f, 0.0f);
   skinnedMeshRenderer.m_material->m_roughness = 1.0f;
@@ -1152,7 +1152,7 @@ void TreeSystem::OnGui() {
                 EditorManager::GetInstance().m_sceneCameraPitchAngle = -89.0f;
 
               EditorManager::GetInstance().m_sceneCameraRotation =
-                  CameraComponent::ProcessMouseMovement(
+                  Camera::ProcessMouseMovement(
                       EditorManager::GetInstance().m_sceneCameraYawAngle,
                       EditorManager::GetInstance().m_sceneCameraPitchAngle,
                       false);
@@ -2936,7 +2936,7 @@ void TreeSystem::DistributeResourcesForTree(
 }
 
 void TreeSystem::OnCreate() {
-  m_plantSystem = EntityManager::GetCurrentWorld()->CreateSystem<PlantSystem>(
+  m_plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>(
       "PlantSystem", SystemGroup::SimulationSystemGroup);
   m_voxelSpaceModule.Reset();
 
@@ -2963,16 +2963,16 @@ void TreeSystem::OnCreate() {
                                 glm::linearRand(0.0f, 1.0f),
                                 glm::linearRand(0.0f, 1.0f));
   }
-  m_defaultRayTracingBranchAlbedoTexture = ResourceManager::LoadTexture(
+  m_defaultRayTracingBranchAlbedoTexture = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
-  m_defaultRayTracingBranchNormalTexture = ResourceManager::LoadTexture(
+  m_defaultRayTracingBranchNormalTexture = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_normal.jpg");
-  m_defaultBranchAlbedoTexture = ResourceManager::LoadTexture(
+  m_defaultBranchAlbedoTexture = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
-  m_defaultBranchNormalTexture = ResourceManager::LoadTexture(
+  m_defaultBranchNormalTexture = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() +
                  "Textures/BarkMaterial/Bark_Pine_normal.jpg");
 #pragma endregion
@@ -3070,7 +3070,7 @@ void TreeSystem::Serialize(const Entity &treeEntity,
 
   std::vector<InternodeInfo> internodeInfos;
   std::vector<Entity> internodes;
-  auto plantSystem = EntityManager::GetCurrentWorld()->GetSystem<PlantSystem>();
+  auto plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>("PlantSystem", SystemGroup::SimulationSystemGroup);
   plantSystem->m_internodeQuery.ToEntityArray<InternodeInfo>(
       internodes,
       [treeEntity](const Entity &entity, const InternodeInfo &internodeInfo) {

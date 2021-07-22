@@ -5,6 +5,6 @@
 #include <InputManager.hpp>
 #include <MeshRenderer.hpp>
 #include <OpenGLUtils.hpp>
-#include <ResourceManager.hpp>
+#include <AssetManager.hpp>
 #include <Utilities.hpp>
 #include <WindowManager.hpp>

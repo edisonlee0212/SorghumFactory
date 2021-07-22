@@ -1,5 +1,5 @@
 #include <CameraControlSystem.hpp>
-#include <CameraComponent.hpp>
+#include <Camera.hpp>
 #include <InputManager.hpp>
 #include <RenderManager.hpp>
 
@@ -70,7 +70,7 @@ void CameraControlSystem::LateUpdate() {
                     m_sceneCameraPitchAngle = -89.0f;
 
                 transform.SetRotation(
-                        CameraComponent::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false));
+                        Camera::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false));
             }
         }
         if (moved) {

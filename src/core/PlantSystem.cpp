@@ -396,7 +396,7 @@ void PlantSystem::OnCreate() {
 
   auto &meshRenderer = m_ground.SetPrivateComponent<MeshRenderer>();
   meshRenderer.m_mesh = DefaultResources::Primitives::Quad;
-  meshRenderer.m_material = ResourceManager::LoadMaterial(
+  meshRenderer.m_material = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);
   meshRenderer.m_material->m_name = "Ground mat";
   meshRenderer.m_material->m_roughness = 1.0f;
@@ -445,7 +445,7 @@ void PlantSystem::OnCreate() {
       OpenGLUtils::ShaderType::Fragment);
   standardFrag->Compile(fragShaderCode);
   auto branchProgram =
-      ResourceManager::CreateResource<OpenGLUtils::GLProgram>();
+      AssetManager::CreateResource<OpenGLUtils::GLProgram>();
   branchProgram->Link(standardVert, standardFrag);
 
   vertShaderCode = std::string("#version 460 core\n") +
@@ -463,7 +463,7 @@ void PlantSystem::OnCreate() {
   standardFrag = std::make_shared<OpenGLUtils::GLShader>(
       OpenGLUtils::ShaderType::Fragment);
   standardFrag->Compile(fragShaderCode);
-  auto leafProgram = ResourceManager::CreateResource<OpenGLUtils::GLProgram>();
+  auto leafProgram = AssetManager::CreateResource<OpenGLUtils::GLProgram>();
   leafProgram->Link(standardVert, standardFrag);
 #pragma endregion
 #pragma region Entity

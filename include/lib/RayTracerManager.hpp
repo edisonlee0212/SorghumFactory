@@ -6,7 +6,7 @@
 #include <EditorManager.hpp>
 #include <InputManager.hpp>
 #include <MeshRenderer.hpp>
-#include <ResourceManager.hpp>
+#include <AssetManager.hpp>
 
 #include <WindowManager.hpp>
 #include <memory>

@@ -13,12 +13,12 @@ void DefaultFoliageGenerator::OnCreate() {
     m_defaultFoliageInfo = DefaultFoliageInfo();
     m_archetype = EntityManager::CreateEntityArchetype("Pine Foliage", DefaultFoliageInfo());
 
-    m_leafMaterial = ResourceManager::CreateResource<Material>();
+    m_leafMaterial = AssetManager::CreateResource<Material>();
     m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardInstancedProgram);
     m_leafMaterial->m_alphaDiscardEnabled = true;
     m_leafMaterial->m_alphaDiscardOffset = 0.1f;
     m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
-    if (!m_leafSurfaceTex) m_leafSurfaceTex = ResourceManager::LoadTexture(false, FileIO::GetAssetFolderPath() +
+    if (!m_leafSurfaceTex) m_leafSurfaceTex = AssetManager::LoadTexture(false, FileIO::GetAssetFolderPath() +
                                                                                   "Textures/Leaf/Pine/level0.png");
     //_LeafMaterial->SetTexture(_LeafSurfaceTex);
     m_leafMaterial->m_albedoColor = glm::normalize(glm::vec3(60.0f / 256.0f, 140.0f / 256.0f, 0.0f));

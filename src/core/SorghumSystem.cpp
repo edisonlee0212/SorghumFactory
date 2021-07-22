@@ -109,10 +109,10 @@ void RectangularSorghumField::GenerateField(
 }
 
 void SorghumSystem::OnCreate() {
-  m_plantSystem = EntityManager::GetCurrentWorld()->CreateSystem<PlantSystem>(
+  m_plantSystem = EntityManager::GetOrCreateSystem<PlantSystem>(
       "PlantSystem", SystemGroup::SimulationSystemGroup);
 
-  m_leafNodeMaterial = ResourceManager::LoadMaterial(
+  m_leafNodeMaterial = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);
   m_leafNodeMaterial->m_albedoColor = glm::vec3(0, 1, 0);
 
@@ -121,20 +121,20 @@ void SorghumSystem::OnCreate() {
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafInfo());
 
-  m_leafMaterial = ResourceManager::LoadMaterial(
+  m_leafMaterial = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial->SetProgram(
       DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
-  const auto textureLeaf = ResourceManager::LoadTexture(
+  const auto textureLeaf = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
-  m_leafSurfaceTexture = ResourceManager::LoadTexture(
+  m_leafSurfaceTexture = AssetManager::LoadTexture(
       false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
   m_leafMaterial->SetTexture(TextureType::Albedo, textureLeaf);
   m_leafMaterial->m_roughness = 0.0f;
   m_leafMaterial->m_metallic = 0.0f;
 
-  m_instancedLeafMaterial = ResourceManager::LoadMaterial(
+  m_instancedLeafMaterial = AssetManager::LoadMaterial(
       false, DefaultResources::GLPrograms::StandardInstancedProgram);
   m_instancedLeafMaterial->m_cullingMode =
       MaterialCullingMode::Off;
@@ -194,7 +194,7 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
 
   auto &mmc = entity.SetPrivateComponent<MeshRenderer>();
   mmc.m_material = m_leafMaterial;
-  mmc.m_mesh = ResourceManager::CreateResource<Mesh>();
+  mmc.m_mesh = AssetManager::CreateResource<Mesh>();
 
   auto &rtt =
       entity.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();

@@ -103,7 +103,7 @@ public:
 #pragma endregion
 
 #pragma region Internode debugging camera
-  CameraComponent m_internodeDebuggingCamera;
+  Camera m_internodeDebuggingCamera;
   int m_internodeDebuggingCameraResolutionX = 1;
   int m_internodeDebuggingCameraResolutionY = 1;
   float m_lastX = 0;

@@ -159,7 +159,7 @@ void RayTracerManager::Init() {
                         FileIO::GetResourcePath("Textures/Skyboxes/Default/posz.jpg"),
                         FileIO::GetResourcePath("Textures/Skyboxes/Default/negz.jpg"),
                 };
-        manager.m_environmentalMap = ResourceManager::LoadCubemap(false, FileIO::GetResourcePath(
+        manager.m_environmentalMap = AssetManager::LoadCubemap(false, FileIO::GetResourcePath(
                 "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr"));
     }
 #pragma endregion
@@ -304,7 +304,7 @@ void RayTracerRenderWindow::OnGui() {
                             if (EditorManager::GetInstance().m_sceneCameraPitchAngle < -89.0f)
                                 EditorManager::GetInstance().m_sceneCameraPitchAngle = -89.0f;
 
-                            EditorManager::GetInstance().m_sceneCameraRotation = CameraComponent::ProcessMouseMovement(
+                            EditorManager::GetInstance().m_sceneCameraRotation = UniEngine::Camera::ProcessMouseMovement(
                                     EditorManager::GetInstance().m_sceneCameraYawAngle,
                                     EditorManager::GetInstance().m_sceneCameraPitchAngle, false);
                         }
