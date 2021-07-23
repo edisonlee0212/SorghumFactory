@@ -194,6 +194,11 @@ void RayTracerManager::Init() {
                    "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr"));
   }
 #pragma endregion
+
+  Application::RegisterUpdateFunction([](){
+    Update();
+    OnGui();
+  });
 }
 
 void RayTracerRenderWindow::Init(const std::string &name) {
@@ -211,8 +216,7 @@ void RayTracerRenderWindow::Init(const std::string &name) {
 void RayTracerManager::Update() {
   auto &manager = GetInstance();
   manager.UpdateScene();
-
-  {
+  if(manager.m_defaultWindow.m_renderingEnabled){
     const auto size = manager.m_defaultWindow.Resize();
     manager.m_defaultRenderingProperties.m_camera.Set(
         EditorManager::GetInstance().m_sceneCameraRotation,

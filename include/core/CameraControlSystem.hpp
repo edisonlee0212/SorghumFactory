@@ -11,6 +11,7 @@ class CameraControlSystem : public ISystem {
   float m_sceneCameraPitchAngle = 0;
 
 public:
+  void OnCreate() override;
   void LateUpdate() override;
   void SetVelocity(float velocity);
   void SetSensitivity(float sensitivity);

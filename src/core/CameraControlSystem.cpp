@@ -87,3 +87,6 @@ void CameraControlSystem::SetVelocity(float velocity) {
 void CameraControlSystem::SetSensitivity(float sensitivity) {
     m_sensitivity = sensitivity;
 }
+void CameraControlSystem::OnCreate() {
+  Enable();
+}
