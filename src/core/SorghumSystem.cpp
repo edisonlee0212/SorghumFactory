@@ -710,7 +710,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
           newChild.GetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
       newRayTracedRenderer.m_mesh = meshRenderer.m_mesh;
     });
-    sorghum.SetParent(parent, false);
+    sorghum.SetParent(parent);
   }
 }
 
@@ -818,7 +818,7 @@ void SorghumSystem::RenderLightProbes() {
       m_probeTransforms.size() != m_probeColors.size())
     return;
   RenderManager::DrawGizmoMeshInstancedColored(
-      DefaultResources::Primitives::Cube.get(), m_probeColors,
+      DefaultResources::Primitives::Cube, m_probeColors,
       m_probeTransforms, glm::mat4(1.0f), 0.2f);
 }
 

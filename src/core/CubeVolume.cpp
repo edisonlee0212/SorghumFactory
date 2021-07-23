@@ -21,7 +21,7 @@ void CubeVolume::OnGui() {
   if (m_displayBounds) {
     const auto globalTransform = GetOwner().GetDataComponent<GlobalTransform>();
     RenderManager::DrawGizmoMesh(
-        DefaultResources::Primitives::Cube.get(),
+        DefaultResources::Primitives::Cube,
         glm::vec4(0, 1, 0, 0.2),
         globalTransform.m_value * glm::translate(m_minMaxBound.Center()) *
             glm::scale(m_minMaxBound.Size()),

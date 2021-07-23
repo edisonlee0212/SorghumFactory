@@ -53,8 +53,8 @@ void DefaultFoliageGenerator::Generate() {
         foliageEntity.SetDataComponent(m_defaultFoliageInfo);
     }
     auto &particleSys = foliageEntity.GetPrivateComponent<Particles>();
-    particleSys.m_matrices.clear();
-    GenerateLeaves(tree.GetChildren()[0], treeTransform.m_value, particleSys.m_matrices, true);
+    particleSys.m_matrices->m_value.clear();
+    GenerateLeaves(tree.GetChildren()[0], treeTransform.m_value, particleSys.m_matrices->m_value, true);
 }
 
 void DefaultFoliageGenerator::OnGui() {

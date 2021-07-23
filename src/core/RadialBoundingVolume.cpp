@@ -519,7 +519,7 @@ void RadialBoundingVolume::OnGui() {
   if (m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
       RenderManager::DrawGizmoMesh(
-          i.get(), EditorManager::GetSceneCamera(), m_displayColor,
+          i, EditorManager::GetSceneCamera(), m_displayColor,
           GetOwner().GetDataComponent<GlobalTransform>().m_value);
     }
   }
@@ -529,8 +529,8 @@ bool RadialBoundingVolume::InVolume(const glm::vec3 &position) {
   if (glm::any(glm::isnan(position)))
     return true;
   const auto globalTransform = GetOwner().GetDataComponent<GlobalTransform>();
-  const auto &finalPos =
-      glm::vec3((glm::inverse(globalTransform.m_value) * glm::translate(position))[3]);
+  const auto &finalPos = glm::vec3(
+      (glm::inverse(globalTransform.m_value) * glm::translate(position))[3]);
   if (m_meshGenerated) {
     const auto sliceIndex = SelectSlice(finalPos);
     const float currentDistance =
@@ -538,14 +538,14 @@ bool RadialBoundingVolume::InVolume(const glm::vec3 &position) {
     return glm::max(1.0f,
                     m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
                currentDistance &&
-        finalPos.y <= m_maxHeight;
+           finalPos.y <= m_maxHeight;
   }
   return true;
 }
 bool RadialBoundingVolume::InVolume(const GlobalTransform &globalTransform,
                                     const glm::vec3 &position) {
-  const auto &finalPos =
-      glm::vec3((glm::inverse(globalTransform.m_value) * glm::translate(position))[3]);
+  const auto &finalPos = glm::vec3(
+      (glm::inverse(globalTransform.m_value) * glm::translate(position))[3]);
 
   if (m_meshGenerated) {
     const auto sliceIndex = SelectSlice(finalPos);
@@ -553,7 +553,7 @@ bool RadialBoundingVolume::InVolume(const GlobalTransform &globalTransform,
         glm::length(glm::vec2(finalPos.x, finalPos.z));
     return glm::max(1.0f,
                     m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
-           currentDistance &&
+               currentDistance &&
            finalPos.y <= m_maxHeight;
   }
   return true;

@@ -143,7 +143,7 @@ void TreeData::ExportModel(const std::string &filename, const bool &includeFolia
                 auto &particles = foliageEntity.GetPrivateComponent<Particles>();
                 mesh = particles.m_mesh;
                 triangles = mesh->UnsafeGetTriangles();
-                auto &matrices = particles.m_matrices;
+                auto &matrices = particles.m_matrices->m_value;
                 size_t offset = 0;
                 for (auto &matrix : matrices) {
                     for (const auto &vertex : mesh->UnsafeGetVertices()) {

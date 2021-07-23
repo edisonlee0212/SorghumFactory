@@ -1292,7 +1292,7 @@ void TreeSystem::RenderBranchCylinders(const float &displayTime) {
           0.05f,
           i.GetChildren()[0].GetDataComponent<InternodeGrowth>().m_thickness);
     RenderManager::DrawGizmoMesh(
-        DefaultResources::Primitives::Sphere.get(), m_internodeDebuggingCamera,
+        DefaultResources::Primitives::Sphere, m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation,
         EditorManager::GetSelectedEntity() == i ? glm::vec4(1)
@@ -1303,7 +1303,7 @@ void TreeSystem::RenderBranchCylinders(const float &displayTime) {
 
   if (!branchCylinders.empty())
     RenderManager::DrawGizmoMeshInstancedColored(
-        DefaultResources::Primitives::Cylinder.get(),
+        DefaultResources::Primitives::Cylinder,
         m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation,
@@ -1321,7 +1321,7 @@ void TreeSystem::RenderBranchPointers(const float &displayTime) {
           });
   if (!branchPointers.empty())
     RenderManager::DrawGizmoMeshInstanced(
-        DefaultResources::Primitives::Cylinder.get(),
+        DefaultResources::Primitives::Cylinder,
         m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation, m_pointerColor,
