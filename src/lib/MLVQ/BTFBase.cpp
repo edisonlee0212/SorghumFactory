@@ -4,7 +4,7 @@
 #include <exception>
 #include <fstream>
 #include <filesystem>
-#include <FileIO.hpp>
+#include <FileSystem.hpp>
 #include <mutex>
 #include <Debug.hpp>
 using namespace RayTracerFacility;
@@ -62,7 +62,7 @@ bool BtfBase::Init(const std::string &materialDirectoryPath) {
       materialDirectoryPath + "/all_materialInfo.txt";
   bool avoidParFile = false;
   try {
-    allMaterialInfo = FileIO::LoadFileAsString(allMaterialInfoPath);
+    allMaterialInfo = FileSystem::LoadFileAsString(allMaterialInfoPath);
     avoidParFile = true;
   } catch (std::ifstream::failure e) {
     UNIENGINE_LOG("")

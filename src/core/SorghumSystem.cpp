@@ -112,53 +112,46 @@ void SorghumSystem::OnCreate() {
 
   m_plantSystem = EntityManager::GetSystem<PlantSystem>();
 
-  m_leafNodeMaterial = AssetManager::LoadMaterial(
-      false, DefaultResources::GLPrograms::StandardProgram);
+  m_leafNodeMaterial =
+      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
   m_leafNodeMaterial->m_albedoColor = glm::vec3(0, 1, 0);
 
-  m_leafArchetype =
-      EntityManager::CreateEntityArchetype("Leaf", LeafInfo());
+  m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafInfo());
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafInfo());
 
-  m_leafMaterial = AssetManager::LoadMaterial(
-      false, DefaultResources::GLPrograms::StandardProgram);
-  m_leafMaterial->SetProgram(
-      DefaultResources::GLPrograms::StandardProgram);
+  m_leafMaterial =
+      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
+  m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
   const auto textureLeaf = AssetManager::LoadTexture(
-      false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
+      AssetManager::GetAssetRootPath() + "Textures/leafSurfaceBright.jpg");
   m_leafSurfaceTexture = AssetManager::LoadTexture(
-      false, FileIO::GetAssetFolderPath() + "Textures/leafSurfaceBright.jpg");
+      AssetManager::GetAssetRootPath() + "Textures/leafSurfaceBright.jpg");
   m_leafMaterial->SetTexture(TextureType::Albedo, textureLeaf);
   m_leafMaterial->m_roughness = 0.0f;
   m_leafMaterial->m_metallic = 0.0f;
 
   m_instancedLeafMaterial = AssetManager::LoadMaterial(
-      false, DefaultResources::GLPrograms::StandardInstancedProgram);
-  m_instancedLeafMaterial->m_cullingMode =
-      MaterialCullingMode::Off;
-  m_instancedLeafMaterial->SetTexture(TextureType::Albedo,
-                                                     textureLeaf);
+      DefaultResources::GLPrograms::StandardInstancedProgram);
+  m_instancedLeafMaterial->m_cullingMode = MaterialCullingMode::Off;
+  m_instancedLeafMaterial->SetTexture(TextureType::Albedo, textureLeaf);
   m_instancedLeafMaterial->m_roughness = 0.0f;
   m_instancedLeafMaterial->m_metallic = 0.0f;
 
   m_plantSystem->m_plantGrowthModels.insert_or_assign(
-      PlantType::Sorghum,
-      [this](std::vector<InternodeCandidate> &candidates) {
+      PlantType::Sorghum, [this](std::vector<InternodeCandidate> &candidates) {
         FormCandidates(candidates);
       });
 
   m_plantSystem->m_plantMeshGenerators.insert_or_assign(
-      PlantType::Sorghum,
-      [this]() { GenerateLeavesForSorghum(); });
+      PlantType::Sorghum, [this]() { GenerateLeavesForSorghum(); });
 
   m_plantSystem->m_plantMetaDataCalculators.insert_or_assign(
       PlantType::Sorghum, [this]() { FormLeafNodes(); });
 
-  m_plantSystem->m_deleteAllPlants.insert_or_assign(PlantType::Sorghum, [this](){
-    DeleteAllPlantsHelper();
-  });
+  m_plantSystem->m_deleteAllPlants.insert_or_assign(
+      PlantType::Sorghum, [this]() { DeleteAllPlantsHelper(); });
 
   Enable();
 }
@@ -166,12 +159,12 @@ void SorghumSystem::OnCreate() {
 Entity SorghumSystem::CreateSorghum() {
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  const Entity entity = m_plantSystem->CreatePlant(PlantType::Sorghum, transform);
+  const Entity entity =
+      m_plantSystem->CreatePlant(PlantType::Sorghum, transform);
   entity.ForEachChild([this](Entity child) {
     if (child.HasDataComponent<InternodeInfo>()) {
       auto internodeTransform = child.GetDataComponent<Transform>();
-      internodeTransform.SetScale(
-          glm::vec3(m_leafNodeSphereSize));
+      internodeTransform.SetScale(glm::vec3(m_leafNodeSphereSize));
       child.SetDataComponent(internodeTransform);
     }
   });
@@ -183,8 +176,7 @@ Entity SorghumSystem::CreateSorghum() {
 }
 
 Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
-  const Entity entity =
-      EntityManager::CreateEntity(m_leafArchetype);
+  const Entity entity = EntityManager::CreateEntity(m_leafArchetype);
   entity.SetName("Leaf");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -194,7 +186,7 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
 
   auto &mmc = entity.SetPrivateComponent<MeshRenderer>();
   mmc.m_material = m_leafMaterial;
-  mmc.m_mesh = AssetManager::CreateResource<Mesh>();
+  mmc.m_mesh = AssetManager::CreateAsset<Mesh>();
 
   auto &rtt =
       entity.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
@@ -417,8 +409,7 @@ Entity SorghumSystem::ImportPlant(const std::string &path,
 void SorghumSystem::OnGui() {
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("Sorghum Manager")) {
-      ImGui::Checkbox("Display light probes",
-                      &m_displayLightProbes);
+      ImGui::Checkbox("Display light probes", &m_displayLightProbes);
       ImGui::DragInt("Seed", &m_seed);
       if (ImGui::Button("Calculate illumination")) {
         RayTracerFacility::IlluminationEstimationProperties properties;
@@ -486,7 +477,7 @@ void SorghumSystem::OnGui() {
             ImGui::InputInt("New sorghum amount", &newSorghumAmount);
             if (newSorghumAmount < 1)
               newSorghumAmount = 1;
-            FileIO::OpenFile(
+            FileSystem::OpenFile(
                 "Import parameters for all", ".sorghumparam",
                 [](const std::string &path) {
                   newSorghumParameters[0].Deserialize(path);
@@ -536,13 +527,13 @@ void SorghumSystem::OnGui() {
                           ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
         if (ImGui::BeginMenuBar()) {
           if (ImGui::BeginMenu("Parameters")) {
-            FileIO::OpenFile(
+            FileSystem::OpenFile(
                 "Import parameters", ".treeparam", [](const std::string &path) {
                   newSorghumParameters[currentFocusedNewSorghumIndex]
                       .Deserialize(path);
                 });
 
-            FileIO::SaveFile(
+            FileSystem::SaveFile(
                 "Export parameters", ".treeparam", [](const std::string &path) {
                   newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(
                       path);
@@ -592,19 +583,19 @@ void SorghumSystem::OnGui() {
         if (ImGui::Button("OK", ImVec2(120, 0))) {
           std::vector<Entity> candidates;
           candidates.push_back(
-              ImportPlant(FileIO::GetAssetFolderPath() +
+              ImportPlant(AssetManager::GetAssetRootPath() +
                               "Sorghum/skeleton_procedural_1.txt",
                           "Sorghum 1"));
           candidates.push_back(
-              ImportPlant(FileIO::GetAssetFolderPath() +
+              ImportPlant(AssetManager::GetAssetRootPath() +
                               "Sorghum/skeleton_procedural_2.txt",
                           "Sorghum 2"));
           candidates.push_back(
-              ImportPlant(FileIO::GetAssetFolderPath() +
+              ImportPlant(AssetManager::GetAssetRootPath() +
                               "Sorghum/skeleton_procedural_3.txt",
                           "Sorghum 3"));
           candidates.push_back(
-              ImportPlant(FileIO::GetAssetFolderPath() +
+              ImportPlant(AssetManager::GetAssetRootPath() +
                               "Sorghum/skeleton_procedural_4.txt",
                           "Sorghum 4"));
           GenerateMeshForAllSorghums();
@@ -640,7 +631,7 @@ void SorghumSystem::OnGui() {
             EntityManager::DeleteEntity(rootInternode);
         }
       }
-      FileIO::SaveFile(
+      FileSystem::SaveFile(
           "Export OBJ for all sorghums", ".obj",
           [this](const std::string &path) { ExportAllSorghumsModel(path); });
       ImGui::EndMenu();
@@ -657,14 +648,12 @@ void SorghumSystem::OnGui() {
                                   m_processingEntities.size();
       std::string text =
           std::to_string(static_cast<int>(fraction * 100.0f)) + "% - " +
-          std::to_string(m_processingEntities.size() -
-                         m_processingIndex) +
+          std::to_string(m_processingEntities.size() - m_processingIndex) +
           "/" + std::to_string(m_processingEntities.size());
       ImGui::ProgressBar(fraction, ImVec2(240, 0), text.c_str());
       ImGui::SetItemDefaultFocus();
       ImGui::Text(("Estimation time for 1 plant: " +
-                   std::to_string(m_perPlantCalculationTime) +
-                   " seconds")
+                   std::to_string(m_perPlantCalculationTime) + " seconds")
                       .c_str());
       if (ImGui::Button("Cancel") || m_processing == false) {
         m_processing = false;
@@ -689,7 +678,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
     }
     Transform transform;
     transform.m_value = matrix;
-    sorghum.SetDataComponent(transform);
+
     auto &newSpline = sorghum.SetPrivateComponent<Spline>();
     auto &spline = original.GetPrivateComponent<Spline>();
     newSpline.Clone(spline);
@@ -711,6 +700,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
       newRayTracedRenderer.m_mesh = meshRenderer.m_mesh;
     });
     sorghum.SetParent(parent);
+    sorghum.SetDataComponent(transform);
   }
 }
 
@@ -818,8 +808,8 @@ void SorghumSystem::RenderLightProbes() {
       m_probeTransforms.size() != m_probeColors.size())
     return;
   RenderManager::DrawGizmoMeshInstancedColored(
-      DefaultResources::Primitives::Cube, m_probeColors,
-      m_probeTransforms, glm::mat4(1.0f), 0.2f);
+      DefaultResources::Primitives::Cube, m_probeColors, m_probeTransforms,
+      glm::mat4(1.0f), 0.2f);
 }
 
 void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
@@ -843,8 +833,8 @@ void SorghumSystem::CalculateIllumination(
   m_probeColors.clear();
   m_properties = properties;
   m_properties.m_pushNormal = true;
-  m_processingEntities.insert(m_processingEntities.begin(),
-                                      owners->begin(), owners->end());
+  m_processingEntities.insert(m_processingEntities.begin(), owners->begin(),
+                              owners->end());
   m_processingIndex = m_processingEntities.size();
   m_processing = true;
 }
@@ -942,7 +932,8 @@ void SorghumSystem::GenerateLeavesForSorghum() {
   GenerateMeshForAllSorghums();
 }
 
-void SorghumSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
+void SorghumSystem::FormCandidates(
+    std::vector<InternodeCandidate> &candidates) {
   const float globalTime = m_plantSystem->m_globalTime;
   const float sphereSize = m_leafNodeSphereSize;
   std::mutex mutex;
@@ -1093,7 +1084,8 @@ void SorghumSystem::FormLeafNodes() {
     meshRenderer.m_material->m_albedoColor = glm::vec3(0, 1, 0);
 
     InternodeGrowth internodeGrowth;
-    Entity leafNode = m_plantSystem->CreateInternode(PlantType::Sorghum, i.first);
+    Entity leafNode =
+        m_plantSystem->CreateInternode(PlantType::Sorghum, i.first);
     auto internodeInfo = leafNode.GetDataComponent<InternodeInfo>();
     internodeInfo.m_order = 3;
     Transform transform;
@@ -1217,17 +1209,15 @@ void SorghumSystem::Update() {
               .GetPrivateComponent<TriangleIlluminationEstimator>();
       estimator.CalculateIllumination(m_properties);
       m_probeTransforms.insert(m_probeTransforms.end(),
-                                       estimator.m_probeTransforms.begin(),
-                                       estimator.m_probeTransforms.end());
-      m_probeColors.insert(m_probeColors.end(),
-                                   estimator.m_probeColors.begin(),
-                                   estimator.m_probeColors.end());
-      m_perPlantCalculationTime =
-          Application::Time().CurrentTime() - timer;
+                               estimator.m_probeTransforms.begin(),
+                               estimator.m_probeTransforms.end());
+      m_probeColors.insert(m_probeColors.end(), estimator.m_probeColors.begin(),
+                           estimator.m_probeColors.end());
+      m_perPlantCalculationTime = Application::Time().CurrentTime() - timer;
       const auto count = m_probeTransforms.size();
       m_lightProbeRenderingColorBuffer.SetData(
-          static_cast<GLsizei>(count) * sizeof(glm::vec4),
-          m_probeColors.data(), GL_DYNAMIC_DRAW);
+          static_cast<GLsizei>(count) * sizeof(glm::vec4), m_probeColors.data(),
+          GL_DYNAMIC_DRAW);
       m_lightProbeRenderingTransformBuffer.SetData(
           static_cast<GLsizei>(count) * sizeof(glm::mat4),
           m_probeTransforms.data(), GL_DYNAMIC_DRAW);

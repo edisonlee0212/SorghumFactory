@@ -14,7 +14,7 @@
 
 #include <functional>
 #include <filesystem>
-#include <FileIO.hpp>
+#include <FileSystem.hpp>
 #include <imgui.h>
 
 using namespace RayTracerFacility;
@@ -244,23 +244,6 @@ RayTracer::RayTracer() {
     AssemblePipelines();
 
     std::cout << "#Optix: context, module, pipeline, etc, all set up ..." << std::endl;
-
-    int btfAmount = 3;
-    m_btfs.resize(btfAmount);
-    m_btfsBuffer.resize(btfAmount);
-    m_btfs[0].Init(UniEngine::FileIO::GetProjectPath() + "btfs/fabric01");
-    m_btfs[1].Init(UniEngine::FileIO::GetProjectPath() + "btfs/alu");
-    m_btfs[2].Init(UniEngine::FileIO::GetProjectPath() + "btfs/corduroy");
-    /*
-    m_btfs[3].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wool");
-    m_btfs[4].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wallpaper");
-    m_btfs[5].Init(UniEngine::FileIO::GetProjectPath() + "btfs/impalla");
-    m_btfs[6].Init(UniEngine::FileIO::GetProjectPath() + "btfs/pulli");
-    m_btfs[7].Init(UniEngine::FileIO::GetProjectPath() + "btfs/proposte");
-     */
-    for (int i = 0; i < btfAmount; i++) {
-        m_btfsBuffer[i].Upload(&m_btfs[i], 1);
-    }
 
 }
 
@@ -932,4 +915,22 @@ void RayTracer::BuildShaderBindingTable(std::vector<std::pair<unsigned, cudaText
         m_defaultIlluminationEstimationPipeline.m_sbt.hitgroupRecordStrideInBytes = sizeof(DefaultIlluminationEstimationRayHitRecord);
         m_defaultIlluminationEstimationPipeline.m_sbt.hitgroupRecordCount = static_cast<int>(hitGroupRecords.size());
     }
+}
+void RayTracer::LoadBtfMaterials(const std::string& folderPath) {
+  int btfAmount = 3;
+  m_btfs.resize(btfAmount);
+  m_btfsBuffer.resize(btfAmount);
+  m_btfs[0].Init(folderPath + "btfs/fabric01");
+  m_btfs[1].Init(folderPath + "btfs/alu");
+  m_btfs[2].Init(folderPath + "btfs/corduroy");
+  /*
+  m_btfs[3].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wool");
+  m_btfs[4].Init(UniEngine::FileIO::GetProjectPath() + "btfs/wallpaper");
+  m_btfs[5].Init(UniEngine::FileIO::GetProjectPath() + "btfs/impalla");
+  m_btfs[6].Init(UniEngine::FileIO::GetProjectPath() + "btfs/pulli");
+  m_btfs[7].Init(UniEngine::FileIO::GetProjectPath() + "btfs/proposte");
+   */
+  for (int i = 0; i < btfAmount; i++) {
+    m_btfsBuffer[i].Upload(&m_btfs[i], 1);
+  }
 }

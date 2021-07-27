@@ -187,6 +187,8 @@ public:
                             const IlluminationEstimationProperties &properties,
                             CudaBuffer &lightProbes);
   RayTracer();
+
+  void LoadBtfMaterials(const std::string& folderPath);
   /*! build an acceleration structure for the given triangle mesh */
   void BuildAccelerationStructure();
   /*! constructs the shader binding table */

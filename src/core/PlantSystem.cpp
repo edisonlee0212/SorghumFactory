@@ -321,16 +321,13 @@ void PlantSystem::DeleteAllPlants() {
   for (const auto &tree : trees)
     EntityManager::DeleteEntity(tree);
   Refresh();
-  for(auto& i : m_deleteAllPlants) i.second();
+  for (auto &i : m_deleteAllPlants)
+    i.second();
 }
 
 Entity PlantSystem::CreatePlant(const PlantType &type,
                                 const Transform &transform) {
   const auto entity = EntityManager::CreateEntity(m_plantArchetype);
-
-  GlobalTransform globalTransform;
-  globalTransform.m_value = transform.m_value;
-  entity.SetDataComponent(globalTransform);
   entity.SetDataComponent(transform);
   entity.SetName("Tree");
   PlantInfo treeInfo{};
@@ -350,15 +347,13 @@ Entity PlantSystem::CreatePlant(const PlantType &type,
   internodeGrowth.m_desiredLocalRotation =
       glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
 
-  GlobalTransform internodeGlobalTransform;
-  internodeGlobalTransform.m_value =
-      entity.GetDataComponent<GlobalTransform>().m_value *
-      glm::mat4_cast(internodeGrowth.m_desiredLocalRotation);
+  Transform internodeTransform;
+  internodeTransform.m_value = glm::translate(glm::vec3(0.0f)) * glm::mat4_cast(internodeGrowth.m_desiredLocalRotation) * glm::scale(glm::vec3(1.0f));
   InternodeStatistics internodeStatistics;
   rootInternode.SetDataComponent(internodeInfo);
   rootInternode.SetDataComponent(internodeGrowth);
   rootInternode.SetDataComponent(internodeStatistics);
-  rootInternode.SetDataComponent(internodeGlobalTransform);
+  rootInternode.SetDataComponent(internodeTransform);
 
   auto &rootInternodeData = rootInternode.SetPrivateComponent<InternodeData>();
   Bud bud;
@@ -391,15 +386,14 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
 #pragma region Runtime
 void PlantSystem::OnCreate() {
 
-
 #pragma region Ground
 
   m_ground = EntityManager::CreateEntity("Ground");
 
   auto &meshRenderer = m_ground.SetPrivateComponent<MeshRenderer>();
   meshRenderer.m_mesh = DefaultResources::Primitives::Quad;
-  meshRenderer.m_material = AssetManager::LoadMaterial(
-      false, DefaultResources::GLPrograms::StandardProgram);
+  meshRenderer.m_material =
+      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
   meshRenderer.m_material->m_name = "Ground mat";
   meshRenderer.m_material->m_roughness = 1.0f;
   meshRenderer.m_material->m_metallic = 0.5f;
@@ -430,13 +424,13 @@ void PlantSystem::OnCreate() {
   std::string vertShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + +"\n" +
-      FileIO::LoadFileAsString(
-          FileIO::GetResourcePath("Shaders/Vertex/Standard.vert"));
+      FileSystem::LoadFileAsString(AssetManager::GetResourcePath() +
+                                   "Shaders/Vertex/Standard.vert");
   std::string fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileIO::LoadFileAsString(FileIO::GetAssetFolderPath() +
-                               "Shaders/Fragment/SemanticBranch.frag");
+      FileSystem::LoadFileAsString(AssetManager::GetAssetRootPath() +
+                                   "Shaders/Fragment/SemanticBranch.frag");
 
   auto standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
@@ -444,18 +438,18 @@ void PlantSystem::OnCreate() {
   auto standardFrag = std::make_shared<OpenGLUtils::GLShader>(
       OpenGLUtils::ShaderType::Fragment);
   standardFrag->Compile(fragShaderCode);
-  auto branchProgram =
-      AssetManager::CreateResource<OpenGLUtils::GLProgram>();
+  auto branchProgram = AssetManager::CreateAsset<OpenGLUtils::GLProgram>();
   branchProgram->Link(standardVert, standardFrag);
 
-  vertShaderCode = std::string("#version 460 core\n") +
-                   *DefaultResources::ShaderIncludes::Uniform + +"\n" +
-                   FileIO::LoadFileAsString(FileIO::GetResourcePath(
-                       "Shaders/Vertex/StandardInstanced.vert"));
+  vertShaderCode =
+      std::string("#version 460 core\n") +
+      *DefaultResources::ShaderIncludes::Uniform + +"\n" +
+      FileSystem::LoadFileAsString(AssetManager::GetResourcePath() +
+                                   "Shaders/Vertex/StandardInstanced.vert");
   fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileIO::LoadFileAsString(FileIO::GetAssetFolderPath() +
+      FileSystem::LoadFileAsString(AssetManager::GetAssetRootPath() +
                                "Shaders/Fragment/SemanticLeaf.frag");
   standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
@@ -463,7 +457,7 @@ void PlantSystem::OnCreate() {
   standardFrag = std::make_shared<OpenGLUtils::GLShader>(
       OpenGLUtils::ShaderType::Fragment);
   standardFrag->Compile(fragShaderCode);
-  auto leafProgram = AssetManager::CreateResource<OpenGLUtils::GLProgram>();
+  auto leafProgram = AssetManager::CreateAsset<OpenGLUtils::GLProgram>();
   leafProgram->Link(standardVert, standardFrag);
 #pragma endregion
 #pragma region Entity

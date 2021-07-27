@@ -163,12 +163,15 @@ RayTracerManager &RayTracerManager::GetInstance() {
 }
 
 void RayTracerManager::Init() {
-  ComponentFactory::RegisterSerializable<RayTracedRenderer>(
+  SerializableFactory::RegisterSerializable<RayTracedRenderer>(
       "RayTracedRenderer");
 
   auto &manager = GetInstance();
 
   CudaModule::Init();
+
+  CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(
+      UniEngine::AssetManager::GetProjectPath());
   EditorManager::RegisterPrivateComponentMenu<RayTracedRenderer>(
       [](Entity owner) {
         if (owner.HasPrivateComponent<RayTracedRenderer>())
@@ -182,20 +185,20 @@ void RayTracerManager::Init() {
 #pragma region Environmental map
   {
     const std::vector facesPath{
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/posx.jpg"),
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/negx.jpg"),
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/posy.jpg"),
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/negy.jpg"),
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/posz.jpg"),
-        FileIO::GetResourcePath("Textures/Skyboxes/Default/negz.jpg"),
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posx.jpg",
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negx.jpg",
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posy.jpg",
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negy.jpg",
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posz.jpg",
+        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negz.jpg",
     };
     manager.m_environmentalMap = AssetManager::LoadCubemap(
-        false, FileIO::GetResourcePath(
-                   "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr"));
+        AssetManager::GetResourcePath() +
+        "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
   }
 #pragma endregion
 
-  Application::RegisterUpdateFunction([](){
+  Application::RegisterUpdateFunction([]() {
     Update();
     OnGui();
   });
@@ -216,7 +219,7 @@ void RayTracerRenderWindow::Init(const std::string &name) {
 void RayTracerManager::Update() {
   auto &manager = GetInstance();
   manager.UpdateScene();
-  if(manager.m_defaultWindow.m_renderingEnabled){
+  if (manager.m_defaultWindow.m_renderingEnabled) {
     const auto size = manager.m_defaultWindow.Resize();
     manager.m_defaultRenderingProperties.m_camera.Set(
         EditorManager::GetInstance().m_sceneCameraRotation,

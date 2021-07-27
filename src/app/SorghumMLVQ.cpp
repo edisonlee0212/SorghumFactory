@@ -5,7 +5,7 @@
 #include <CUDAModule.hpp>
 #include <CameraControlSystem.hpp>
 #include <EditorManager.hpp>
-#include <FileIO.hpp>
+#include <FileSystem.hpp>
 #include <PhysicsManager.hpp>
 #include <PlantSystem.hpp>
 #include <PostProcessing.hpp>
@@ -23,30 +23,37 @@ using namespace RayTracerFacility;
 void EngineSetup();
 
 int main() {
+
+
+  SerializableFactory::RegisterDataComponent<LeafInfo>("LeafInfo");
+  SerializableFactory::RegisterSerializable<Spline>("Spline");
+  SerializableFactory::RegisterSerializable<SorghumData>("SorghumData");
+  SerializableFactory::RegisterSerializable<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
+  SerializableFactory::RegisterDataComponent<TreeLeavesTag>("TreeLeavesTag");
+  SerializableFactory::RegisterDataComponent<RbvTag>("RbvTag");
+  SerializableFactory::RegisterSerializable<TreeData>("TreeData");
+  SerializableFactory::RegisterSerializable<TreeLeaves>("TreeLeaves");
+  SerializableFactory::RegisterSerializable<RadialBoundingVolume>("RadialBoundingVolume");
+  SerializableFactory::RegisterSerializable<CubeVolume>("CubeVolume");
+  SerializableFactory::RegisterDataComponent<PlantInfo>("PlantInfo");
+  SerializableFactory::RegisterDataComponent<BranchCylinder>("BranchCylinder");
+  SerializableFactory::RegisterDataComponent<BranchCylinderWidth>("BranchCylinderWidth");
+  SerializableFactory::RegisterDataComponent<BranchPointer>("BranchPointer");
+  SerializableFactory::RegisterDataComponent<Illumination>("Illumination");
+  SerializableFactory::RegisterDataComponent<BranchColor>("BranchColor");
+
+  SerializableFactory::RegisterDataComponent<InternodeInfo>("InternodeInfo");
+  SerializableFactory::RegisterDataComponent<InternodeGrowth>("InternodeGrowth");
+  SerializableFactory::RegisterDataComponent<InternodeStatistics>("InternodeStatistics");
+
+  SerializableFactory::RegisterSerializable<InternodeData>("InternodeData");
+
+  SerializableFactory::RegisterSerializable<PlantSystem>("PlantSystem");
+  SerializableFactory::RegisterSerializable<SorghumSystem>("SorghumSystem");
+  SerializableFactory::RegisterSerializable<TreeSystem>("TreeSystem");
+  SerializableFactory::RegisterSerializable<CameraControlSystem>("CameraControlSystem");
+
   EngineSetup();
-
-  ComponentFactory::RegisterDataComponent<LeafInfo>("LeafInfo");
-  ComponentFactory::RegisterSerializable<Spline>("Spline");
-  ComponentFactory::RegisterSerializable<SorghumData>("SorghumData");
-  ComponentFactory::RegisterSerializable<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
-  ComponentFactory::RegisterDataComponent<TreeLeavesTag>("TreeLeavesTag");
-  ComponentFactory::RegisterDataComponent<RbvTag>("RbvTag");
-  ComponentFactory::RegisterSerializable<TreeData>("TreeData");
-  ComponentFactory::RegisterSerializable<TreeLeaves>("TreeLeaves");
-  ComponentFactory::RegisterSerializable<RadialBoundingVolume>("RadialBoundingVolume");
-  ComponentFactory::RegisterSerializable<CubeVolume>("CubeVolume");
-  ComponentFactory::RegisterDataComponent<PlantInfo>("PlantInfo");
-  ComponentFactory::RegisterDataComponent<BranchCylinder>("BranchCylinder");
-  ComponentFactory::RegisterDataComponent<BranchCylinderWidth>("BranchCylinderWidth");
-  ComponentFactory::RegisterDataComponent<BranchPointer>("BranchPointer");
-  ComponentFactory::RegisterDataComponent<Illumination>("Illumination");
-  ComponentFactory::RegisterDataComponent<BranchColor>("BranchColor");
-
-  ComponentFactory::RegisterDataComponent<InternodeInfo>("InternodeInfo");
-  ComponentFactory::RegisterDataComponent<InternodeGrowth>("InternodeGrowth");
-  ComponentFactory::RegisterDataComponent<InternodeStatistics>("InternodeStatistics");
-
-  ComponentFactory::RegisterSerializable<InternodeData>("InternodeData");
 
   const bool enableRayTracing = true;
   if (enableRayTracing)
@@ -54,12 +61,12 @@ int main() {
 
   auto plantSystem =
       EntityManager::GetOrCreateSystem<PlantSystem>(
-          "PlantSystem", SystemGroup::SimulationSystemGroup);
+          EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup);
   auto treeSystem = EntityManager::GetOrCreateSystem<TreeSystem>(
-      "TreeSystem", SystemGroup::SimulationSystemGroup + 0.1f);
+      EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
   auto sorghumSystem =
       EntityManager::GetOrCreateSystem<SorghumSystem>(
-          "SorghumSystem", SystemGroup::SimulationSystemGroup + 0.1f);
+          EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
 
 
 #pragma region Engine Loop
@@ -71,7 +78,7 @@ int main() {
 }
 
 void EngineSetup() {
-  FileIO::SetProjectPath(PLANT_FACTORY_RESOURCE_FOLDER);
+  AssetManager::SetProjectPath(PLANT_FACTORY_RESOURCE_FOLDER);
   Application::Init();
 #pragma region Engine Setup
 #pragma region Global light settings
@@ -89,7 +96,7 @@ void EngineSetup() {
   Application::SetTimeStep(0.016f);
 
   auto ccs = EntityManager::GetOrCreateSystem<CameraControlSystem>(
-      "CameraControlSystem", SystemGroup::SimulationSystemGroup);
+      EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup);
   ccs->SetVelocity(15.0f);
 
   transform = Transform();

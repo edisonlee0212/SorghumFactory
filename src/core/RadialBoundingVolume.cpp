@@ -238,7 +238,7 @@ void RadialBoundingVolume::FormEntity() {
     auto slice = EntityManager::CreateEntity("RBV_" + std::to_string(i));
     auto &mmc = slice.SetPrivateComponent<MeshRenderer>();
     mmc.m_material = AssetManager::LoadMaterial(
-        false, DefaultResources::GLPrograms::StandardProgram);
+        DefaultResources::GLPrograms::StandardProgram);
     mmc.m_forwardRendering = false;
     mmc.m_mesh = m_boundMeshes[i];
 
@@ -504,7 +504,7 @@ void RadialBoundingVolume::OnGui() {
   if (ImGui::Button("Form Entity")) {
     FormEntity();
   }
-  FileIO::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
+  FileSystem::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
     const std::string data = Save();
     std::ofstream ofs;
     ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
@@ -512,9 +512,9 @@ void RadialBoundingVolume::OnGui() {
     ofs.flush();
     ofs.close();
   });
-  FileIO::OpenFile("Load RBV", ".rbv",
+  FileSystem::OpenFile("Load RBV", ".rbv",
                    [this](const std::string &path) { Load(path); });
-  FileIO::SaveFile("Export RBV as OBJ", ".obj",
+  FileSystem::SaveFile("Export RBV as OBJ", ".obj",
                    [this](const std::string &path) { ExportAsObj(path); });
   if (m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
