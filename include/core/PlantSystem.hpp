@@ -193,7 +193,7 @@ public:
 #pragma endregion
 #pragma region Members
   Entity m_ground;
-
+  Entity m_anchor;
   /**
    * \brief The period of time for each iteration. Must be smaller than 1.0f.
    */

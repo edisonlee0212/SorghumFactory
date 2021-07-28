@@ -676,7 +676,7 @@ Entity TreeSystem::CreateTree(const Transform &transform) {
   // with mesh renderer.
   rigidBody.SetEnabled(true);
   rigidBody.SetEnableGravity(false);
-  //plant.SetParent(m_plantSystem->m_ground, true);
+  plant.SetParent(m_plantSystem->m_anchor);
 
   auto &animator = plant.SetPrivateComponent<Animator>();
   animator.m_animation = AssetManager::CreateAsset<Animation>();

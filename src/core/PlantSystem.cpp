@@ -400,14 +400,16 @@ void PlantSystem::OnCreate() {
   meshRenderer.m_material->m_albedoColor = glm::vec3(1.0f);
 
   Transform groundTransform;
-  GlobalTransform groundGlobalTransform;
   groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
   groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-  groundGlobalTransform.m_value = groundTransform.m_value;
-
   m_ground.SetDataComponent(groundTransform);
 
-  m_ground.SetDataComponent(groundGlobalTransform);
+  m_anchor = EntityManager::CreateEntity("Anchor");
+  Transform anchorTransform;
+  anchorTransform.SetScale(glm::vec3(1.0 / 500.0f, 1.0f, 1.0 / 500.0f));
+  anchorTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+  m_anchor.SetDataComponent(anchorTransform);
+  m_anchor.SetParent(m_ground);
 
   auto &rayTracedRenderer =
       m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
@@ -416,8 +418,8 @@ void PlantSystem::OnCreate() {
 
   auto &cubeVolume = m_ground.SetPrivateComponent<CubeVolume>();
   cubeVolume.m_asObstacle = true;
-  cubeVolume.m_minMaxBound.m_max = glm::vec3(500, -0.1f, 500);
-  cubeVolume.m_minMaxBound.m_min = glm::vec3(-500, -10.0f, -500);
+  cubeVolume.m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
+  cubeVolume.m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
 
 #pragma endregion
 #pragma region Mask material
