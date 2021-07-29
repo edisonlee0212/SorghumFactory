@@ -1918,7 +1918,6 @@ void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
 #pragma region Form candidate
           glm::quat prevGlobalRotation = globalTransform.GetRotation();
           auto candidate = InternodeCandidate();
-          candidate.m_owner = internodeData.m_owner;
           candidate.m_parent = internode;
 
           candidate.m_info.m_startGlobalTime = globalTime;

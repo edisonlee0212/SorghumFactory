@@ -126,10 +126,7 @@ public:
 #pragma endregion
 class InternodeData : public IPrivateComponent {
 public:
-  Entity m_owner;
-  std::vector<InternodeCandidate> m_spaceColonizationGrowthModelCandidates;
   std::vector<glm::mat4> m_leavesTransforms;
-  std::mutex m_internodeLock;
   std::vector<glm::vec3> m_points;
   std::vector<Bud> m_buds;
   std::vector<InternodeRingSegment> m_rings;
@@ -157,6 +154,7 @@ enum class BranchRenderType {
   LongestDistanceToAnyEndNode,
 
 };
+
 
 enum class PointerRenderType { Illumination, Bending };
 #pragma endregion
@@ -208,6 +206,9 @@ public:
   bool m_ready;
   float m_illuminationFactor = 0.002f;
   float m_illuminationAngleFactor = 2.0f;
+
+  float m_physicsTimeStep = 1.0f / 60;
+  float m_physicsSimulationRemainingTime = 0.0f;
 
   EntityArchetype m_internodeArchetype;
   EntityArchetype m_plantArchetype;

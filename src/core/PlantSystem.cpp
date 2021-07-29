@@ -44,59 +44,69 @@ void InternodeData::OnGui() {
 
 void PlantSystem::OnGui() {
   if (ImGui::Begin("Plant Manager")) {
-    if (ImGui::Button("Delete all plants")) {
-      ImGui::OpenPopup("Delete Warning");
-    }
-    if (ImGui::BeginPopupModal("Delete Warning", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      ImGui::Text("Are you sure? All plants will be removed!");
-      if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
-        DeleteAllPlants();
-        ImGui::CloseCurrentPopup();
+    if(m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
+      if (ImGui::Button("Delete all plants")) {
+        ImGui::OpenPopup("Delete Warning");
       }
-      ImGui::SetItemDefaultFocus();
-      ImGui::SameLine();
-      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-        ImGui::CloseCurrentPopup();
+      if (ImGui::BeginPopupModal("Delete Warning", nullptr,
+                                 ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure? All plants will be removed!");
+        if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
+          DeleteAllPlants();
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
       }
-      ImGui::EndPopup();
-    }
-    ImGui::Text(
-        "%s",
-        ("Internode amount: " + std::to_string(m_internodes.size())).c_str());
-    if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen)) {
-      if (ImGui::Button("Recalculate illumination"))
-        CalculateIlluminationForInternodes();
-      static int pushAmount = 20;
-      ImGui::DragInt("Amount", &pushAmount, 1, 0, 60.0f / m_deltaTime);
-      if (ImGui::Button("Push and start (grow by iteration)")) {
+      ImGui::Text(
+          "%s",
+          ("Internode amount: " + std::to_string(m_internodes.size())).c_str());
+      if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static int pushAmount = 5;
+        ImGui::DragInt("Amount", &pushAmount, 1, 0, 120.0f / m_deltaTime);
+        if (ImGui::Button("Push and start (grow by iteration)")) {
+          m_iterationsToGrow = pushAmount;
+          Application::SetPlaying(true);
+        }
+        if (Application::IsPlaying() &&
+            ImGui::Button("Push time (grow instantly)")) {
+          const float time = Application::Time().CurrentTime();
+          GrowAllPlants(pushAmount);
+          const std::string spendTime =
+              std::to_string(Application::Time().CurrentTime() - time);
+          Debug::Log("Growth finished in " + spendTime + " sec.");
+        }
 
-        m_iterationsToGrow = pushAmount;
-        Application::SetPlaying(true);
+        ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
+
+        if (ImGui::TreeNode("Timers")) {
+          ImGui::Text("Resource allocation: %.3fs", m_resourceAllocationTimer);
+          ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
+          ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
+          ImGui::Text("Illumination: %.3fs",
+
+                      m_illuminationCalculationTimer);
+          ImGui::Text("Pruning & Metadata: %.3fs", m_metaDataTimer);
+          ImGui::TreePop();
+        }
       }
-      if (Application::IsPlaying() &&
-          ImGui::Button("Push time (grow instantly)")) {
-        const float time = Application::Time().CurrentTime();
-        GrowAllPlants(pushAmount);
-        const std::string spendTime =
-            std::to_string(Application::Time().CurrentTime() - time);
-        Debug::Log("Growth finished in " + spendTime + " sec.");
+      if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static float pushPhysicsTime = 5.0f;
+        ImGui::DragFloat("Time step", &m_physicsTimeStep, 0.001f, 0.01f, 0.1f);
+        ImGui::DragFloat("Time", &pushPhysicsTime, 1.0f, 0.0f, 3600.0f);
+        if (ImGui::Button("Add time and start")) {
+          m_physicsSimulationRemainingTime += pushPhysicsTime;
+          Application::SetPlaying(true);
+          EntityManager::GetSystem<PhysicsSystem>()->UploadRigidBodyShapes();
+          PhysicsManager::UploadTransforms(true, true);
+        }
       }
-
-      ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
-
-      if (ImGui::TreeNode("Timers")) {
-        ImGui::Text("Resource allocation: %.3fs",
-
-                    m_resourceAllocationTimer);
-        ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
-        ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
-        ImGui::Text("Illumination: %.3fs",
-
-                    m_illuminationCalculationTimer);
-        ImGui::Text("Pruning & Metadata: %.3fs", m_metaDataTimer);
-        ImGui::TreePop();
-      }
+    }else{
+      ImGui::Text("Busy...");
     }
   }
   ImGui::End();
@@ -105,7 +115,6 @@ void PlantSystem::OnGui() {
 #pragma region Growth related
 bool PlantSystem::GrowAllPlants() {
   Refresh();
-
   m_globalTime += m_deltaTime;
   float time = Application::Time().CurrentTime();
   std::vector<ResourceParcel> totalResources;
@@ -192,7 +201,6 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternode.SetDataComponent(candidate.m_transform);
     auto &newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
     newInternodeData.m_buds.swap(candidate.m_buds);
-    newInternodeData.m_owner = candidate.m_owner;
     newInternode.SetParent(candidate.m_parent);
     const auto search =
         m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
@@ -348,7 +356,10 @@ Entity PlantSystem::CreatePlant(const PlantType &type,
       glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
 
   Transform internodeTransform;
-  internodeTransform.m_value = glm::translate(glm::vec3(0.0f)) * glm::mat4_cast(internodeGrowth.m_desiredLocalRotation) * glm::scale(glm::vec3(1.0f));
+  internodeTransform.m_value =
+      glm::translate(glm::vec3(0.0f)) *
+      glm::mat4_cast(internodeGrowth.m_desiredLocalRotation) *
+      glm::scale(glm::vec3(1.0f));
   InternodeStatistics internodeStatistics;
   rootInternode.SetDataComponent(internodeInfo);
   rootInternode.SetDataComponent(internodeGrowth);
@@ -359,7 +370,6 @@ Entity PlantSystem::CreatePlant(const PlantType &type,
   Bud bud;
   bud.m_isApical = true;
   rootInternodeData.m_buds.push_back(bud);
-  rootInternodeData.m_owner = entity;
   rootInternode.SetParent(entity);
 
 #pragma endregion
@@ -452,7 +462,7 @@ void PlantSystem::OnCreate() {
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
       FileSystem::LoadFileAsString(AssetManager::GetAssetRootPath() +
-                               "Shaders/Fragment/SemanticLeaf.frag");
+                                   "Shaders/Fragment/SemanticLeaf.frag");
   standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
   standardVert->Compile(vertShaderCode);
@@ -595,6 +605,12 @@ void PlantSystem::Update() {
     } else if (m_endUpdate) {
       Refresh();
       m_endUpdate = false;
+    } else if(m_physicsSimulationRemainingTime > 0.0f){
+      EntityManager::GetSystem<PhysicsSystem>()->Simulate(m_physicsTimeStep);
+      m_physicsSimulationRemainingTime -= m_physicsTimeStep;
+      if (m_physicsSimulationRemainingTime <= 0) {
+        m_physicsSimulationRemainingTime = 0;
+      }
     }
   }
 }

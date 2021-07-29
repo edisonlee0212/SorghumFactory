@@ -962,7 +962,6 @@ void SorghumSystem::FormCandidates(
         if (internodeInfo.m_order == 1) {
           auto stemCandidate = InternodeCandidate();
           stemCandidate.m_info.m_plantType = PlantType::Sorghum;
-          stemCandidate.m_owner = internodeData.m_owner;
           stemCandidate.m_parent = internode;
           stemCandidate.m_info.m_startGlobalTime = globalTime;
           stemCandidate.m_info.m_plant = internodeInfo.m_plant;
@@ -1003,7 +1002,6 @@ void SorghumSystem::FormCandidates(
           if (internodeGrowth.m_distanceToRoot > 0) {
             auto leafCandidate = InternodeCandidate();
             leafCandidate.m_info.m_plantType = PlantType::Sorghum;
-            leafCandidate.m_owner = internodeData.m_owner;
             leafCandidate.m_parent = internode;
             leafCandidate.m_info.m_startGlobalTime = globalTime;
             leafCandidate.m_info.m_plant = internodeInfo.m_plant;

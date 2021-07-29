@@ -22,6 +22,7 @@ struct TreeLeavesTag : IDataComponent {};
 
 struct RbvTag : IDataComponent {};
 
+
 class TreeSystem : public ISystem {
   std::shared_ptr<PlantSystem> m_plantSystem;
 
