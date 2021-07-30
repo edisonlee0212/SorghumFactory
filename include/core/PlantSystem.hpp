@@ -127,10 +127,13 @@ public:
 class InternodeData : public IPrivateComponent {
 public:
   std::vector<glm::mat4> m_leavesTransforms;
-  std::vector<glm::vec3> m_points;
+  std::vector<glm::mat4> m_points;
   std::vector<Bud> m_buds;
   std::vector<InternodeRingSegment> m_rings;
   glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
+  bool m_displayPoints = true;
+  float m_pointSize = 0.01f;
+  glm::vec4 m_pointColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
   int m_step;
   void OnGui() override;
 };
@@ -208,6 +211,7 @@ public:
   float m_illuminationAngleFactor = 2.0f;
 
   float m_physicsTimeStep = 1.0f / 60;
+  float m_physicsSimulationTotalTime = 0.0f;
   float m_physicsSimulationRemainingTime = 0.0f;
 
   EntityArchetype m_internodeArchetype;
@@ -249,6 +253,8 @@ public:
   void Update() override;
   void Refresh();
   void End();
+
+  void PhysicsSimulate();
 #pragma endregion
 };
 } // namespace PlantFactory

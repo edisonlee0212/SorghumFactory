@@ -19,6 +19,22 @@ void ResourceParcel::OnGui() const {
 }
 
 void InternodeData::OnGui() {
+  ImGui::Checkbox("Display points", &m_displayPoints);
+
+  if (m_displayPoints) {
+    ImGui::DragFloat("Points size", &m_pointSize, 0.001f, 0.001f, 0.1f);
+    ImGui::ColorEdit4("Color", &m_pointColor.x);
+    RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube,
+                                          m_pointColor, m_points,
+                                          glm::mat4(1.0f), m_pointSize);
+    RenderManager::DrawGizmoMeshInstanced(
+        DefaultResources::Primitives::Cube, EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
+        EditorManager::GetInstance().m_sceneCameraPosition,
+        EditorManager::GetInstance().m_sceneCameraRotation, m_pointColor,
+        m_points,
+        glm::mat4(1.0f), m_pointSize);
+  }
+
   if (ImGui::TreeNode("Display buds")) {
     for (int i = 0; i < m_buds.size(); i++) {
       ImGui::Text("%s", ("Bud: " + std::to_string(i)).c_str());
@@ -44,7 +60,7 @@ void InternodeData::OnGui() {
 
 void PlantSystem::OnGui() {
   if (ImGui::Begin("Plant Manager")) {
-    if(m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
+    if (m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
       if (ImGui::Button("Delete all plants")) {
         ImGui::OpenPopup("Delete Warning");
       }
@@ -95,17 +111,27 @@ void PlantSystem::OnGui() {
         }
       }
       if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
-        static float pushPhysicsTime = 5.0f;
+        static float pushPhysicsTime = 20.0f;
         ImGui::DragFloat("Time step", &m_physicsTimeStep, 0.001f, 0.01f, 0.1f);
         ImGui::DragFloat("Time", &pushPhysicsTime, 1.0f, 0.0f, 3600.0f);
         if (ImGui::Button("Add time and start")) {
-          m_physicsSimulationRemainingTime += pushPhysicsTime;
+          m_physicsSimulationRemainingTime = m_physicsSimulationTotalTime =
+              pushPhysicsTime;
           Application::SetPlaying(true);
           EntityManager::GetSystem<PhysicsSystem>()->UploadRigidBodyShapes();
           PhysicsManager::UploadTransforms(true, true);
+          EntityManager::ForEach<GlobalTransform>(
+              JobManager::PrimaryWorkers(), m_internodeQuery,
+              [&](int index, Entity internode,
+                  GlobalTransform &globalTransform) {
+                auto &internodeData =
+                    internode.GetPrivateComponent<InternodeData>();
+                internodeData.m_points.clear();
+              },
+              false);
         }
       }
-    }else{
+    } else {
       ImGui::Text("Busy...");
     }
   }
@@ -605,12 +631,8 @@ void PlantSystem::Update() {
     } else if (m_endUpdate) {
       Refresh();
       m_endUpdate = false;
-    } else if(m_physicsSimulationRemainingTime > 0.0f){
-      EntityManager::GetSystem<PhysicsSystem>()->Simulate(m_physicsTimeStep);
-      m_physicsSimulationRemainingTime -= m_physicsTimeStep;
-      if (m_physicsSimulationRemainingTime <= 0) {
-        m_physicsSimulationRemainingTime = 0;
-      }
+    } else if (m_physicsSimulationRemainingTime > 0.0f) {
+      PhysicsSimulate();
     }
   }
 }
@@ -633,11 +655,31 @@ void PlantSystem::Refresh() {
   for (auto &i : m_plantMeshGenerators) {
     i.second();
   }
-
   m_meshGenerationTimer = Application::Time().CurrentTime() - time;
   CalculateIlluminationForInternodes();
 }
 
 void PlantSystem::End() {}
+void PlantSystem::PhysicsSimulate() {
+  EntityManager::ForEach<GlobalTransform>(
+      JobManager::PrimaryWorkers(), m_internodeQuery,
+      [&](int index, Entity internode, GlobalTransform &globalTransform) {
+        auto &internodeData = internode.GetPrivateComponent<InternodeData>();
+        internodeData.m_points.push_back(globalTransform.m_value);
+      },
+      false);
+
+  EntityManager::GetSystem<PhysicsSystem>()->Simulate(m_physicsTimeStep);
+  m_physicsSimulationRemainingTime -= m_physicsTimeStep;
+  if (m_physicsSimulationRemainingTime <= 0) {
+    m_physicsSimulationRemainingTime = 0;
+  }
+  float elapsedTime =
+      m_physicsSimulationTotalTime - m_physicsSimulationRemainingTime;
+  Transform groundTransform = m_ground.GetDataComponent<Transform>();
+  groundTransform.SetPosition(
+      glm::vec3(glm::sin(elapsedTime * 6.0f) * 0.2f, 0.0f, glm::sin(elapsedTime * 6.0f) * 0.2f));
+  m_ground.SetDataComponent(groundTransform);
+}
 
 #pragma endregion
