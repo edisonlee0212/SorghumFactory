@@ -1,9 +1,11 @@
 #pragma once
 #include <CUDAModule.hpp>
+#include <Camera.hpp>
 #include <InternodeRingSegment.hpp>
 #include <TreeData.hpp>
 #include <Volume.hpp>
 #include <VoxelSpace.hpp>
+#include <QuickHull.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
 enum class PlantType { GeneralTree, Sorghum };
@@ -124,18 +126,37 @@ public:
   float m_mainAngle = 0;
 };
 #pragma endregion
+
+struct KDop {
+  std::vector<Plane> m_planes;
+  std::vector<Vertex> m_vertices;
+  std::vector<glm::uvec3> m_indices;
+  void Calculate(const std::vector<glm::mat4> &globalTransforms);
+  glm::vec3 GetIntersection(const Plane &p0, const Plane &p1, const Plane &p2);
+};
+
 class InternodeData : public IPrivateComponent {
 public:
   std::vector<glm::mat4> m_leavesTransforms;
   std::vector<glm::mat4> m_points;
   std::vector<Bud> m_buds;
   std::vector<InternodeRingSegment> m_rings;
+  KDop m_kDop;
+  quickhull::ConvexHull<float> m_convexHull;
+  std::shared_ptr<Mesh> m_hullMesh;
   glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
   bool m_displayPoints = true;
-  float m_pointSize = 0.01f;
+  bool m_displayHullMesh = true;
+  float m_pointSize = 0.001f;
+  float m_lineWidth = 5.0f;
   glm::vec4 m_pointColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+  glm::vec4 m_hullMeshColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
+
   int m_step;
   void OnGui() override;
+  void CalculateKDop();
+  void CalculateQuickHull();
+  void FormMesh();
 };
 #pragma region Enums
 enum class BranchRenderType {
@@ -158,7 +179,6 @@ enum class BranchRenderType {
 
 };
 
-
 enum class PointerRenderType { Illumination, Bending };
 #pragma endregion
 class PlantSystem : public ISystem {
@@ -169,28 +189,28 @@ public:
   std::map<PlantType,
            std::function<void(std::vector<InternodeCandidate> &candidates)>>
       m_plantGrowthModels;
-  std::map<PlantType, std::function<void(std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
+  std::map<PlantType,
+           std::function<void(
+               std::vector<std::pair<GlobalTransform, Volume *>> &obstacles)>>
       m_plantInternodePruners;
-  std::map<PlantType, std::function<void(const Entity& newInternode, const InternodeCandidate& candidate)>>
+  std::map<PlantType, std::function<void(const Entity &newInternode,
+                                         const InternodeCandidate &candidate)>>
       m_plantInternodePostProcessors;
 
-  std::map<PlantType, std::function<void()>>
-      m_plantMetaDataCalculators;
-  std::map<PlantType, std::function<void()>>
-      m_plantMeshGenerators;
+  std::map<PlantType, std::function<void()>> m_plantMetaDataCalculators;
+  std::map<PlantType, std::function<void()>> m_plantMeshGenerators;
 
-  std::map<PlantType, std::function<void()>>
-      m_deleteAllPlants;
+  std::map<PlantType, std::function<void()>> m_deleteAllPlants;
 #pragma region Growth
   bool GrowAllPlants();
   bool GrowAllPlants(const unsigned &iterations);
   bool GrowCandidates(std::vector<InternodeCandidate> &candidates);
   void CalculateIlluminationForInternodes();
   void CollectNutrient(std::vector<Entity> &trees,
-                              std::vector<ResourceParcel> &totalNutrients,
-                              std::vector<ResourceParcel> &nutrientsAvailable);
-  void ApplyTropism(const glm::vec3 &targetDir, float tropism,
-                           glm::vec3 &front, glm::vec3 &up);
+                       std::vector<ResourceParcel> &totalNutrients,
+                       std::vector<ResourceParcel> &nutrientsAvailable);
+  void ApplyTropism(const glm::vec3 &targetDir, float tropism, glm::vec3 &front,
+                    glm::vec3 &up);
 #pragma endregion
 #pragma region Members
   Entity m_ground;
@@ -228,6 +248,7 @@ public:
   float m_resourceAllocationTimer = 0;
   float m_internodeFormTimer = 0;
   float m_internodeCreateTimer = 0;
+  float m_internodeCreatePostProcessTimer = 0;
   float m_illuminationCalculationTimer = 0;
   float m_pruningTimer = 0;
   float m_metaDataTimer = 0;
@@ -243,8 +264,7 @@ public:
   Entity CreateCubeObstacle();
   void DeleteAllPlants();
   Entity CreatePlant(const PlantType &type, const Transform &transform);
-  Entity CreateInternode(const PlantType &type,
-                                const Entity &parentEntity);
+  Entity CreateInternode(const PlantType &type, const Entity &parentEntity);
 
 #pragma endregion
 #pragma region Runtime

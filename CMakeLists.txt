@@ -1,30 +1,30 @@
 cmake_minimum_required(VERSION 3.17)
 project(
-		RayMLVQ
-		VERSION 0.1
-		DESCRIPTION "The MLVQ library with OptiX ray tracer"
-		)
+        RayMLVQ
+        VERSION 0.1
+        DESCRIPTION "The MLVQ library with OptiX ray tracer"
+)
 
 include(GenerateExportHeader)
 
 # Set a default build type if none was specified
 set(default_build_type "Release")
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
-  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
-      STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-    "Debug" "Release")
-endif()
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+            STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+            "Debug" "Release")
+endif ()
 
 # ------------------------------------------------------------------
 # 3rd Party libraries
 # ------------------------------------------------------------------
-if(NOT WIN32)
-	set(OptiX_INSTALL_DIR "~/NVIDIA-OptiX-SDK-7.3.0-linux64-x86_64")
-endif()
+if (NOT WIN32)
+    set(OptiX_INSTALL_DIR "~/NVIDIA-OptiX-SDK-7.3.0-linux64-x86_64")
+endif ()
 # We need a CMAKE_DIR with some code to find external dependencies
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
@@ -53,80 +53,80 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${UNIENGINE_INCLUDES})
 
-file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL 
-	"src/lib/*.cpp"
-	"src/lib/MLVQ/*.cpp"
-	)
-file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL 
-	"src/lib/*.cu"
-	)
+file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL
+        "src/lib/*.cpp"
+        "src/lib/MLVQ/*.cpp"
+        )
+file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL
+        "src/lib/*.cu"
+        )
 
 cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/DefaultRendering.cu)
 cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/IlluminationEstimation.cu)
 
 add_library(rayTracerFacility
-	SHARED
-	#Default
-	${DEFAULT_RENDERING_PTX}
-	${ILLUMINATION_ESTIMATION_PTX}
-	#RayMLVQ
-	${MLVQ_RENDERING_PTX}
+        SHARED
+        #Default
+        ${DEFAULT_RENDERING_PTX}
+        ${ILLUMINATION_ESTIMATION_PTX}
+        #RayMLVQ
+        ${MLVQ_RENDERING_PTX}
 
-	#C++
-	${RAY_TRACER_FACILITY_SOURCES_LOCAL}
-	${RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL}
-	${CMAKE_MODULE_PATH}/configure_optix.cmake
-	${CMAKE_MODULE_PATH}/FindOptiX.cmake
-	)
+        #C++
+        ${RAY_TRACER_FACILITY_SOURCES_LOCAL}
+        ${RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL}
+        ${CMAKE_MODULE_PATH}/configure_optix.cmake
+        ${CMAKE_MODULE_PATH}/FindOptiX.cmake
+        )
 set_property(TARGET rayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
 
 generate_export_header(rayTracerFacility
-	BASE_NAME RAY_TRACER_FACILITY
-	EXPORT_MACRO_NAME RAY_TRACER_FACILITY_API
-	)
+        BASE_NAME RAY_TRACER_FACILITY
+        EXPORT_MACRO_NAME RAY_TRACER_FACILITY_API
+        )
 
-if(NOT WIN32)
-	message(STATUS CUDALIB=${CUDA_TOOLKIT_ROOT_DIR})
-	set(CUDA_CUDA_LIBRARY ${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs)
-endif()
+if (NOT WIN32)
+    message(STATUS CUDALIB=${CUDA_TOOLKIT_ROOT_DIR})
+    set(CUDA_CUDA_LIBRARY ${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs)
+endif ()
 message(STATUS OptiX_INCLUDE:${OptiX_INCLUDE})
 message(STATUS CUDA_LIBRARIES:${CUDA_LIBRARIES})
 message(STATUS CUDA_CUDA_LIBRARY:${CUDA_CUDA_LIBRARY})
 # Linker settings for all platforms
 target_link_libraries(rayTracerFacility
-	uniengine
-	${CUDA_LIBRARIES}
-	${CUDA_CUDA_LIBRARY}
-	)
+        uniengine
+        ${CUDA_LIBRARIES}
+        ${CUDA_CUDA_LIBRARY}
+        )
 message(STATUS UNIENGINE_INCLUDES:${UNIENGINE_INCLUDES})
 set(RAY_TRACER_FACILITY_INCLUDES_LOCAL
-	${OptiX_INCLUDE}
-	${CUDA_TOOLKIT_ROOT_DIR}/include
-	${CMAKE_CURRENT_SOURCE_DIR}/include/lib
-	${CMAKE_CURRENT_SOURCE_DIR}/include/lib/MLVQ
-	${UNIENGINE_INCLUDES}
-	${CMAKE_CURRENT_BINARY_DIR}
-	)
+        ${OptiX_INCLUDE}
+        ${CUDA_TOOLKIT_ROOT_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/MLVQ
+        ${UNIENGINE_INCLUDES}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        )
 
 target_include_directories(rayTracerFacility
-	PRIVATE
-	${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-	)
+        PRIVATE
+        ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
+        )
 
 if (WIN32)
-	# Compiler settings for Windows platform
-	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	target_compile_definitions(rayTracerFacility 
-		PRIVATE 
-		RAY_TRACER_FACILITY_EXPORTS
-		)
-	set (CUDA_PROPAGATE_HOST_FLAGS ON)
+    # Compiler settings for Windows platform
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    target_compile_definitions(rayTracerFacility
+            PRIVATE
+            RAY_TRACER_FACILITY_EXPORTS
+            )
+    set(CUDA_PROPAGATE_HOST_FLAGS ON)
 elseif (UNIX AND NOT APPLE)
-	if (${CMAKE_BUILD_TYPE} STREQUAL Release)
-		set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-	elseif (${CMAKE_BUILD_TYPE} STREQUAL Debug)
-		set(CMAKE_CXX_FLAGS_DEBUG "-g")
-	endif ()
+    if (${CMAKE_BUILD_TYPE} STREQUAL Release)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+    elseif (${CMAKE_BUILD_TYPE} STREQUAL Debug)
+        set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    endif ()
 elseif (APPLE)
 endif ()
 
@@ -135,65 +135,69 @@ endif ()
 # ------------------------------------------------------------------
 file(GLOB PLANT_FACTORY_SOURCES_LOCAL "src/core/*.cpp")
 add_library(plantFactory
-	${PLANT_FACTORY_SOURCES_LOCAL}
-)
-set(PLANT_FACTORY_PCH_LOCAL 
-	${UNIENGINE_PCH}
-	${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
-	)
+        ${PLANT_FACTORY_SOURCES_LOCAL}
+        )
+set(PLANT_FACTORY_PCH_LOCAL
+        ${UNIENGINE_PCH}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
+        )
 
-
+target_compile_definitions(plantFactory
+        PRIVATE
+        GLAD_GLAPI_EXPORT
+        )
 target_precompile_headers(plantFactory
-	PRIVATE
-	${PLANT_FACTORY_PCH_LOCAL}
-	)
+        PRIVATE
+        ${PLANT_FACTORY_PCH_LOCAL}
+        )
 target_include_directories(plantFactory
-	PUBLIC
-	${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-	${CMAKE_CURRENT_SOURCE_DIR}/include/core
-)
+        PUBLIC
+        ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/core
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/core/quickhull
+        )
 target_link_libraries(plantFactory
-	rayTracerFacility
-	)
+        rayTracerFacility
+        )
 
 set(PLANT_FACTORY_RESOURCE_DIR_LOCAL ${CMAKE_CURRENT_SOURCE_DIR}/Resources/)
 set(PLANT_FACTORY_RESOURCE_DEF PLANT_FACTORY_RESOURCE_FOLDER=\"${PLANT_FACTORY_RESOURCE_DIR_LOCAL}\")
 
 
 add_executable(sorghumMLVQ
-	"src/app/SorghumMLVQ.cpp"
-	)
+        "src/app/SorghumMLVQ.cpp"
+        )
 
 target_include_directories(sorghumMLVQ
-	PRIVATE
-	${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-	)
+        PRIVATE
+        ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
+        )
 
 target_precompile_headers(sorghumMLVQ
-	PRIVATE
-	${PLANT_FACTORY_PCH_LOCAL}
-	)
+        PRIVATE
+        ${PLANT_FACTORY_PCH_LOCAL}
+        )
 target_compile_definitions(sorghumMLVQ
-	PRIVATE
-	${PLANT_FACTORY_RESOURCE_DEF}
-	)
+        PRIVATE
+        ${PLANT_FACTORY_RESOURCE_DEF}
+        )
 target_link_libraries(sorghumMLVQ
-	rayTracerFacility
-	plantFactory
-	)
+        rayTracerFacility
+        plantFactory
+        )
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-if(NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
-	if (WIN32)
-		add_custom_command(
-				TARGET rayTracerFacility
-				POST_BUILD
-				COMMAND ${CMAKE_COMMAND} -E copy
-				${PROJECT_BINARY_DIR}/rayTracerFacility.dll
-				${CMAKE_BINARY_DIR}
-		)
-	endif()
-	set(RAY_TRACER_FACILITY_INCLUDES ${RAY_TRACER_FACILITY_INCLUDES_LOCAL} PARENT_SCOPE)
-	set(RAY_TRACER_FACILITY_PCH ${PLANT_FACTORY_PCH_LOCAL} PARENT_SCOPE)
-endif()
+if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
+    if (WIN32)
+        add_custom_command(
+                TARGET rayTracerFacility
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy
+                ${PROJECT_BINARY_DIR}/rayTracerFacility.dll
+                ${CMAKE_BINARY_DIR}
+        )
+    endif ()
+    set(RAY_TRACER_FACILITY_INCLUDES ${RAY_TRACER_FACILITY_INCLUDES_LOCAL} PARENT_SCOPE)
+    set(RAY_TRACER_FACILITY_PCH ${PLANT_FACTORY_PCH_LOCAL} PARENT_SCOPE)
+endif ()

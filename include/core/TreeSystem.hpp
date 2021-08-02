@@ -40,8 +40,8 @@ class TreeSystem : public ISystem {
 public:
 #pragma region Physics
   float m_density = 1.0f;
-  float m_linearDamping = 1.0f;
-  float m_angularDamping = 1.0f;
+  float m_linearDamping = 2.0f;
+  float m_angularDamping = 2.0f;
   int m_positionSolverIteration = 32;
   int m_velocitySolverIteration = 8;
   float m_jointDriveStiffnessFactor = 3000.0f;

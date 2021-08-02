@@ -10,6 +10,7 @@
 #include <TreeSystem.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
+
 using namespace PlantFactory;
 
 #pragma region GUI Related
@@ -20,21 +21,43 @@ void ResourceParcel::OnGui() const {
 
 void InternodeData::OnGui() {
   ImGui::Checkbox("Display points", &m_displayPoints);
-
-  if (m_displayPoints) {
+  ImGui::Checkbox("Display KDop", &m_displayHullMesh);
+  if (ImGui::Button("Form mesh")) {
+    CalculateQuickHull();
+    // m_kDop.FormMesh();
+  }
+  if (m_displayPoints && !m_points.empty()) {
     ImGui::DragFloat("Points size", &m_pointSize, 0.001f, 0.001f, 0.1f);
-    ImGui::ColorEdit4("Color", &m_pointColor.x);
+    ImGui::ColorEdit4("Point Color", &m_pointColor.x);
     RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube,
                                           m_pointColor, m_points,
                                           glm::mat4(1.0f), m_pointSize);
     RenderManager::DrawGizmoMeshInstanced(
-        DefaultResources::Primitives::Cube, EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
+        DefaultResources::Primitives::Cube,
+        EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCameraRotation, m_pointColor,
-        m_points,
-        glm::mat4(1.0f), m_pointSize);
+        m_points, glm::mat4(1.0f), m_pointSize);
   }
+  if (m_displayHullMesh && !m_points.empty()) {
+    ImGui::ColorEdit4("KDop Color", &m_hullMeshColor.x);
+    ImGui::DragFloat("Line size", &m_lineWidth, 0.1f, 1.0f, 10.0f);
 
+    if (m_hullMesh) {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      glLineWidth(m_lineWidth);
+      RenderManager::DrawGizmoMesh(m_hullMesh, m_hullMeshColor);
+      RenderManager::DrawGizmoMesh(
+          m_hullMesh,
+          EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
+          EditorManager::GetInstance().m_sceneCameraPosition,
+          EditorManager::GetInstance().m_sceneCameraRotation, m_hullMeshColor);
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      glLineWidth(1.0f);
+    } else {
+      FormMesh();
+    }
+  }
   if (ImGui::TreeNode("Display buds")) {
     for (int i = 0; i < m_buds.size(); i++) {
       ImGui::Text("%s", ("Bud: " + std::to_string(i)).c_str());
@@ -56,6 +79,293 @@ void InternodeData::OnGui() {
     }
     ImGui::TreePop();
   }
+}
+
+void KDop::Calculate(const std::vector<glm::mat4> &globalTransforms) {
+  m_planes.resize(26);
+  int index = 0;
+  for (int x = -1; x <= 1; x++) {
+    for (int y = -1; y <= 1; y++) {
+      for (int z = -1; z <= 1; z++) {
+        if (x != 0 || y != 0 || z != 0) {
+          m_planes[index].m_a = x;
+          m_planes[index].m_b = y;
+          m_planes[index].m_c = z;
+          m_planes[index].Normalize();
+          m_planes[index].m_d = FLT_MAX;
+          index++;
+        }
+      }
+    }
+  }
+  for (auto &i : globalTransforms) {
+    index = 0;
+    glm::vec3 position = i[3];
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        for (int z = -1; z <= 1; z++) {
+          if (x != 0 || y != 0 || z != 0) {
+            float distance = -glm::dot(
+                position, glm::vec3(m_planes[index].m_a, m_planes[index].m_b,
+                                    m_planes[index].m_c));
+            if (m_planes[index].m_d > distance) {
+              m_planes[index].m_d = distance;
+            }
+            index++;
+          }
+        }
+      }
+    }
+  }
+}
+glm::vec3 KDop::GetIntersection(const Plane &p0, const Plane &p1,
+                                const Plane &p2) {
+  const auto p0n = glm::vec3(p0.m_a, p0.m_b, p0.m_c);
+  const auto p1n = glm::vec3(p1.m_a, p1.m_b, p1.m_c);
+  const auto p2n = glm::vec3(p2.m_a, p2.m_b, p2.m_c);
+  float det = glm::determinant(glm::mat3(p0n, p1n, p2n));
+  assert(det != 0);
+  return (glm::cross(p1n, p2n) * -p0.m_d + glm::cross(p2n, p0n) * -p1.m_d +
+          glm::cross(p0n, p1n) * -p2.m_d) /
+         det;
+}
+/*
+void KDop::FormMesh() {
+  m_mesh = AssetManager::CreateAsset<Mesh>();
+  m_vertices.clear();
+  m_indices.clear();
+  Vertex archetype;
+
+  int offset = 0;
+  //(-1, 0, 0)
+  archetype.m_normal = glm::vec3(-1, 0, 0);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[0], m_planes[1]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[1], m_planes[2]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[2], m_planes[5]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[5], m_planes[8]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[8], m_planes[7]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[7], m_planes[6]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[6], m_planes[3]);
+  m_vertices.push_back(archetype);
+  archetype.m_position = GetIntersection(m_planes[4], m_planes[3], m_planes[0]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+
+  //(1, 0, 0)
+  offset += 8;
+  archetype.m_normal = glm::vec3(1, 0, 0);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[25], m_planes[22]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[22], m_planes[19]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[19], m_planes[18]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[18], m_planes[17]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[17], m_planes[20]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[20], m_planes[23]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[23], m_planes[24]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[21], m_planes[24], m_planes[25]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+  //(0, -1, 0)
+  offset += 8;
+  archetype.m_normal = glm::vec3(0, -1, 0);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[0], m_planes[9]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[9], m_planes[17]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[17], m_planes[18]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[18], m_planes[19]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[19], m_planes[11]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[11], m_planes[2]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[2], m_planes[1]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[10], m_planes[1], m_planes[0]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+  //(0, 1, 0)
+  offset += 8;
+  archetype.m_normal = glm::vec3(0, 1, 0);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[8], m_planes[16]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[16], m_planes[25]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[25], m_planes[24]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[24], m_planes[23]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[23], m_planes[14]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[14], m_planes[6]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[6], m_planes[7]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[15], m_planes[7], m_planes[8]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+  //(0, 0, -1)
+  offset += 8;
+  archetype.m_normal = glm::vec3(0, 0, -1);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[0], m_planes[3]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[3], m_planes[6]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[6], m_planes[14]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[14], m_planes[23]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[23], m_planes[20]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[20], m_planes[17]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[17], m_planes[9]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[12], m_planes[9], m_planes[0]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+  //(0, 0, 1)
+  offset += 8;
+  archetype.m_normal = glm::vec3(0, 0, 1);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[8], m_planes[5]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[5], m_planes[2]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[2], m_planes[11]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[11], m_planes[19]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[19], m_planes[22]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[22], m_planes[25]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[25], m_planes[16]);
+  m_vertices.push_back(archetype);
+  archetype.m_position =
+      GetIntersection(m_planes[13], m_planes[16], m_planes[8]);
+  m_vertices.push_back(archetype);
+  m_indices.emplace_back(0 + offset, 1 + offset, 2 + offset);
+  m_indices.emplace_back(0 + offset, 2 + offset, 3 + offset);
+  m_indices.emplace_back(0 + offset, 3 + offset, 4 + offset);
+  m_indices.emplace_back(0 + offset, 4 + offset, 5 + offset);
+  m_indices.emplace_back(0 + offset, 5 + offset, 6 + offset);
+  m_indices.emplace_back(0 + offset, 6 + offset, 7 + offset);
+
+  m_mesh->SetVertices((unsigned)VertexAttribute::Position |
+                          (unsigned)VertexAttribute::Normal |
+                          (unsigned)VertexAttribute::TexCoord,
+                      m_vertices, m_indices);
+}
+*/
+void InternodeData::CalculateKDop() { m_kDop.Calculate(m_points); }
+void InternodeData::CalculateQuickHull() {
+  std::vector<quickhull::Vector3<float>> pointCloud;
+  for (const auto &i : m_points) {
+    pointCloud.emplace_back(i[3].x, i[3].y, i[3].z);
+  }
+  quickhull::QuickHull<float> qh;
+  m_convexHull = qh.getConvexHull(pointCloud, true, false);
+}
+void InternodeData::FormMesh() {
+  if (!m_hullMesh)
+    m_hullMesh = AssetManager::CreateAsset<Mesh>();
+  const auto &indexBuffer = m_convexHull.getIndexBuffer();
+  const auto &vertexBuffer = m_convexHull.getVertexBuffer();
+  std::vector<Vertex> vertices;
+  std::vector<unsigned> indices;
+  for (const auto &i : vertexBuffer) {
+    Vertex vertex;
+    vertex.m_position = glm::vec3(i.x, i.y, i.z);
+    vertices.push_back(vertex);
+  }
+  for (const auto &i : indexBuffer) {
+    indices.push_back(i);
+  }
+  m_hullMesh->SetVertices((unsigned)VertexAttribute::Position |
+                              (unsigned)VertexAttribute::TexCoord,
+                          vertices, indices);
 }
 
 void PlantSystem::OnGui() {
@@ -103,10 +413,10 @@ void PlantSystem::OnGui() {
           ImGui::Text("Resource allocation: %.3fs", m_resourceAllocationTimer);
           ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
           ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
-          ImGui::Text("Illumination: %.3fs",
-
-                      m_illuminationCalculationTimer);
-          ImGui::Text("Pruning & Metadata: %.3fs", m_metaDataTimer);
+          ImGui::Text("Create internodes PostProcessing: %.3fs",
+                      m_internodeCreatePostProcessTimer);
+          ImGui::Text("Illumination: %.3fs", m_illuminationCalculationTimer);
+          ImGui::Text("Metadata: %.3fs", m_metaDataTimer);
           ImGui::TreePop();
         }
       }
@@ -212,11 +522,13 @@ bool PlantSystem::GrowAllPlants(const unsigned &iterations) {
 }
 
 bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
-  const float time = Application::Time().CurrentTime();
+  float time = Application::Time().CurrentTime();
   if (candidates.empty())
     return false;
   auto entities = EntityManager::CreateEntities(m_internodeArchetype,
                                                 candidates.size(), "Internode");
+  float entityCreateTime = Application::Time().CurrentTime() - time;
+  UNIENGINE_LOG("Time on create: " + std::to_string(entityCreateTime));
   int i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
@@ -226,7 +538,7 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternode.SetDataComponent(candidate.m_globalTransform);
     newInternode.SetDataComponent(candidate.m_transform);
     auto &newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
-    newInternodeData.m_buds.swap(candidate.m_buds);
+    newInternodeData.m_buds = candidate.m_buds;
     newInternode.SetParent(candidate.m_parent);
     const auto search =
         m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
@@ -236,6 +548,18 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     i++;
   }
   m_internodeCreateTimer = Application::Time().CurrentTime() - time;
+  time = Application::Time().CurrentTime();
+  i = 0;
+  for (auto &candidate : candidates) {
+    auto newInternode = entities[i];
+    const auto search =
+        m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
+    if (search != m_plantInternodePostProcessors.end()) {
+      search->second(newInternode, candidate);
+    }
+    i++;
+  }
+  m_internodeCreatePostProcessTimer = Application::Time().CurrentTime() - time;
   return true;
 }
 
@@ -673,12 +997,21 @@ void PlantSystem::PhysicsSimulate() {
   m_physicsSimulationRemainingTime -= m_physicsTimeStep;
   if (m_physicsSimulationRemainingTime <= 0) {
     m_physicsSimulationRemainingTime = 0;
+    EntityManager::ForEach<GlobalTransform>(
+        JobManager::PrimaryWorkers(), m_internodeQuery,
+        [&](int index, Entity internode, GlobalTransform &globalTransform) {
+          auto &internodeData = internode.GetPrivateComponent<InternodeData>();
+          internodeData.CalculateKDop();
+          internodeData.CalculateQuickHull();
+        },
+        false);
   }
   float elapsedTime =
       m_physicsSimulationTotalTime - m_physicsSimulationRemainingTime;
   Transform groundTransform = m_ground.GetDataComponent<Transform>();
-  groundTransform.SetPosition(
-      glm::vec3(glm::sin(elapsedTime * 6.0f) * 0.2f, 0.0f, glm::sin(elapsedTime * 6.0f) * 0.2f));
+  groundTransform.SetPosition(glm::vec3(glm::sin(elapsedTime * 6.0f) * 0.2f,
+                                        0.0f,
+                                        glm::sin(elapsedTime * 6.0f) * 0.2f));
   m_ground.SetDataComponent(groundTransform);
 }
 

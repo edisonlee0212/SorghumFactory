@@ -2562,12 +2562,9 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
     child.SetDataComponent(childInternodeGlobalTransform);
     child.SetDataComponent(childInternodeGrowth);
     auto &rigidBody = child.GetPrivateComponent<RigidBody>();
-    PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
     rigidBody.SetDensityAndMassCenter(m_density *
                                       childInternodeGrowth.m_thickness *
                                       childInternodeGrowth.m_thickness);
-    rigidBody.SetAngularVelocity(glm::vec3(0.0f));
-    rigidBody.SetLinearVelocity(glm::vec3(0.0f));
     rigidBody.SetLinearDamping(m_linearDamping);
     rigidBody.SetAngularDamping(m_angularDamping);
     rigidBody.SetSolverIterations(m_positionSolverIteration,
@@ -2656,12 +2653,9 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
       child.SetDataComponent(childInternodeInfo);
       child.SetDataComponent(childInternodeGrowth);
       auto &rigidBody = child.GetPrivateComponent<RigidBody>();
-      PhysicsManager::UploadTransform(childInternodeGlobalTransform, rigidBody);
       rigidBody.SetDensityAndMassCenter(m_density *
                                         childInternodeGrowth.m_thickness *
                                         childInternodeGrowth.m_thickness);
-      rigidBody.SetAngularVelocity(glm::vec3(0.0f));
-      rigidBody.SetLinearVelocity(glm::vec3(0.0f));
       rigidBody.SetLinearDamping(m_linearDamping);
       rigidBody.SetAngularDamping(m_angularDamping);
       rigidBody.SetSolverIterations(m_positionSolverIteration,
@@ -3260,20 +3254,15 @@ void TreeSystem::Serialize(const Entity &treeEntity,
 void TreeSystem::InternodePostProcessor(const Entity &newInternode,
                                         const InternodeCandidate &candidate) {
   auto &rigidBody = newInternode.SetPrivateComponent<RigidBody>();
-  PhysicsManager::UploadTransform(candidate.m_globalTransform, rigidBody);
   rigidBody.SetDensityAndMassCenter(m_density * candidate.m_growth.m_thickness *
                                     candidate.m_growth.m_thickness);
-  rigidBody.SetAngularVelocity(glm::vec3(0.0f));
-  rigidBody.SetLinearVelocity(glm::vec3(0.0f));
   rigidBody.SetLinearDamping(m_linearDamping);
   rigidBody.SetAngularDamping(m_angularDamping);
   rigidBody.SetSolverIterations(m_positionSolverIteration,
                                 m_velocitySolverIteration);
-  rigidBody.SetStatic(false);
   rigidBody.SetEnableGravity(false);
   // The rigidbody can only apply mesh bound after it's attached to an
   // entity with mesh renderer.
-  rigidBody.SetEnabled(true);
   auto &joint = newInternode.SetPrivateComponent<Joint>();
   joint.Link(candidate.m_parent);
   joint.SetType(JointType::D6);
