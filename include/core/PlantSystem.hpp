@@ -96,7 +96,6 @@ struct InternodeCandidate {
   Entity m_parent;
   std::vector<Bud> m_buds;
   GlobalTransform m_globalTransform;
-  Transform m_transform;
   InternodeInfo m_info = InternodeInfo();
   InternodeGrowth m_growth = InternodeGrowth();
   InternodeStatistics m_statistics = InternodeStatistics();

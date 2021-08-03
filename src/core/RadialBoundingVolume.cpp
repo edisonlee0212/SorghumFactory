@@ -35,10 +35,10 @@ glm::ivec2 RadialBoundingVolume::SelectSlice(glm::vec3 position) const {
 
 void RadialBoundingVolume::GenerateMesh() {
   m_boundMeshes.clear();
-  if (m_cakeTiers.empty())
+  if (m_layers.empty())
     return;
   for (int tierIndex = 0; tierIndex < m_layerAmount; tierIndex++) {
-    auto mesh = std::make_shared<Mesh>();
+    auto mesh = AssetManager::CreateAsset<Mesh>();
     std::vector<Vertex> vertices;
     std::vector<unsigned> indices;
 
@@ -73,7 +73,7 @@ void RadialBoundingVolume::GenerateMesh() {
             z *= -1;
           }
           glm::vec3 position = glm::normalize(glm::vec3(x, 0.0f, z)) *
-                               m_cakeTiers[tierIndex][sliceIndex].m_maxDistance;
+                               m_layers[tierIndex][sliceIndex].m_maxDistance;
           position.y = currentHeight;
           vertices[levelStep * totalAngleStep * m_sectorAmount +
                    actualAngleStep]
@@ -258,7 +258,7 @@ std::string RadialBoundingVolume::Save() {
   output += std::to_string(m_maxHeight) + "\n";
   output += std::to_string(m_maxRadius) + "\n";
   int tierIndex = 0;
-  for (const auto &tier : m_cakeTiers) {
+  for (const auto &tier : m_layers) {
     int sliceIndex = 0;
     for (const auto &slice : tier) {
       output += std::to_string(slice.m_maxDistance);
@@ -268,7 +268,7 @@ std::string RadialBoundingVolume::Save() {
     tierIndex++;
   }
   output += "\n";
-  for (const auto &tier : m_cakeTiers) {
+  for (const auto &tier : m_layers) {
     int sliceIndex = 0;
     for (const auto &slice : tier) {
       output += std::to_string(slice.m_maxDistance);
@@ -331,8 +331,8 @@ void RadialBoundingVolume::Load(const std::string &path) {
     ifs >> m_sectorAmount;
     ifs >> m_maxHeight;
     ifs >> m_maxRadius;
-    m_cakeTiers.resize(m_layerAmount);
-    for (auto &tier : m_cakeTiers) {
+    m_layers.resize(m_layerAmount);
+    for (auto &tier : m_layers) {
       tier.resize(m_sectorAmount);
       for (auto &slice : tier) {
         ifs >> slice.m_maxDistance;
@@ -372,8 +372,8 @@ void RadialBoundingVolume::CalculateVolume() {
       m_maxRadius = radius;
   }
 
-  m_cakeTiers.resize(m_layerAmount);
-  for (auto &tier : m_cakeTiers) {
+  m_layers.resize(m_layerAmount);
+  for (auto &tier : m_layers) {
     tier.resize(m_sectorAmount);
     for (auto &slice : tier) {
       slice.m_maxDistance = 0.0f;
@@ -396,14 +396,14 @@ void RadialBoundingVolume::CalculateVolume() {
       const float currentDistance =
           glm::length(glm::vec2(position.x, position.z));
       if (currentDistance <= internodeGrowth.m_thickness) {
-        for (auto &slice : m_cakeTiers[sliceIndex.x]) {
+        for (auto &slice : m_layers[sliceIndex.x]) {
           if (slice.m_maxDistance <
               currentDistance + internodeGrowth.m_thickness)
             slice.m_maxDistance = currentDistance + internodeGrowth.m_thickness;
         }
-      } else if (m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance <
+      } else if (m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance <
                  currentDistance)
-        m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance = currentDistance;
+        m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance = currentDistance;
     }
     positionIndex++;
   }
@@ -438,8 +438,8 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight) {
       m_maxRadius = radius;
   }
 
-  m_cakeTiers.resize(m_layerAmount);
-  for (auto &tier : m_cakeTiers) {
+  m_layers.resize(m_layerAmount);
+  for (auto &tier : m_layers) {
     tier.resize(m_sectorAmount);
     for (auto &slice : tier) {
       slice.m_maxDistance = 0.0f;
@@ -475,14 +475,14 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight) {
       const float currentDistance =
           glm::length(glm::vec2(position.x, position.z));
       if (currentDistance <= internodeGrowth.m_thickness) {
-        for (auto &slice : m_cakeTiers[sliceIndex.x]) {
+        for (auto &slice : m_layers[sliceIndex.x]) {
           if (slice.m_maxDistance <
               currentDistance + internodeGrowth.m_thickness)
             slice.m_maxDistance = currentDistance + internodeGrowth.m_thickness;
         }
-      } else if (m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance <
+      } else if (m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance <
                  currentDistance)
-        m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance = currentDistance;
+        m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance = currentDistance;
     }
     positionIndex++;
   }
@@ -490,6 +490,7 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight) {
 }
 
 void RadialBoundingVolume::OnGui() {
+  if(!m_meshGenerated) CalculateVolume();
   ImGui::Checkbox("Prune Buds", &m_pruneBuds);
   ImGui::Checkbox("Display bounds", &m_display);
   ImGui::ColorEdit4("Display Color", &m_displayColor.x);
@@ -504,6 +505,28 @@ void RadialBoundingVolume::OnGui() {
   if (ImGui::Button("Form Entity")) {
     FormEntity();
   }
+
+  bool displayLayer = false;
+  if (ImGui::TreeNodeEx("Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (int i = 0; i < m_layerAmount; i++) {
+      if (ImGui::TreeNodeEx(("Layer " + std::to_string(i)).c_str())) {
+        for (int j = 0; j < m_sectorAmount; j++) {
+          if (ImGui::DragFloat(("Sector " + std::to_string(j) + "##" + std::to_string(i)).c_str(),
+                               &m_layers[i][j].m_maxDistance, 0.1f, 0.0f,
+                               100.0f))
+            GenerateMesh();
+        }
+
+        RenderManager::DrawGizmoMesh(
+            m_boundMeshes[i], m_displayColor,
+            GetOwner().GetDataComponent<GlobalTransform>().m_value);
+        displayLayer = true;
+        ImGui::TreePop();
+      }
+    }
+    ImGui::TreePop();
+  }
+
   FileSystem::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
     const std::string data = Save();
     std::ofstream ofs;
@@ -513,13 +536,13 @@ void RadialBoundingVolume::OnGui() {
     ofs.close();
   });
   FileSystem::OpenFile("Load RBV", ".rbv",
-                   [this](const std::string &path) { Load(path); });
+                       [this](const std::string &path) { Load(path); });
   FileSystem::SaveFile("Export RBV as OBJ", ".obj",
-                   [this](const std::string &path) { ExportAsObj(path); });
-  if (m_display && m_meshGenerated) {
+                       [this](const std::string &path) { ExportAsObj(path); });
+  if (!displayLayer && m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
       RenderManager::DrawGizmoMesh(
-          i, EditorManager::GetSceneCamera(), m_displayColor,
+          i, m_displayColor,
           GetOwner().GetDataComponent<GlobalTransform>().m_value);
     }
   }
@@ -535,8 +558,7 @@ bool RadialBoundingVolume::InVolume(const glm::vec3 &position) {
     const auto sliceIndex = SelectSlice(finalPos);
     const float currentDistance =
         glm::length(glm::vec2(finalPos.x, finalPos.z));
-    return glm::max(1.0f,
-                    m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
+    return glm::max(1.0f, m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
                currentDistance &&
            finalPos.y <= m_maxHeight;
   }
@@ -551,8 +573,7 @@ bool RadialBoundingVolume::InVolume(const GlobalTransform &globalTransform,
     const auto sliceIndex = SelectSlice(finalPos);
     const float currentDistance =
         glm::length(glm::vec2(finalPos.x, finalPos.z));
-    return glm::max(1.0f,
-                    m_cakeTiers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
+    return glm::max(1.0f, m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
                currentDistance &&
            finalPos.y <= m_maxHeight;
   }

@@ -94,35 +94,41 @@ void VoxelSpace::Push(const glm::vec3 &position, const Entity &owner,
   voxel.m_owners.push_back(owner);
   voxel.m_internodes.push_back(internode);
 }
-
+void VoxelSpace::Remove(const glm::vec3 &position, const Entity &owner,
+                        const Entity &internode) {
+  auto &voxel = GetVoxel(position);
+  std::lock_guard lock(*voxel.m_mutex.get());
+  for (int i = 0; i < voxel.m_internodes.size(); i++) {
+    if (voxel.m_internodes[i] == internode) {
+      voxel.m_positions.erase(voxel.m_positions.begin() + i);
+      voxel.m_owners.erase(voxel.m_owners.begin() + i);
+      voxel.m_internodes.erase(voxel.m_internodes.begin() + i);
+      return;
+    }
+  }
+}
 bool VoxelSpace::HasVoxel(const glm::vec3 &position) {
   auto &voxel = GetVoxel(position);
   std::lock_guard lock(*voxel.m_mutex.get());
   return !voxel.m_owners.empty();
 }
 
-bool VoxelSpace::HasNeighbor(const glm::vec3 &position, float radius) {
-  std::vector<Voxel *> checkedVoxel;
+bool VoxelSpace::HasNeighbor(const glm::vec3 &position, const Entity &internode,
+                             const Entity &parent, float radius) {
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
         glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
-        bool duplicate = false;
-        for (const auto *i : checkedVoxel) {
-          if (&voxel == i) {
-            duplicate = true;
-            break;
-          }
-        }
-        if (duplicate)
-          continue;
-        checkedVoxel.push_back(&voxel);
-        for (const auto &p : voxel.m_positions) {
-          const glm::vec3 vector = tracePosition - p;
-          if (vector.x * vector.x + vector.y * vector.y + vector.z * vector.z <
+        for (int p = 0; p < voxel.m_positions.size(); p++) {
+          const glm::vec3 vector = position - voxel.m_positions[p];
+          if (vector.x * vector.x + vector.y * vector.y + vector.z * vector.z >
               radius * radius)
+            continue;
+          const Entity compare = voxel.m_internodes[p];
+          if (parent != compare && internode != compare) {
             return true;
+          }
         }
       }
     }
@@ -200,8 +206,10 @@ bool VoxelSpace::HasObstacleConeSameOwner(
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
-        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction + glm::vec3(i, j, k) * m_diameter;
+        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction +
+                                  glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
+        std::lock_guard lock(*voxel.m_mutex.get());
         const float cosAngle = glm::cos(glm::radians(angle));
         for (int p = 0; p < voxel.m_positions.size(); p++) {
           const float dot =
@@ -224,30 +232,37 @@ bool VoxelSpace::HasObstacleConeSameOwner(
   }
   return false;
 }
-bool VoxelSpace::HasObstacleCone(const float &angle, const glm::vec3 &position,
-                                 const glm::vec3 &direction,
-                                 const Entity &internode, const Entity &parent,
-                                 float selfRadius) {
+bool VoxelSpace::RemoveIfHasObstacleInCone(
+    const float &angle, const glm::vec3 &position, const glm::vec3 &direction,
+    const Entity &internode, const Entity &parent, float selfRadius) {
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
-        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction + glm::vec3(i, j, k) * m_diameter;
+        glm::vec3 tracePosition = position +
+                                  glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
+        std::lock_guard lock(*voxel.m_mutex.get());
         const float cosAngle = glm::cos(glm::radians(angle));
         for (int p = 0; p < voxel.m_positions.size(); p++) {
           const float dot =
               glm::dot(glm::normalize(direction),
                        glm::normalize(voxel.m_positions[p] - position));
-          if(dot < cosAngle) continue;
+          if (dot < cosAngle)
+            continue;
           const glm::vec3 vector = voxel.m_positions[p] - position;
           const float distance2 =
               vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
-          if(distance2 > selfRadius * selfRadius) continue;
+          if (distance2 > selfRadius * selfRadius)
+            continue;
           const Entity compare = voxel.m_internodes[p];
           if (parent != compare && internode != compare) {
             if (internode.GetDataComponent<InternodeInfo>().m_order >
-            voxel.m_internodes[p].GetDataComponent<InternodeInfo>().m_order)
+            voxel.m_internodes[p].GetDataComponent<InternodeInfo>().m_order) {
+              //voxel.m_positions.erase(voxel.m_positions.begin() + p);
+              //voxel.m_owners.erase(voxel.m_owners.begin() + p);
+              //voxel.m_internodes.erase(voxel.m_internodes.begin() + p);
               return true;
+            }
           }
         }
       }

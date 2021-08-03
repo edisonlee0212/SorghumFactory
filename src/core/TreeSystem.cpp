@@ -2066,9 +2066,6 @@ void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
           candidate.m_globalTransform.m_value =
               glm::translate(newInternodePosition) *
               glm::mat4_cast(globalRotation) * glm::scale(glm::vec3(1.0f));
-          candidate.m_transform.m_value =
-              glm::inverse(globalTransform.m_value) *
-              candidate.m_globalTransform.m_value;
 #pragma endregion
 
           candidate.m_growth.m_desiredLocalRotation = desiredRotation;
@@ -2263,19 +2260,29 @@ void TreeSystem::PruneTrees(
           cutOff.push_back(internode);
           return;
         }
-        /*
+
         if (!rbvs[targetIndex]->InVolume(position)) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
-        }*/
+        }
         // Below are pruning process which only for end nodes.
         if (!internodeStatistics.m_isEndNode)
           return;
+        /*const float angle = avoidanceAngles[targetIndex];
+
+        if(m_voxelSpaceModule.HasNeighbor(globalTransform.GetPosition(), internode, internode.GetParent(), angle)){
+          std::lock_guard lock(mutex);
+          cutOff.push_back(internode);
+          return;
+        }
+
+
+
         const glm::vec3 direction =
             glm::normalize(globalTransform.GetRotation() * glm::vec3(0, 0, -1));
-        const float angle = avoidanceAngles[targetIndex];
-        if (angle > 0 && m_voxelSpaceModule.HasObstacleCone(
+
+        if (angle > 0 && m_voxelSpaceModule.RemoveIfHasObstacleInCone(
                              angle,
                              globalTransform.GetPosition() -
                                  direction * internodeLengths[targetIndex],
@@ -2285,14 +2292,15 @@ void TreeSystem::PruneTrees(
           cutOff.push_back(internode);
           return;
         }
-        /*
+
         if (m_voxelSpaceModule.HasNeighborFromDifferentOwner(
                 globalTransform.GetPosition(), internodeInfo.m_plant,
                 m_crownShynessDiameter)) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
-        }*/
+        }
+        */
         const float randomCutOffProb = glm::min(
             m_plantSystem->m_deltaTime * randomCutOffMaxes[targetIndex],
             m_plantSystem->m_deltaTime * randomCutOffs[targetIndex] +
@@ -2612,7 +2620,6 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
 #pragma region Update child status
     childInternodeInfo.m_level = currentInternodeInfo.m_level;
 #pragma region Gravity bending.
-    Transform childInternodeTransform;
     GlobalTransform childInternodeGlobalTransform;
     glm::quat globalRotation = currentInternodeGlobalTransform.GetRotation() *
                                childInternodeGrowth.m_desiredLocalRotation;
@@ -2626,14 +2633,10 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
         front * treeData.m_parameters.m_internodeLengthBase;
     childInternodeGlobalTransform.SetValue(globalPosition, globalRotation,
                                            glm::vec3(1.0f));
-    childInternodeTransform.m_value =
-        glm::inverse(currentInternodeGlobalTransform.m_value) *
-        childInternodeGlobalTransform.m_value;
 #pragma endregion
 #pragma endregion
 #pragma region Apply child status
     child.SetDataComponent(childInternodeInfo);
-    child.SetDataComponent(childInternodeTransform);
     child.SetDataComponent(childInternodeGlobalTransform);
     child.SetDataComponent(childInternodeGrowth);
     auto &rigidBody = child.GetPrivateComponent<RigidBody>();
@@ -2701,7 +2704,6 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
         childInternodeInfo.m_level = currentInternodeInfo.m_level + 1;
       }
 #pragma region Gravity bending.
-      Transform childInternodeTransform;
       GlobalTransform childInternodeGlobalTransform;
       glm::quat globalRotation = currentInternodeGlobalTransform.GetRotation() *
                                  childInternodeGrowth.m_desiredLocalRotation;
@@ -2716,13 +2718,8 @@ void TreeSystem::UpdateLevels(const Entity &internode, TreeData &treeData) {
           front * treeData.m_parameters.m_internodeLengthBase;
       childInternodeGlobalTransform.SetValue(globalPosition, globalRotation,
                                              glm::vec3(1.0f));
-      childInternodeTransform.m_value =
-          glm::inverse(currentInternodeGlobalTransform.m_value) *
-          childInternodeGlobalTransform.m_value;
-
 #pragma endregion
 #pragma region Apply child status
-      child.SetDataComponent(childInternodeTransform);
       child.SetDataComponent(childInternodeGlobalTransform);
       child.SetDataComponent(childInternodeStatistics);
       child.SetDataComponent(childInternodeInfo);

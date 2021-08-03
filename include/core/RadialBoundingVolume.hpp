@@ -26,9 +26,9 @@ public:
   void ExportAsObj(const std::string &filename);
   void Load(const std::string &path);
   float m_displayScale = 0.2f;
-  int m_layerAmount = 9;
-  int m_sectorAmount = 12;
-  std::vector<std::vector<RadialBoundingVolumeSlice>> m_cakeTiers;
+  int m_layerAmount = 8;
+  int m_sectorAmount = 8;
+  std::vector<std::vector<RadialBoundingVolumeSlice>> m_layers;
   void CalculateVolume();
   void CalculateVolume(float maxHeight);
   bool m_displayPoints = true;

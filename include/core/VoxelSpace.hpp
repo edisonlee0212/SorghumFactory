@@ -35,8 +35,10 @@ public:
   std::vector<Layer> m_layers;
   void Push(const glm::vec3 &position, const Entity &owner,
             const Entity &internode);
+  void Remove(const glm::vec3 &position, const Entity &owner,
+              const Entity &internode);
   bool HasVoxel(const glm::vec3 &position);
-  bool HasNeighbor(const glm::vec3 &position, float radius);
+  bool HasNeighbor(const glm::vec3 &position, const Entity &internode, const Entity &parent, float radius);
   bool HasNeighborFromDifferentOwner(const glm::vec3 &position,
                                      const Entity &owner, float radius);
   bool HasNeighborFromSameOwner(const glm::vec3 &position, const Entity &owner,
@@ -45,7 +47,7 @@ public:
                                 const glm::vec3 &direction, const Entity &owner,
                                 const Entity &internode, const Entity &parent,
                                 float selfRadius);
-  bool HasObstacleCone(const float &angle, const glm::vec3 &position,
+  bool RemoveIfHasObstacleInCone(const float &angle, const glm::vec3 &position,
                                 const glm::vec3 &direction,
                                 const Entity &internode, const Entity &parent,
                                 float selfRadius);

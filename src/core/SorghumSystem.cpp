@@ -994,9 +994,6 @@ void SorghumSystem::FormCandidates(
               glm::translate(newInternodePosition) *
               glm::mat4_cast(globalRotation) *
               glm::scale(glm::vec3(sphereSize));
-          stemCandidate.m_transform.m_value =
-              glm::inverse(globalTransform.m_value) *
-              stemCandidate.m_globalTransform.m_value;
 #pragma endregion
           candidates.push_back(std::move(stemCandidate));
           if (internodeGrowth.m_distanceToRoot > 0) {
@@ -1029,9 +1026,6 @@ void SorghumSystem::FormCandidates(
                 glm::translate(newInternodePosition) *
                 glm::mat4_cast(globalRotation) *
                 glm::scale(glm::vec3(sphereSize));
-            leafCandidate.m_transform.m_value =
-                glm::inverse(globalTransform.m_value) *
-                leafCandidate.m_globalTransform.m_value;
 #pragma endregion
             std::lock_guard lock(mutex);
             candidates.push_back(std::move(leafCandidate));

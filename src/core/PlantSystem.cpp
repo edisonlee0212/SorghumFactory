@@ -532,7 +532,7 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternode.SetDataComponent(candidate.m_growth);
     newInternode.SetDataComponent(candidate.m_statistics);
     newInternode.SetDataComponent(candidate.m_globalTransform);
-    newInternode.SetDataComponent(candidate.m_transform);
+    //newInternode.SetDataComponent(candidate.m_transform);
     i++;
   }
   m_internodeCreateTimer = Application::Time().CurrentTime() - time;
