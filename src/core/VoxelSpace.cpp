@@ -108,7 +108,6 @@ bool VoxelSpace::HasNeighbor(const glm::vec3 &position, float radius) {
       for (int k = -1; k <= 1; k++) {
         glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
-        std::lock_guard lock(*voxel.m_mutex.get());
         bool duplicate = false;
         for (const auto *i : checkedVoxel) {
           if (&voxel == i) {
@@ -140,7 +139,6 @@ bool VoxelSpace::HasNeighborFromDifferentOwner(const glm::vec3 &position,
       for (int k = -1; k <= 1; k++) {
         glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
-        std::lock_guard lock(*voxel.m_mutex.get());
         bool duplicate = false;
         for (const auto *i : checkedVoxel) {
           if (&voxel == i) {
@@ -172,7 +170,6 @@ bool VoxelSpace::HasNeighborFromSameOwner(const glm::vec3 &position,
       for (int k = -1; k <= 1; k++) {
         glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
-        std::lock_guard lock(*voxel.m_mutex.get());
         bool duplicate = false;
         for (const auto *i : checkedVoxel) {
           if (&voxel == i) {
@@ -196,68 +193,15 @@ bool VoxelSpace::HasNeighborFromSameOwner(const glm::vec3 &position,
   return false;
 }
 
-std::pair<bool, bool> VoxelSpace::HasObstacleConeSphere(
-    const float &angle, const glm::vec3 &position, const glm::vec3 &direction,
-    const Entity &owner, float selfRadius, float globalRadius) {
-  std::vector<Voxel *> checkedVoxel;
-  for (int i = -1; i <= 1; i++) {
-    for (int j = -1; j <= 1; j++) {
-      for (int k = -1; k <= 1; k++) {
-        glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
-        auto &voxel = GetVoxel(tracePosition);
-        std::lock_guard lock(*voxel.m_mutex.get());
-        bool duplicate = false;
-        for (const auto *i : checkedVoxel) {
-          if (&voxel == i) {
-            duplicate = true;
-            break;
-          }
-        }
-        if (duplicate)
-          continue;
-        checkedVoxel.push_back(&voxel);
-        const float cosAngle = glm::cos(glm::radians(angle));
-        for (int p = 0; p < voxel.m_positions.size(); p++) {
-          const float dot =
-              glm::dot(glm::normalize(direction),
-                       glm::normalize(voxel.m_positions[p] - tracePosition));
-          const glm::vec3 vector = tracePosition - voxel.m_positions[p];
-          const float distance2 =
-              vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
-          if (owner == voxel.m_owners[p] &&
-              distance2 < selfRadius * selfRadius && dot > cosAngle)
-            return {true, false};
-          if (owner != voxel.m_owners[p] &&
-              distance2 < globalRadius * globalRadius)
-            return {false, true};
-        }
-      }
-    }
-  }
-  return {false, false};
-}
-
 bool VoxelSpace::HasObstacleConeSameOwner(
     const float &angle, const glm::vec3 &position, const glm::vec3 &direction,
     const Entity &owner, const Entity &internode, const Entity &parent,
     float selfRadius) {
-  std::vector<Voxel *> checkedVoxel;
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
-        glm::vec3 tracePosition = position + glm::vec3(i, j, k) * m_diameter;
+        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction + glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
-        std::lock_guard lock(*voxel.m_mutex.get());
-        bool duplicate = false;
-        for (const auto *i : checkedVoxel) {
-          if (&voxel == i) {
-            duplicate = true;
-            break;
-          }
-        }
-        if (duplicate)
-          continue;
-        checkedVoxel.push_back(&voxel);
         const float cosAngle = glm::cos(glm::radians(angle));
         for (int p = 0; p < voxel.m_positions.size(); p++) {
           const float dot =
@@ -272,6 +216,37 @@ bool VoxelSpace::HasObstacleConeSameOwner(
               distance2 < selfRadius * selfRadius && dot > cosAngle) {
             if (internode.GetDataComponent<InternodeInfo>().m_order >
                 voxel.m_internodes[p].GetDataComponent<InternodeInfo>().m_order)
+              return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+bool VoxelSpace::HasObstacleCone(const float &angle, const glm::vec3 &position,
+                                 const glm::vec3 &direction,
+                                 const Entity &internode, const Entity &parent,
+                                 float selfRadius) {
+  for (int i = -1; i <= 1; i++) {
+    for (int j = -1; j <= 1; j++) {
+      for (int k = -1; k <= 1; k++) {
+        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction + glm::vec3(i, j, k) * m_diameter;
+        auto &voxel = GetVoxel(tracePosition);
+        const float cosAngle = glm::cos(glm::radians(angle));
+        for (int p = 0; p < voxel.m_positions.size(); p++) {
+          const float dot =
+              glm::dot(glm::normalize(direction),
+                       glm::normalize(voxel.m_positions[p] - position));
+          if(dot < cosAngle) continue;
+          const glm::vec3 vector = voxel.m_positions[p] - position;
+          const float distance2 =
+              vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
+          if(distance2 > selfRadius * selfRadius) continue;
+          const Entity compare = voxel.m_internodes[p];
+          if (parent != compare && internode != compare) {
+            if (internode.GetDataComponent<InternodeInfo>().m_order >
+            voxel.m_internodes[p].GetDataComponent<InternodeInfo>().m_order)
               return true;
           }
         }

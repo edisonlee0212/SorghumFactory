@@ -86,7 +86,7 @@ Entity TreeSystem::GetLeaves(const Entity &tree) {
   if (!retVal.IsValid()) {
     const auto leaves =
         EntityManager::CreateEntity(m_leavesArchetype, "Leaves");
-    leaves.SetParent(tree, false);
+    leaves.SetParent(tree);
     leaves.SetPrivateComponent<TreeLeaves>();
     auto &meshRenderer = leaves.SetPrivateComponent<MeshRenderer>();
     auto &skinnedMeshRenderer =
@@ -103,7 +103,7 @@ Entity TreeSystem::GetLeaves(const Entity &tree) {
     meshRenderer.m_material->m_albedoColor = glm::vec3(0.0f, 1.0f, 0.0f);
     meshRenderer.m_mesh = AssetManager::CreateAsset<Mesh>();
     rayTracerRenderer.SyncWithMeshRenderer();
-    meshRenderer.SetEnabled(false);
+    meshRenderer.SetEnabled(true);
 
     skinnedMeshRenderer.m_skinnedMesh =
         AssetManager::CreateAsset<SkinnedMesh>();
@@ -697,7 +697,7 @@ Entity TreeSystem::CreateTree(const Transform &transform) {
                                       m_defaultBranchNormalTexture);
   meshRenderer.m_material->SetTexture(TextureType::Albedo,
                                       m_defaultBranchAlbedoTexture);
-  meshRenderer.SetEnabled(false);
+  meshRenderer.SetEnabled(true);
 
   auto &skinnedMeshRenderer = plant.SetPrivateComponent<SkinnedMeshRenderer>();
   skinnedMeshRenderer.m_skinnedMesh = AssetManager::CreateAsset<SkinnedMesh>();
@@ -793,6 +793,9 @@ void TreeSystem::OnGui() {
       ImGui::DragFloat("Mesh subdivision", &m_meshSubdivision, 0.001f, 0, 1);
       if (ImGui::Button("Generate mesh")) {
         GenerateMeshForTree();
+      }
+      if (ImGui::Button("Generate skinned mesh")) {
+        GenerateSkinnedMeshForTree();
       }
       FileSystem::SaveFile(
           "Save scene as XML", ".xml",
@@ -1637,22 +1640,31 @@ void TreeSystem::GenerateMeshForTree() {
   boundEntitiesLists.resize(plantSize);
   boneIndicesLists.resize(plantSize);
   parentIndicesLists.resize(plantSize);
-  for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size();
-       plantIndex++) {
-    const auto &plant = m_plantSystem->m_plants[plantIndex];
-    if (Entity rootInternode = GetRootInternode(plant);
-        !rootInternode.IsNull()) {
-      const auto plantGlobalTransform =
-          plant.GetDataComponent<GlobalTransform>();
-      TreeNodeWalker(boundEntitiesLists[plantIndex],
-                     parentIndicesLists[plantIndex], -1, rootInternode);
-    }
-    Entity leaves = GetLeaves(plant);
-    if (leaves.IsValid()) {
-      leaves.GetPrivateComponent<TreeLeaves>().m_transforms.clear();
-      leaves.GetPrivateComponent<TreeLeaves>().m_targetBoneIndices.clear();
-    }
-  }
+  EntityManager::ForEach<PlantInfo, GlobalTransform>(
+      JobManager::PrimaryWorkers(), m_plantSystem->m_plantQuery,
+      [&](int i, Entity tree, PlantInfo &plantInfo,
+          GlobalTransform &globalTransform) {
+        if (plantInfo.m_plantType != PlantType::GeneralTree)
+          return;
+        const Entity rootInternode = GetRootInternode(tree);
+        if (rootInternode.IsValid()) {
+          for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size();
+               plantIndex++) {
+            if (m_plantSystem->m_plants[plantIndex] == tree) {
+              const auto plantGlobalTransform =
+                  tree.GetDataComponent<GlobalTransform>();
+              TreeNodeWalker(boundEntitiesLists[plantIndex],
+                             parentIndicesLists[plantIndex], -1, rootInternode);
+            }
+          }
+        }
+        Entity leaves = GetLeaves(tree);
+        if (leaves.IsValid()) {
+          leaves.GetPrivateComponent<TreeLeaves>().m_transforms.clear();
+          leaves.GetPrivateComponent<TreeLeaves>().m_targetBoneIndices.clear();
+        }
+      },
+      false);
 #pragma region Prepare rings for branch mesh.
   EntityManager::ForEach<GlobalTransform, Transform, InternodeGrowth,
                          InternodeInfo>(
@@ -1832,11 +1844,82 @@ void TreeSystem::GenerateMeshForTree() {
     if (!plant.HasPrivateComponent<MeshRenderer>() ||
         !plant.HasPrivateComponent<TreeData>())
       continue;
-    auto &animator = plant.GetPrivateComponent<Animator>();
     auto &meshRenderer = plant.GetPrivateComponent<MeshRenderer>();
+    meshRenderer.SetEnabled(true);
+    if (plant.HasPrivateComponent<SkinnedMeshRenderer>()) {
+      plant.GetPrivateComponent<SkinnedMeshRenderer>().SetEnabled(false);
+    }
+    auto &treeData = plant.GetPrivateComponent<TreeData>();
+    if (Entity rootInternode = GetRootInternode(plant);
+        !rootInternode.IsNull()) {
+      const auto plantGlobalTransform =
+          plant.GetDataComponent<GlobalTransform>();
+#pragma region Branch mesh
+      if (rootInternode.GetChildrenAmount() != 0) {
+        std::vector<unsigned> indices;
+        std::vector<Vertex> vertices;
+        TreeMeshGenerator(boundEntitiesLists[plantIndex],
+                          parentIndicesLists[plantIndex], vertices, indices);
+        meshRenderer.m_mesh->SetVertices(17, vertices, indices);
+        treeData.m_meshGenerated = true;
+      }
+#pragma endregion
+      Entity leaves = GetLeaves(plant);
+      if (leaves.IsValid())
+        leaves.GetPrivateComponent<TreeLeaves>().FormMesh();
+    }
+  }
+}
+
+void TreeSystem::GenerateSkinnedMeshForTree() {
+  if (m_meshResolution <= 0.0f) {
+    Debug::Error("TreeSystem: Resolution must be larger than 0!");
+    return;
+  }
+  int plantSize = m_plantSystem->m_plants.size();
+  std::vector<std::vector<Entity>> boundEntitiesLists;
+  std::vector<std::vector<unsigned>> boneIndicesLists;
+  std::vector<std::vector<int>> parentIndicesLists;
+  boundEntitiesLists.resize(plantSize);
+  boneIndicesLists.resize(plantSize);
+  parentIndicesLists.resize(plantSize);
+  EntityManager::ForEach<PlantInfo, GlobalTransform>(
+      JobManager::PrimaryWorkers(), m_plantSystem->m_plantQuery,
+      [&](int i, Entity tree, PlantInfo &plantInfo,
+          GlobalTransform &globalTransform) {
+        if (plantInfo.m_plantType != PlantType::GeneralTree)
+          return;
+        const Entity rootInternode = GetRootInternode(tree);
+        if (rootInternode.IsValid()) {
+          for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size();
+               plantIndex++) {
+            if (m_plantSystem->m_plants[plantIndex] == tree) {
+              const auto plantGlobalTransform =
+                  tree.GetDataComponent<GlobalTransform>();
+              TreeNodeWalker(boundEntitiesLists[plantIndex],
+                             parentIndicesLists[plantIndex], -1, rootInternode);
+            }
+          }
+        }
+      },
+      false);
+
+  for (int plantIndex = 0; plantIndex < m_plantSystem->m_plants.size();
+       plantIndex++) {
+    const auto &plant = m_plantSystem->m_plants[plantIndex];
+    if (plant.GetDataComponent<PlantInfo>().m_plantType !=
+        PlantType::GeneralTree)
+      continue;
+    if (!plant.HasPrivateComponent<Animator>() ||
+        !plant.HasPrivateComponent<SkinnedMeshRenderer>())
+      continue;
+    auto &animator = plant.GetPrivateComponent<Animator>();
     auto &skinnedMeshRenderer =
         plant.GetPrivateComponent<SkinnedMeshRenderer>();
-    auto &treeData = plant.GetPrivateComponent<TreeData>();
+    skinnedMeshRenderer.SetEnabled(true);
+    if (plant.HasPrivateComponent<MeshRenderer>()) {
+      plant.GetPrivateComponent<MeshRenderer>().SetEnabled(false);
+    }
     if (Entity rootInternode = GetRootInternode(plant);
         !rootInternode.IsNull()) {
       const auto plantGlobalTransform =
@@ -1861,12 +1944,6 @@ void TreeSystem::GenerateMeshForTree() {
       animator.Setup(boundEntitiesLists[plantIndex], names, offsetMatrices);
 #pragma endregion
       if (rootInternode.GetChildrenAmount() != 0) {
-        std::vector<unsigned> indices;
-        std::vector<Vertex> vertices;
-        TreeMeshGenerator(boundEntitiesLists[plantIndex],
-                          parentIndicesLists[plantIndex], vertices, indices);
-        meshRenderer.m_mesh->SetVertices(17, vertices, indices);
-
         std::vector<unsigned> skinnedIndices;
         std::vector<SkinnedVertex> skinnedVertices;
         TreeSkinnedMeshGenerator(boundEntitiesLists[plantIndex],
@@ -1876,18 +1953,15 @@ void TreeSystem::GenerateMeshForTree() {
                                                        skinnedIndices);
         skinnedMeshRenderer.m_skinnedMesh->m_boneAnimatorIndices =
             boneIndicesLists[plantIndex];
-
-        treeData.m_meshGenerated = true;
       }
 #pragma endregion
       Entity leaves = GetLeaves(plant);
       if (leaves.IsValid())
-        leaves.GetPrivateComponent<TreeLeaves>().FormMesh(
+        leaves.GetPrivateComponent<TreeLeaves>().FormSkinnedMesh(
             boneIndicesLists[plantIndex]);
     }
   }
 }
-
 void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
   const float globalTime = m_plantSystem->m_globalTime;
   std::mutex mutex;
@@ -2189,35 +2263,36 @@ void TreeSystem::PruneTrees(
           cutOff.push_back(internode);
           return;
         }
+        /*
         if (!rbvs[targetIndex]->InVolume(position)) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
-        }
+        }*/
         // Below are pruning process which only for end nodes.
         if (!internodeStatistics.m_isEndNode)
           return;
         const glm::vec3 direction =
-            globalTransform.GetRotation() * glm::vec3(0, 0, -1);
+            glm::normalize(globalTransform.GetRotation() * glm::vec3(0, 0, -1));
         const float angle = avoidanceAngles[targetIndex];
-        if (angle > 0 &&
-            m_voxelSpaceModule.HasObstacleConeSameOwner(
-                angle,
-                globalTransform.GetPosition() -
-                    direction * internodeLengths[targetIndex],
-                direction, internodeInfo.m_plant, internode,
-                internode.GetParent(), internodeLengths[targetIndex])) {
+        if (angle > 0 && m_voxelSpaceModule.HasObstacleCone(
+                             angle,
+                             globalTransform.GetPosition() -
+                                 direction * internodeLengths[targetIndex],
+                             direction, internode, internode.GetParent(),
+                             internodeLengths[targetIndex])) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
         }
+        /*
         if (m_voxelSpaceModule.HasNeighborFromDifferentOwner(
                 globalTransform.GetPosition(), internodeInfo.m_plant,
                 m_crownShynessDiameter)) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
-        }
+        }*/
         const float randomCutOffProb = glm::min(
             m_plantSystem->m_deltaTime * randomCutOffMaxes[targetIndex],
             m_plantSystem->m_deltaTime * randomCutOffs[targetIndex] +
@@ -2969,6 +3044,9 @@ void TreeSystem::OnCreate() {
 #pragma region General tree growth
   m_plantSystem->m_plantMeshGenerators.insert_or_assign(
       PlantType::GeneralTree, [&]() { GenerateMeshForTree(); });
+
+  m_plantSystem->m_plantSkinnedMeshGenerators.insert_or_assign(
+      PlantType::GeneralTree, [&]() { GenerateSkinnedMeshForTree(); });
 
   m_plantSystem->m_plantResourceAllocators.insert_or_assign(
       PlantType::GeneralTree, [&](std::vector<ResourceParcel> &resources) {

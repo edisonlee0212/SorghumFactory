@@ -154,6 +154,7 @@ public:
                                        std::vector<SkinnedVertex> &vertices,
                                        std::vector<unsigned> &indices);
   void GenerateMeshForTree();
+  void GenerateSkinnedMeshForTree();
   void FormCandidates(std::vector<InternodeCandidate> &candidates);
   float GetGrowthParameter(const GrowthParameterType &type,
                                   TreeData &treeData,

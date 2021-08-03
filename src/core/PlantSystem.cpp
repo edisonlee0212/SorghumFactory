@@ -410,12 +410,14 @@ void PlantSystem::OnGui() {
         ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
 
         if (ImGui::TreeNode("Timers")) {
+          ImGui::Text("Mesh Gen: %.3fs", m_meshGenerationTimer);
           ImGui::Text("Resource allocation: %.3fs", m_resourceAllocationTimer);
           ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
           ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
           ImGui::Text("Create internodes PostProcessing: %.3fs",
                       m_internodeCreatePostProcessTimer);
           ImGui::Text("Illumination: %.3fs", m_illuminationCalculationTimer);
+          ImGui::Text("Pruning: %.3fs", m_pruningTimer);
           ImGui::Text("Metadata: %.3fs", m_metaDataTimer);
           ImGui::TreePop();
         }
@@ -427,6 +429,9 @@ void PlantSystem::OnGui() {
         if (ImGui::Button("Add time and start")) {
           m_physicsSimulationRemainingTime = m_physicsSimulationTotalTime =
               pushPhysicsTime;
+          for (auto &i : m_plantSkinnedMeshGenerators) {
+            i.second();
+          }
           Application::SetPlaying(true);
           EntityManager::GetSystem<PhysicsSystem>()->UploadRigidBodyShapes();
           PhysicsManager::UploadTransforms(true, true);
@@ -463,23 +468,18 @@ bool PlantSystem::GrowAllPlants() {
   for (auto &i : m_plantResourceAllocators) {
     i.second(totalResources);
   }
-
   m_resourceAllocationTimer = Application::Time().CurrentTime() - time;
-
   for (const auto &plant : m_plants) {
     auto plantInfo = plant.GetDataComponent<PlantInfo>();
     plantInfo.m_age += m_deltaTime;
     plant.SetDataComponent(plantInfo);
   }
-
   time = Application::Time().CurrentTime();
   std::vector<InternodeCandidate> candidates;
   for (auto &i : m_plantGrowthModels) {
     i.second(candidates);
   }
-
   m_internodeFormTimer = Application::Time().CurrentTime() - time;
-
   if (GrowCandidates(candidates)) {
     time = Application::Time().CurrentTime();
     std::vector<std::pair<GlobalTransform, Volume *>> obstacles;
@@ -498,13 +498,11 @@ bool PlantSystem::GrowAllPlants() {
     for (auto &i : m_plantInternodePruners) {
       i.second(obstacles);
     }
-
     m_pruningTimer = Application::Time().CurrentTime() - time;
     time = Application::Time().CurrentTime();
     for (auto &i : m_plantMetaDataCalculators) {
       i.second();
     }
-
     m_metaDataTimer = Application::Time().CurrentTime() - time;
     return true;
   }
@@ -527,8 +525,6 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     return false;
   auto entities = EntityManager::CreateEntities(m_internodeArchetype,
                                                 candidates.size(), "Internode");
-  float entityCreateTime = Application::Time().CurrentTime() - time;
-  UNIENGINE_LOG("Time on create: " + std::to_string(entityCreateTime));
   int i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
@@ -537,14 +533,6 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
     newInternode.SetDataComponent(candidate.m_statistics);
     newInternode.SetDataComponent(candidate.m_globalTransform);
     newInternode.SetDataComponent(candidate.m_transform);
-    auto &newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
-    newInternodeData.m_buds = candidate.m_buds;
-    newInternode.SetParent(candidate.m_parent);
-    const auto search =
-        m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
-    if (search != m_plantInternodePostProcessors.end()) {
-      search->second(newInternode, candidate);
-    }
     i++;
   }
   m_internodeCreateTimer = Application::Time().CurrentTime() - time;
@@ -552,6 +540,9 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
   i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
+    auto &newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
+    newInternodeData.m_buds = candidate.m_buds;
+    newInternode.SetParent(candidate.m_parent);
     const auto search =
         m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
     if (search != m_plantInternodePostProcessors.end()) {
@@ -962,19 +953,12 @@ void PlantSystem::Update() {
 }
 
 void PlantSystem::Refresh() {
-
   m_plants.resize(0);
-
   m_plantQuery.ToEntityArray(m_plants);
-
   m_internodes.resize(0);
-
   m_internodeTransforms.resize(0);
-
   m_internodeQuery.ToComponentDataArray(m_internodeTransforms);
-
   m_internodeQuery.ToEntityArray(m_internodes);
-
   float time = Application::Time().CurrentTime();
   for (auto &i : m_plantMeshGenerators) {
     i.second();

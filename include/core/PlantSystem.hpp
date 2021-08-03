@@ -199,7 +199,7 @@ public:
 
   std::map<PlantType, std::function<void()>> m_plantMetaDataCalculators;
   std::map<PlantType, std::function<void()>> m_plantMeshGenerators;
-
+  std::map<PlantType, std::function<void()>> m_plantSkinnedMeshGenerators;
   std::map<PlantType, std::function<void()>> m_deleteAllPlants;
 #pragma region Growth
   bool GrowAllPlants();

@@ -41,13 +41,14 @@ public:
                                      const Entity &owner, float radius);
   bool HasNeighborFromSameOwner(const glm::vec3 &position, const Entity &owner,
                                 float radius);
-  std::pair<bool, bool>
-  HasObstacleConeSphere(const float &angle, const glm::vec3 &position,
-                        const glm::vec3 &direction, const Entity &owner,
-                        float selfRadius, float globalRadius);
   bool HasObstacleConeSameOwner(const float &angle, const glm::vec3 &position,
                                 const glm::vec3 &direction, const Entity &owner,
                                 const Entity &internode, const Entity &parent,
                                 float selfRadius);
+  bool HasObstacleCone(const float &angle, const glm::vec3 &position,
+                                const glm::vec3 &direction,
+                                const Entity &internode, const Entity &parent,
+                                float selfRadius);
+
 };
 } // namespace PlantFactory
