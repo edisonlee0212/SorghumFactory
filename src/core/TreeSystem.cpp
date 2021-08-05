@@ -769,6 +769,8 @@ void TreeSystem::OnGui() {
       ImGui::Text("Foliage");
       ImGui::DragInt("Leaf amount", &m_leafAmount, 0, 0, 50);
       ImGui::DragFloat("Generation radius", &m_radius, 0.01, 0.01, 10);
+      ImGui::DragFloat("Generation distance", &m_distanceToEndNode, 0.01, 0.01, 20);
+
       ImGui::DragFloat2("Leaf size", &m_leafSize.x, 0.01, 0.01, 10);
       ImGui::Separator();
       ImGui::Text("Crown shyness");
@@ -869,6 +871,10 @@ void TreeSystem::OnGui() {
         }
         ImGui::Columns(1);
         if (newTreePositions.size() < newTreeAmount) {
+          if(newTreeParameters.empty()){
+            newTreeParameters.resize(1);
+            newTreeParameters[0].Deserialize(AssetManager::GetProjectPath() + "/Parameters/default.treeparam");
+          }
           const auto currentSize = newTreePositions.size();
           newTreeParameters.resize(newTreeAmount);
           for (auto i = currentSize; i < newTreeAmount; i++) {
@@ -1790,7 +1796,7 @@ void TreeSystem::GenerateMeshForTree() {
           return;
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
-        if (internodeStatistics.m_longestDistanceToAnyEndNode > 0.5f)
+        if (internodeStatistics.m_longestDistanceToAnyEndNode > m_distanceToEndNode)
           return;
         auto &treeLeaves =
             GetLeaves(internodeInfo.m_plant).GetPrivateComponent<TreeLeaves>();
@@ -2185,7 +2191,9 @@ float TreeSystem::GetGrowthParameter(const GrowthParameterType &type,
 
 void TreeSystem::PruneTrees(
     std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
-  m_voxelSpaceModule.Clear();
+
+  /*
+    m_voxelSpaceModule.Clear();
   EntityManager::ForEach<GlobalTransform, InternodeInfo>(
       JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform,
@@ -2193,7 +2201,7 @@ void TreeSystem::PruneTrees(
         m_voxelSpaceModule.Push(globalTransform.GetPosition(),
                                 internodeInfo.m_plant, internode);
       });
-
+    */
   std::vector<float> distanceLimits;
   std::vector<float> randomCutOffs;
   std::vector<float> randomCutOffAgeFactors;

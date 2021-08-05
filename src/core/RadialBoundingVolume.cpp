@@ -551,16 +551,13 @@ void RadialBoundingVolume::OnGui() {
 bool RadialBoundingVolume::InVolume(const glm::vec3 &position) {
   if (glm::any(glm::isnan(position)))
     return true;
-  const auto globalTransform = GetOwner().GetDataComponent<GlobalTransform>();
-  const auto &finalPos = glm::vec3(
-      (glm::inverse(globalTransform.m_value) * glm::translate(position))[3]);
   if (m_meshGenerated) {
-    const auto sliceIndex = SelectSlice(finalPos);
+    const auto sliceIndex = SelectSlice(position);
     const float currentDistance =
-        glm::length(glm::vec2(finalPos.x, finalPos.z));
+        glm::length(glm::vec2(position.x, position.z));
     return glm::max(1.0f, m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
                currentDistance &&
-           finalPos.y <= m_maxHeight;
+               position.y <= m_maxHeight;
   }
   return true;
 }

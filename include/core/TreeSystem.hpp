@@ -101,6 +101,7 @@ public:
   int m_leafAmount = 20;
   float m_radius = 0.3f;
   glm::vec2 m_leafSize = glm::vec2(0.05f);
+  float m_distanceToEndNode = 0.5f;
 #pragma endregion
 
 #pragma region Internode debugging camera
