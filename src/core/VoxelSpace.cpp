@@ -206,7 +206,7 @@ bool VoxelSpace::HasObstacleConeSameOwner(
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
-        glm::vec3 tracePosition = position + selfRadius * 0.5f * direction +
+        glm::vec3 tracePosition = position  +
                                   glm::vec3(i, j, k) * m_diameter;
         auto &voxel = GetVoxel(tracePosition);
         std::lock_guard lock(*voxel.m_mutex.get());

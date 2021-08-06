@@ -2192,7 +2192,7 @@ float TreeSystem::GetGrowthParameter(const GrowthParameterType &type,
 void TreeSystem::PruneTrees(
     std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
 
-  /*
+
     m_voxelSpaceModule.Clear();
   EntityManager::ForEach<GlobalTransform, InternodeInfo>(
       JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
@@ -2201,7 +2201,7 @@ void TreeSystem::PruneTrees(
         m_voxelSpaceModule.Push(globalTransform.GetPosition(),
                                 internodeInfo.m_plant, internode);
       });
-    */
+
   std::vector<float> distanceLimits;
   std::vector<float> randomCutOffs;
   std::vector<float> randomCutOffAgeFactors;
@@ -2277,30 +2277,31 @@ void TreeSystem::PruneTrees(
         // Below are pruning process which only for end nodes.
         if (!internodeStatistics.m_isEndNode)
           return;
-        /*const float angle = avoidanceAngles[targetIndex];
+        const float angle = avoidanceAngles[targetIndex];
 
+        /*
         if(m_voxelSpaceModule.HasNeighbor(globalTransform.GetPosition(), internode, internode.GetParent(), angle)){
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
         }
-
+        */
 
 
         const glm::vec3 direction =
             glm::normalize(globalTransform.GetRotation() * glm::vec3(0, 0, -1));
 
-        if (angle > 0 && m_voxelSpaceModule.RemoveIfHasObstacleInCone(
+        if (angle > 0 && m_voxelSpaceModule.HasObstacleConeSameOwner(
                              angle,
                              globalTransform.GetPosition() -
                                  direction * internodeLengths[targetIndex],
-                             direction, internode, internode.GetParent(),
+                             direction, internodeInfo.m_plant, internode, internode.GetParent(),
                              internodeLengths[targetIndex])) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
         }
-
+        /*
         if (m_voxelSpaceModule.HasNeighborFromDifferentOwner(
                 globalTransform.GetPosition(), internodeInfo.m_plant,
                 m_crownShynessDiameter)) {
