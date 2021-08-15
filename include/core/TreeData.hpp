@@ -15,6 +15,14 @@ public:
 #pragma region Runtime Data
   float m_activeLength = 0.0f;
   std::shared_ptr<Mesh> m_convexHull;
+
+
+  std::shared_ptr<Mesh> m_branchMesh;
+
+  std::shared_ptr<SkinnedMesh> m_skinnedBranchMesh;
+
+
+
   bool m_meshGenerated = false;
   bool m_foliageGenerated = false;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
@@ -23,6 +31,7 @@ public:
   void ExportModel(const std::string &filename,
                    const bool &includeFoliage = true) const;
 
+  void OnCreate() override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

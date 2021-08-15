@@ -794,6 +794,7 @@ void TreeSystem::OnGui() {
       ImGui::Separator();
       ImGui::Text("Metadata");
       if (ImGui::Button("Update metadata")) {
+        m_plantSystem->Refresh();
         UpdateTreesMetaData();
       }
       ImGui::Separator();
@@ -806,6 +807,8 @@ void TreeSystem::OnGui() {
       ImGui::DragFloat("Mesh resolution", &m_meshResolution, 0.001f, 0, 1);
       ImGui::DragFloat("Mesh subdivision", &m_meshSubdivision, 0.001f, 0, 1);
       if (ImGui::Button("Generate mesh")) {
+        m_plantSystem->Refresh();
+        UpdateTreesMetaData();
         GenerateMeshForTree();
       }
       if (ImGui::Button("Generate skinned mesh")) {
@@ -1892,8 +1895,9 @@ void TreeSystem::GenerateMeshForTree() {
         std::vector<Vertex> vertices;
         TreeMeshGenerator(boundEntitiesLists[plantIndex],
                           parentIndicesLists[plantIndex], vertices, indices);
-        meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices, indices);
+        treeData->m_branchMesh->SetVertices(17, vertices, indices);
         treeData->m_meshGenerated = true;
+        meshRenderer->m_mesh.Set(treeData->m_branchMesh);
       }
 #pragma endregion
       Entity leaves = GetLeaves(plant);
@@ -1952,6 +1956,7 @@ void TreeSystem::GenerateSkinnedMeshForTree() {
     if (plant.HasPrivateComponent<MeshRenderer>()) {
       plant.GetOrSetPrivateComponent<MeshRenderer>().lock()->SetEnabled(false);
     }
+    auto treeData = plant.GetOrSetPrivateComponent<TreeData>().lock();
     if (Entity rootInternode = GetRootInternode(plant);
         !rootInternode.IsNull()) {
       const auto plantGlobalTransform =
@@ -1981,10 +1986,11 @@ void TreeSystem::GenerateSkinnedMeshForTree() {
         TreeSkinnedMeshGenerator(boundEntitiesLists[plantIndex],
                                  parentIndicesLists[plantIndex],
                                  skinnedVertices, skinnedIndices);
-        skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->SetVertices(
+        treeData->m_skinnedBranchMesh->SetVertices(
             17, skinnedVertices, skinnedIndices);
-        skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()
+        treeData->m_skinnedBranchMesh
             ->m_boneAnimatorIndices = boneIndicesLists[plantIndex];
+        skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(treeData->m_skinnedBranchMesh);
       }
 #pragma endregion
       Entity leaves = GetLeaves(plant);

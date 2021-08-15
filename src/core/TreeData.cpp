@@ -53,7 +53,10 @@ void TreeData::OnGui() {
 
 void TreeData::ExportModel(const std::string &filename,
                            const bool &includeFoliage) const {
-  auto mesh = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh.Get<Mesh>();
+  auto mesh = GetOwner()
+                  .GetOrSetPrivateComponent<MeshRenderer>()
+                  .lock()
+                  ->m_mesh.Get<Mesh>();
   if (!mesh)
     return;
   if (mesh->GetVerticesAmount() == 0) {
@@ -91,14 +94,16 @@ void TreeData::ExportModel(const std::string &filename,
       });
       size_t branchletVerticesSize = 0;
       if (foliageEntity.HasPrivateComponent<MeshRenderer>()) {
-        mesh = foliageEntity.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh.Get<Mesh>();
+        mesh = foliageEntity.GetOrSetPrivateComponent<MeshRenderer>()
+                   .lock()
+                   ->m_mesh.Get<Mesh>();
         triangles = mesh->UnsafeGetTriangles();
         branchletVerticesSize += mesh->GetVerticesAmount();
 #pragma region Data collection
         for (const auto &vertex : mesh->UnsafeGetVertices()) {
-          leafVertices += "v " + std::to_string(vertex.m_position.x) +
-                               " " + std::to_string(vertex.m_position.y) + " " +
-                               std::to_string(vertex.m_position.z) + "\n";
+          leafVertices += "v " + std::to_string(vertex.m_position.x) + " " +
+                          std::to_string(vertex.m_position.y) + " " +
+                          std::to_string(vertex.m_position.z) + "\n";
         }
         for (auto triangle : triangles) {
           leafIndices +=
@@ -133,4 +138,10 @@ void TreeData::ExportModel(const std::string &filename,
 }
 void TreeData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<TreeData>(target);
+}
+void TreeData::OnCreate() {
+  m_convexHull = AssetManager::CreateAsset<Mesh>();
+  m_branchMesh = AssetManager::CreateAsset<Mesh>();
+  m_skinnedBranchMesh = AssetManager::CreateAsset<SkinnedMesh>();
+  m_meshGenerated = false;
 }

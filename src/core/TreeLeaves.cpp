@@ -44,9 +44,10 @@ void TreeLeaves::FormSkinnedMesh(std::vector<unsigned> &boneIndices) {
     mi++;
   }
   auto skinnedMeshRenderer = GetOwner().GetOrSetPrivateComponent<SkinnedMeshRenderer>().lock();
-  auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
-  skinnedMesh->SetVertices(17, skinnedVertices, skinnedTriangles);
-  skinnedMesh->m_boneAnimatorIndices = boneIndices;
+  m_skinnedLeavesMesh->SetVertices(17, skinnedVertices, skinnedTriangles);
+  m_skinnedLeavesMesh->m_boneAnimatorIndices = boneIndices;
+
+  skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(m_skinnedLeavesMesh);
 
   skinnedMeshRenderer->SetEnabled(true);
   if(GetOwner().HasPrivateComponent<MeshRenderer>()){
@@ -86,9 +87,9 @@ void TreeLeaves::FormMesh() {
         }
         offset += quadVerticesSize;
     }
+    m_leavesMesh->SetVertices(17, vertices, triangles);
     auto meshRenderer = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
-    auto mesh = meshRenderer->m_mesh.Get<Mesh>();
-    mesh->SetVertices(17, vertices, triangles);
+    meshRenderer->m_mesh.Set<Mesh>(m_leavesMesh);
 
     meshRenderer->SetEnabled(true);
     if(GetOwner().HasPrivateComponent<SkinnedMeshRenderer>()){
@@ -97,4 +98,10 @@ void TreeLeaves::FormMesh() {
 }
 void TreeLeaves::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<TreeLeaves>(target);
+
+
+}
+void TreeLeaves::OnCreate() {
+  m_leavesMesh = AssetManager::CreateAsset<Mesh>();
+  m_skinnedLeavesMesh = AssetManager::CreateAsset<SkinnedMesh>();
 }
