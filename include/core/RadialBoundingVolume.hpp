@@ -37,5 +37,7 @@ public:
   void OnGui() override;
   bool InVolume(const GlobalTransform& globalTransform, const glm::vec3 &position) override;
   bool InVolume(const glm::vec3 &position) override;
+
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

@@ -9,5 +9,7 @@ public:
   void OnGui() override;
   void FormSkinnedMesh(std::vector<unsigned> &boneIndices);
   void FormMesh();
+
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

@@ -44,7 +44,7 @@ void TreeParameters::OnGui() {
     ImGui::DragInt("Tree type", &m_treeType);
 }
 
-void TreeParameters::Serialize(const std::string &path) const {
+void TreeParameters::Serialize(std::filesystem::path path) const {
     std::ofstream ofs;
     ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
     if (!ofs.is_open()) {
@@ -224,7 +224,7 @@ void TreeParameters::Serialize(const std::string &path) const {
     ofs.close();
 }
 
-void TreeParameters::Deserialize(const std::string &path) {
+void TreeParameters::Deserialize(std::filesystem::path path) {
     std::ifstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     try {

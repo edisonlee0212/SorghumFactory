@@ -1,6 +1,6 @@
 #include <RayTracedRenderer.hpp>
 #include <RayTracerManager.hpp>
-
+#include <ProjectManager.hpp>
 using namespace RayTracerFacility;
 
 void RayTracerManager::UpdateScene() const {
@@ -17,11 +17,12 @@ void RayTracerManager::UpdateScene() const {
     for (auto entity : *rayTracedEntities) {
       if (!entity.IsEnabled())
         continue;
-      auto &rayTracedRenderer = entity.GetPrivateComponent<RayTracedRenderer>();
-      if (!rayTracedRenderer.IsEnabled())
+      auto rayTracedRenderer =
+          entity.GetOrSetPrivateComponent<RayTracedRenderer>().lock();
+      if (!rayTracedRenderer->IsEnabled())
         continue;
-      if (!rayTracedRenderer.m_mesh ||
-          rayTracedRenderer.m_mesh->UnsafeGetVertices().empty())
+      auto mesh = rayTracedRenderer->m_mesh.Get<Mesh>();
+      if (!mesh || mesh->UnsafeGetVertices().empty())
         continue;
       auto globalTransform = entity.GetDataComponent<GlobalTransform>().m_value;
       RayTracerInstance newRayTracerInstance;
@@ -39,84 +40,94 @@ void RayTracerManager::UpdateScene() const {
           if (globalTransform != currentRayTracerInstance.m_globalTransform) {
             needTransformUpdate = true;
           }
-          if (rayTracerInstance->m_version !=
-              rayTracedRenderer.m_mesh->GetVersion())
+          if (rayTracerInstance->m_version != mesh->GetVersion())
             needVerticesUpdate = true;
           if (rayTracerInstance->m_surfaceColor !=
-                  rayTracedRenderer.m_surfaceColor ||
+                  rayTracedRenderer->m_surfaceColor ||
               rayTracerInstance->m_metallic !=
-                  (rayTracedRenderer.m_metallic == 1.0f
+                  (rayTracedRenderer->m_metallic == 1.0f
                        ? -1.0f
-                       : 1.0f / glm::pow(1.0f - rayTracedRenderer.m_metallic,
+                       : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic,
                                          3.0f)) ||
-              rayTracerInstance->m_roughness != rayTracedRenderer.m_roughness ||
+              rayTracerInstance->m_roughness !=
+                  rayTracedRenderer->m_roughness ||
               rayTracerInstance->m_enableMLVQ !=
-                  rayTracedRenderer.m_enableMLVQ ||
+                  rayTracedRenderer->m_enableMLVQ ||
               rayTracerInstance->m_mlvqMaterialIndex !=
-                  rayTracedRenderer.m_mlvqMaterialIndex) {
+                  rayTracedRenderer->m_mlvqMaterialIndex) {
             needMaterialUpdate = true;
           }
         }
       }
-      rayTracerInstance->m_version = rayTracedRenderer.m_mesh->GetVersion();
+      rayTracerInstance->m_version = mesh->GetVersion();
       if (fromNew || needVerticesUpdate || needTransformUpdate ||
           needMaterialUpdate) {
         updateShaderBindingTable = true;
-        rayTracerInstance->m_surfaceColor = rayTracedRenderer.m_surfaceColor;
+        rayTracerInstance->m_surfaceColor = rayTracedRenderer->m_surfaceColor;
         rayTracerInstance->m_metallic =
-            rayTracedRenderer.m_metallic == 1.0f
+            rayTracedRenderer->m_metallic == 1.0f
                 ? -1.0f
-                : 1.0f / glm::pow(1.0f - rayTracedRenderer.m_metallic, 3.0f);
-        rayTracerInstance->m_roughness = rayTracedRenderer.m_roughness;
-        rayTracerInstance->m_enableMLVQ = rayTracedRenderer.m_enableMLVQ;
+                : 1.0f / glm::pow(1.0f - rayTracedRenderer->m_metallic, 3.0f);
+        rayTracerInstance->m_roughness = rayTracedRenderer->m_roughness;
+        rayTracerInstance->m_enableMLVQ = rayTracedRenderer->m_enableMLVQ;
         rayTracerInstance->m_mlvqMaterialIndex =
-            rayTracedRenderer.m_mlvqMaterialIndex;
+            rayTracedRenderer->m_mlvqMaterialIndex;
         rayTracerInstance->m_normalTexture = 0;
         rayTracerInstance->m_albedoTexture = 0;
         rayTracerInstance->m_entityId = entity.GetIndex();
         rayTracerInstance->m_entityVersion = entity.GetVersion();
       }
-      if (rayTracedRenderer.m_albedoTexture &&
-          rayTracedRenderer.m_albedoTexture->Texture()->Id() !=
-              rayTracerInstance->m_albedoTexture) {
+      if (rayTracedRenderer->m_albedoTexture.Get<Texture2D>() &&
+          rayTracedRenderer->m_albedoTexture.Get<Texture2D>()
+                  ->Texture()
+                  ->Id() != rayTracerInstance->m_albedoTexture) {
         updateShaderBindingTable = true;
-        if (rayTracedRenderer.m_albedoTexture &&
-            rayTracedRenderer.m_albedoTexture->Texture()->IsResident()) {
+        if (rayTracedRenderer->m_albedoTexture.Get<Texture2D>() &&
+            rayTracedRenderer->m_albedoTexture.Get<Texture2D>()
+                ->Texture()
+                ->IsResident()) {
           UNIENGINE_ERROR("Texture is resident, can't be used!");
-          rayTracedRenderer.m_albedoTexture.reset();
+          rayTracedRenderer->m_albedoTexture.Clear();
           rayTracerInstance->m_albedoTexture = 0;
         } else {
           rayTracerInstance->m_albedoTexture =
-              rayTracedRenderer.m_albedoTexture->Texture()->Id();
+              rayTracedRenderer->m_albedoTexture.Get<Texture2D>()
+                  ->Texture()
+                  ->Id();
         }
-      } else if (!rayTracedRenderer.m_albedoTexture &&
+      } else if (!rayTracedRenderer->m_albedoTexture.Get<Texture2D>() &&
                  rayTracerInstance->m_albedoTexture != 0) {
         updateShaderBindingTable = true;
         rayTracerInstance->m_albedoTexture = 0;
       }
-      if (rayTracedRenderer.m_normalTexture &&
-          rayTracedRenderer.m_normalTexture->Texture()->Id() !=
-              rayTracerInstance->m_normalTexture) {
+      if (rayTracedRenderer->m_normalTexture.Get<Texture2D>() &&
+          rayTracedRenderer->m_normalTexture.Get<Texture2D>()
+                  ->Texture()
+                  ->Id() != rayTracerInstance->m_normalTexture) {
         updateShaderBindingTable = true;
-        if (rayTracedRenderer.m_normalTexture &&
-            rayTracedRenderer.m_normalTexture->Texture()->IsResident()) {
+        if (rayTracedRenderer->m_normalTexture.Get<Texture2D>() &&
+            rayTracedRenderer->m_normalTexture.Get<Texture2D>()
+                ->Texture()
+                ->IsResident()) {
           UNIENGINE_ERROR("Texture is resident, can't be used!");
-          rayTracedRenderer.m_normalTexture.reset();
+          rayTracedRenderer->m_normalTexture.Clear();
           rayTracerInstance->m_normalTexture = 0;
         } else {
           rayTracerInstance->m_normalTexture =
-              rayTracedRenderer.m_normalTexture->Texture()->Id();
+              rayTracedRenderer->m_normalTexture.Get<Texture2D>()
+                  ->Texture()
+                  ->Id();
         }
-      } else if (!rayTracedRenderer.m_normalTexture &&
+      } else if (!rayTracedRenderer->m_normalTexture.Get<Texture2D>() &&
                  rayTracerInstance->m_normalTexture != 0) {
         updateShaderBindingTable = true;
         rayTracerInstance->m_normalTexture = 0;
       }
       if (rayTracerInstance->m_diffuseIntensity !=
-          rayTracedRenderer.m_diffuseIntensity) {
+          rayTracedRenderer->m_diffuseIntensity) {
         updateShaderBindingTable = true;
         rayTracerInstance->m_diffuseIntensity =
-            rayTracedRenderer.m_diffuseIntensity;
+            rayTracedRenderer->m_diffuseIntensity;
       }
       if (fromNew || needVerticesUpdate) {
         rebuildAccelerationStructure = true;
@@ -125,10 +136,9 @@ void RayTracerManager::UpdateScene() const {
           rayTracerInstance->m_transformUpdateFlag = true;
           rayTracerInstance->m_globalTransform = globalTransform;
         }
-        rayTracerInstance->m_vertices = reinterpret_cast<std::vector<Vertex> *>(
-            &rayTracedRenderer.m_mesh->UnsafeGetVertices());
-        rayTracerInstance->m_triangles =
-            &rayTracedRenderer.m_mesh->UnsafeGetTriangles();
+        rayTracerInstance->m_vertices =
+            reinterpret_cast<std::vector<Vertex> *>(&mesh->UnsafeGetVertices());
+        rayTracerInstance->m_triangles = &mesh->UnsafeGetTriangles();
       } else if (needTransformUpdate) {
         rebuildAccelerationStructure = true;
         rayTracerInstance->m_globalTransform = globalTransform;
@@ -163,7 +173,7 @@ RayTracerManager &RayTracerManager::GetInstance() {
 }
 
 void RayTracerManager::Init() {
-  SerializableFactory::RegisterSerializable<RayTracedRenderer>(
+  ClassRegistry::RegisterPrivateComponent<RayTracedRenderer>(
       "RayTracedRenderer");
 
   auto &manager = GetInstance();
@@ -171,29 +181,13 @@ void RayTracerManager::Init() {
   CudaModule::Init();
 
   CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(
-      UniEngine::AssetManager::GetProjectPath());
-  EditorManager::RegisterPrivateComponentMenu<RayTracedRenderer>(
-      [](Entity owner) {
-        if (owner.HasPrivateComponent<RayTracedRenderer>())
-          return;
-        if (ImGui::SmallButton("RayTracerMaterial")) {
-          owner.SetPrivateComponent<RayTracedRenderer>();
-        }
-      });
+      UniEngine::ProjectManager::GetProjectPath().string());
 
   manager.m_defaultWindow.Init("Ray:Default");
 #pragma region Environmental map
   {
-    const std::vector facesPath{
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posx.jpg",
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negx.jpg",
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posy.jpg",
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negy.jpg",
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/posz.jpg",
-        AssetManager::GetResourcePath() + "Textures/Skyboxes/Default/negz.jpg",
-    };
-    manager.m_environmentalMap = AssetManager::LoadCubemap(
-        AssetManager::GetResourcePath() +
+    manager.m_environmentalMap = AssetManager::Import<Cubemap>(
+        AssetManager::GetResourceFolderPath() /
         "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
   }
 #pragma endregion
@@ -224,7 +218,7 @@ void RayTracerManager::Update() {
     manager.m_defaultRenderingProperties.m_camera.Set(
         EditorManager::GetInstance().m_sceneCameraRotation,
         EditorManager::GetInstance().m_sceneCameraPosition,
-        EditorManager::GetInstance().m_sceneCamera.m_fov, size);
+        EditorManager::GetInstance().m_sceneCamera->m_fov, size);
     manager.m_defaultRenderingProperties.m_environmentalMapId =
         manager.m_environmentalMap->Texture()->Id();
     manager.m_defaultRenderingProperties.m_frameSize = size;
@@ -274,7 +268,7 @@ void RayTracerRenderWindow::OnGui() {
           ImGui::DragFloat("Resolution multiplier", &m_resolutionMultiplier,
                            0.01f, 0.1f, 1.0f);
           ImGui::DragFloat("FOV",
-                           &EditorManager::GetInstance().m_sceneCamera.m_fov, 1,
+                           &EditorManager::GetInstance().m_sceneCamera->m_fov, 1,
                            1, 120);
           ImGui::EndMenu();
         }

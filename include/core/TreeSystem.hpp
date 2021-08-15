@@ -105,7 +105,7 @@ public:
 #pragma endregion
 
 #pragma region Internode debugging camera
-  Camera m_internodeDebuggingCamera;
+  std::shared_ptr<Camera> m_internodeDebuggingCamera;
   int m_internodeDebuggingCameraResolutionX = 1;
   int m_internodeDebuggingCameraResolutionY = 1;
   float m_lastX = 0;
@@ -158,15 +158,15 @@ public:
   void GenerateSkinnedMeshForTree();
   void FormCandidates(std::vector<InternodeCandidate> &candidates);
   float GetGrowthParameter(const GrowthParameterType &type,
-                                  TreeData &treeData,
+                                  const std::shared_ptr<TreeData> &treeData,
                                   InternodeInfo &internodeInfo,
                                   InternodeGrowth &internodeGrowth,
                                   InternodeStatistics &internodeStatistics);
   void PruneTrees(std::vector<std::pair<GlobalTransform, Volume *>> &obstacles);
   void UpdateTreesMetaData();
 #pragma region Metadata
-  void UpdateDistances(const Entity &internode, TreeData &treeData);
-  void UpdateLevels(const Entity &internode, TreeData &treeData);
+  void UpdateDistances(const Entity &internode, const std::shared_ptr<TreeData> &treeData);
+  void UpdateLevels(const Entity &internode, const std::shared_ptr<TreeData> &treeData);
 #pragma endregion
   void ResetTimeForTree(const float &value);
   void ResetTimeForTree(const Entity &internode,

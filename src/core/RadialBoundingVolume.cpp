@@ -236,16 +236,16 @@ void RadialBoundingVolume::FormEntity() {
   children.clear();
   for (auto i = 0; i < m_boundMeshes.size(); i++) {
     auto slice = EntityManager::CreateEntity("RBV_" + std::to_string(i));
-    auto &mmc = slice.SetPrivateComponent<MeshRenderer>();
-    mmc.m_material = AssetManager::LoadMaterial(
+    auto mmc = slice.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    mmc->m_material = AssetManager::LoadMaterial(
         DefaultResources::GLPrograms::StandardProgram);
-    mmc.m_forwardRendering = false;
-    mmc.m_mesh = m_boundMeshes[i];
+    mmc->m_forwardRendering = false;
+    mmc->m_mesh = m_boundMeshes[i];
 
-    auto &rayTracedRenderer =
-        slice.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
+    auto rayTracedRenderer =
+        slice.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>().lock();
     slice.SetParent(GetOwner(), false);
-    rayTracedRenderer.SyncWithMeshRenderer();
+    rayTracedRenderer->SyncWithMeshRenderer();
   }
 }
 
@@ -527,7 +527,7 @@ void RadialBoundingVolume::OnGui() {
     ImGui::TreePop();
   }
 
-  FileSystem::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
+  FileUtils::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
     const std::string data = Save();
     std::ofstream ofs;
     ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
@@ -535,9 +535,9 @@ void RadialBoundingVolume::OnGui() {
     ofs.flush();
     ofs.close();
   });
-  FileSystem::OpenFile("Load RBV", ".rbv",
+  FileUtils::OpenFile("Load RBV", ".rbv",
                        [this](const std::string &path) { Load(path); });
-  FileSystem::SaveFile("Export RBV as OBJ", ".obj",
+  FileUtils::SaveFile("Export RBV as OBJ", ".obj",
                        [this](const std::string &path) { ExportAsObj(path); });
   if (!displayLayer && m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
@@ -575,4 +575,8 @@ bool RadialBoundingVolume::InVolume(const GlobalTransform &globalTransform,
            finalPos.y <= m_maxHeight;
   }
   return true;
+}
+void RadialBoundingVolume::Clone(
+    const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<RadialBoundingVolume>(target);
 }

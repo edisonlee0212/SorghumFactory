@@ -14,7 +14,6 @@
 
 #include <functional>
 #include <filesystem>
-#include <FileSystem.hpp>
 #include <imgui.h>
 
 using namespace RayTracerFacility;

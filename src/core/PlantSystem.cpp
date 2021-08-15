@@ -367,6 +367,10 @@ void InternodeData::FormMesh() {
                               (unsigned)VertexAttribute::TexCoord,
                           vertices, indices);
 }
+void InternodeData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<InternodeData>(target);
+  m_hullMesh.reset();
+}
 
 void PlantSystem::OnGui() {
   if (ImGui::Begin("Plant Manager")) {
@@ -439,9 +443,9 @@ void PlantSystem::OnGui() {
               JobManager::PrimaryWorkers(), m_internodeQuery,
               [&](int index, Entity internode,
                   GlobalTransform &globalTransform) {
-                auto &internodeData =
-                    internode.GetPrivateComponent<InternodeData>();
-                internodeData.m_points.clear();
+                auto internodeData =
+                    internode.GetOrSetPrivateComponent<InternodeData>().lock();
+                internodeData->m_points.clear();
               },
               false);
         }
@@ -489,10 +493,10 @@ bool PlantSystem::GrowAllPlants() {
       for (const auto &entity : *entities) {
         if (!entity.IsEnabled())
           continue;
-        auto &volume = entity.GetPrivateComponent<CubeVolume>();
-        if (volume.IsEnabled() && volume.m_asObstacle)
+        auto volume = entity.GetOrSetPrivateComponent<CubeVolume>().lock();
+        if (volume->IsEnabled() && volume->m_asObstacle)
           obstacles.emplace_back(
-              volume.GetOwner().GetDataComponent<GlobalTransform>(), &volume);
+              volume->GetOwner().GetDataComponent<GlobalTransform>(), volume.get());
       }
     }
     for (auto &i : m_plantInternodePruners) {
@@ -540,8 +544,8 @@ bool PlantSystem::GrowCandidates(std::vector<InternodeCandidate> &candidates) {
   i = 0;
   for (auto &candidate : candidates) {
     auto newInternode = entities[i];
-    auto &newInternodeData = newInternode.SetPrivateComponent<InternodeData>();
-    newInternodeData.m_buds = candidate.m_buds;
+    auto newInternodeData = newInternode.GetOrSetPrivateComponent<InternodeData>().lock();
+    newInternodeData->m_buds = candidate.m_buds;
     newInternode.SetParent(candidate.m_parent);
     const auto search =
         m_plantInternodePostProcessors.find(candidate.m_info.m_plantType);
@@ -654,12 +658,12 @@ Entity PlantSystem::CreateCubeObstacle() {
   volumeEntity.SetDataComponent(globalTransform);
   volumeEntity.SetStatic(true);
 
-  auto &meshRenderer = volumeEntity.SetPrivateComponent<MeshRenderer>();
-  meshRenderer.m_mesh = DefaultResources::Primitives::Cube;
-  meshRenderer.m_material = DefaultResources::Materials::StandardMaterial;
+  auto meshRenderer = volumeEntity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  meshRenderer->m_mesh = DefaultResources::Primitives::Cube;
+  meshRenderer->m_material = DefaultResources::Materials::StandardMaterial;
 
-  auto &volume = volumeEntity.SetPrivateComponent<CubeVolume>();
-  volume.ApplyMeshRendererBounds();
+  auto volume = volumeEntity.GetOrSetPrivateComponent<CubeVolume>().lock();
+  volume->ApplyMeshRendererBounds();
   return volumeEntity;
 }
 
@@ -707,10 +711,10 @@ Entity PlantSystem::CreatePlant(const PlantType &type,
   rootInternode.SetDataComponent(internodeStatistics);
   rootInternode.SetDataComponent(internodeTransform);
 
-  auto &rootInternodeData = rootInternode.SetPrivateComponent<InternodeData>();
+  auto rootInternodeData = rootInternode.GetOrSetPrivateComponent<InternodeData>().lock();
   Bud bud;
   bud.m_isApical = true;
-  rootInternodeData.m_buds.push_back(bud);
+  rootInternodeData->m_buds.push_back(bud);
   rootInternode.SetParent(entity);
 
 #pragma endregion
@@ -728,7 +732,7 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
   internodeInfo.m_startAge =
       internodeInfo.m_plant.GetDataComponent<PlantInfo>().m_age;
   entity.SetDataComponent(internodeInfo);
-  entity.SetPrivateComponent<InternodeData>();
+  entity.GetOrSetPrivateComponent<InternodeData>();
   entity.SetParent(parentEntity);
   return entity;
 }
@@ -741,14 +745,15 @@ void PlantSystem::OnCreate() {
 
   m_ground = EntityManager::CreateEntity("Ground");
 
-  auto &meshRenderer = m_ground.SetPrivateComponent<MeshRenderer>();
-  meshRenderer.m_mesh = DefaultResources::Primitives::Quad;
-  meshRenderer.m_material =
+  auto meshRenderer = m_ground.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
+  meshRenderer->m_material =
       AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-  meshRenderer.m_material->m_name = "Ground mat";
-  meshRenderer.m_material->m_roughness = 1.0f;
-  meshRenderer.m_material->m_metallic = 0.5f;
-  meshRenderer.m_material->m_albedoColor = glm::vec3(1.0f);
+  auto mat = meshRenderer->m_material.Get<Material>();
+  mat->m_name = "Ground mat";
+  mat->m_roughness = 1.0f;
+  mat->m_metallic = 0.5f;
+  mat->m_albedoColor = glm::vec3(1.0f);
 
   Transform groundTransform;
   groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
@@ -762,27 +767,27 @@ void PlantSystem::OnCreate() {
   m_anchor.SetDataComponent(anchorTransform);
   m_anchor.SetParent(m_ground);
 
-  auto &rayTracedRenderer =
-      m_ground.SetPrivateComponent<RayTracerFacility::RayTracedRenderer>();
-  rayTracedRenderer.SyncWithMeshRenderer();
-  rayTracedRenderer.m_enableMLVQ = true;
+  auto rayTracedRenderer =
+      m_ground.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>().lock();
+  rayTracedRenderer->SyncWithMeshRenderer();
+  rayTracedRenderer->m_enableMLVQ = true;
 
-  auto &cubeVolume = m_ground.SetPrivateComponent<CubeVolume>();
-  cubeVolume.m_asObstacle = true;
-  cubeVolume.m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
-  cubeVolume.m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
+  auto cubeVolume = m_ground.GetOrSetPrivateComponent<CubeVolume>().lock();
+  cubeVolume->m_asObstacle = true;
+  cubeVolume->m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
+  cubeVolume->m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
 
 #pragma endregion
 #pragma region Mask material
   std::string vertShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + +"\n" +
-      FileSystem::LoadFileAsString(AssetManager::GetResourcePath() +
+      FileUtils::LoadFileAsString(AssetManager::GetResourceFolderPath() /
                                    "Shaders/Vertex/Standard.vert");
   std::string fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileSystem::LoadFileAsString(AssetManager::GetAssetRootPath() +
+      FileUtils::LoadFileAsString(AssetManager::GetAssetFolderPath() /
                                    "Shaders/Fragment/SemanticBranch.frag");
 
   auto standardVert =
@@ -797,12 +802,12 @@ void PlantSystem::OnCreate() {
   vertShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + +"\n" +
-      FileSystem::LoadFileAsString(AssetManager::GetResourcePath() +
+      FileUtils::LoadFileAsString(AssetManager::GetResourceFolderPath() /
                                    "Shaders/Vertex/StandardInstanced.vert");
   fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileSystem::LoadFileAsString(AssetManager::GetAssetRootPath() +
+      FileUtils::LoadFileAsString(AssetManager::GetAssetFolderPath() /
                                    "Shaders/Fragment/SemanticLeaf.frag");
   standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
@@ -972,8 +977,8 @@ void PlantSystem::PhysicsSimulate() {
   EntityManager::ForEach<GlobalTransform>(
       JobManager::PrimaryWorkers(), m_internodeQuery,
       [&](int index, Entity internode, GlobalTransform &globalTransform) {
-        auto &internodeData = internode.GetPrivateComponent<InternodeData>();
-        internodeData.m_points.push_back(globalTransform.m_value);
+        auto internodeData = internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        internodeData->m_points.push_back(globalTransform.m_value);
       },
       false);
 
@@ -984,9 +989,9 @@ void PlantSystem::PhysicsSimulate() {
     EntityManager::ForEach<GlobalTransform>(
         JobManager::PrimaryWorkers(), m_internodeQuery,
         [&](int index, Entity internode, GlobalTransform &globalTransform) {
-          auto &internodeData = internode.GetPrivateComponent<InternodeData>();
-          internodeData.CalculateKDop();
-          internodeData.CalculateQuickHull();
+          auto internodeData = internode.GetOrSetPrivateComponent<InternodeData>().lock();
+          internodeData->CalculateKDop();
+          internodeData->CalculateQuickHull();
         },
         false);
   }

@@ -16,5 +16,7 @@ public:
   void CalculateIllumination(
       const RayTracerFacility::IlluminationEstimationProperties &properties =
           RayTracerFacility::IlluminationEstimationProperties());
+
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

@@ -38,5 +38,6 @@ public:
   void OnCreate() override;
   void Generate() override;
   void OnGui() override;
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

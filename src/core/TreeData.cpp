@@ -10,11 +10,11 @@ using namespace PlantFactory;
 void TreeData::OnGui() {
   if (ImGui::TreeNodeEx("I/O")) {
     if (m_meshGenerated) {
-      FileSystem::SaveFile(
+      FileUtils::SaveFile(
           "Export OBJ", ".obj",
           [this](const std::string &path) { ExportModel(path); });
     }
-    FileSystem::SaveFile(
+    FileUtils::SaveFile(
         "Export xml graph", ".xml", [this](const std::string &path) {
           std::ofstream ofs;
           ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
@@ -53,7 +53,7 @@ void TreeData::OnGui() {
 
 void TreeData::ExportModel(const std::string &filename,
                            const bool &includeFoliage) const {
-  auto mesh = GetOwner().GetPrivateComponent<MeshRenderer>().m_mesh;
+  auto mesh = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh.Get<Mesh>();
   if (!mesh)
     return;
   if (mesh->GetVerticesAmount() == 0) {
@@ -91,7 +91,7 @@ void TreeData::ExportModel(const std::string &filename,
       });
       size_t branchletVerticesSize = 0;
       if (foliageEntity.HasPrivateComponent<MeshRenderer>()) {
-        mesh = foliageEntity.GetPrivateComponent<MeshRenderer>().m_mesh;
+        mesh = foliageEntity.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh.Get<Mesh>();
         triangles = mesh->UnsafeGetTriangles();
         branchletVerticesSize += mesh->GetVerticesAmount();
 #pragma region Data collection
@@ -130,4 +130,7 @@ void TreeData::ExportModel(const std::string &filename,
   } else {
     Debug::Error("Can't open file!");
   }
+}
+void TreeData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<TreeData>(target);
 }

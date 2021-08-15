@@ -13,5 +13,6 @@ public:
   void OnGui() override;
   void ExportModel(const std::string &filename,
                    const bool &includeFoliage = true) const;
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory

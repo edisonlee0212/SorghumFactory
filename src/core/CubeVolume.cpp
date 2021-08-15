@@ -3,8 +3,8 @@
 using namespace PlantFactory;
 
 void CubeVolume::ApplyMeshRendererBounds() {
-  auto &meshRenderer = GetOwner().GetPrivateComponent<MeshRenderer>();
-  m_minMaxBound = meshRenderer.m_mesh->GetBound();
+  auto meshRenderer = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
+  m_minMaxBound = meshRenderer->m_mesh.Get<Mesh>()->GetBound();
 }
 
 void CubeVolume::OnCreate() {
@@ -58,4 +58,7 @@ bool CubeVolume::InVolume(const GlobalTransform &globalTransform,
   if (glm::abs(position.z - center.z) > size.z)
     return false;
   return true;
+}
+void CubeVolume::Clone(const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<CubeVolume>(target);
 }

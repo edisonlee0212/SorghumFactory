@@ -16,12 +16,14 @@ public:
   float m_metallic = 0.3f;
   float m_roughness = 0.3f;
   glm::vec3 m_surfaceColor = glm::vec3(1.0f);
-  std::shared_ptr<Mesh> m_mesh;
-  std::shared_ptr<Texture2D> m_albedoTexture;
-  std::shared_ptr<Texture2D> m_normalTexture;
+  AssetRef m_mesh;
+  AssetRef m_albedoTexture;
+  AssetRef m_normalTexture;
   bool m_enableMLVQ = false;
   int m_mlvqMaterialIndex = 0;
   void OnGui() override;
   void SyncWithMeshRenderer();
+
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace RayTracerFacility

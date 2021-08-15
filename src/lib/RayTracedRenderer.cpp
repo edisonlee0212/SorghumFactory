@@ -22,12 +22,10 @@ void RayTracedRenderer::OnGui() {
     ImGui::DragFloat("Transparency##RayTracedRenderer", &m_transparency, 0.01f, 0.0f, 1.0f);
     ImGui::DragFloat("Diffuse intensity##RayTracedRenderer", &m_diffuseIntensity, 0.01f, 0.0f, 100.0f);
     ImGui::ColorEdit3("Surface Color##RayTracedRenderer", &m_surfaceColor.x);
-    ImGui::Text("Mesh: ");
-    ImGui::SameLine();
-    EditorManager::DragAndDrop(m_mesh);
-    if (m_mesh) {
+    EditorManager::DragAndDrop<Mesh>(m_mesh, "Mesh");
+    if (m_mesh.Get<Mesh>()) {
         if (ImGui::TreeNode("Mesh##MeshRenderer")) {
-            m_mesh->OnGui();
+          m_mesh.Get<Mesh>()->OnGui();
             ImGui::TreePop();
         }
     }
@@ -38,18 +36,14 @@ void RayTracedRenderer::OnGui() {
         ImGui::Combo("MLVQ Material", &m_mlvqMaterialIndex, MLVQMaterials, IM_ARRAYSIZE(MLVQMaterials));
     } else {
         if (ImGui::TreeNode("Textures##RayTracerMaterial")) {
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text("Albedo:");
-            ImGui::SameLine();
-            EditorManager::DragAndDrop(m_albedoTexture);
+            EditorManager::DragAndDrop<Texture2D>(m_albedoTexture, "Albedo");
 
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Normal:");
             ImGui::SameLine();
-            EditorManager::DragAndDrop(m_normalTexture);
+            EditorManager::DragAndDrop<Texture2D>(m_normalTexture, "Normal");
 
             ImGui::TreePop();
         }
@@ -59,10 +53,14 @@ void RayTracedRenderer::OnGui() {
 void RayTracedRenderer::SyncWithMeshRenderer() {
     Entity owner = GetOwner();
     if (owner.HasPrivateComponent<MeshRenderer>()) {
-        auto &mmr = owner.GetPrivateComponent<MeshRenderer>();
-        m_mesh = mmr.m_mesh;
-        m_roughness = mmr.m_material->m_roughness;
-        m_metallic = mmr.m_material->m_metallic;
-        m_surfaceColor = mmr.m_material->m_albedoColor;
+        auto mmr = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
+        m_mesh = mmr->m_mesh;
+        auto mat = mmr->m_material.Get<Material>();
+        m_roughness = mat->m_roughness;
+        m_metallic = mat->m_metallic;
+        m_surfaceColor = mat->m_albedoColor;
     }
+}
+void RayTracedRenderer::Clone(const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<RayTracedRenderer>(target);
 }

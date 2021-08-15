@@ -18,7 +18,7 @@ void SorghumData::OnDestroy() {
 void SorghumData::OnGui() {
   if (ImGui::TreeNodeEx("I/O")) {
     if (m_meshGenerated) {
-      FileSystem::SaveFile(
+      FileUtils::SaveFile(
           "Export OBJ", ".obj",
           [this](const std::string &path) { ExportModel(path); });
     }
@@ -46,4 +46,7 @@ void SorghumData::ExportModel(const std::string &filename,
   } else {
     Debug::Error("Can't open file!");
   }
+}
+void SorghumData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<SorghumData>(target);
 }

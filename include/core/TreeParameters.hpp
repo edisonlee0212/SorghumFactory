@@ -4,8 +4,8 @@ namespace PlantFactory {
 class TreeParameters {
 public:
   void OnGui();
-  void Serialize(const std::string &path) const;
-  void Deserialize(const std::string &path);
+  void Serialize(std::filesystem::path path) const;
+  void Deserialize(std::filesystem::path path);
 #pragma region Parameters
   /**
    * \brief How many lateral bud will an internode generate.

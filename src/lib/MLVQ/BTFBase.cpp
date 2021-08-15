@@ -4,7 +4,6 @@
 #include <exception>
 #include <fstream>
 #include <filesystem>
-#include <FileSystem.hpp>
 #include <mutex>
 #include <Debug.hpp>
 using namespace RayTracerFacility;
@@ -55,6 +54,29 @@ bool ParseIntData(const std::string &fileName, int &numOfRows, int &numOfCols,
   return true;
 }
 
+std::string LoadFileAsString(const std::string &path)
+{
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  try
+  {
+    // open files
+    file.open(path);
+    std::stringstream stream;
+    // read file's buffer contents into streams
+    stream << file.rdbuf();
+    // close file handlers
+    file.close();
+    // convert stream into string
+    return stream.str();
+  }
+  catch (std::ifstream::failure e)
+  {
+    UNIENGINE_ERROR("Load file failed!")
+    throw;
+  }
+}
+
 bool BtfBase::Init(const std::string &materialDirectoryPath) {
 #pragma region Path check
   std::string allMaterialInfo;
@@ -62,7 +84,7 @@ bool BtfBase::Init(const std::string &materialDirectoryPath) {
       materialDirectoryPath + "/all_materialInfo.txt";
   bool avoidParFile = false;
   try {
-    allMaterialInfo = FileSystem::LoadFileAsString(allMaterialInfoPath);
+    allMaterialInfo = LoadFileAsString(allMaterialInfoPath);
     avoidParFile = true;
   } catch (std::ifstream::failure e) {
     UNIENGINE_LOG("")

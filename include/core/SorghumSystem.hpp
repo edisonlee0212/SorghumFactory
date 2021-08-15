@@ -34,7 +34,7 @@ public:
   glm::vec3 EvaluateAxisFromCurve(float point);
   void OnGui() override;
 
-  void Clone(const Spline &target);
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 
 class SorghumField {
@@ -85,7 +85,7 @@ public:
   Entity CreateSorghum();
   Entity CreateSorghumLeaf(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
-  Entity ImportPlant(const std::string &path, const std::string &name);
+  Entity ImportPlant(const std::filesystem::path &path, const std::string &name);
   void OnGui() override;
   void Update() override;
   void CreateGrid(SorghumField &field,

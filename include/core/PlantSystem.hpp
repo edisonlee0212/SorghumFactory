@@ -156,6 +156,8 @@ public:
   void CalculateKDop();
   void CalculateQuickHull();
   void FormMesh();
+
+  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 #pragma region Enums
 enum class BranchRenderType {

@@ -33,8 +33,8 @@ void TriangleIlluminationEstimator::CalculateIllumination(
     for (const auto &entity : m_entities) {
         if (entity.HasPrivateComponent<MeshRenderer>()) {
             auto globalTransform = entity.GetDataComponent<GlobalTransform>();
-            auto &meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-            auto &mesh = meshRenderer.m_mesh;
+            auto meshRenderer = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            auto mesh = meshRenderer->m_mesh.Get<Mesh>();
             for (const auto &triangle : mesh->UnsafeGetTriangles()) {
                 auto &vertices = mesh->UnsafeGetVertices();
                 const auto position = (vertices[triangle.x].m_position + vertices[triangle.y].m_position +
@@ -75,8 +75,8 @@ void TriangleIlluminationEstimator::CalculateIllumination(
     size_t i = 0;
     for (const auto &entity : m_entities) {
         if (entity.HasPrivateComponent<MeshRenderer>()) {
-            auto &meshRenderer = entity.GetPrivateComponent<MeshRenderer>();
-            auto &mesh = meshRenderer.m_mesh;
+          auto meshRenderer = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            auto mesh = meshRenderer->m_mesh.Get<Mesh>();
             std::vector<std::pair<size_t, glm::vec4>> colors;
             colors.resize(mesh->GetVerticesAmount());
             for (auto &i : colors) {
@@ -102,4 +102,8 @@ void TriangleIlluminationEstimator::CalculateIllumination(
             }
         }
     }
+}
+void TriangleIlluminationEstimator::Clone(
+    const std::shared_ptr<IPrivateComponent> &target) {
+  *this = *std::static_pointer_cast<TriangleIlluminationEstimator>(target);
 }
