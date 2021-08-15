@@ -47,7 +47,7 @@ struct BranchColor : IDataComponent {
 
 struct InternodeInfo : IDataComponent {
   PlantType m_plantType;
-  Entity m_plant = Entity();
+
   float m_usedResource;
   bool m_activated = true;
   float m_startAge = 0;
@@ -74,7 +74,7 @@ struct InternodeGrowth : IDataComponent {
   glm::quat m_desiredGlobalRotation = glm::quat(glm::vec3(0.0f));
   // Will be used to calculate the gravity bending.
   glm::vec3 m_desiredGlobalPosition = glm::vec3(0.0f);
-  Entity m_thickestChild;
+
 };
 struct InternodeStatistics : IDataComponent {
   int m_childrenEndNodeAmount = 0;       // Ok
@@ -92,7 +92,7 @@ struct InternodeStatistics : IDataComponent {
 #pragma region Bud
 class Bud;
 struct InternodeCandidate {
-  Entity m_owner;
+  Entity m_plant;
   Entity m_parent;
   std::vector<Bud> m_buds;
   GlobalTransform m_globalTransform;
@@ -136,6 +136,8 @@ struct KDop {
 
 class InternodeData : public IPrivateComponent {
 public:
+  EntityRef m_thickestChild;
+  EntityRef m_plant;
   std::vector<glm::mat4> m_leavesTransforms;
   std::vector<glm::mat4> m_points;
   std::vector<Bud> m_buds;
@@ -156,7 +158,7 @@ public:
   void CalculateKDop();
   void CalculateQuickHull();
   void FormMesh();
-
+  void Relink(const std::unordered_map<Handle, Handle> &map) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 #pragma region Enums

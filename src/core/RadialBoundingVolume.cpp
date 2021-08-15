@@ -346,14 +346,12 @@ void RadialBoundingVolume::CalculateVolume() {
   const auto tree = GetOwner().GetParent();
   EntityQuery internodeDataQuery = EntityManager::CreateEntityQuery();
   internodeDataQuery.SetAllFilters(InternodeInfo());
-  std::vector<InternodeInfo> internodeInfos;
-  internodeDataQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(
-      internodeInfos,
-      [=](const InternodeInfo &info) { return info.m_plant == tree; });
   std::vector<Entity> internodes;
   internodeDataQuery.ToEntityArray<InternodeInfo>(
       internodes, [=](const Entity &entity, const InternodeInfo &info) {
-        return info.m_plant == tree;
+        auto currentInternodeData =
+            entity.GetOrSetPrivateComponent<InternodeData>().lock();
+        return currentInternodeData->m_plant.Get() == tree;
       });
   m_maxHeight = 0;
   m_maxRadius = 0;
@@ -414,14 +412,12 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight) {
   const auto tree = GetOwner().GetParent();
   EntityQuery internodeDataQuery = EntityManager::CreateEntityQuery();
   internodeDataQuery.SetAllFilters(InternodeInfo());
-  std::vector<InternodeInfo> internodeInfos;
-  internodeDataQuery.ToComponentDataArray<InternodeInfo, InternodeInfo>(
-      internodeInfos,
-      [=](const InternodeInfo &info) { return info.m_plant == tree; });
   std::vector<Entity> internodes;
   internodeDataQuery.ToEntityArray<InternodeInfo>(
       internodes, [=](const Entity &entity, const InternodeInfo &info) {
-        return info.m_plant == tree;
+        auto currentInternodeData =
+            entity.GetOrSetPrivateComponent<InternodeData>().lock();
+        return currentInternodeData->m_plant.Get() == tree;
       });
   m_maxHeight = maxHeight;
   m_maxRadius = 0;

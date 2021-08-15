@@ -1699,17 +1699,19 @@ void TreeSystem::GenerateMeshForTree() {
              InternodeInfo &internodeInfo) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        auto thickestChild = internodeData->m_thickestChild.Get();
         const Entity parent = internode.GetParent();
-        if (parent == internodeInfo.m_plant)
+        if (parent == plant)
           return;
         bool isRootInternode = false;
-        if (parent.GetParent() == internodeInfo.m_plant)
+        if (parent.GetParent() == plant)
           isRootInternode = true;
-
-        auto list = internode.GetOrSetPrivateComponent<InternodeData>().lock();
-        list->m_rings.clear();
+        internodeData->m_rings.clear();
         glm::mat4 treeTransform =
-            internodeInfo.m_plant.GetDataComponent<GlobalTransform>().m_value;
+            plant.GetDataComponent<GlobalTransform>().m_value;
         GlobalTransform parentGlobalTransform;
         parentGlobalTransform.m_value =
             glm::inverse(treeTransform) *
@@ -1736,22 +1738,21 @@ void TreeSystem::GenerateMeshForTree() {
                                   : parentRotation * glm::vec3(0, 0, -1);
         glm::vec3 dir = rotation * glm::vec3(0, 0, -1);
         glm::quat mainChildRotation = rotation;
-        if (!internodeGrowth.m_thickestChild.IsNull()) {
+        if (!thickestChild.IsNull()) {
           GlobalTransform thickestChildTransform;
           thickestChildTransform.m_value =
               glm::inverse(treeTransform) *
-              internodeGrowth.m_thickestChild
-                  .GetDataComponent<GlobalTransform>()
-                  .m_value;
+              thickestChild.GetDataComponent<GlobalTransform>().m_value;
           mainChildRotation = thickestChildTransform.GetRotation();
         }
         glm::vec3 mainChildDir = mainChildRotation * glm::vec3(0, 0, -1);
         GlobalTransform parentThickestChildGlobalTransform;
+        auto parentInternodeData =
+            parent.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto parentThickestChild = parentInternodeData->m_thickestChild.Get();
         parentThickestChildGlobalTransform.m_value =
             glm::inverse(treeTransform) *
-            parent.GetDataComponent<InternodeGrowth>()
-                .m_thickestChild.GetDataComponent<GlobalTransform>()
-                .m_value;
+            parentThickestChild.GetDataComponent<GlobalTransform>().m_value;
         glm::vec3 parentMainChildDir =
             parentThickestChildGlobalTransform.GetRotation() *
             glm::vec3(0, 0, -1);
@@ -1767,7 +1768,7 @@ void TreeSystem::GenerateMeshForTree() {
           step = 4;
         if (step % 2 != 0)
           step++;
-        list->m_step = step;
+        internodeData->m_step = step;
         int amount = static_cast<int>(0.5f + distance * m_meshSubdivision);
         if (amount % 2 != 0)
           amount++;
@@ -1782,21 +1783,21 @@ void TreeSystem::GenerateMeshForTree() {
         for (int i = 1; i < amount; i++) {
           float startThickness = static_cast<float>(i - 1) * radiusStep;
           float endThickness = static_cast<float>(i) * radiusStep;
-          list->m_rings.emplace_back(
+          internodeData->m_rings.emplace_back(
               curve.GetPoint(posStep * (i - 1)), curve.GetPoint(posStep * i),
               fromDir + static_cast<float>(i - 1) * dirStep,
               fromDir + static_cast<float>(i) * dirStep,
               parentThickness + startThickness, parentThickness + endThickness);
         }
         if (amount > 1)
-          list->m_rings.emplace_back(curve.GetPoint(1.0f - posStep),
-                                     translation, dir - dirStep, dir,
-                                     internodeGrowth.m_thickness - radiusStep,
-                                     internodeGrowth.m_thickness);
+          internodeData->m_rings.emplace_back(
+              curve.GetPoint(1.0f - posStep), translation, dir - dirStep, dir,
+              internodeGrowth.m_thickness - radiusStep,
+              internodeGrowth.m_thickness);
         else
-          list->m_rings.emplace_back(parentTranslation, translation, fromDir,
-                                     dir, parentThickness,
-                                     internodeGrowth.m_thickness);
+          internodeData->m_rings.emplace_back(parentTranslation, translation,
+                                              fromDir, dir, parentThickness,
+                                              internodeGrowth.m_thickness);
 #pragma endregion
       }
 
@@ -1811,26 +1812,28 @@ void TreeSystem::GenerateMeshForTree() {
           InternodeInfo &internodeInfo,
           InternodeStatistics &internodeStatistics,
           Illumination &internodeIllumination) {
-        if (!internodeInfo.m_plant.IsEnabled())
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
+        if (!plant.IsEnabled())
           return;
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
         if (internodeStatistics.m_longestDistanceToAnyEndNode >
             m_distanceToEndNode)
           return;
-        auto treeLeaves = GetLeaves(internodeInfo.m_plant)
-                              .GetOrSetPrivateComponent<TreeLeaves>()
-                              .lock();
-        auto internodeData =
-            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto treeLeaves =
+            GetLeaves(plant).GetOrSetPrivateComponent<TreeLeaves>().lock();
+
         internodeData->m_leavesTransforms.clear();
         const glm::quat rotation = globalTransform.GetRotation();
         const glm::vec3 left = rotation * glm::vec3(1, 0, 0);
         const glm::vec3 right = rotation * glm::vec3(-1, 0, 0);
         const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
         std::lock_guard lock(mutex);
-        auto inversePlantGlobalTransform = glm::inverse(
-            internodeInfo.m_plant.GetDataComponent<GlobalTransform>().m_value);
+        auto inversePlantGlobalTransform =
+            glm::inverse(plant.GetDataComponent<GlobalTransform>().m_value);
         for (int i = 0; i < m_leafAmount; i++) {
           const auto transform =
               inversePlantGlobalTransform * globalTransform.m_value *
@@ -2005,13 +2008,15 @@ void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
                       Illumination &internodeIllumination) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
-        auto treeData =
-            internodeInfo.m_plant.GetOrSetPrivateComponent<TreeData>().lock();
-        auto plantInfo = internodeInfo.m_plant.GetDataComponent<PlantInfo>();
-        if (!internodeInfo.m_plant.IsEnabled())
-          return;
         auto internodeData =
             internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
+
+        auto treeData = plant.GetOrSetPrivateComponent<TreeData>().lock();
+        auto plantInfo = plant.GetDataComponent<PlantInfo>();
+        if (!plant.IsEnabled())
+          return;
 #pragma region Go through each bud
         for (int i = 0; i < internodeData->m_buds.size(); i++) {
           auto &bud = internodeData->m_buds[i];
@@ -2024,9 +2029,8 @@ void TreeSystem::FormCandidates(std::vector<InternodeCandidate> &candidates) {
           glm::quat prevGlobalRotation = globalTransform.GetRotation();
           auto candidate = InternodeCandidate();
           candidate.m_parent = internode;
-
           candidate.m_info.m_startGlobalTime = globalTime;
-          candidate.m_info.m_plant = internodeInfo.m_plant;
+          candidate.m_plant = plant;
           candidate.m_info.m_startAge = plantInfo.m_age;
           candidate.m_info.m_order = internodeInfo.m_order + (isApical ? 0 : 1);
           candidate.m_info.m_level = internodeInfo.m_level + (isApical ? 0 : 1);
@@ -2218,12 +2222,15 @@ void TreeSystem::PruneTrees(
     std::vector<std::pair<GlobalTransform, Volume *>> &obstacles) {
 
   m_voxelSpaceModule.Clear();
-  EntityManager::ForEach<GlobalTransform, InternodeInfo>(
+  EntityManager::ForEach<GlobalTransform>(
       JobManager::PrimaryWorkers(), m_plantSystem->m_internodeQuery,
-      [&](int index, Entity internode, GlobalTransform &globalTransform,
-          InternodeInfo &internodeInfo) {
-        m_voxelSpaceModule.Push(globalTransform.GetPosition(),
-                                internodeInfo.m_plant, internode);
+      [&](int index, Entity internode, GlobalTransform &globalTransform) {
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
+        m_voxelSpaceModule.Push(globalTransform.GetPosition(), plant,
+                                internode);
       });
 
   std::vector<float> distanceLimits;
@@ -2275,6 +2282,10 @@ void TreeSystem::PruneTrees(
           InternodeGrowth &internodeGrowth) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
         int targetIndex = 0;
         const auto position = globalTransform.GetPosition();
         for (auto &obstacle : obstacles) {
@@ -2285,7 +2296,7 @@ void TreeSystem::PruneTrees(
           }
         }
         for (int i = 0; i < m_plantSystem->m_plants.size(); i++) {
-          if (m_plantSystem->m_plants[i] == internodeInfo.m_plant) {
+          if (m_plantSystem->m_plants[i] == plant) {
             targetIndex = i;
             break;
           }
@@ -2318,13 +2329,12 @@ void TreeSystem::PruneTrees(
         const glm::vec3 direction =
             glm::normalize(globalTransform.GetRotation() * glm::vec3(0, 0, -1));
 
-        if (angle > 0 &&
-            m_voxelSpaceModule.HasObstacleConeSameOwner(
-                angle,
-                globalTransform.GetPosition() -
-                    direction * internodeLengths[targetIndex],
-                direction, internodeInfo.m_plant, internode,
-                internode.GetParent(), internodeLengths[targetIndex])) {
+        if (angle > 0 && m_voxelSpaceModule.HasObstacleConeSameOwner(
+                             angle,
+                             globalTransform.GetPosition() -
+                                 direction * internodeLengths[targetIndex],
+                             direction, plant, internode, internode.GetParent(),
+                             internodeLengths[targetIndex])) {
           std::lock_guard lock(mutex);
           cutOff.push_back(internode);
           return;
@@ -2396,10 +2406,14 @@ void TreeSystem::UpdateTreesMetaData() {
 void TreeSystem::UpdateDistances(const Entity &internode,
                                  const std::shared_ptr<TreeData> &treeData) {
   Entity currentInternode = internode;
-  auto currentInternodeInfo = internode.GetDataComponent<InternodeInfo>();
-  auto currentInternodeGrowth = internode.GetDataComponent<InternodeGrowth>();
+  auto currentInternodeInfo =
+      currentInternode.GetDataComponent<InternodeInfo>();
+  auto currentInternodeGrowth =
+      currentInternode.GetDataComponent<InternodeGrowth>();
   auto currentInternodeStatistics =
-      internode.GetDataComponent<InternodeStatistics>();
+      currentInternode.GetDataComponent<InternodeStatistics>();
+  auto currentInternodeData =
+      currentInternode.GetOrSetPrivateComponent<InternodeData>().lock();
 #pragma region Single child chain from root to branch
   while (currentInternode.GetChildrenAmount() == 1) {
 #pragma region Retrive child status
@@ -2432,6 +2446,8 @@ void TreeSystem::UpdateDistances(const Entity &internode,
     currentInternodeInfo = childInternodeInfo;
     currentInternodeGrowth = childInternodeGrowth;
     currentInternodeStatistics = childInternodeStatistics;
+    currentInternodeData =
+        currentInternode.GetOrSetPrivateComponent<InternodeData>().lock();
 #pragma endregion
   }
 #pragma region Reset current status
@@ -2521,7 +2537,7 @@ void TreeSystem::UpdateDistances(const Entity &internode,
 
       if (childInternodeGrowth.m_thickness > maxThickness) {
         maxThickness = childInternodeGrowth.m_thickness;
-        currentInternodeGrowth.m_thickestChild = child;
+        currentInternodeData->m_thickestChild = child;
       }
 #pragma endregion
 #pragma endregion
@@ -2554,7 +2570,7 @@ void TreeSystem::UpdateDistances(const Entity &internode,
     currentInternodeStatistics.m_longestDistanceToAnyEndNode = 0;
     currentInternodeGrowth.m_thickness =
         treeData->m_parameters.m_endNodeThickness;
-    currentInternodeGrowth.m_thickestChild = Entity();
+    currentInternodeData->m_thickestChild = Entity();
 #pragma endregion
   }
 #pragma region From end to root
@@ -2569,6 +2585,7 @@ void TreeSystem::UpdateDistances(const Entity &internode,
     auto childInternodeData =
         currentInternode.GetOrSetPrivateComponent<InternodeData>().lock();
     Entity child = currentInternode;
+
     currentInternode = currentInternode.GetParent();
     auto childInternodeInfo = currentInternodeInfo;
     auto childInternodeGrowth = currentInternodeGrowth;
@@ -2578,6 +2595,8 @@ void TreeSystem::UpdateDistances(const Entity &internode,
         currentInternode.GetDataComponent<InternodeGrowth>();
     currentInternodeStatistics =
         currentInternode.GetDataComponent<InternodeStatistics>();
+    currentInternodeData =
+        currentInternode.GetOrSetPrivateComponent<InternodeData>().lock();
 #pragma endregion
 #pragma region Reset current status
     currentInternodeGrowth.m_inhibitor = 0;
@@ -2633,7 +2652,7 @@ void TreeSystem::UpdateDistances(const Entity &internode,
         glm::pow(currentInternodeGrowth.m_thickness /
                      treeData->m_parameters.m_endNodeThickness,
                  treeData->m_parameters.m_gravityBendingThicknessFactor);
-    currentInternodeGrowth.m_thickestChild = child;
+    currentInternodeData->m_thickestChild = child;
 #pragma endregion
   }
 #pragma endregion
@@ -2899,7 +2918,7 @@ void TreeSystem::ResetTimeForTree(const Entity &internode,
 
 void TreeSystem::DistributeResourcesForTree(
     std::vector<ResourceParcel> &totalNutrients) {
-  auto& plants = m_plantSystem->m_plants;
+  auto &plants = m_plantSystem->m_plants;
   std::vector<float> divisors;
   std::vector<float> apicalControlLevelFactors;
   std::vector<float> resourceAllocationDistFactors;
@@ -2950,8 +2969,12 @@ void TreeSystem::DistributeResourcesForTree(
           InternodeStatistics &internodeStatistics) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
         for (int i = 0; i < plants.size(); i++) {
-          if (plants[i] == internodeInfo.m_plant) {
+          if (plants[i] == plant) {
             const float internodeRequirement =
                 glm::max(heightResourceFactorMin[i],
                          1.0f - glm::pow(globalTransform.GetPosition().y -
@@ -2991,8 +3014,12 @@ void TreeSystem::DistributeResourcesForTree(
           InternodeStatistics &internodeStatistics) {
         if (internodeInfo.m_plantType != PlantType::GeneralTree)
           return;
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
         for (int i = 0; i < plants.size(); i++) {
-          if (plants[i] == internodeInfo.m_plant) {
+          if (plants[i] == plant) {
             auto internodeData =
                 internode.GetOrSetPrivateComponent<InternodeData>().lock();
             float budsRequirement = 0;
@@ -3051,7 +3078,8 @@ void TreeSystem::OnCreate() {
   }
 
 #pragma region Internode camera
-  m_internodeDebuggingCamera = SerializationManager::ProduceSerializable<Camera>();
+  m_internodeDebuggingCamera =
+      SerializationManager::ProduceSerializable<Camera>();
   m_internodeDebuggingCamera->m_useClearColor = true;
   m_internodeDebuggingCamera->m_clearColor = glm::vec3(0.1f);
   m_internodeDebuggingCamera->OnCreate();
@@ -3166,19 +3194,19 @@ void TreeSystem::Serialize(const Entity &treeEntity,
   auto *nodes = doc.allocate_node(rapidxml::node_element, "Nodes", "Node");
   tree->append_node(nodes);
 
-  std::vector<InternodeInfo> internodeInfos;
+  // std::vector<InternodeInfo> internodeInfos;
   std::vector<Entity> internodes;
   auto plantSystem = EntityManager::GetSystem<PlantSystem>();
   plantSystem->m_internodeQuery.ToEntityArray<InternodeInfo>(
-      internodes,
-      [treeEntity](const Entity &entity, const InternodeInfo &internodeInfo) {
-        return treeEntity == internodeInfo.m_plant;
+      internodes, [treeEntity](const Entity &internode,
+                               const InternodeInfo &internodeInfo) {
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        // auto thickestChild = internodeData->m_thickestChild.Get();
+        return treeEntity == plant;
       });
-  plantSystem->m_internodeQuery
-      .ToComponentDataArray<InternodeInfo, InternodeInfo>(
-          internodeInfos, [treeEntity](const InternodeInfo &internodeInfo) {
-            return treeEntity == internodeInfo.m_plant;
-          });
+
   Entity rootInternode;
   unsigned rootNodeIndex = 0;
   treeEntity.ForEachChild([&rootNodeIndex, &rootInternode](Entity child) {

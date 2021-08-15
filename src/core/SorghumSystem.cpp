@@ -892,7 +892,8 @@ void SorghumSystem::GenerateLeavesForSorghum() {
         if (child.HasDataComponent<InternodeInfo>() &&
             child.GetDataComponent<InternodeInfo>().m_order == 2) {
           const auto leafEntity = CreateSorghumLeaf(sorghum);
-          auto leafSpline = leafEntity.GetOrSetPrivateComponent<Spline>().lock();
+          auto leafSpline =
+              leafEntity.GetOrSetPrivateComponent<Spline>().lock();
           auto cp0 = centerNodePosition;
           auto cp1 = child.GetDataComponent<GlobalTransform>().GetPosition();
           auto child2 = child.GetChildren()[0];
@@ -927,9 +928,11 @@ void SorghumSystem::GenerateLeavesForSorghum() {
       });
     }
 
-    if (leafAmount == sorghum.GetOrSetPrivateComponent<SorghumData>().lock()->
-                          m_parameters.m_leafCount) {
-      sorghum.GetOrSetPrivateComponent<SorghumData>().lock()->m_growthComplete = true;
+    if (leafAmount == sorghum.GetOrSetPrivateComponent<SorghumData>()
+                          .lock()
+                          ->m_parameters.m_leafCount) {
+      sorghum.GetOrSetPrivateComponent<SorghumData>().lock()->m_growthComplete =
+          true;
     }
   }
 
@@ -954,22 +957,22 @@ void SorghumSystem::FormCandidates(
           return;
         if (internode.GetChildrenAmount() != 0)
           return;
-        if (!internodeInfo.m_plant.IsEnabled())
-          return;
         auto internodeData =
             internode.GetOrSetPrivateComponent<InternodeData>().lock();
-        auto sorghumData =
-            internodeInfo.m_plant.GetOrSetPrivateComponent<SorghumData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        if (!plant.IsEnabled())
+          return;
+        auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
         if (sorghumData->m_growthComplete)
           return;
-        auto plantInfo = internodeInfo.m_plant.GetDataComponent<PlantInfo>();
+        auto plantInfo = plant.GetDataComponent<PlantInfo>();
         auto parameters = sorghumData->m_parameters;
         if (internodeInfo.m_order == 1) {
           auto stemCandidate = InternodeCandidate();
           stemCandidate.m_info.m_plantType = PlantType::Sorghum;
           stemCandidate.m_parent = internode;
           stemCandidate.m_info.m_startGlobalTime = globalTime;
-          stemCandidate.m_info.m_plant = internodeInfo.m_plant;
+          stemCandidate.m_plant = plant;
           stemCandidate.m_info.m_startAge = plantInfo.m_age;
           stemCandidate.m_info.m_order = internodeInfo.m_order;
           stemCandidate.m_info.m_level = internodeInfo.m_level + 1;
@@ -1006,7 +1009,7 @@ void SorghumSystem::FormCandidates(
             leafCandidate.m_info.m_plantType = PlantType::Sorghum;
             leafCandidate.m_parent = internode;
             leafCandidate.m_info.m_startGlobalTime = globalTime;
-            leafCandidate.m_info.m_plant = internodeInfo.m_plant;
+            leafCandidate.m_plant = plant;
             leafCandidate.m_info.m_startAge = plantInfo.m_age;
             leafCandidate.m_info.m_order = internodeInfo.m_order + 1;
             leafCandidate.m_info.m_level = internodeInfo.m_level + 1;
@@ -1054,12 +1057,14 @@ void SorghumSystem::FormLeafNodes() {
                       Illumination &internodeIllumination) {
         if (internodeInfo.m_plantType != PlantType::Sorghum)
           return;
-        if (!internodeInfo.m_plant.IsEnabled())
+        auto internodeData =
+            internode.GetOrSetPrivateComponent<InternodeData>().lock();
+        auto plant = internodeData->m_plant.Get();
+        if (!plant.IsEnabled())
           return;
         if (internodeInfo.m_order != 2)
           return;
-        auto sorghumData =
-            internodeInfo.m_plant.GetOrSetPrivateComponent<SorghumData>().lock();
+        auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
         auto parameters = sorghumData->m_parameters;
         std::lock_guard lock(mutex);
         candidates.push_back(std::make_pair(internode, parameters));
@@ -1078,7 +1083,8 @@ void SorghumSystem::FormLeafNodes() {
     auto meshRenderer = i.first.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer->m_material = m_leafNodeMaterial;
-    meshRenderer->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     InternodeGrowth internodeGrowth;
     Entity leafNode1 =
@@ -1093,10 +1099,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode1.SetDataComponent(internodeInfo);
     leafNode1.SetDataComponent(internodeGrowth);
 
-    auto meshRenderer1 = leafNode1.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer1 =
+        leafNode1.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer1->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer1->m_material = m_leafNodeMaterial;
-    meshRenderer1->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer1->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     Entity leafNode2 =
         m_plantSystem->CreateInternode(PlantType::Sorghum, leafNode1);
@@ -1108,10 +1116,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode2.SetDataComponent(transform);
     leafNode2.SetDataComponent(internodeInfo);
     leafNode2.SetDataComponent(internodeGrowth);
-    auto meshRenderer2 = leafNode2.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer2 =
+        leafNode2.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer2->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer2->m_material = m_leafNodeMaterial;
-    meshRenderer2->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer2->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     Entity leafNode3 =
         m_plantSystem->CreateInternode(PlantType::Sorghum, leafNode2);
@@ -1123,10 +1133,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode3.SetDataComponent(transform);
     leafNode3.SetDataComponent(internodeInfo);
     leafNode3.SetDataComponent(internodeGrowth);
-    auto meshRenderer3 = leafNode3.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer3 =
+        leafNode3.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer3->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer3->m_material = m_leafNodeMaterial;
-    meshRenderer3->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer3->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     Entity leafNode4 =
         m_plantSystem->CreateInternode(PlantType::Sorghum, leafNode3);
@@ -1139,10 +1151,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode4.SetDataComponent(internodeInfo);
     leafNode4.SetDataComponent(internodeGrowth);
 
-    auto meshRenderer4 = leafNode4.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer4 =
+        leafNode4.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer4->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer4->m_material = m_leafNodeMaterial;
-    meshRenderer4->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer4->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     Entity leafNode5 =
         m_plantSystem->CreateInternode(PlantType::Sorghum, leafNode4);
@@ -1155,10 +1169,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode5.SetDataComponent(internodeInfo);
     leafNode5.SetDataComponent(internodeGrowth);
 
-    auto meshRenderer5 = leafNode5.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer5 =
+        leafNode5.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer5->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer5->m_material = m_leafNodeMaterial;
-    meshRenderer5->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
+    meshRenderer5->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
 
     Entity leafNode6 =
         m_plantSystem->CreateInternode(PlantType::Sorghum, leafNode5);
@@ -1171,11 +1187,12 @@ void SorghumSystem::FormLeafNodes() {
     leafNode6.SetDataComponent(internodeInfo);
     leafNode6.SetDataComponent(internodeGrowth);
 
-    auto meshRenderer6 = leafNode6.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer6 =
+        leafNode6.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer6->m_mesh = DefaultResources::Primitives::Sphere;
     meshRenderer6->m_material = m_leafNodeMaterial;
-    meshRenderer6->m_material.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
-
+    meshRenderer6->m_material.Get<Material>()->m_albedoColor =
+        glm::vec3(0, 1, 0);
   }
 }
 
@@ -1205,12 +1222,14 @@ void SorghumSystem::Update() {
       const float timer = Application::Time().CurrentTime();
       auto estimator =
           m_processingEntities[m_processingIndex]
-              .GetOrSetPrivateComponent<TriangleIlluminationEstimator>().lock();
+              .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
+              .lock();
       estimator->CalculateIllumination(m_properties);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
-      m_probeColors.insert(m_probeColors.end(), estimator->m_probeColors.begin(),
+      m_probeColors.insert(m_probeColors.end(),
+                           estimator->m_probeColors.begin(),
                            estimator->m_probeColors.end());
       m_perPlantCalculationTime = Application::Time().CurrentTime() - timer;
       const auto count = m_probeTransforms.size();
