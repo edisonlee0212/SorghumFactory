@@ -21,7 +21,7 @@ void DefaultFoliageGenerator::OnCreate() {
   m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
   if (!m_leafSurfaceTex)
     m_leafSurfaceTex = AssetManager::Import<Texture2D>(
-        AssetManager::GetAssetFolderPath() / "Textures/Leaf/Pine/level0.png");
+        std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/Leaf/Pine/level0.png");
   //_LeafMaterial->SetTexture(_LeafSurfaceTex);
   m_leafMaterial->m_albedoColor =
       glm::normalize(glm::vec3(60.0f / 256.0f, 140.0f / 256.0f, 0.0f));

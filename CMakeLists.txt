@@ -44,6 +44,10 @@ include_directories(${OptiX_INCLUDE})
 # ------------------------------------------------------------------
 # RayMLVQ
 # ------------------------------------------------------------------
+
+set(PLANT_FACTORY_RESOURCE_DIR_LOCAL ${CMAKE_CURRENT_SOURCE_DIR}/Resources/)
+set(PLANT_FACTORY_RESOURCE_DEF PLANT_FACTORY_RESOURCE_FOLDER=\"${PLANT_FACTORY_RESOURCE_DIR_LOCAL}\")
+
 set(CMAKE_CXX_STANDARD 17)
 
 enable_language(CUDA)
@@ -78,6 +82,12 @@ add_library(rayTracerFacility
         ${CMAKE_MODULE_PATH}/configure_optix.cmake
         ${CMAKE_MODULE_PATH}/FindOptiX.cmake
         )
+
+target_compile_definitions(rayTracerFacility
+        PRIVATE
+        ${PLANT_FACTORY_RESOURCE_DEF}
+        )
+
 set_property(TARGET rayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
 
 generate_export_header(rayTracerFacility
@@ -145,6 +155,7 @@ set(PLANT_FACTORY_PCH_LOCAL
 target_compile_definitions(plantFactory
         PRIVATE
         GLAD_GLAPI_EXPORT
+        ${PLANT_FACTORY_RESOURCE_DEF}
         )
 target_precompile_headers(plantFactory
         PRIVATE
@@ -159,10 +170,6 @@ target_include_directories(plantFactory
 target_link_libraries(plantFactory
         rayTracerFacility
         )
-
-set(PLANT_FACTORY_RESOURCE_DIR_LOCAL ${CMAKE_CURRENT_SOURCE_DIR}/Resources/)
-set(PLANT_FACTORY_RESOURCE_DEF PLANT_FACTORY_RESOURCE_FOLDER=\"${PLANT_FACTORY_RESOURCE_DIR_LOCAL}\")
-
 
 add_executable(sorghumMLVQ
         "src/app/SorghumMLVQ.cpp"

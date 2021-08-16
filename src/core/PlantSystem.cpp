@@ -798,7 +798,7 @@ void PlantSystem::OnCreate() {
   std::string fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileUtils::LoadFileAsString(AssetManager::GetAssetFolderPath() /
+      FileUtils::LoadFileAsString(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                                   "Shaders/Fragment/SemanticBranch.frag");
 
   auto standardVert =
@@ -818,7 +818,7 @@ void PlantSystem::OnCreate() {
   fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileUtils::LoadFileAsString(AssetManager::GetAssetFolderPath() /
+      FileUtils::LoadFileAsString(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                                   "Shaders/Fragment/SemanticLeaf.frag");
   standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);

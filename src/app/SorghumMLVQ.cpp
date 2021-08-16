@@ -76,7 +76,6 @@ int main() {
 }
 
 void EngineSetup() {
-  ProjectManager::SetProjectPath(PLANT_FACTORY_RESOURCE_FOLDER);
   Application::Init();
 #pragma region Engine Setup
 #pragma region Global light settings

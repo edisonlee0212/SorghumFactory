@@ -119,7 +119,7 @@ void SorghumSystem::OnCreate() {
   m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
   m_leafSurfaceTexture = AssetManager::Import<Texture2D>(
-      AssetManager::GetAssetFolderPath() / "Textures/leafSurfaceBright.jpg");
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
   m_leafMaterial->SetTexture(TextureType::Albedo, m_leafSurfaceTexture);
   m_leafMaterial->m_roughness = 0.0f;
   m_leafMaterial->m_metallic = 0.0f;
@@ -582,19 +582,19 @@ void SorghumSystem::OnGui() {
         if (ImGui::Button("OK", ImVec2(120, 0))) {
           std::vector<Entity> candidates;
           candidates.push_back(
-              ImportPlant(AssetManager::GetAssetFolderPath() /
+              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                               "Sorghum/skeleton_procedural_1.txt",
                           "Sorghum 1"));
           candidates.push_back(
-              ImportPlant(AssetManager::GetAssetFolderPath() /
+              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                               "Sorghum/skeleton_procedural_2.txt",
                           "Sorghum 2"));
           candidates.push_back(
-              ImportPlant(AssetManager::GetAssetFolderPath() /
+              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                               "Sorghum/skeleton_procedural_3.txt",
                           "Sorghum 3"));
           candidates.push_back(
-              ImportPlant(AssetManager::GetAssetFolderPath() /
+              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                               "Sorghum/skeleton_procedural_4.txt",
                           "Sorghum 4"));
           GenerateMeshForAllSorghums();

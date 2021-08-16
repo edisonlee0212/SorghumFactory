@@ -888,7 +888,7 @@ void TreeSystem::OnGui() {
         if (newTreePositions.size() < newTreeAmount) {
           if (newTreeParameters.empty()) {
             newTreeParameters.resize(1);
-            newTreeParameters[0].Deserialize(ProjectManager::GetProjectPath() /
+            newTreeParameters[0].Deserialize(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
                                              "Parameters/default.treeparam");
           }
           const auto currentSize = newTreePositions.size();
@@ -3101,16 +3101,16 @@ void TreeSystem::OnCreate() {
                                 glm::linearRand(0.0f, 1.0f));
   }
   m_defaultRayTracingBranchAlbedoTexture = AssetManager::Import<Texture2D>(
-      AssetManager::GetAssetFolderPath() /
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
       "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
   m_defaultRayTracingBranchNormalTexture = AssetManager::Import<Texture2D>(
-      AssetManager::GetAssetFolderPath() /
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
       "Textures/BarkMaterial/Bark_Pine_normal.jpg");
   m_defaultBranchAlbedoTexture = AssetManager::Import<Texture2D>(
-      AssetManager::GetAssetFolderPath() /
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
       "Textures/BarkMaterial/Bark_Pine_baseColor.jpg");
   m_defaultBranchNormalTexture = AssetManager::Import<Texture2D>(
-      AssetManager::GetAssetFolderPath() /
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
       "Textures/BarkMaterial/Bark_Pine_normal.jpg");
 #pragma endregion
 #pragma region General tree growth

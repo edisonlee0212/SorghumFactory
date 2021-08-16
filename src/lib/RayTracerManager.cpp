@@ -180,8 +180,7 @@ void RayTracerManager::Init() {
 
   CudaModule::Init();
 
-  CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(
-      UniEngine::ProjectManager::GetProjectPath().string());
+  CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(PLANT_FACTORY_RESOURCE_FOLDER);
 
   manager.m_defaultWindow.Init("Ray:Default");
 #pragma region Environmental map
