@@ -888,8 +888,9 @@ void TreeSystem::OnGui() {
         if (newTreePositions.size() < newTreeAmount) {
           if (newTreeParameters.empty()) {
             newTreeParameters.resize(1);
-            newTreeParameters[0].Deserialize(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                                             "Parameters/default.treeparam");
+            newTreeParameters[0].Deserialize(
+                std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                "Parameters/default.treeparam");
           }
           const auto currentSize = newTreePositions.size();
           newTreeParameters.resize(newTreeAmount);
@@ -1875,11 +1876,9 @@ void TreeSystem::GenerateMeshForTree() {
     if (plant.GetDataComponent<PlantInfo>().m_plantType !=
         PlantType::GeneralTree)
       continue;
-    if (!plant.HasPrivateComponent<MeshRenderer>() ||
-        !plant.HasPrivateComponent<TreeData>())
+    if (!plant.HasPrivateComponent<TreeData>())
       continue;
-    auto meshRenderer = plant.GetOrSetPrivateComponent<MeshRenderer>().lock();
-    meshRenderer->SetEnabled(true);
+
     if (plant.HasPrivateComponent<SkinnedMeshRenderer>()) {
       plant.GetOrSetPrivateComponent<SkinnedMeshRenderer>().lock()->SetEnabled(
           false);
@@ -1897,7 +1896,15 @@ void TreeSystem::GenerateMeshForTree() {
                           parentIndicesLists[plantIndex], vertices, indices);
         treeData->m_branchMesh->SetVertices(17, vertices, indices);
         treeData->m_meshGenerated = true;
-        meshRenderer->m_mesh.Set(treeData->m_branchMesh);
+        if (plant.HasPrivateComponent<MeshRenderer>()) {
+          plant.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh =
+              treeData->m_branchMesh;
+        }
+        if (plant.HasPrivateComponent<RayTracerFacility::RayTracedRenderer>()) {
+          plant.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+              .lock()
+              ->m_mesh = treeData->m_branchMesh;
+        }
       }
 #pragma endregion
       Entity leaves = GetLeaves(plant);
@@ -1986,11 +1993,12 @@ void TreeSystem::GenerateSkinnedMeshForTree() {
         TreeSkinnedMeshGenerator(boundEntitiesLists[plantIndex],
                                  parentIndicesLists[plantIndex],
                                  skinnedVertices, skinnedIndices);
-        treeData->m_skinnedBranchMesh->SetVertices(
-            17, skinnedVertices, skinnedIndices);
-        treeData->m_skinnedBranchMesh
-            ->m_boneAnimatorIndices = boneIndicesLists[plantIndex];
-        skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(treeData->m_skinnedBranchMesh);
+        treeData->m_skinnedBranchMesh->SetVertices(17, skinnedVertices,
+                                                   skinnedIndices);
+        treeData->m_skinnedBranchMesh->m_boneAnimatorIndices =
+            boneIndicesLists[plantIndex];
+        skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(
+            treeData->m_skinnedBranchMesh);
       }
 #pragma endregion
       Entity leaves = GetLeaves(plant);

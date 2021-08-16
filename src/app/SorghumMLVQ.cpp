@@ -18,6 +18,7 @@
 #include <SorghumData.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
+#include <ObjectRotator.hpp>
 using namespace PlantFactory;
 using namespace RayTracerFacility;
 
@@ -37,6 +38,7 @@ int main() {
   ClassRegistry::RegisterDataComponent<InternodeGrowth>("InternodeGrowth");
   ClassRegistry::RegisterDataComponent<InternodeStatistics>("InternodeStatistics");
 
+  ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
@@ -52,6 +54,8 @@ int main() {
   ClassRegistry::RegisterSystem<TreeSystem>("TreeSystem");
 
   EngineSetup();
+
+  Application::SetTimeStep(1.0f);
 
   const bool enableRayTracing = true;
   if (enableRayTracing)

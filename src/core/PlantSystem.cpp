@@ -20,8 +20,8 @@ void ResourceParcel::OnGui() const {
 }
 
 void InternodeData::OnGui() {
-  EditorManager::DragAndDrop(m_thickestChild, "Thickest Child");
-  EditorManager::DragAndDrop(m_plant, "Plant");
+  EditorManager::DragAndDropButton(m_thickestChild, "Thickest Child");
+  EditorManager::DragAndDropButton(m_plant, "Plant");
   ImGui::Checkbox("Display points", &m_displayPoints);
   ImGui::Checkbox("Display KDop", &m_displayHullMesh);
   if (ImGui::Button("Form mesh")) {

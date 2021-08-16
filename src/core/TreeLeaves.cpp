@@ -1,5 +1,5 @@
 #include <TreeLeaves.hpp>
-
+#include <RayTracedRenderer.hpp>
 using namespace PlantFactory;
 
 void TreeLeaves::OnGui() {
@@ -88,10 +88,15 @@ void TreeLeaves::FormMesh() {
         offset += quadVerticesSize;
     }
     m_leavesMesh->SetVertices(17, vertices, triangles);
-    auto meshRenderer = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
-    meshRenderer->m_mesh.Set<Mesh>(m_leavesMesh);
-
-    meshRenderer->SetEnabled(true);
+    if (GetOwner().HasPrivateComponent<MeshRenderer>()) {
+      GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock()->m_mesh =
+          m_leavesMesh;
+    }
+    if (GetOwner().HasPrivateComponent<RayTracerFacility::RayTracedRenderer>()) {
+      GetOwner().GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+      .lock()
+      ->m_mesh = m_leavesMesh;
+    }
     if(GetOwner().HasPrivateComponent<SkinnedMeshRenderer>()){
       GetOwner().GetOrSetPrivateComponent<SkinnedMeshRenderer>().lock()->SetEnabled(false);
     }

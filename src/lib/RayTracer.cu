@@ -38,7 +38,9 @@ void DefaultRenderingProperties::OnGui() {
                 if (ImGui::BeginMenu("Settings")) {
                     ImGui::Checkbox("Accumulate", &m_accumulate);
                     ImGui::DragInt("bounce limit", &m_bounceLimit, 1, 1, 8);
-                    ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 32);
+                    if(ImGui::DragInt("pixel samples", &m_samplesPerPixel, 1, 1, 64)){
+                      m_samplesPerPixel = glm::clamp(m_samplesPerPixel, 1, 128);
+                    }
                     ImGui::Checkbox("Use environmental map", &m_useEnvironmentalMap);
                     ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
                     ImGui::EndMenu();
