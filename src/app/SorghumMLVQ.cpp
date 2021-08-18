@@ -70,7 +70,7 @@ int main() {
       EntityManager::GetOrCreateSystem<SorghumSystem>(
           EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
 
-  EntityManager::GetSystem<PhysicsSystem>()->Disable();
+
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion

@@ -73,8 +73,8 @@ void CubeVolume::Serialize(YAML::Emitter &out) {
       << m_minMaxBound.m_max;
 }
 void CubeVolume::Deserialize(const YAML::Node &in) {
-  m_displayPoints = in["m_diffuseIntensity"].as<bool>();
-  m_displayPoints = in["m_diffuseIntensity"].as<bool>();
+  m_displayPoints = in["m_displayPoints"].as<bool>();
+  m_displayBounds = in["m_displayBounds"].as<bool>();
   m_minMaxBound.m_min = in["m_minMaxBound.m_min"].as<glm::vec3>();
   m_minMaxBound.m_max = in["m_minMaxBound.m_max"].as<glm::vec3>();
 }

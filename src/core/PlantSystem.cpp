@@ -834,6 +834,7 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
 #pragma endregion
 #pragma region Runtime
 void PlantSystem::Start() {
+    EntityManager::GetSystem<PhysicsSystem>()->Disable();
 #pragma region Ground
   if (m_ground.Get().IsNull() && m_anchor.Get().IsNull()) {
     m_ground = EntityManager::CreateEntity("Ground");

@@ -607,16 +607,17 @@ void RadialBoundingVolume::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_center" << YAML::Value << m_center;
   out << YAML::Key << "m_displayColor" << YAML::Value << m_displayColor;
   out << YAML::Key << "m_display" << YAML::Value << m_display;
+  out << YAML::Key << "m_pruneBuds" << YAML::Value << m_pruneBuds;
   out << YAML::Key << "m_maxHeight" << YAML::Value << m_maxHeight;
   out << YAML::Key << "m_maxRadius" << YAML::Value << m_maxRadius;
   out << YAML::Key << "m_displayScale" << YAML::Value << m_displayScale;
+  out << YAML::Key << "m_layerAmount" << YAML::Value << m_layerAmount;
   out << YAML::Key << "m_sectorAmount" << YAML::Value << m_sectorAmount;
   out << YAML::Key << "m_displayPoints" << YAML::Value << m_displayPoints;
   out << YAML::Key << "m_displayBounds" << YAML::Value << m_displayBounds;
 
   if(!m_layers.empty()){
     out << YAML::Key << "m_layers" << YAML::BeginSeq;
-
     for(const auto& i : m_layers){
       for(const auto& j : i){
         out << YAML::BeginMap;
@@ -624,5 +625,6 @@ void RadialBoundingVolume::Serialize(YAML::Emitter &out) {
         out << YAML::EndMap;
       }
     }
+    out << YAML::EndSeq;
   }
 }

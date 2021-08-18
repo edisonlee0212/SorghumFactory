@@ -132,7 +132,7 @@ void TreeLeaves::Serialize(YAML::Emitter &out) {
                         m_transforms.size() * sizeof(glm::mat4));
   }
 
-  m_leavesMesh.Save("m_transforms", out);
+  m_leavesMesh.Save("m_leavesMesh", out);
   m_skinnedLeavesMesh.Save("m_skinnedLeavesMesh", out);
 }
 void TreeLeaves::Deserialize(const YAML::Node &in) {
@@ -147,7 +147,7 @@ void TreeLeaves::Deserialize(const YAML::Node &in) {
     std::memcpy(m_transforms.data(), matrices.data(), matrices.size());
   }
 
-  m_leavesMesh.Load("m_transforms", in);
+  m_leavesMesh.Load("m_leavesMesh", in);
   m_skinnedLeavesMesh.Load("m_skinnedLeavesMesh", in);
 }
 void TreeLeaves::CollectAssetRef(std::vector<AssetRef> &list) {
