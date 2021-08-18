@@ -1035,8 +1035,6 @@ void PlantSystem::Start() {
 #pragma endregion
 
   m_ready = true;
-
-  m_globalTime = 0;
 }
 
 void PlantSystem::Update() {
