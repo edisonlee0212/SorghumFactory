@@ -443,7 +443,7 @@ void PlantSystem::OnGui() {
             i.second();
           }
           Application::SetPlaying(true);
-          EntityManager::GetSystem<PhysicsSystem>()->UploadRigidBodyShapes();
+          PhysicsManager::UploadRigidBodyShapes();
           PhysicsManager::UploadTransforms(true, true);
           EntityManager::ForEach<GlobalTransform>(
               JobManager::PrimaryWorkers(), m_internodeQuery,
@@ -664,7 +664,6 @@ Entity PlantSystem::CreateCubeObstacle() {
   globalTransform.m_value = transform.m_value;
   volumeEntity.SetDataComponent(transform);
   volumeEntity.SetDataComponent(globalTransform);
-  volumeEntity.SetStatic(true);
 
   auto meshRenderer =
       volumeEntity.GetOrSetPrivateComponent<MeshRenderer>().lock();

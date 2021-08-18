@@ -78,9 +78,15 @@ public:
 
   std::shared_ptr<Texture2D> m_leafSurfaceTexture;
   std::shared_ptr<Texture2D> m_leafNormalTexture;
+
+  std::shared_ptr<Texture2D> m_rayTracedLeafSurfaceTexture;
+  std::shared_ptr<Texture2D> m_rayTracedLeafNormalTexture;
+
   std::shared_ptr<Material> m_leafNodeMaterial;
   std::shared_ptr<Material> m_leafMaterial;
   std::shared_ptr<Material> m_instancedLeafMaterial;
+
+
   void OnCreate() override;
   Entity CreateSorghum();
   Entity CreateSorghumLeaf(const Entity &plantEntity);

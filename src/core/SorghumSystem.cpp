@@ -120,6 +120,11 @@ void SorghumSystem::OnCreate() {
   m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
   m_leafSurfaceTexture = AssetManager::Import<Texture2D>(
       std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
+
+
+  m_rayTracedLeafSurfaceTexture = AssetManager::Import<Texture2D>(
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
+
   m_leafMaterial->SetTexture(TextureType::Albedo, m_leafSurfaceTexture);
   m_leafMaterial->m_roughness = 0.0f;
   m_leafMaterial->m_metallic = 0.0f;
@@ -185,9 +190,9 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
       entity.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
           .lock();
   rtt->m_mesh = mmc->m_mesh;
-  rtt->m_albedoTexture = m_leafSurfaceTexture;
-  if (m_leafNormalTexture)
-    rtt->m_normalTexture = m_leafNormalTexture;
+  rtt->m_albedoTexture = m_rayTracedLeafSurfaceTexture;
+  if (m_rayTracedLeafNormalTexture)
+    rtt->m_normalTexture = m_rayTracedLeafNormalTexture;
 
   return entity;
 }
