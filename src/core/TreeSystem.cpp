@@ -3485,8 +3485,78 @@ void TreeSystem::InternodePostProcessor(const Entity &newInternode,
                   m_enableAccelerationForDrive);
 }
 void TreeSystem::DeleteAllPlantsHelper() { GenerateMeshForTree(); }
-void TreeSystem::Serialize(YAML::Emitter &out) {}
-void TreeSystem::Deserialize(const YAML::Node &in) {}
+void TreeSystem::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_density" << YAML::Value << m_density;
+  out << YAML::Key << "m_linearDamping" << YAML::Value << m_linearDamping;
+  out << YAML::Key << "m_angularDamping" << YAML::Value << m_angularDamping;
+  out << YAML::Key << "m_positionSolverIteration" << YAML::Value << m_positionSolverIteration;
+  out << YAML::Key << "m_velocitySolverIteration" << YAML::Value << m_velocitySolverIteration;
+  out << YAML::Key << "m_jointDriveStiffnessFactor" << YAML::Value << m_jointDriveStiffnessFactor;
+  out << YAML::Key << "m_jointDriveStiffnessThicknessFactor" << YAML::Value << m_jointDriveStiffnessThicknessFactor;
+  out << YAML::Key << "m_jointDriveDampingFactor" << YAML::Value << m_jointDriveDampingFactor;
+  out << YAML::Key << "m_jointDriveDampingThicknessFactor" << YAML::Value << m_jointDriveDampingThicknessFactor;
+  out << YAML::Key << "m_enableAccelerationForDrive" << YAML::Value << m_enableAccelerationForDrive;
+
+  out << YAML::Key << "m_displayTime" << YAML::Value << m_displayTime;
+  out << YAML::Key << "m_previousGlobalTime" << YAML::Value << m_previousGlobalTime;
+  out << YAML::Key << "m_connectionWidth" << YAML::Value << m_connectionWidth;
+  out << YAML::Key << "m_displayThickness" << YAML::Value << m_displayThickness;
+
+  out << YAML::Key << "m_crownShynessDiameter" << YAML::Value << m_crownShynessDiameter;
+
+  out << YAML::Key << "m_leafAmount" << YAML::Value << m_leafAmount;
+  out << YAML::Key << "m_radius" << YAML::Value << m_radius;
+  out << YAML::Key << "m_leafSize" << YAML::Value << m_leafSize;
+  out << YAML::Key << "m_distanceToEndNode" << YAML::Value << m_distanceToEndNode;
+
+  out << YAML::Key << "m_meshResolution" << YAML::Value << m_meshResolution;
+  out << YAML::Key << "m_meshSubdivision" << YAML::Value << m_meshSubdivision;
+
+  m_defaultRayTracingBranchAlbedoTexture.Save("m_defaultRayTracingBranchAlbedoTexture", out);
+  m_defaultRayTracingBranchNormalTexture.Save("m_defaultRayTracingBranchNormalTexture", out);
+  m_defaultBranchAlbedoTexture.Save("m_defaultBranchAlbedoTexture", out);
+  m_defaultBranchNormalTexture.Save("m_defaultBranchNormalTexture", out);
+
+  m_currentFocusingInternode.Save("m_currentFocusingInternode", out);
+
+  m_plantSystem.Save("m_plantSystem", out);
+}
+void TreeSystem::Deserialize(const YAML::Node &in) {
+  m_density = in["m_density"].as<float>();
+  m_linearDamping = in["m_linearDamping"].as<float>();
+  m_angularDamping = in["m_angularDamping"].as<float>();
+  m_positionSolverIteration = in["m_positionSolverIteration"].as<int>();
+  m_velocitySolverIteration = in["m_velocitySolverIteration"].as<int>();
+  m_jointDriveStiffnessFactor = in["m_jointDriveStiffnessFactor"].as<float>();
+  m_jointDriveStiffnessThicknessFactor = in["m_jointDriveStiffnessThicknessFactor"].as<float>();
+  m_jointDriveDampingFactor = in["m_jointDriveDampingFactor"].as<float>();
+  m_jointDriveDampingThicknessFactor = in["m_jointDriveDampingThicknessFactor"].as<float>();
+  m_enableAccelerationForDrive = in["m_enableAccelerationForDrive"].as<bool>();
+
+  m_displayTime = in["m_displayTime"].as<float>();
+  m_previousGlobalTime = in["m_previousGlobalTime"].as<float>();
+  m_connectionWidth = in["m_connectionWidth"].as<float>();
+  m_displayThickness = in["m_displayThickness"].as<bool>();
+
+  m_crownShynessDiameter = in["m_crownShynessDiameter"].as<float>();
+
+  m_leafAmount = in["m_leafAmount"].as<int>();
+  m_radius = in["m_radius"].as<float>();
+  m_leafSize = in["m_leafSize"].as<glm::vec2>();
+  m_distanceToEndNode = in["m_distanceToEndNode"].as<float>();
+
+  m_meshResolution = in["m_meshResolution"].as<float>();
+  m_meshSubdivision = in["m_meshSubdivision"].as<float>();
+
+  m_defaultRayTracingBranchAlbedoTexture.Load("m_defaultRayTracingBranchAlbedoTexture", in);
+  m_defaultRayTracingBranchNormalTexture.Load("m_defaultRayTracingBranchNormalTexture", in);
+  m_defaultBranchAlbedoTexture.Load("m_defaultBranchAlbedoTexture", in);
+  m_defaultBranchNormalTexture.Load("m_defaultBranchNormalTexture", in);
+
+  m_currentFocusingInternode.Load("m_currentFocusingInternode", in);
+
+  m_plantSystem.Load("m_plantSystem", in);
+}
 void TreeSystem::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_defaultRayTracingBranchAlbedoTexture);
   list.push_back(m_defaultRayTracingBranchNormalTexture);
