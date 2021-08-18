@@ -173,8 +173,7 @@ RayTracerManager &RayTracerManager::GetInstance() {
 }
 
 void RayTracerManager::Init() {
-  ClassRegistry::RegisterPrivateComponent<RayTracedRenderer>(
-      "RayTracedRenderer");
+
 
   auto &manager = GetInstance();
 

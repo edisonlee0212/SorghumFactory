@@ -53,16 +53,13 @@ int main() {
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
   ClassRegistry::RegisterSystem<TreeSystem>("TreeSystem");
 
+  ClassRegistry::RegisterPrivateComponent<RayTracedRenderer>(
+      "RayTracedRenderer");
+
   const bool enableRayTracing = true;
-
-
-
   EngineSetup(enableRayTracing);
 
   Application::Init();
-  
-  if (enableRayTracing)
-    RayTracerManager::Init();
 
 #pragma region Engine Loop
   Application::Run();
@@ -115,7 +112,8 @@ void EngineSetup(bool enableRayTracing) {
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
     */
-
+    if (enableRayTracing)
+      RayTracerManager::Init();
 
     auto plantSystem =
         EntityManager::GetOrCreateSystem<PlantSystem>(
