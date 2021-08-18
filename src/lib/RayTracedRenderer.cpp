@@ -55,3 +55,36 @@ void RayTracedRenderer::Clone(
     const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<RayTracedRenderer>(target);
 }
+
+void RayTracedRenderer::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_diffuseIntensity" << YAML::Value << m_diffuseIntensity;
+  out << YAML::Key << "m_transparency" << YAML::Value << m_transparency;
+  out << YAML::Key << "m_metallic" << YAML::Value << m_metallic;
+  out << YAML::Key << "m_roughness" << YAML::Value << m_roughness;
+  out << YAML::Key << "m_surfaceColor" << YAML::Value << m_surfaceColor;
+  out << YAML::Key << "m_enableMLVQ" << YAML::Value << m_enableMLVQ;
+  out << YAML::Key << "m_mlvqMaterialIndex" << YAML::Value << m_mlvqMaterialIndex;
+
+  m_mesh.Save("m_mesh", out);
+  m_albedoTexture.Save("m_albedoTexture", out);
+  m_normalTexture.Save("m_normalTexture", out);
+}
+void RayTracedRenderer::Deserialize(const YAML::Node &in) {
+  m_diffuseIntensity = in["m_diffuseIntensity"].as<float>();
+  m_transparency = in["m_transparency"].as<float>();
+  m_metallic = in["m_metallic"].as<float>();
+  m_roughness = in["m_roughness"].as<float>();
+  m_surfaceColor = in["m_surfaceColor"].as<glm::vec3>();
+  m_enableMLVQ = in["m_enableMLVQ"].as<bool>();
+  m_mlvqMaterialIndex = in["m_mlvqMaterialIndex"].as<int>();
+
+  m_mesh.Load("m_mesh", in);
+  m_albedoTexture.Load("m_albedoTexture", in);
+  m_normalTexture.Load("m_normalTexture", in);
+}
+
+void RayTracedRenderer::CollectAssetRef(std::vector<AssetRef> &list) {
+  list.push_back(m_mesh);
+  list.push_back(m_albedoTexture);
+  list.push_back(m_normalTexture);
+}

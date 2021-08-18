@@ -110,6 +110,10 @@ struct ResourceParcel {
   ResourceParcel &operator+=(const ResourceParcel &value);
   [[nodiscard]] bool IsEnough() const;
   void OnGui() const;
+
+  void Serialize(YAML::Emitter &out);
+  void Deserialize(const YAML::Node &in);
+
 };
 
 class Bud {
@@ -123,6 +127,9 @@ public:
   bool m_active = true;
   bool m_isApical = false;
   float m_mainAngle = 0;
+
+  void Serialize(YAML::Emitter &out);
+  void Deserialize(const YAML::Node &in);
 };
 #pragma endregion
 
@@ -130,12 +137,25 @@ struct KDop {
   std::vector<Plane> m_planes;
   std::vector<Vertex> m_vertices;
   std::vector<glm::uvec3> m_indices;
+
+  void Serialize(YAML::Emitter &out);
+  void Deserialize(const YAML::Node &in);
+
   void Calculate(const std::vector<glm::mat4> &globalTransforms);
   glm::vec3 GetIntersection(const Plane &p0, const Plane &p1, const Plane &p2);
 };
 
 class InternodeData : public IPrivateComponent {
 public:
+  glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
+  bool m_displayPoints = true;
+  bool m_displayHullMesh = true;
+  float m_pointSize = 0.001f;
+  float m_lineWidth = 5.0f;
+  glm::vec4 m_pointColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+  glm::vec4 m_hullMeshColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
+
+
   EntityRef m_thickestChild;
   EntityRef m_plant;
   std::vector<glm::mat4> m_leavesTransforms;
@@ -145,19 +165,17 @@ public:
   KDop m_kDop;
   quickhull::ConvexHull<float> m_convexHull;
   std::shared_ptr<Mesh> m_hullMesh;
-  glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
-  bool m_displayPoints = true;
-  bool m_displayHullMesh = true;
-  float m_pointSize = 0.001f;
-  float m_lineWidth = 5.0f;
-  glm::vec4 m_pointColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-  glm::vec4 m_hullMeshColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
+
 
   int m_step;
   void OnGui() override;
   void CalculateKDop();
   void CalculateQuickHull();
   void FormMesh();
+
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+
   void Relink(const std::unordered_map<Handle, Handle> &map) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
@@ -216,8 +234,8 @@ public:
                     glm::vec3 &up);
 #pragma endregion
 #pragma region Members
-  Entity m_ground;
-  Entity m_anchor;
+  EntityRef m_ground;
+  EntityRef m_anchor;
   /**
    * \brief The period of time for each iteration. Must be smaller than 1.0f.
    */
@@ -272,12 +290,15 @@ public:
 #pragma endregion
 #pragma region Runtime
   void OnGui() override;
-  void OnCreate() override;
   void Update() override;
   void Refresh();
   void End();
-
+  void OnCreate() override;
+  void Start() override;
   void PhysicsSimulate();
 #pragma endregion
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+  void Relink(const std::unordered_map<Handle, Handle> &map);
 };
 } // namespace PlantFactory

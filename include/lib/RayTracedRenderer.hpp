@@ -24,6 +24,10 @@ public:
   void OnGui() override;
   void SyncWithMeshRenderer();
 
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace RayTracerFacility

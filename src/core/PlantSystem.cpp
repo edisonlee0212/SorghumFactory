@@ -131,6 +131,20 @@ glm::vec3 KDop::GetIntersection(const Plane &p0, const Plane &p1,
           glm::cross(p0n, p1n) * -p2.m_d) /
          det;
 }
+void KDop::Serialize(YAML::Emitter &out) {
+  if (!m_planes.empty()) {
+    out << YAML::Key << "m_planes" << YAML::Value
+        << YAML::Binary((const unsigned char *)m_planes.data(),
+                        m_planes.size() * sizeof(Plane));
+  }
+}
+void KDop::Deserialize(const YAML::Node &in) {
+  if (in["m_planes"]) {
+    YAML::Binary chains = in["m_planes"].as<YAML::Binary>();
+    m_planes.resize(chains.size() / sizeof(Plane));
+    std::memcpy(m_planes.data(), chains.data(), chains.size());
+  }
+}
 /*
 void KDop::FormMesh() {
   m_mesh = AssetManager::CreateAsset<Mesh>();
@@ -376,6 +390,67 @@ void InternodeData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
 void InternodeData::Relink(const std::unordered_map<Handle, Handle> &map) {
   m_thickestChild.Relink(map);
   m_plant.Relink(map);
+}
+void InternodeData::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_normalDir" << YAML::Value << m_normalDir;
+  out << YAML::Key << "m_displayPoints" << YAML::Value << m_displayPoints;
+  out << YAML::Key << "m_displayHullMesh" << YAML::Value << m_displayHullMesh;
+  out << YAML::Key << "m_pointSize" << YAML::Value << m_pointSize;
+  out << YAML::Key << "m_lineWidth" << YAML::Value << m_lineWidth;
+  out << YAML::Key << "m_pointColor" << YAML::Value << m_pointColor;
+  out << YAML::Key << "m_hullMeshColor" << YAML::Value << m_hullMeshColor;
+  out << YAML::Key << "m_step" << YAML::Value << m_step;
+
+  if (!m_points.empty()) {
+    out << YAML::Key << "m_points" << YAML::Value
+        << YAML::Binary((const unsigned char *)m_points.data(),
+                        m_points.size() * sizeof(glm::mat4));
+  }
+
+  m_thickestChild.Save("m_thickestChild", out);
+  m_plant.Save("m_plant", out);
+
+  if (!m_buds.empty()) {
+    out << YAML::Key << "m_buds" << YAML::Value << YAML::BeginSeq;
+    for (auto &i : m_buds) {
+      out << YAML::BeginMap;
+      i.Serialize(out);
+      out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+  }
+
+  out << YAML::Key << "m_kDop" << YAML::BeginMap;
+  m_kDop.Serialize(out);
+  out << YAML::EndMap;
+}
+void InternodeData::Deserialize(const YAML::Node &in) {
+  m_normalDir = in["m_normalDir"].as<glm::vec3>();
+  m_displayPoints = in["m_displayPoints"].as<bool>();
+  m_displayHullMesh = in["m_displayHullMesh"].as<bool>();
+  m_pointSize = in["m_pointSize"].as<float>();
+  m_lineWidth = in["m_lineWidth"].as<float>();
+  m_pointColor = in["m_pointColor"].as<glm::vec4>();
+  m_hullMeshColor = in["m_hullMeshColor"].as<glm::vec4>();
+
+  if (in["m_points"]) {
+    YAML::Binary chains = in["m_points"].as<YAML::Binary>();
+    m_points.resize(chains.size() / sizeof(glm::mat4));
+    std::memcpy(m_points.data(), chains.data(), chains.size());
+  }
+
+  m_thickestChild.Load("m_thickestChild", in);
+  m_plant.Load("m_plant", in);
+
+  if (in["m_buds"]) {
+    for (const auto &i : in["m_buds"]) {
+      Bud bud;
+      bud.Deserialize(i);
+      m_buds.push_back(bud);
+    }
+  }
+
+  m_kDop.Deserialize(in["m_kDop"]);
 }
 
 void PlantSystem::OnGui() {
@@ -650,6 +725,16 @@ ResourceParcel &ResourceParcel::operator+=(const ResourceParcel &value) {
 bool ResourceParcel::IsEnough() const {
   return m_nutrient > 1.0f && m_carbon > 1.0f;
 }
+void ResourceParcel::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_nutrient" << YAML::Value << m_nutrient;
+  out << YAML::Key << "m_carbon" << YAML::Value << m_carbon;
+  out << YAML::Key << "m_globalTime" << YAML::Value << m_globalTime;
+}
+void ResourceParcel::Deserialize(const YAML::Node &in) {
+  m_nutrient = in["m_nutrient"].as<float>();
+  m_carbon = in["m_carbon"].as<float>();
+  m_globalTime = in["m_globalTime"].as<float>();
+}
 
 #pragma endregion
 #pragma region Helpers
@@ -748,47 +833,48 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
 
 #pragma endregion
 #pragma region Runtime
-void PlantSystem::OnCreate() {
-
+void PlantSystem::Start() {
 #pragma region Ground
+  if (m_ground.Get().IsNull() && m_anchor.Get().IsNull()) {
+    m_ground = EntityManager::CreateEntity("Ground");
+    auto ground = m_ground.Get();
+    auto meshRenderer = ground.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
+    meshRenderer->m_material = AssetManager::LoadMaterial(
+        DefaultResources::GLPrograms::StandardProgram);
+    auto mat = meshRenderer->m_material.Get<Material>();
+    mat->m_name = "Ground mat";
+    mat->m_roughness = 1.0f;
+    mat->m_metallic = 0.5f;
+    mat->m_albedoColor = glm::vec3(1.0f);
 
-  m_ground = EntityManager::CreateEntity("Ground");
+    Transform groundTransform;
+    groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
+    groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    ground.SetDataComponent(groundTransform);
 
-  auto meshRenderer = m_ground.GetOrSetPrivateComponent<MeshRenderer>().lock();
-  meshRenderer->m_mesh = DefaultResources::Primitives::Quad;
-  meshRenderer->m_material =
-      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-  auto mat = meshRenderer->m_material.Get<Material>();
-  mat->m_name = "Ground mat";
-  mat->m_roughness = 1.0f;
-  mat->m_metallic = 0.5f;
-  mat->m_albedoColor = glm::vec3(1.0f);
+    m_anchor = EntityManager::CreateEntity("Anchor");
+    auto anchor = m_anchor.Get();
+    Transform anchorTransform;
+    anchorTransform.SetScale(glm::vec3(1.0 / 500.0f, 1.0f, 1.0 / 500.0f));
+    anchorTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    anchor.SetDataComponent(anchorTransform);
+    anchor.SetParent(ground);
 
-  Transform groundTransform;
-  groundTransform.SetScale(glm::vec3(500.0f, 1.0f, 500.0f));
-  groundTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-  m_ground.SetDataComponent(groundTransform);
+    auto rayTracedRenderer =
+        ground.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+            .lock();
+    rayTracedRenderer->SyncWithMeshRenderer();
+    rayTracedRenderer->m_enableMLVQ = true;
 
-  m_anchor = EntityManager::CreateEntity("Anchor");
-  Transform anchorTransform;
-  anchorTransform.SetScale(glm::vec3(1.0 / 500.0f, 1.0f, 1.0 / 500.0f));
-  anchorTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-  m_anchor.SetDataComponent(anchorTransform);
-  m_anchor.SetParent(m_ground);
-
-  auto rayTracedRenderer =
-      m_ground.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
-          .lock();
-  rayTracedRenderer->SyncWithMeshRenderer();
-  rayTracedRenderer->m_enableMLVQ = true;
-
-  auto cubeVolume = m_ground.GetOrSetPrivateComponent<CubeVolume>().lock();
-  cubeVolume->m_asObstacle = true;
-  cubeVolume->m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
-  cubeVolume->m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
-
+    auto cubeVolume = ground.GetOrSetPrivateComponent<CubeVolume>().lock();
+    cubeVolume->m_asObstacle = true;
+    cubeVolume->m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
+    cubeVolume->m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
+  }
 #pragma endregion
 #pragma region Mask material
+  /*
   std::string vertShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + +"\n" +
@@ -797,8 +883,9 @@ void PlantSystem::OnCreate() {
   std::string fragShaderCode =
       std::string("#version 460 core\n") +
       *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileUtils::LoadFileAsString(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                                  "Shaders/Fragment/SemanticBranch.frag");
+      FileUtils::LoadFileAsString(
+          std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+          "Shaders/Fragment/SemanticBranch.frag");
 
   auto standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
@@ -814,11 +901,11 @@ void PlantSystem::OnCreate() {
       *DefaultResources::ShaderIncludes::Uniform + +"\n" +
       FileUtils::LoadFileAsString(AssetManager::GetResourceFolderPath() /
                                   "Shaders/Vertex/StandardInstanced.vert");
-  fragShaderCode =
-      std::string("#version 460 core\n") +
-      *DefaultResources::ShaderIncludes::Uniform + "\n" +
-      FileUtils::LoadFileAsString(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                                  "Shaders/Fragment/SemanticLeaf.frag");
+  fragShaderCode = std::string("#version 460 core\n") +
+                   *DefaultResources::ShaderIncludes::Uniform + "\n" +
+                   FileUtils::LoadFileAsString(
+                       std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                       "Shaders/Fragment/SemanticLeaf.frag");
   standardVert =
       std::make_shared<OpenGLUtils::GLShader>(OpenGLUtils::ShaderType::Vertex);
   standardVert->Compile(vertShaderCode);
@@ -827,6 +914,7 @@ void PlantSystem::OnCreate() {
   standardFrag->Compile(fragShaderCode);
   auto leafProgram = AssetManager::CreateAsset<OpenGLUtils::GLProgram>();
   leafProgram->Link(standardVert, standardFrag);
+  */
 #pragma endregion
 #pragma region Entity
 
@@ -948,7 +1036,6 @@ void PlantSystem::OnCreate() {
   m_ready = true;
 
   m_globalTime = 0;
-  Enable();
 }
 
 void PlantSystem::Update() {
@@ -1009,11 +1096,79 @@ void PlantSystem::PhysicsSimulate() {
   }
   float elapsedTime =
       m_physicsSimulationTotalTime - m_physicsSimulationRemainingTime;
-  Transform groundTransform = m_ground.GetDataComponent<Transform>();
+  Transform groundTransform = m_ground.Get().GetDataComponent<Transform>();
   groundTransform.SetPosition(glm::vec3(glm::sin(elapsedTime * 6.0f) * 0.2f,
                                         0.0f,
                                         glm::sin(elapsedTime * 6.0f) * 0.2f));
-  m_ground.SetDataComponent(groundTransform);
+  m_ground.Get().SetDataComponent(groundTransform);
 }
+void PlantSystem::Relink(const std::unordered_map<Handle, Handle> &map) {
+  m_ground.Relink(map);
+  m_anchor.Relink(map);
+}
+void PlantSystem::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_deltaTime" << YAML::Value << m_deltaTime;
+  out << YAML::Key << "m_globalTime" << YAML::Value << m_globalTime;
+  out << YAML::Key << "m_illuminationFactor" << YAML::Value << m_illuminationFactor;
+  out << YAML::Key << "m_illuminationAngleFactor" << YAML::Value << m_illuminationAngleFactor;
+  out << YAML::Key << "m_physicsTimeStep" << YAML::Value << m_physicsTimeStep;
+  out << YAML::Key << "m_physicsSimulationTotalTime" << YAML::Value << m_physicsSimulationTotalTime;
+  out << YAML::Key << "m_physicsSimulationRemainingTime" << YAML::Value << m_physicsSimulationRemainingTime;
+  out << YAML::Key << "m_iterationsToGrow" << YAML::Value << m_iterationsToGrow;
+  m_ground.Save("m_ground", out);
+  m_anchor.Save("m_anchor", out);
+}
+void PlantSystem::Deserialize(const YAML::Node &in) {
+  m_deltaTime = in["m_deltaTime"].as<float>();
+  m_globalTime = in["m_globalTime"].as<float>();
+  m_illuminationFactor = in["m_illuminationFactor"].as<float>();
+  m_illuminationAngleFactor = in["m_illuminationAngleFactor"].as<float>();
+  m_physicsTimeStep = in["m_physicsTimeStep"].as<float>();
+  m_physicsSimulationTotalTime = in["m_physicsSimulationTotalTime"].as<float>();
+  m_physicsSimulationRemainingTime = in["m_physicsSimulationRemainingTime"].as<float>();
+  m_iterationsToGrow = in["m_iterationsToGrow"].as<int>();
+
+  m_ground.Load("m_ground", in);
+  m_anchor.Load("m_anchor", in);
+
+  m_ready = false;
+}
+void PlantSystem::OnCreate() { Enable(); }
 
 #pragma endregion
+void Bud::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_enoughForGrowth" << YAML::Value << m_enoughForGrowth;
+  out << YAML::Key << "m_resourceWeight" << YAML::Value << m_resourceWeight;
+  out << YAML::Key << "m_deathGlobalTime" << YAML::Value << m_deathGlobalTime;
+  out << YAML::Key << "m_avoidanceAngle" << YAML::Value << m_avoidanceAngle;
+  out << YAML::Key << "m_active" << YAML::Value << m_active;
+  out << YAML::Key << "m_isApical" << YAML::Value << m_isApical;
+  out << YAML::Key << "m_mainAngle" << YAML::Value << m_mainAngle;
+
+  out << YAML::Key << "m_currentResource" << YAML::BeginMap;
+  m_currentResource.Serialize(out);
+  out << YAML::EndMap;
+
+  if (!m_resourceLog.empty()) {
+    out << YAML::Key << "m_resourceLog" << YAML::Value
+        << YAML::Binary((const unsigned char *)m_resourceLog.data(),
+                        m_resourceLog.size() * sizeof(ResourceParcel));
+  }
+}
+void Bud::Deserialize(const YAML::Node &in) {
+  m_enoughForGrowth = in["m_enoughForGrowth"].as<bool>();
+  m_resourceWeight = in["m_resourceWeight"].as<float>();
+  m_deathGlobalTime = in["m_deathGlobalTime"].as<float>();
+  m_avoidanceAngle = in["m_avoidanceAngle"].as<float>();
+  m_active = in["m_active"].as<bool>();
+  m_isApical = in["m_isApical"].as<bool>();
+  m_mainAngle = in["m_mainAngle"].as<float>();
+
+  m_currentResource.Deserialize(in["m_currentResource"]);
+
+  if (in["m_resourceLog"]) {
+    YAML::Binary logs = in["m_resourceLog"].as<YAML::Binary>();
+    m_resourceLog.resize(logs.size() / sizeof(ResourceParcel));
+    std::memcpy(m_resourceLog.data(), logs.data(), logs.size());
+  }
+}

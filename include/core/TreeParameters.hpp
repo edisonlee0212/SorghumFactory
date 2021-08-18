@@ -3,6 +3,9 @@ using namespace UniEngine;
 namespace PlantFactory {
 class TreeParameters {
 public:
+  void Serialize(YAML::Emitter &out);
+  void Deserialize(const YAML::Node &in);
+
   void OnGui();
   void Serialize(std::filesystem::path path) const;
   void Deserialize(std::filesystem::path path);

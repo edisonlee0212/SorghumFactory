@@ -24,7 +24,7 @@ struct RbvTag : IDataComponent {};
 
 
 class TreeSystem : public ISystem {
-  std::shared_ptr<PlantSystem> m_plantSystem;
+  SystemRef m_plantSystem;
 
 #pragma region Helpers
   static void ExportChains(int parentOrder, Entity internode,
@@ -115,7 +115,7 @@ public:
   bool m_startScroll = false;
   bool m_rightMouseButtonHold = false;
 
-  Entity m_currentFocusingInternode = Entity();
+  EntityRef m_currentFocusingInternode = Entity();
 
 #pragma endregion
   float m_meshResolution = 0.02f;
@@ -123,10 +123,10 @@ public:
 
   EntityArchetype m_leavesArchetype;
   EntityArchetype m_rbvArchetype;
-  std::shared_ptr<Texture2D> m_defaultRayTracingBranchAlbedoTexture;
-  std::shared_ptr<Texture2D> m_defaultRayTracingBranchNormalTexture;
-  std::shared_ptr<Texture2D> m_defaultBranchAlbedoTexture;
-  std::shared_ptr<Texture2D> m_defaultBranchNormalTexture;
+  AssetRef m_defaultRayTracingBranchAlbedoTexture;
+  AssetRef m_defaultRayTracingBranchNormalTexture;
+  AssetRef m_defaultBranchAlbedoTexture;
+  AssetRef m_defaultBranchNormalTexture;
 
   void Update() override;
   Entity CreateTree(const Transform &transform);
@@ -174,10 +174,18 @@ public:
   void
   DistributeResourcesForTree(std::vector<ResourceParcel> &totalNutrients);
   void OnCreate() override;
+  void Start() override;
   void SerializeScene(const std::string &filename);
   static void Serialize(const Entity &treeEntity, rapidxml::xml_document<> &doc,
                         rapidxml::xml_node<> *sceneNode);
 
   void DeleteAllPlantsHelper();
+
+
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+
 };
 } // namespace PlantFactory

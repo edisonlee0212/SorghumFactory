@@ -1,4 +1,3 @@
-#include <FoliageGeneratorBase.hpp>
 #include <PlantSystem.hpp>
 #include <TreeData.hpp>
 #include <TreeSystem.hpp>
@@ -140,8 +139,44 @@ void TreeData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<TreeData>(target);
 }
 void TreeData::OnCreate() {
-  m_convexHull = AssetManager::CreateAsset<Mesh>();
   m_branchMesh = AssetManager::CreateAsset<Mesh>();
   m_skinnedBranchMesh = AssetManager::CreateAsset<SkinnedMesh>();
   m_meshGenerated = false;
+}
+void TreeData::CollectAssetRef(std::vector<AssetRef> &list) {
+  list.push_back(m_branchMesh);
+  list.push_back(m_skinnedBranchMesh);
+}
+void TreeData::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_height" << YAML::Value << m_height;
+  out << YAML::Key << "m_maxBranchingDepth" << YAML::Value << m_maxBranchingDepth;
+  out << YAML::Key << "m_lateralBudsCount" << YAML::Value << m_lateralBudsCount;
+  out << YAML::Key << "m_totalLength" << YAML::Value << m_totalLength;
+  out << YAML::Key << "m_activeLength" << YAML::Value << m_activeLength;
+  out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
+  out << YAML::Key << "m_foliageGenerated" << YAML::Value << m_foliageGenerated;
+  out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
+
+
+  m_branchMesh.Save("m_branchMesh", out);
+  m_skinnedBranchMesh.Save("m_skinnedBranchMesh", out);
+
+  out << YAML::Key << "m_parameters" << YAML::BeginMap;
+  m_parameters.Serialize(out);
+  out << YAML::EndMap;
+}
+void TreeData::Deserialize(const YAML::Node &in) {
+  m_height = in["m_height"].as<float>();
+  m_maxBranchingDepth = in["m_maxBranchingDepth"].as<int>();
+  m_lateralBudsCount = in["m_lateralBudsCount"].as<int>();
+  m_totalLength = in["m_totalLength"].as<float>();
+  m_activeLength = in["m_activeLength"].as<float>();
+  m_meshGenerated = in["m_meshGenerated"].as<bool>();
+  m_foliageGenerated = in["m_foliageGenerated"].as<bool>();
+  m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
+
+  m_branchMesh.Load("m_branchMesh", in);
+  m_skinnedBranchMesh.Load("m_skinnedBranchMesh", in);
+
+  m_parameters.Deserialize(in["m_parameters"]);
 }

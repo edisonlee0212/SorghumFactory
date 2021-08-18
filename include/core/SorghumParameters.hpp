@@ -7,6 +7,9 @@ public:
   void Serialize(const std::string &path) const;
   void Deserialize(const std::string &path);
 
+  void Serialize(YAML::Emitter &out);
+  void Deserialize(const YAML::Node &in);
+
   int m_leafCount = 8;
 
   float m_branchAngleMean = 20;

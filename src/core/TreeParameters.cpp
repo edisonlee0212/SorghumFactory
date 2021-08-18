@@ -291,5 +291,79 @@ void TreeParameters::Deserialize(std::filesystem::path path) {
         Debug::Error("Failed to open file");
     }
 }
+void TreeParameters::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_lateralBudPerNode" << YAML::Value << m_lateralBudPerNode;
+
+  out << YAML::Key << "m_apicalAngleMean" << YAML::Value << m_apicalAngleMean;
+  out << YAML::Key << "m_apicalAngleVariance" << YAML::Value << m_apicalAngleVariance;
+  out << YAML::Key << "m_branchingAngleMean" << YAML::Value << m_branchingAngleMean;
+  out << YAML::Key << "m_branchingAngleVariance" << YAML::Value << m_branchingAngleVariance;
+  out << YAML::Key << "m_rollAngleMean" << YAML::Value << m_rollAngleMean;
+  out << YAML::Key << "m_rollAngleVariance" << YAML::Value << m_rollAngleVariance;
+  out << YAML::Key << "m_internodeLengthBase" << YAML::Value << m_internodeLengthBase;
+
+  out << YAML::Key << "m_apicalIlluminationRequirement" << YAML::Value << m_apicalIlluminationRequirement;
+  out << YAML::Key << "m_lateralIlluminationRequirement" << YAML::Value << m_lateralIlluminationRequirement;
+  out << YAML::Key << "m_inhibitorBase" << YAML::Value << m_inhibitorBase;
+  out << YAML::Key << "m_inhibitorDistanceFactor" << YAML::Value << m_inhibitorDistanceFactor;
+  out << YAML::Key << "m_resourceWeightApical" << YAML::Value << m_resourceWeightApical;
+  out << YAML::Key << "m_resourceWeightVariance" << YAML::Value << m_resourceWeightVariance;
+  out << YAML::Key << "m_apicalControlLevelFactor" << YAML::Value << m_apicalControlLevelFactor;
+  out << YAML::Key << "m_heightResourceHeightDecreaseMin" << YAML::Value << m_heightResourceHeightDecreaseMin;
+  out << YAML::Key << "m_heightResourceHeightDecreaseBase" << YAML::Value << m_heightResourceHeightDecreaseBase;
+  out << YAML::Key << "m_heightResourceHeightDecreaseFactor" << YAML::Value << m_heightResourceHeightDecreaseFactor;
+
+  out << YAML::Key << "m_avoidanceAngle" << YAML::Value << m_avoidanceAngle;
+  out << YAML::Key << "m_phototropism" << YAML::Value << m_phototropism;
+  out << YAML::Key << "m_gravitropism" << YAML::Value << m_gravitropism;
+  out << YAML::Key << "m_randomCutOff" << YAML::Value << m_randomCutOff;
+  out << YAML::Key << "m_randomCutOffAgeFactor" << YAML::Value << m_randomCutOffAgeFactor;
+  out << YAML::Key << "m_randomCutOffMax" << YAML::Value << m_randomCutOffMax;
+  out << YAML::Key << "m_lowBranchCutOff" << YAML::Value << m_lowBranchCutOff;
+
+  out << YAML::Key << "m_endNodeThickness" << YAML::Value << m_endNodeThickness;
+  out << YAML::Key << "m_thicknessControlFactor" << YAML::Value << m_thicknessControlFactor;
+  out << YAML::Key << "m_gravityBendingFactor" << YAML::Value << m_gravityBendingFactor;
+  out << YAML::Key << "m_gravityBendingThicknessFactor" << YAML::Value << m_gravityBendingThicknessFactor;
+  out << YAML::Key << "m_gravityBendingMax" << YAML::Value << m_gravityBendingMax;
+  out << YAML::Key << "m_treeType" << YAML::Value << m_treeType;
+}
+void TreeParameters::Deserialize(const YAML::Node &in) {
+  m_lateralBudPerNode = in["m_lateralBudPerNode"].as<int>();
+
+  m_apicalAngleMean = in["m_apicalAngleMean"].as<float>();
+  m_apicalAngleVariance = in["m_apicalAngleVariance"].as<float>();
+  m_branchingAngleMean = in["m_branchingAngleMean"].as<float>();
+  m_branchingAngleVariance = in["m_branchingAngleVariance"].as<float>();
+  m_rollAngleMean = in["m_rollAngleMean"].as<float>();
+  m_rollAngleVariance = in["m_rollAngleVariance"].as<float>();
+  m_internodeLengthBase = in["m_internodeLengthBase"].as<float>();
+
+  m_apicalIlluminationRequirement = in["m_apicalIlluminationRequirement"].as<float>();
+  m_lateralIlluminationRequirement = in["m_lateralIlluminationRequirement"].as<float>();
+  m_inhibitorBase = in["m_inhibitorBase"].as<float>();
+  m_inhibitorDistanceFactor = in["m_inhibitorDistanceFactor"].as<float>();
+  m_resourceWeightApical = in["m_resourceWeightApical"].as<float>();
+  m_resourceWeightVariance = in["m_resourceWeightVariance"].as<float>();
+  m_apicalControlLevelFactor = in["m_apicalControlLevelFactor"].as<float>();
+  m_heightResourceHeightDecreaseMin = in["m_heightResourceHeightDecreaseMin"].as<float>();
+  m_heightResourceHeightDecreaseBase = in["m_heightResourceHeightDecreaseBase"].as<float>();
+  m_heightResourceHeightDecreaseFactor = in["m_heightResourceHeightDecreaseFactor"].as<float>();
+
+  m_avoidanceAngle = in["m_avoidanceAngle"].as<float>();
+  m_phototropism = in["m_phototropism"].as<float>();
+  m_gravitropism = in["m_gravitropism"].as<float>();
+  m_randomCutOff = in["m_randomCutOff"].as<float>();
+  m_randomCutOffAgeFactor = in["m_randomCutOffAgeFactor"].as<float>();
+  m_randomCutOffMax = in["m_randomCutOffMax"].as<float>();
+  m_lowBranchCutOff = in["m_lowBranchCutOff"].as<float>();
+
+  m_endNodeThickness = in["m_endNodeThickness"].as<float>();
+  m_thicknessControlFactor = in["m_thicknessControlFactor"].as<float>();
+  m_gravityBendingFactor = in["m_gravityBendingFactor"].as<float>();
+  m_gravityBendingThicknessFactor = in["m_gravityBendingThicknessFactor"].as<float>();
+  m_gravityBendingMax = in["m_gravityBendingMax"].as<float>();
+  m_treeType = in["m_treeType"].as<int>();
+}
 
 #pragma endregion

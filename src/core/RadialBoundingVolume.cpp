@@ -300,7 +300,7 @@ void RadialBoundingVolume::ExportAsObj(const std::string &filename) {
     for (auto &mesh : meshes) {
       for (const auto &vertices : mesh->UnsafeGetVertices()) {
         data += "v " + std::to_string(vertices.m_position.x) + " " +
-                std::to_string(-vertices.m_position.y) + " " +
+                std::to_string(vertices.m_position.y) + " " +
                 std::to_string(vertices.m_position.z) + "\n";
       }
     }
@@ -575,4 +575,54 @@ bool RadialBoundingVolume::InVolume(const GlobalTransform &globalTransform,
 void RadialBoundingVolume::Clone(
     const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<RadialBoundingVolume>(target);
+}
+void RadialBoundingVolume::Deserialize(const YAML::Node &in) {
+  m_meshGenerated = false;
+
+  m_center = in["m_center"].as<glm::vec3>();
+  m_displayColor = in["m_displayColor"].as<glm::vec4>();
+  m_display = in["m_display"].as<bool>();
+  m_pruneBuds = in["m_pruneBuds"].as<bool>();
+  m_maxHeight = in["m_maxHeight"].as<float>();
+  m_maxRadius = in["m_maxRadius"].as<float>();
+  m_displayScale = in["m_displayScale"].as<float>();
+  m_layerAmount = in["m_layerAmount"].as<int>();
+  m_sectorAmount = in["m_sectorAmount"].as<int>();
+  m_displayPoints = in["m_displayPoints"].as<bool>();
+  m_displayBounds = in["m_displayBounds"].as<bool>();
+
+  if(in["m_layers"]){
+    m_layers.resize(m_layerAmount);
+    for(auto& i : m_layers){
+      i.resize(m_sectorAmount);
+    }
+    int index = 0;
+    for(const auto& i : in["m_layers"]){
+      m_layers[index / m_sectorAmount][index % m_sectorAmount].m_maxDistance = i["m_maxDistance"].as<float>();
+      index++;
+    }
+  }
+}
+void RadialBoundingVolume::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_center" << YAML::Value << m_center;
+  out << YAML::Key << "m_displayColor" << YAML::Value << m_displayColor;
+  out << YAML::Key << "m_display" << YAML::Value << m_display;
+  out << YAML::Key << "m_maxHeight" << YAML::Value << m_maxHeight;
+  out << YAML::Key << "m_maxRadius" << YAML::Value << m_maxRadius;
+  out << YAML::Key << "m_displayScale" << YAML::Value << m_displayScale;
+  out << YAML::Key << "m_sectorAmount" << YAML::Value << m_sectorAmount;
+  out << YAML::Key << "m_displayPoints" << YAML::Value << m_displayPoints;
+  out << YAML::Key << "m_displayBounds" << YAML::Value << m_displayBounds;
+
+  if(!m_layers.empty()){
+    out << YAML::Key << "m_layers" << YAML::BeginSeq;
+
+    for(const auto& i : m_layers){
+      for(const auto& j : i){
+        out << YAML::BeginMap;
+        out << YAML::Key << "m_maxDistance" << YAML::Value << j.m_maxDistance;
+        out << YAML::EndMap;
+      }
+    }
+  }
 }

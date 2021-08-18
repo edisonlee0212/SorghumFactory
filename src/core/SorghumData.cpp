@@ -50,3 +50,19 @@ void SorghumData::ExportModel(const std::string &filename,
 void SorghumData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<SorghumData>(target);
 }
+void SorghumData::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_growthComplete" << YAML::Value << m_growthComplete;
+  out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
+  out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
+
+  out << YAML::Key << "m_parameters" << YAML::BeginMap;
+  m_parameters.Serialize(out);
+  out << YAML::EndMap;
+}
+void SorghumData::Deserialize(const YAML::Node &in) {
+  m_growthComplete = in["m_growthComplete"].as<float>();
+  m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
+  m_meshGenerated = in["m_meshGenerated"].as<float>();
+
+  m_parameters.Deserialize(in["m_parameters"]);
+}

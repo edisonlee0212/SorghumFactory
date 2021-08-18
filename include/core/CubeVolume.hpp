@@ -13,7 +13,10 @@ public:
   bool InVolume(const GlobalTransform& globalTransform, const glm::vec3 &position) override;
   bool InVolume(const glm::vec3 &position) override;
   glm::vec3 GetRandomPoint() override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
 
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace PlantFactory
