@@ -33,7 +33,8 @@ public:
   glm::vec3 EvaluatePointFromCurve(float point);
   glm::vec3 EvaluateAxisFromCurve(float point);
   void OnGui() override;
-
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 
@@ -76,15 +77,15 @@ public:
 
   const float m_leafNodeSphereSize = 0.1f;
 
-  std::shared_ptr<Texture2D> m_leafSurfaceTexture;
-  std::shared_ptr<Texture2D> m_leafNormalTexture;
+  AssetRef m_leafSurfaceTexture;
+  AssetRef m_leafNormalTexture;
 
-  std::shared_ptr<Texture2D> m_rayTracedLeafSurfaceTexture;
-  std::shared_ptr<Texture2D> m_rayTracedLeafNormalTexture;
+  AssetRef m_rayTracedLeafSurfaceTexture;
+  AssetRef m_rayTracedLeafNormalTexture;
 
-  std::shared_ptr<Material> m_leafNodeMaterial;
-  std::shared_ptr<Material> m_leafMaterial;
-  std::shared_ptr<Material> m_instancedLeafMaterial;
+  AssetRef m_leafNodeMaterial;
+  AssetRef m_leafMaterial;
+  AssetRef m_instancedLeafMaterial;
 
 
   void OnCreate() override;
@@ -113,5 +114,11 @@ public:
   void RemoveInternodes(const Entity &sorghum);
 
   void DeleteAllPlantsHelper();
+
+  void Relink(const std::unordered_map<Handle, Handle> &map) override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
 };
 } // namespace PlantFactory

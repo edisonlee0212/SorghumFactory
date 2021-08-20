@@ -1041,10 +1041,12 @@ void PlantSystem::Update() {
   if (Application::IsPlaying()) {
     if (m_iterationsToGrow > 0) {
       m_iterationsToGrow--;
+      m_needUpdateMetadata = true;
       if (GrowAllPlants()) {
         m_endUpdate = true;
       }
     } else if (m_endUpdate) {
+      m_needUpdateMetadata = true;
       Refresh();
       m_endUpdate = false;
     } else if (m_physicsSimulationRemainingTime > 0.0f) {
@@ -1061,6 +1063,11 @@ void PlantSystem::Refresh() {
   m_internodeQuery.ToComponentDataArray(m_internodeTransforms);
   m_internodeQuery.ToEntityArray(m_internodes);
   float time = Application::Time().CurrentTime();
+  if(m_needUpdateMetadata){
+    for (auto &i : m_plantMetaDataCalculators) {
+      i.second();
+    }
+  }
   for (auto &i : m_plantMeshGenerators) {
     i.second();
   }

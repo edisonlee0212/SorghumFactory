@@ -223,6 +223,9 @@ public:
   std::map<PlantType, std::function<void()>> m_plantSkinnedMeshGenerators;
   std::map<PlantType, std::function<void()>> m_deleteAllPlants;
 #pragma region Growth
+
+  bool m_needUpdateMetadata = false;
+
   bool GrowAllPlants();
   bool GrowAllPlants(const unsigned &iterations);
   bool GrowCandidates(std::vector<InternodeCandidate> &candidates);

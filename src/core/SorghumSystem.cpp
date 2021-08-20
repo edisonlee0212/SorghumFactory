@@ -84,6 +84,14 @@ void Spline::OnGui() {
 void Spline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<Spline>(target);
 }
+void Spline::Serialize(YAML::Emitter &out) {
+
+
+}
+void Spline::Deserialize(const YAML::Node &in) {
+
+
+}
 
 void RectangularSorghumField::GenerateField(
     std::vector<std::vector<glm::mat4>> &matricesList) {
@@ -108,7 +116,7 @@ void SorghumSystem::OnCreate() {
 
   m_leafNodeMaterial =
       AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-  m_leafNodeMaterial->m_albedoColor = glm::vec3(0, 1, 0);
+  m_leafNodeMaterial.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
 
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafInfo());
   m_leafQuery = EntityManager::CreateEntityQuery();
@@ -116,8 +124,8 @@ void SorghumSystem::OnCreate() {
 
   m_leafMaterial =
       AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-  m_leafMaterial->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-  m_leafMaterial->m_cullingMode = MaterialCullingMode::Off;
+  m_leafMaterial.Get<Material>()->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+  m_leafMaterial.Get<Material>()->m_cullingMode = MaterialCullingMode::Off;
   m_leafSurfaceTexture = AssetManager::Import<Texture2D>(
       std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
 
@@ -125,17 +133,17 @@ void SorghumSystem::OnCreate() {
   m_rayTracedLeafSurfaceTexture = AssetManager::Import<Texture2D>(
       std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
 
-  m_leafMaterial->SetTexture(TextureType::Albedo, m_leafSurfaceTexture);
-  m_leafMaterial->m_roughness = 0.0f;
-  m_leafMaterial->m_metallic = 0.0f;
+  m_leafMaterial.Get<Material>()->SetTexture(TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
+  m_leafMaterial.Get<Material>()->m_roughness = 0.0f;
+  m_leafMaterial.Get<Material>()->m_metallic = 0.0f;
 
   m_instancedLeafMaterial = AssetManager::LoadMaterial(
       DefaultResources::GLPrograms::StandardInstancedProgram);
-  m_instancedLeafMaterial->m_cullingMode = MaterialCullingMode::Off;
-  m_instancedLeafMaterial->SetTexture(TextureType::Albedo,
-                                      m_leafSurfaceTexture);
-  m_instancedLeafMaterial->m_roughness = 0.0f;
-  m_instancedLeafMaterial->m_metallic = 0.0f;
+  m_instancedLeafMaterial.Get<Material>()->m_cullingMode = MaterialCullingMode::Off;
+  m_instancedLeafMaterial.Get<Material>()->SetTexture(TextureType::Albedo,
+                                      m_leafSurfaceTexture.Get<Texture2D>());
+  m_instancedLeafMaterial.Get<Material>()->m_roughness = 0.0f;
+  m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
 
   m_plantSystem->m_plantGrowthModels.insert_or_assign(
       PlantType::Sorghum, [this](std::vector<InternodeCandidate> &candidates) {
@@ -191,7 +199,7 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
           .lock();
   rtt->m_mesh = mmc->m_mesh;
   rtt->m_albedoTexture = m_rayTracedLeafSurfaceTexture;
-  if (m_rayTracedLeafNormalTexture)
+  if (m_rayTracedLeafNormalTexture.Get<Texture2D>())
     rtt->m_normalTexture = m_rayTracedLeafNormalTexture;
 
   return entity;
@@ -1264,4 +1272,16 @@ void SorghumSystem::CreateGrid(SorghumField &field,
 void SorghumSystem::DeleteAllPlantsHelper() {
   m_probeColors.clear();
   m_probeTransforms.clear();
+}
+void SorghumSystem::Relink(const std::unordered_map<Handle, Handle> &map) {
+  ISystem::Relink(map);
+}
+void SorghumSystem::Deserialize(const YAML::Node &in) {
+  ISerializable::Deserialize(in);
+}
+void SorghumSystem::CollectAssetRef(std::vector<AssetRef> &list) {
+  ISystem::CollectAssetRef(list);
+}
+void SorghumSystem::Serialize(YAML::Emitter &out) {
+  ISerializable::Serialize(out);
 }
