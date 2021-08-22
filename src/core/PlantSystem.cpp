@@ -453,89 +453,85 @@ void InternodeData::Deserialize(const YAML::Node &in) {
   m_kDop.Deserialize(in["m_kDop"]);
 }
 
-void PlantSystem::OnGui() {
-  if (ImGui::Begin("Plant Manager")) {
-    if (m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
-      if (ImGui::Button("Delete all plants")) {
-        ImGui::OpenPopup("Delete Warning");
-      }
-      if (ImGui::BeginPopupModal("Delete Warning", nullptr,
-                                 ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Are you sure? All plants will be removed!");
-        if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
-          DeleteAllPlants();
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-      }
-      ImGui::Text(
-          "%s",
-          ("Internode amount: " + std::to_string(m_internodes.size())).c_str());
-      if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen)) {
-        static int pushAmount = 5;
-        ImGui::DragInt("Amount", &pushAmount, 1, 0, 120.0f / m_deltaTime);
-        if (ImGui::Button("Push and start (grow by iteration)")) {
-          m_iterationsToGrow = pushAmount;
-          Application::SetPlaying(true);
-        }
-        if (Application::IsPlaying() &&
-            ImGui::Button("Push time (grow instantly)")) {
-          const float time = Application::Time().CurrentTime();
-          GrowAllPlants(pushAmount);
-          const std::string spendTime =
-              std::to_string(Application::Time().CurrentTime() - time);
-          Debug::Log("Growth finished in " + spendTime + " sec.");
-        }
-
-        ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
-
-        if (ImGui::TreeNode("Timers")) {
-          ImGui::Text("Mesh Gen: %.3fs", m_meshGenerationTimer);
-          ImGui::Text("Resource allocation: %.3fs", m_resourceAllocationTimer);
-          ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
-          ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
-          ImGui::Text("Create internodes PostProcessing: %.3fs",
-                      m_internodeCreatePostProcessTimer);
-          ImGui::Text("Illumination: %.3fs", m_illuminationCalculationTimer);
-          ImGui::Text("Pruning: %.3fs", m_pruningTimer);
-          ImGui::Text("Metadata: %.3fs", m_metaDataTimer);
-          ImGui::TreePop();
-        }
-      }
-      if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
-        static float pushPhysicsTime = 20.0f;
-        ImGui::DragFloat("Time step", &m_physicsTimeStep, 0.001f, 0.01f, 0.1f);
-        ImGui::DragFloat("Time", &pushPhysicsTime, 1.0f, 0.0f, 3600.0f);
-        if (ImGui::Button("Add time and start")) {
-          m_physicsSimulationRemainingTime = m_physicsSimulationTotalTime =
-              pushPhysicsTime;
-          for (auto &i : m_plantSkinnedMeshGenerators) {
-            i.second();
-          }
-          Application::SetPlaying(true);
-          PhysicsManager::UploadRigidBodyShapes();
-          PhysicsManager::UploadTransforms(true, true);
-          EntityManager::ForEach<GlobalTransform>(
-              JobManager::PrimaryWorkers(), m_internodeQuery,
-              [&](int index, Entity internode,
-                  GlobalTransform &globalTransform) {
-                auto internodeData =
-                    internode.GetOrSetPrivateComponent<InternodeData>().lock();
-                internodeData->m_points.clear();
-              },
-              false);
-        }
-      }
-    } else {
-      ImGui::Text("Busy...");
+void PlantSystem::OnInspect() {
+  if (m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
+    if (ImGui::Button("Delete all plants")) {
+      ImGui::OpenPopup("Delete Warning");
     }
+    if (ImGui::BeginPopupModal("Delete Warning", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      ImGui::Text("Are you sure? All plants will be removed!");
+      if (ImGui::Button("Yes, delete all!", ImVec2(120, 0))) {
+        DeleteAllPlants();
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::SetItemDefaultFocus();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+    ImGui::Text(
+        "%s",
+        ("Internode amount: " + std::to_string(m_internodes.size())).c_str());
+    if (ImGui::CollapsingHeader("Growth", ImGuiTreeNodeFlags_DefaultOpen)) {
+      static int pushAmount = 5;
+      ImGui::DragInt("Amount", &pushAmount, 1, 0, 120.0f / m_deltaTime);
+      if (ImGui::Button("Push and start (grow by iteration)")) {
+        m_iterationsToGrow = pushAmount;
+        Application::SetPlaying(true);
+      }
+      if (Application::IsPlaying() &&
+          ImGui::Button("Push time (grow instantly)")) {
+        const float time = Application::Time().CurrentTime();
+        GrowAllPlants(pushAmount);
+        const std::string spendTime =
+            std::to_string(Application::Time().CurrentTime() - time);
+        Debug::Log("Growth finished in " + spendTime + " sec.");
+      }
+
+      ImGui::SliderFloat("Time speed", &m_deltaTime, 0.1f, 1.0f);
+
+      if (ImGui::TreeNode("Timers")) {
+        ImGui::Text("Mesh Gen: %.3fs", m_meshGenerationTimer);
+        ImGui::Text("Resource allocation: %.3fs", m_resourceAllocationTimer);
+        ImGui::Text("Form internodes: %.3fs", m_internodeFormTimer);
+        ImGui::Text("Create internodes: %.3fs", m_internodeCreateTimer);
+        ImGui::Text("Create internodes PostProcessing: %.3fs",
+                    m_internodeCreatePostProcessTimer);
+        ImGui::Text("Illumination: %.3fs", m_illuminationCalculationTimer);
+        ImGui::Text("Pruning: %.3fs", m_pruningTimer);
+        ImGui::Text("Metadata: %.3fs", m_metaDataTimer);
+        ImGui::TreePop();
+      }
+    }
+    if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
+      static float pushPhysicsTime = 20.0f;
+      ImGui::DragFloat("Time step", &m_physicsTimeStep, 0.001f, 0.01f, 0.1f);
+      ImGui::DragFloat("Time", &pushPhysicsTime, 1.0f, 0.0f, 3600.0f);
+      if (ImGui::Button("Add time and start")) {
+        m_physicsSimulationRemainingTime = m_physicsSimulationTotalTime =
+            pushPhysicsTime;
+        for (auto &i : m_plantSkinnedMeshGenerators) {
+          i.second();
+        }
+        Application::SetPlaying(true);
+        PhysicsManager::UploadRigidBodyShapes();
+        PhysicsManager::UploadTransforms(true, true);
+        EntityManager::ForEach<GlobalTransform>(
+            JobManager::PrimaryWorkers(), m_internodeQuery,
+            [&](int index, Entity internode, GlobalTransform &globalTransform) {
+              auto internodeData =
+                  internode.GetOrSetPrivateComponent<InternodeData>().lock();
+              internodeData->m_points.clear();
+            },
+            false);
+      }
+    }
+  } else {
+    ImGui::Text("Busy...");
   }
-  ImGui::End();
 }
 #pragma endregion
 #pragma region Growth related
@@ -753,7 +749,8 @@ Entity PlantSystem::CreateCubeObstacle() {
   auto meshRenderer =
       volumeEntity.GetOrSetPrivateComponent<MeshRenderer>().lock();
   meshRenderer->m_mesh = DefaultResources::Primitives::Cube;
-  meshRenderer->m_material = DefaultResources::Materials::StandardMaterial;
+  meshRenderer->m_material =
+      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
 
   auto volume = volumeEntity.GetOrSetPrivateComponent<CubeVolume>().lock();
   volume->ApplyMeshRendererBounds();
@@ -834,7 +831,7 @@ Entity PlantSystem::CreateInternode(const PlantType &type,
 #pragma endregion
 #pragma region Runtime
 void PlantSystem::Start() {
-    EntityManager::GetSystem<PhysicsSystem>()->Disable();
+  EntityManager::GetSystem<PhysicsSystem>()->Disable();
 #pragma region Ground
   if (m_ground.Get().IsNull() && m_anchor.Get().IsNull()) {
     m_ground = EntityManager::CreateEntity("Ground");
@@ -1063,7 +1060,7 @@ void PlantSystem::Refresh() {
   m_internodeQuery.ToComponentDataArray(m_internodeTransforms);
   m_internodeQuery.ToEntityArray(m_internodes);
   float time = Application::Time().CurrentTime();
-  if(m_needUpdateMetadata){
+  if (m_needUpdateMetadata) {
     for (auto &i : m_plantMetaDataCalculators) {
       i.second();
     }
@@ -1115,11 +1112,15 @@ void PlantSystem::Relink(const std::unordered_map<Handle, Handle> &map) {
 void PlantSystem::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_deltaTime" << YAML::Value << m_deltaTime;
   out << YAML::Key << "m_globalTime" << YAML::Value << m_globalTime;
-  out << YAML::Key << "m_illuminationFactor" << YAML::Value << m_illuminationFactor;
-  out << YAML::Key << "m_illuminationAngleFactor" << YAML::Value << m_illuminationAngleFactor;
+  out << YAML::Key << "m_illuminationFactor" << YAML::Value
+      << m_illuminationFactor;
+  out << YAML::Key << "m_illuminationAngleFactor" << YAML::Value
+      << m_illuminationAngleFactor;
   out << YAML::Key << "m_physicsTimeStep" << YAML::Value << m_physicsTimeStep;
-  out << YAML::Key << "m_physicsSimulationTotalTime" << YAML::Value << m_physicsSimulationTotalTime;
-  out << YAML::Key << "m_physicsSimulationRemainingTime" << YAML::Value << m_physicsSimulationRemainingTime;
+  out << YAML::Key << "m_physicsSimulationTotalTime" << YAML::Value
+      << m_physicsSimulationTotalTime;
+  out << YAML::Key << "m_physicsSimulationRemainingTime" << YAML::Value
+      << m_physicsSimulationRemainingTime;
   out << YAML::Key << "m_iterationsToGrow" << YAML::Value << m_iterationsToGrow;
   m_ground.Save("m_ground", out);
   m_anchor.Save("m_anchor", out);
@@ -1131,7 +1132,8 @@ void PlantSystem::Deserialize(const YAML::Node &in) {
   m_illuminationAngleFactor = in["m_illuminationAngleFactor"].as<float>();
   m_physicsTimeStep = in["m_physicsTimeStep"].as<float>();
   m_physicsSimulationTotalTime = in["m_physicsSimulationTotalTime"].as<float>();
-  m_physicsSimulationRemainingTime = in["m_physicsSimulationRemainingTime"].as<float>();
+  m_physicsSimulationRemainingTime =
+      in["m_physicsSimulationRemainingTime"].as<float>();
   m_iterationsToGrow = in["m_iterationsToGrow"].as<int>();
 
   m_ground.Load("m_ground", in);

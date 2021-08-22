@@ -292,7 +292,7 @@ public:
 
 #pragma endregion
 #pragma region Runtime
-  void OnGui() override;
+  void OnInspect() override;
   void Update() override;
   void Refresh();
   void End();

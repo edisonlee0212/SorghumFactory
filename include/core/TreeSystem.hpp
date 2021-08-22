@@ -129,8 +129,10 @@ public:
   AssetRef m_defaultBranchNormalTexture;
 
   void Update() override;
+
+  void LateUpdate() override;
   Entity CreateTree(const Transform &transform);
-  void OnGui() override;
+  void OnInspect() override;
 
   void InternodePostProcessor(const Entity& newInternode, const InternodeCandidate& candidate);
 

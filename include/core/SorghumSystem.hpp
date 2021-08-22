@@ -93,7 +93,7 @@ public:
   Entity CreateSorghumLeaf(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
   Entity ImportPlant(const std::filesystem::path &path, const std::string &name);
-  void OnGui() override;
+  void OnInspect() override;
   void Update() override;
   void CreateGrid(SorghumField &field,
                          const std::vector<Entity> &candidates);

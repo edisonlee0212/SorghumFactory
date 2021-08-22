@@ -20,7 +20,7 @@ void SorghumData::OnGui() {
     if (m_meshGenerated) {
       FileUtils::SaveFile(
           "Export OBJ", ".obj",
-          [this](const std::string &path) { ExportModel(path); });
+          [this](const std::filesystem::path &path) { ExportModel(path.string()); });
     }
     ImGui::TreePop();
   }

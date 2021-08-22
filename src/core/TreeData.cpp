@@ -11,12 +11,12 @@ void TreeData::OnGui() {
     if (m_meshGenerated) {
       FileUtils::SaveFile(
           "Export OBJ", ".obj",
-          [this](const std::string &path) { ExportModel(path); });
+          [this](const std::filesystem::path &path) { ExportModel(path.string()); });
     }
     FileUtils::SaveFile(
-        "Export xml graph", ".xml", [this](const std::string &path) {
+        "Export xml graph", ".xml", [this](const std::filesystem::path &path) {
           std::ofstream ofs;
-          ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
+          ofs.open(path.string().c_str(), std::ofstream::out | std::ofstream::trunc);
           if (!ofs.is_open()) {
             Debug::Error("Can't open file!");
             return;

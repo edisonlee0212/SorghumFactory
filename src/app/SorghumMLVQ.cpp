@@ -84,7 +84,7 @@ void EngineSetup(bool enableRayTracing) {
     transform.SetEulerRotation(glm::radians(glm::vec3(150, 30, 0)));
 
 #pragma region Preparations
-    Application::SetTimeStep(0.016f);
+    Application::Time().SetTimeStep(0.016f);
     transform = Transform();
     transform.SetPosition(glm::vec3(0, 2, 35));
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));

@@ -84,14 +84,8 @@ void Spline::OnGui() {
 void Spline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<Spline>(target);
 }
-void Spline::Serialize(YAML::Emitter &out) {
-
-
-}
-void Spline::Deserialize(const YAML::Node &in) {
-
-
-}
+void Spline::Serialize(YAML::Emitter &out) {}
+void Spline::Deserialize(const YAML::Node &in) {}
 
 void RectangularSorghumField::GenerateField(
     std::vector<std::vector<glm::mat4>> &matricesList) {
@@ -124,24 +118,28 @@ void SorghumSystem::OnCreate() {
 
   m_leafMaterial =
       AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-  m_leafMaterial.Get<Material>()->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+  m_leafMaterial.Get<Material>()->SetProgram(
+      DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial.Get<Material>()->m_cullingMode = MaterialCullingMode::Off;
   m_leafSurfaceTexture = AssetManager::Import<Texture2D>(
-      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
-
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+      "Textures/leafSurfaceBright.jpg");
 
   m_rayTracedLeafSurfaceTexture = AssetManager::Import<Texture2D>(
-      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) / "Textures/leafSurfaceBright.jpg");
+      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+      "Textures/leafSurfaceBright.jpg");
 
-  m_leafMaterial.Get<Material>()->SetTexture(TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
+  m_leafMaterial.Get<Material>()->SetTexture(
+      TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
   m_leafMaterial.Get<Material>()->m_roughness = 0.0f;
   m_leafMaterial.Get<Material>()->m_metallic = 0.0f;
 
   m_instancedLeafMaterial = AssetManager::LoadMaterial(
       DefaultResources::GLPrograms::StandardInstancedProgram);
-  m_instancedLeafMaterial.Get<Material>()->m_cullingMode = MaterialCullingMode::Off;
-  m_instancedLeafMaterial.Get<Material>()->SetTexture(TextureType::Albedo,
-                                      m_leafSurfaceTexture.Get<Texture2D>());
+  m_instancedLeafMaterial.Get<Material>()->m_cullingMode =
+      MaterialCullingMode::Off;
+  m_instancedLeafMaterial.Get<Material>()->SetTexture(
+      TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
   m_instancedLeafMaterial.Get<Material>()->m_roughness = 0.0f;
   m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
 
@@ -417,265 +415,260 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
   return sorghum;
 }
 
-void SorghumSystem::OnGui() {
-  if (ImGui::BeginMainMenuBar()) {
-    if (ImGui::BeginMenu("Sorghum Manager")) {
-      ImGui::Checkbox("Display light probes", &m_displayLightProbes);
-      ImGui::DragInt("Seed", &m_seed);
-      if (ImGui::Button("Calculate illumination")) {
-        RayTracerFacility::IlluminationEstimationProperties properties;
-        properties.m_skylightPower = 1.0f;
-        properties.m_bounceLimit = 2;
-        properties.m_seed = glm::abs(m_seed);
-        properties.m_numPointSamples = 100;
-        properties.m_numScatterSamples = 10;
-        CalculateIllumination(properties);
-      }
-      if (ImGui::Button("Create...")) {
-        ImGui::OpenPopup("New sorghum wizard");
-      }
-      if (ImGui::BeginPopupModal("New sorghum wizard", nullptr,
-                                 ImGuiWindowFlags_AlwaysAutoResize)) {
-        static std::vector<SorghumParameters> newSorghumParameters;
-        static std::vector<glm::vec3> newSorghumPositions;
-        static std::vector<glm::vec3> newSorghumRotations;
-        static int newSorghumAmount = 1;
-        static int currentFocusedNewSorghumIndex = 0;
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-        ImGui::BeginChild("ChildL", ImVec2(300, 400), true,
-                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
-        if (ImGui::BeginMenuBar()) {
-          if (ImGui::BeginMenu("Settings")) {
-            static float distance = 10;
-            static float variance = 4;
-            static float yAxisVar = 180.0f;
-            static float xzAxisVar = 0.0f;
-            static int expand = 1;
-            if (ImGui::BeginMenu("Create forest...")) {
-              ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f,
-                               180.0f);
-              ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f,
-                               90.0f);
-              ImGui::DragFloat("Avg. Distance", &distance, 0.01f);
-              ImGui::DragFloat("Position variance", &variance, 0.01f);
-              ImGui::DragInt("Expand", &expand, 1, 0, 3);
-              if (ImGui::Button("Apply")) {
-                newSorghumAmount = (2 * expand + 1) * (2 * expand + 1);
-                newSorghumPositions.resize(newSorghumAmount);
-                newSorghumRotations.resize(newSorghumAmount);
-                const auto currentSize = newSorghumParameters.size();
-                newSorghumParameters.resize(newSorghumAmount);
-                for (auto i = currentSize; i < newSorghumAmount; i++) {
-                  newSorghumParameters[i] = newSorghumParameters[0];
-                }
-                int index = 0;
-                for (int i = -expand; i <= expand; i++) {
-                  for (int j = -expand; j <= expand; j++) {
-                    glm::vec3 value = glm::vec3(i * distance, 0, j * distance);
-                    value.x += glm::linearRand(-variance, variance);
-                    value.z += glm::linearRand(-variance, variance);
-                    newSorghumPositions[index] = value;
-                    value = glm::vec3(glm::linearRand(-xzAxisVar, xzAxisVar),
-                                      glm::linearRand(-yAxisVar, yAxisVar),
-                                      glm::linearRand(-xzAxisVar, xzAxisVar));
-                    newSorghumRotations[index] = value;
-                    index++;
-                  }
-                }
-              }
-              ImGui::EndMenu();
+void SorghumSystem::OnInspect() {
+  ImGui::Checkbox("Display light probes", &m_displayLightProbes);
+  ImGui::DragInt("Seed", &m_seed);
+  if (ImGui::Button("Calculate illumination")) {
+    RayTracerFacility::IlluminationEstimationProperties properties;
+    properties.m_skylightPower = 1.0f;
+    properties.m_bounceLimit = 2;
+    properties.m_seed = glm::abs(m_seed);
+    properties.m_numPointSamples = 100;
+    properties.m_numScatterSamples = 10;
+    CalculateIllumination(properties);
+  }
+  if (ImGui::Button("Create...")) {
+    ImGui::OpenPopup("New sorghum wizard");
+  }
+  if (ImGui::BeginPopupModal("New sorghum wizard", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    static std::vector<SorghumParameters> newSorghumParameters;
+    static std::vector<glm::vec3> newSorghumPositions;
+    static std::vector<glm::vec3> newSorghumRotations;
+    static int newSorghumAmount = 1;
+    static int currentFocusedNewSorghumIndex = 0;
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    ImGui::BeginChild("ChildL", ImVec2(300, 400), true,
+                      ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar()) {
+      if (ImGui::BeginMenu("Settings")) {
+        static float distance = 10;
+        static float variance = 4;
+        static float yAxisVar = 180.0f;
+        static float xzAxisVar = 0.0f;
+        static int expand = 1;
+        if (ImGui::BeginMenu("Create forest...")) {
+          ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f,
+                           180.0f);
+          ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f,
+                           90.0f);
+          ImGui::DragFloat("Avg. Distance", &distance, 0.01f);
+          ImGui::DragFloat("Position variance", &variance, 0.01f);
+          ImGui::DragInt("Expand", &expand, 1, 0, 3);
+          if (ImGui::Button("Apply")) {
+            newSorghumAmount = (2 * expand + 1) * (2 * expand + 1);
+            newSorghumPositions.resize(newSorghumAmount);
+            newSorghumRotations.resize(newSorghumAmount);
+            const auto currentSize = newSorghumParameters.size();
+            newSorghumParameters.resize(newSorghumAmount);
+            for (auto i = currentSize; i < newSorghumAmount; i++) {
+              newSorghumParameters[i] = newSorghumParameters[0];
             }
-            ImGui::InputInt("New sorghum amount", &newSorghumAmount);
-            if (newSorghumAmount < 1)
-              newSorghumAmount = 1;
-            FileUtils::OpenFile(
-                "Import parameters for all", ".sorghumparam",
-                [](const std::string &path) {
-                  newSorghumParameters[0].Deserialize(path);
-                  for (int i = 1; i < newSorghumParameters.size(); i++)
-                    newSorghumParameters[i] = newSorghumParameters[0];
-                });
-            ImGui::EndMenu();
+            int index = 0;
+            for (int i = -expand; i <= expand; i++) {
+              for (int j = -expand; j <= expand; j++) {
+                glm::vec3 value = glm::vec3(i * distance, 0, j * distance);
+                value.x += glm::linearRand(-variance, variance);
+                value.z += glm::linearRand(-variance, variance);
+                newSorghumPositions[index] = value;
+                value = glm::vec3(glm::linearRand(-xzAxisVar, xzAxisVar),
+                                  glm::linearRand(-yAxisVar, yAxisVar),
+                                  glm::linearRand(-xzAxisVar, xzAxisVar));
+                newSorghumRotations[index] = value;
+                index++;
+              }
+            }
           }
-          ImGui::EndMenuBar();
+          ImGui::EndMenu();
         }
-        ImGui::Columns(1);
-        if (newSorghumPositions.size() < newSorghumAmount) {
-          const auto currentSize = newSorghumPositions.size();
-          newSorghumParameters.resize(newSorghumAmount);
-          for (auto i = currentSize; i < newSorghumAmount; i++) {
-            newSorghumParameters[i] = newSorghumParameters[0];
-          }
-          newSorghumPositions.resize(newSorghumAmount);
-          newSorghumRotations.resize(newSorghumAmount);
-        }
-        for (auto i = 0; i < newSorghumAmount; i++) {
-          std::string title = "New Sorghum No.";
-          title += std::to_string(i);
-          const bool opened = ImGui::TreeNodeEx(
-              title.c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                 ImGuiTreeNodeFlags_OpenOnArrow |
-                                 ImGuiTreeNodeFlags_NoAutoOpenOnLog |
-                                 (currentFocusedNewSorghumIndex == i
-                                      ? ImGuiTreeNodeFlags_Framed
-                                      : ImGuiTreeNodeFlags_FramePadding));
-          if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-            currentFocusedNewSorghumIndex = i;
-          }
-          if (opened) {
-            ImGui::TreePush();
-            ImGui::InputFloat3(("Position##" + std::to_string(i)).c_str(),
-                               &newSorghumPositions[i].x);
-            ImGui::TreePop();
-          }
-        }
-
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-        ImGui::SameLine();
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-        ImGui::BeginChild("ChildR", ImVec2(400, 400), true,
-                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
-        if (ImGui::BeginMenuBar()) {
-          if (ImGui::BeginMenu("Parameters")) {
-            FileUtils::OpenFile(
-                "Import parameters", ".treeparam", [](const std::string &path) {
-                  newSorghumParameters[currentFocusedNewSorghumIndex]
-                      .Deserialize(path);
-                });
-
-            FileUtils::SaveFile(
-                "Export parameters", ".treeparam", [](const std::string &path) {
-                  newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(
-                      path);
-                });
-            ImGui::EndMenu();
-          }
-          ImGui::EndMenuBar();
-        }
-        ImGui::Columns(1);
-        ImGui::PushItemWidth(200);
-        newSorghumParameters[currentFocusedNewSorghumIndex].OnGui();
-        ImGui::PopItemWidth();
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-        ImGui::Separator();
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
-          // Create tree here.
-          for (auto i = 0; i < newSorghumAmount; i++) {
-            Entity sorghum = CreateSorghum();
-            auto sorghumTransform = sorghum.GetDataComponent<Transform>();
-            sorghumTransform.SetPosition(newSorghumPositions[i]);
-            sorghumTransform.SetEulerRotation(
-                glm::radians(newSorghumRotations[i]));
-            sorghum.SetDataComponent(sorghumTransform);
-            sorghum.GetOrSetPrivateComponent<SorghumData>()
-                .lock()
-                ->m_parameters = newSorghumParameters[i];
-          }
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-      }
-      if (ImGui::Button("Create field...")) {
-        ImGui::OpenPopup("Sorghum field wizard");
-      }
-      const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-      ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-      if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
-                                 ImGuiWindowFlags_AlwaysAutoResize)) {
-        static RectangularSorghumField field;
-        ImGui::DragInt2("Size", &field.m_size.x, 1, 1, 10);
-        ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
-          std::vector<Entity> candidates;
-          candidates.push_back(
-              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                              "Sorghum/skeleton_procedural_1.txt",
-                          "Sorghum 1"));
-          candidates.push_back(
-              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                              "Sorghum/skeleton_procedural_2.txt",
-                          "Sorghum 2"));
-          candidates.push_back(
-              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                              "Sorghum/skeleton_procedural_3.txt",
-                          "Sorghum 3"));
-          candidates.push_back(
-              ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                              "Sorghum/skeleton_procedural_4.txt",
-                          "Sorghum 4"));
-          GenerateMeshForAllSorghums();
-
-          CreateGrid(field, candidates);
-          for (auto &i : candidates)
-            EntityManager::DeleteEntity(i);
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-      }
-      if (ImGui::Button("Lock structure")) {
-        std::vector<Entity> sorghums;
-        m_plantSystem->m_plantQuery.ToEntityArray<PlantInfo>(
-            sorghums, [](const Entity &plant, const PlantInfo &plantInfo) {
-              return plantInfo.m_plantType == PlantType::Sorghum;
+        ImGui::InputInt("New sorghum amount", &newSorghumAmount);
+        if (newSorghumAmount < 1)
+          newSorghumAmount = 1;
+        FileUtils::OpenFile(
+            "Import parameters for all", ".sorghumparam",
+            [](const std::filesystem::path &path) {
+              newSorghumParameters[0].Deserialize(path.string());
+              for (int i = 1; i < newSorghumParameters.size(); i++)
+                newSorghumParameters[i] = newSorghumParameters[0];
             });
-        for (const auto &sorghum : sorghums) {
-          if (!sorghum.HasPrivateComponent<SorghumData>())
-            continue;
-          sorghum.RemovePrivateComponent<SorghumData>();
-          Entity rootInternode;
-          sorghum.ForEachChild([&](Entity child) {
-            if (child.HasDataComponent<InternodeInfo>())
-              rootInternode = child;
-          });
-          if (rootInternode.IsValid())
-            EntityManager::DeleteEntity(rootInternode);
-        }
+        ImGui::EndMenu();
       }
-      FileUtils::SaveFile(
-          "Export OBJ for all sorghums", ".obj",
-          [this](const std::string &path) { ExportAllSorghumsModel(path); });
-      ImGui::EndMenu();
+      ImGui::EndMenuBar();
     }
-    static bool opened = false;
-    if (m_processing && !opened) {
-      ImGui::OpenPopup("Illumination Estimation");
-      opened = true;
-    }
-    if (ImGui::BeginPopupModal("Illumination Estimation", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      ImGui::Text("Progress: ");
-      float fraction = 1.0f - static_cast<float>(m_processingIndex) /
-                                  m_processingEntities.size();
-      std::string text =
-          std::to_string(static_cast<int>(fraction * 100.0f)) + "% - " +
-          std::to_string(m_processingEntities.size() - m_processingIndex) +
-          "/" + std::to_string(m_processingEntities.size());
-      ImGui::ProgressBar(fraction, ImVec2(240, 0), text.c_str());
-      ImGui::SetItemDefaultFocus();
-      ImGui::Text(("Estimation time for 1 plant: " +
-                   std::to_string(m_perPlantCalculationTime) + " seconds")
-                      .c_str());
-      if (ImGui::Button("Cancel") || m_processing == false) {
-        m_processing = false;
-        opened = false;
-        ImGui::CloseCurrentPopup();
+    ImGui::Columns(1);
+    if (newSorghumPositions.size() < newSorghumAmount) {
+      const auto currentSize = newSorghumPositions.size();
+      newSorghumParameters.resize(newSorghumAmount);
+      for (auto i = currentSize; i < newSorghumAmount; i++) {
+        newSorghumParameters[i] = newSorghumParameters[0];
       }
-      ImGui::EndPopup();
+      newSorghumPositions.resize(newSorghumAmount);
+      newSorghumRotations.resize(newSorghumAmount);
+    }
+    for (auto i = 0; i < newSorghumAmount; i++) {
+      std::string title = "New Sorghum No.";
+      title += std::to_string(i);
+      const bool opened = ImGui::TreeNodeEx(
+          title.c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                             ImGuiTreeNodeFlags_OpenOnArrow |
+                             ImGuiTreeNodeFlags_NoAutoOpenOnLog |
+                             (currentFocusedNewSorghumIndex == i
+                                  ? ImGuiTreeNodeFlags_Framed
+                                  : ImGuiTreeNodeFlags_FramePadding));
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+        currentFocusedNewSorghumIndex = i;
+      }
+      if (opened) {
+        ImGui::TreePush();
+        ImGui::InputFloat3(("Position##" + std::to_string(i)).c_str(),
+                           &newSorghumPositions[i].x);
+        ImGui::TreePop();
+      }
     }
 
-    ImGui::EndMainMenuBar();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::SameLine();
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    ImGui::BeginChild("ChildR", ImVec2(400, 400), true,
+                      ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar()) {
+      if (ImGui::BeginMenu("Parameters")) {
+        FileUtils::OpenFile(
+            "Import parameters", ".treeparam",
+            [](const std::filesystem::path &path) {
+              newSorghumParameters[currentFocusedNewSorghumIndex].Deserialize(
+                  path.string());
+            });
+
+        FileUtils::SaveFile(
+            "Export parameters", ".treeparam",
+            [](const std::filesystem::path &path) {
+              newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(
+                  path.string());
+            });
+        ImGui::EndMenu();
+      }
+      ImGui::EndMenuBar();
+    }
+    ImGui::Columns(1);
+    ImGui::PushItemWidth(200);
+    newSorghumParameters[currentFocusedNewSorghumIndex].OnGui();
+    ImGui::PopItemWidth();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::Separator();
+    if (ImGui::Button("OK", ImVec2(120, 0))) {
+      // Create tree here.
+      for (auto i = 0; i < newSorghumAmount; i++) {
+        Entity sorghum = CreateSorghum();
+        auto sorghumTransform = sorghum.GetDataComponent<Transform>();
+        sorghumTransform.SetPosition(newSorghumPositions[i]);
+        sorghumTransform.SetEulerRotation(glm::radians(newSorghumRotations[i]));
+        sorghum.SetDataComponent(sorghumTransform);
+        sorghum.GetOrSetPrivateComponent<SorghumData>().lock()->m_parameters =
+            newSorghumParameters[i];
+      }
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SetItemDefaultFocus();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+  if (ImGui::Button("Create field...")) {
+    ImGui::OpenPopup("Sorghum field wizard");
+  }
+  const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+  ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+  if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    static RectangularSorghumField field;
+    ImGui::DragInt2("Size", &field.m_size.x, 1, 1, 10);
+    ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
+    if (ImGui::Button("OK", ImVec2(120, 0))) {
+      std::vector<Entity> candidates;
+      candidates.push_back(
+          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                          "Sorghum/skeleton_procedural_1.txt",
+                      "Sorghum 1"));
+      candidates.push_back(
+          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                          "Sorghum/skeleton_procedural_2.txt",
+                      "Sorghum 2"));
+      candidates.push_back(
+          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                          "Sorghum/skeleton_procedural_3.txt",
+                      "Sorghum 3"));
+      candidates.push_back(
+          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+                          "Sorghum/skeleton_procedural_4.txt",
+                      "Sorghum 4"));
+      GenerateMeshForAllSorghums();
+
+      CreateGrid(field, candidates);
+      for (auto &i : candidates)
+        EntityManager::DeleteEntity(i);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SetItemDefaultFocus();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+  if (ImGui::Button("Lock structure")) {
+    std::vector<Entity> sorghums;
+    m_plantSystem->m_plantQuery.ToEntityArray<PlantInfo>(
+        sorghums, [](const Entity &plant, const PlantInfo &plantInfo) {
+          return plantInfo.m_plantType == PlantType::Sorghum;
+        });
+    for (const auto &sorghum : sorghums) {
+      if (!sorghum.HasPrivateComponent<SorghumData>())
+        continue;
+      sorghum.RemovePrivateComponent<SorghumData>();
+      Entity rootInternode;
+      sorghum.ForEachChild([&](Entity child) {
+        if (child.HasDataComponent<InternodeInfo>())
+          rootInternode = child;
+      });
+      if (rootInternode.IsValid())
+        EntityManager::DeleteEntity(rootInternode);
+    }
+  }
+  FileUtils::SaveFile("Export OBJ for all sorghums", ".obj",
+                      [this](const std::filesystem::path &path) {
+                        ExportAllSorghumsModel(path.string());
+                      });
+
+  static bool opened = false;
+  if (m_processing && !opened) {
+    ImGui::OpenPopup("Illumination Estimation");
+    opened = true;
+  }
+  if (ImGui::BeginPopupModal("Illumination Estimation", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::Text("Progress: ");
+    float fraction = 1.0f - static_cast<float>(m_processingIndex) /
+                                m_processingEntities.size();
+    std::string text =
+        std::to_string(static_cast<int>(fraction * 100.0f)) + "% - " +
+        std::to_string(m_processingEntities.size() - m_processingIndex) + "/" +
+        std::to_string(m_processingEntities.size());
+    ImGui::ProgressBar(fraction, ImVec2(240, 0), text.c_str());
+    ImGui::SetItemDefaultFocus();
+    ImGui::Text(("Estimation time for 1 plant: " +
+                 std::to_string(m_perPlantCalculationTime) + " seconds")
+                    .c_str());
+    if (ImGui::Button("Cancel") || m_processing == false) {
+      m_processing = false;
+      opened = false;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
   }
 }
 

@@ -523,18 +523,18 @@ void RadialBoundingVolume::OnGui() {
     ImGui::TreePop();
   }
 
-  FileUtils::SaveFile("Save RBV", ".rbv", [this](const std::string &path) {
+  FileUtils::SaveFile("Save RBV", ".rbv", [this](const std::filesystem::path &path) {
     const std::string data = Save();
     std::ofstream ofs;
-    ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
+    ofs.open(path.string().c_str(), std::ofstream::out | std::ofstream::trunc);
     ofs.write(data.c_str(), data.length());
     ofs.flush();
     ofs.close();
   });
   FileUtils::OpenFile("Load RBV", ".rbv",
-                       [this](const std::string &path) { Load(path); });
+                      [this](const std::filesystem::path &path) { Load(path.string()); });
   FileUtils::SaveFile("Export RBV as OBJ", ".obj",
-                       [this](const std::string &path) { ExportAsObj(path); });
+                      [this](const std::filesystem::path &path) { ExportAsObj(path.string()); });
   if (!displayLayer && m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
       RenderManager::DrawGizmoMesh(

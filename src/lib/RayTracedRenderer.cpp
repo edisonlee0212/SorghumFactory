@@ -18,12 +18,6 @@ void RayTracedRenderer::OnGui() {
                    0.01f, 0.0f, 100.0f);
   ImGui::ColorEdit3("Surface Color##RayTracedRenderer", &m_surfaceColor.x);
   EditorManager::DragAndDropButton<Mesh>(m_mesh, "Mesh");
-  if (m_mesh.Get<Mesh>()) {
-    if (ImGui::TreeNode("Mesh##MeshRenderer")) {
-      m_mesh.Get<Mesh>()->OnGui();
-      ImGui::TreePop();
-    }
-  }
   ImGui::Text("Material: ");
   ImGui::SameLine();
   ImGui::Checkbox("MLVQ##RayTracedRenderer", &m_enableMLVQ);

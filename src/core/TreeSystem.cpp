@@ -777,543 +777,222 @@ const char *BranchRenderTypes[]{"Illumination",
 
 const char *PointerRenderTypes[]{"Illumination", "Bending"};
 
-void TreeSystem::OnGui() {
-#pragma region Main menu
-  if (ImGui::BeginMainMenuBar()) {
-    if (ImGui::BeginMenu("Tree Manager")) {
-      ImGui::Text("Physics");
-      ImGui::DragFloat("Internode Density", &m_density, 0.1f, 0.01f, 1000.0f);
-      ImGui::DragFloat2("RigidBody Damping", &m_linearDamping, 0.1f, 0.01f,
-                        1000.0f);
-      ImGui::DragFloat2("Drive Stiffness", &m_jointDriveStiffnessFactor, 0.1f,
-                        0.01f, 1000000.0f);
-      ImGui::DragFloat2("Drive Damping", &m_jointDriveDampingFactor, 0.1f,
-                        0.01f, 1000000.0f);
-      ImGui::Checkbox("Use acceleration", &m_enableAccelerationForDrive);
+void TreeSystem::OnInspect() {
+  ImGui::Text("Physics");
+  ImGui::DragFloat("Internode Density", &m_density, 0.1f, 0.01f, 1000.0f);
+  ImGui::DragFloat2("RigidBody Damping", &m_linearDamping, 0.1f, 0.01f,
+                    1000.0f);
+  ImGui::DragFloat2("Drive Stiffness", &m_jointDriveStiffnessFactor, 0.1f,
+                    0.01f, 1000000.0f);
+  ImGui::DragFloat2("Drive Damping", &m_jointDriveDampingFactor, 0.1f, 0.01f,
+                    1000000.0f);
+  ImGui::Checkbox("Use acceleration", &m_enableAccelerationForDrive);
 
-      int pi = m_positionSolverIteration;
-      int vi = m_velocitySolverIteration;
-      if (ImGui::DragInt("Velocity solver iteration", &vi, 1, 1, 100)) {
-        m_velocitySolverIteration = vi;
-      }
-      if (ImGui::DragInt("Position solver iteration", &pi, 1, 1, 100)) {
-        m_positionSolverIteration = pi;
-      }
-      ImGui::Separator();
-      ImGui::Text("Foliage");
-      ImGui::DragInt("Leaf amount", &m_leafAmount, 0, 0, 50);
-      ImGui::DragFloat("Generation radius", &m_radius, 0.01, 0.01, 10);
-      ImGui::DragFloat("Generation distance", &m_distanceToEndNode, 0.01, 0.01,
-                       20);
-
-      ImGui::DragFloat2("Leaf size", &m_leafSize.x, 0.01, 0.01, 10);
-      ImGui::Separator();
-      ImGui::Text("Crown shyness");
-      ImGui::DragFloat("Crown shyness D", &m_crownShynessDiameter, 0.01f, 0.0f,
-                       2.0f);
-      if (m_crownShynessDiameter > m_voxelSpaceModule.GetDiameter())
-        Debug::Error("Diameter too large!");
-
-      ImGui::Separator();
-      ImGui::Text("Metadata");
-      if (ImGui::Button("Update metadata")) {
-        m_plantSystem.Get<PlantSystem>()->Refresh();
-        UpdateTreesMetaData();
-      }
-      ImGui::Separator();
-
-      if (ImGui::Button("Create...")) {
-        ImGui::OpenPopup("New tree wizard");
-        Application::SetPlaying(false);
-      }
-
-      ImGui::DragFloat("Mesh resolution", &m_meshResolution, 0.001f, 0, 1);
-      ImGui::DragFloat("Mesh subdivision", &m_meshSubdivision, 0.001f, 0, 1);
-      if (ImGui::Button("Generate mesh")) {
-        m_plantSystem.Get<PlantSystem>()->Refresh();
-        UpdateTreesMetaData();
-        GenerateMeshForTree();
-      }
-      if (ImGui::Button("Generate skinned mesh")) {
-        GenerateSkinnedMeshForTree();
-      }
-      FileUtils::SaveFile(
-          "Save scene as XML", ".xml",
-          [this](const std::string &path) { SerializeScene(path); });
-      const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-      ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-      if (ImGui::BeginPopupModal("New tree wizard", nullptr,
-                                 ImGuiWindowFlags_AlwaysAutoResize)) {
-        static std::vector<TreeParameters> newTreeParameters;
-        static std::vector<glm::vec3> newTreePositions;
-        static std::vector<glm::vec3> newTreeRotations;
-        static int newTreeAmount = 1;
-        static int currentFocusedNewTreeIndex = 0;
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-        ImGui::BeginChild("ChildL", ImVec2(300, 400), true,
-                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
-        if (ImGui::BeginMenuBar()) {
-          if (ImGui::BeginMenu("Settings")) {
-            static float distance = 10;
-            static float variance = 4;
-            static float yAxisVar = 180.0f;
-            static float xzAxisVar = 0.0f;
-            static int expand = 1;
-            if (ImGui::BeginMenu("Create forest...")) {
-              ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f,
-                               180.0f);
-              ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f,
-                               90.0f);
-              ImGui::DragFloat("Avg. Distance", &distance, 0.01f);
-              ImGui::DragFloat("Position variance", &variance, 0.01f);
-              ImGui::DragInt("Expand", &expand, 1, 0, 3);
-              if (ImGui::Button("Apply")) {
-                newTreeAmount = (2 * expand + 1) * (2 * expand + 1);
-                newTreePositions.resize(newTreeAmount);
-                newTreeRotations.resize(newTreeAmount);
-                const auto currentSize = newTreeParameters.size();
-                newTreeParameters.resize(newTreeAmount);
-                for (auto i = currentSize; i < newTreeAmount; i++) {
-                  newTreeParameters[i] = newTreeParameters[0];
-                }
-                int index = 0;
-                for (int i = -expand; i <= expand; i++) {
-                  for (int j = -expand; j <= expand; j++) {
-                    glm::vec3 value = glm::vec3(i * distance, 0, j * distance);
-                    value.x += glm::linearRand(-variance, variance);
-                    value.z += glm::linearRand(-variance, variance);
-                    newTreePositions[index] = value;
-                    value = glm::vec3(glm::linearRand(-xzAxisVar, xzAxisVar),
-                                      glm::linearRand(-yAxisVar, yAxisVar),
-                                      glm::linearRand(-xzAxisVar, xzAxisVar));
-                    newTreeRotations[index] = value;
-                    index++;
-                  }
-                }
-              }
-              ImGui::EndMenu();
-            }
-            ImGui::InputInt("New Tree Amount", &newTreeAmount);
-            if (newTreeAmount < 1)
-              newTreeAmount = 1;
-            FileUtils::OpenFile("Import parameters for all", ".treeparam",
-                                [](const std::string &path) {
-                                  newTreeParameters[0].Deserialize(path);
-                                  for (int i = 1; i < newTreeParameters.size();
-                                       i++)
-                                    newTreeParameters[i] = newTreeParameters[0];
-                                });
-            ImGui::EndMenu();
-          }
-          ImGui::EndMenuBar();
-        }
-        ImGui::Columns(1);
-        if (newTreePositions.size() < newTreeAmount) {
-          if (newTreeParameters.empty()) {
-            newTreeParameters.resize(1);
-            newTreeParameters[0].Deserialize(
-                std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                "Parameters/default.treeparam");
-          }
-          const auto currentSize = newTreePositions.size();
-          newTreeParameters.resize(newTreeAmount);
-          for (auto i = currentSize; i < newTreeAmount; i++) {
-            newTreeParameters[i] = newTreeParameters[0];
-          }
-          newTreePositions.resize(newTreeAmount);
-          newTreeRotations.resize(newTreeAmount);
-        }
-        for (auto i = 0; i < newTreeAmount; i++) {
-          std::string title = "New Tree No.";
-          title += std::to_string(i);
-          const bool opened = ImGui::TreeNodeEx(
-              title.c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                 ImGuiTreeNodeFlags_OpenOnArrow |
-                                 ImGuiTreeNodeFlags_NoAutoOpenOnLog |
-                                 (currentFocusedNewTreeIndex == i
-                                      ? ImGuiTreeNodeFlags_Framed
-                                      : ImGuiTreeNodeFlags_FramePadding));
-          if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-            currentFocusedNewTreeIndex = i;
-          }
-          if (opened) {
-            ImGui::TreePush();
-            ImGui::InputFloat3(("Position##" + std::to_string(i)).c_str(),
-                               &newTreePositions[i].x);
-            ImGui::TreePop();
-          }
-        }
-
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-        ImGui::SameLine();
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-        ImGui::BeginChild("ChildR", ImVec2(400, 400), true,
-                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
-        if (ImGui::BeginMenuBar()) {
-          if (ImGui::BeginMenu("Parameters")) {
-            FileUtils::OpenFile(
-                "Import parameters", ".treeparam", [](const std::string &path) {
-                  newTreeParameters[currentFocusedNewTreeIndex].Deserialize(
-                      path);
-                });
-
-            FileUtils::SaveFile(
-                "Export parameters", ".treeparam", [](const std::string &path) {
-                  newTreeParameters[currentFocusedNewTreeIndex].Serialize(path);
-                });
-            ImGui::EndMenu();
-          }
-          ImGui::EndMenuBar();
-        }
-        ImGui::Columns(1);
-        ImGui::PushItemWidth(200);
-        newTreeParameters[currentFocusedNewTreeIndex].OnGui();
-        ImGui::PopItemWidth();
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-        ImGui::Separator();
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
-          // Create tree here.
-          for (auto i = 0; i < newTreeAmount; i++) {
-            Transform treeTransform;
-            treeTransform.SetPosition(newTreePositions[i]);
-            treeTransform.SetEulerRotation(glm::radians(newTreeRotations[i]));
-            Entity tree = CreateTree(treeTransform);
-            tree.GetOrSetPrivateComponent<TreeData>().lock()->m_parameters =
-                newTreeParameters[i];
-          }
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-          ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-      }
-      ImGui::EndMenu();
-    }
-    ImGui::EndMainMenuBar();
+  int pi = m_positionSolverIteration;
+  int vi = m_velocitySolverIteration;
+  if (ImGui::DragInt("Velocity solver iteration", &vi, 1, 1, 100)) {
+    m_velocitySolverIteration = vi;
   }
-#pragma endregion
-#pragma region Internode debugging camera
-  ImVec2 viewPortSize;
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-  ImGui::Begin("Tree Internodes");
-  {
-    if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false,
-                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
-      if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("Settings")) {
-#pragma region Menu
-          ImGui::Checkbox("Force update", &m_alwaysUpdate);
-          ImGui::SliderFloat("Display Time", &m_displayTime, 0.0f,
-                             m_plantSystem.Get<PlantSystem>()->m_globalTime);
-          if (ImGui::ButtonEx(
-                  "To present", ImVec2(0, 0),
-                  m_displayTime !=
-                          m_plantSystem.Get<PlantSystem>()->m_globalTime
-                      ? 0
-                      : ImGuiButtonFlags_Disabled))
-            m_displayTime = m_plantSystem.Get<PlantSystem>()->m_globalTime;
-          if (m_displayTime != m_plantSystem.Get<PlantSystem>()->m_globalTime) {
-            ImGui::SameLine();
-            if (ImGui::Button("Start from here.")) {
-              ResetTimeForTree(m_displayTime);
-            }
-          }
+  if (ImGui::DragInt("Position solver iteration", &pi, 1, 1, 100)) {
+    m_positionSolverIteration = pi;
+  }
+  ImGui::Separator();
+  ImGui::Text("Foliage");
+  ImGui::DragInt("Leaf amount", &m_leafAmount, 0, 0, 50);
+  ImGui::DragFloat("Generation radius", &m_radius, 0.01, 0.01, 10);
+  ImGui::DragFloat("Generation distance", &m_distanceToEndNode, 0.01, 0.01, 20);
 
-          ImGui::Checkbox("Connections", &m_drawBranches);
-          if (m_drawBranches) {
-            if (ImGui::TreeNodeEx("Connection settings",
-                                  ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Render type", (int *)&m_branchRenderType,
-                           BranchRenderTypes, IM_ARRAYSIZE(BranchRenderTypes));
-              ImGui::Checkbox("As transparency", &m_useTransparency);
-              if (m_useTransparency)
-                ImGui::SliderFloat("Alpha", &m_transparency, 0, 1);
-              ImGui::Checkbox("Compress", &m_enableBranchDataCompress);
-              if (m_enableBranchDataCompress)
-                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
-                                 0.01f, 0.01f, 1.0f);
-              ImGui::Checkbox("Color Map", &m_useColorMap);
-              if (m_useColorMap) {
-                static int savedAmount = 3;
-                ImGui::SliderInt("Slot amount", &m_colorMapSegmentAmount, 2,
-                                 10);
-                if (savedAmount != m_colorMapSegmentAmount) {
-                  m_colorMapValues.resize(m_colorMapSegmentAmount);
-                  m_colorMapColors.resize(m_colorMapSegmentAmount);
-                  for (int i = 0; i < m_colorMapSegmentAmount; i++) {
-                    if (i != 0 && m_colorMapValues[i] < m_colorMapValues[i - 1])
-                      m_colorMapValues[i] = m_colorMapValues[i - 1] + 1;
-                    if (i >= savedAmount)
-                      m_colorMapColors[i] =
-                          glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
-                  }
-                  savedAmount = m_colorMapSegmentAmount;
-                }
-                for (int i = 0; i < m_colorMapValues.size(); i++) {
-                  if (i == 0) {
-                    ImGui::DragFloat("Value 0", &m_colorMapValues[0], 0.1f,
-                                     0.0f, m_colorMapValues[1]);
-                    ImGui::ColorEdit3("Color 0", &m_colorMapColors[0].x);
-                  } else if (i == m_colorMapValues.size() - 1) {
-                    ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
-                                     &m_colorMapValues[i], 0.1f,
-                                     m_colorMapValues[i - 1] + 0.1f, 9999.0f);
-                    ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
-                                      &m_colorMapColors[i].x);
-                  } else {
-                    ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
-                                     &m_colorMapValues[i], 0.1f,
-                                     m_colorMapValues[i - 1] + 0.1f,
-                                     m_colorMapValues[i + 1]);
-                    ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
-                                      &m_colorMapColors[i].x);
-                  }
-                }
+  ImGui::DragFloat2("Leaf size", &m_leafSize.x, 0.01, 0.01, 10);
+  ImGui::Separator();
+  ImGui::Text("Crown shyness");
+  ImGui::DragFloat("Crown shyness D", &m_crownShynessDiameter, 0.01f, 0.0f,
+                   2.0f);
+  if (m_crownShynessDiameter > m_voxelSpaceModule.GetDiameter())
+    Debug::Error("Diameter too large!");
+
+  ImGui::Separator();
+  ImGui::Text("Metadata");
+  if (ImGui::Button("Update metadata")) {
+    m_plantSystem.Get<PlantSystem>()->Refresh();
+    UpdateTreesMetaData();
+  }
+  ImGui::Separator();
+
+  if (ImGui::Button("Create...")) {
+    ImGui::OpenPopup("New tree wizard");
+    Application::SetPlaying(false);
+  }
+
+  ImGui::DragFloat("Mesh resolution", &m_meshResolution, 0.001f, 0, 1);
+  ImGui::DragFloat("Mesh subdivision", &m_meshSubdivision, 0.001f, 0, 1);
+  if (ImGui::Button("Generate mesh")) {
+    m_plantSystem.Get<PlantSystem>()->Refresh();
+    UpdateTreesMetaData();
+    GenerateMeshForTree();
+  }
+  if (ImGui::Button("Generate skinned mesh")) {
+    GenerateSkinnedMeshForTree();
+  }
+  FileUtils::SaveFile("Save scene as XML", ".xml",
+                      [this](const std::filesystem::path &path) {
+                        SerializeScene(path.string());
+                      });
+  const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+  ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+  if (ImGui::BeginPopupModal("New tree wizard", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    static std::vector<TreeParameters> newTreeParameters;
+    static std::vector<glm::vec3> newTreePositions;
+    static std::vector<glm::vec3> newTreeRotations;
+    static int newTreeAmount = 1;
+    static int currentFocusedNewTreeIndex = 0;
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    ImGui::BeginChild("ChildL", ImVec2(300, 400), true,
+                      ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar()) {
+      if (ImGui::BeginMenu("Settings")) {
+        static float distance = 10;
+        static float variance = 4;
+        static float yAxisVar = 180.0f;
+        static float xzAxisVar = 0.0f;
+        static int expand = 1;
+        if (ImGui::BeginMenu("Create forest...")) {
+          ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f,
+                           180.0f);
+          ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f,
+                           90.0f);
+          ImGui::DragFloat("Avg. Distance", &distance, 0.01f);
+          ImGui::DragFloat("Position variance", &variance, 0.01f);
+          ImGui::DragInt("Expand", &expand, 1, 0, 3);
+          if (ImGui::Button("Apply")) {
+            newTreeAmount = (2 * expand + 1) * (2 * expand + 1);
+            newTreePositions.resize(newTreeAmount);
+            newTreeRotations.resize(newTreeAmount);
+            const auto currentSize = newTreeParameters.size();
+            newTreeParameters.resize(newTreeAmount);
+            for (auto i = currentSize; i < newTreeAmount; i++) {
+              newTreeParameters[i] = newTreeParameters[0];
+            }
+            int index = 0;
+            for (int i = -expand; i <= expand; i++) {
+              for (int j = -expand; j <= expand; j++) {
+                glm::vec3 value = glm::vec3(i * distance, 0, j * distance);
+                value.x += glm::linearRand(-variance, variance);
+                value.z += glm::linearRand(-variance, variance);
+                newTreePositions[index] = value;
+                value = glm::vec3(glm::linearRand(-xzAxisVar, xzAxisVar),
+                                  glm::linearRand(-yAxisVar, yAxisVar),
+                                  glm::linearRand(-xzAxisVar, xzAxisVar));
+                newTreeRotations[index] = value;
+                index++;
               }
-
-              if (ImGui::Checkbox("Display thickness", &m_displayThickness))
-                m_updateBranch = true;
-              if (!m_displayThickness)
-                if (ImGui::DragFloat("Connection width", &m_connectionWidth,
-                                     0.01f, 0.01f, 1.0f))
-                  m_updateBranch = true;
-              ImGui::TreePop();
             }
           }
-          ImGui::Checkbox("Pointers", &m_drawPointers);
-          if (m_drawPointers) {
-            if (ImGui::TreeNodeEx("Pointer settings",
-                                  ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Render type", (int *)&m_pointerRenderType,
-                           PointerRenderTypes,
-                           IM_ARRAYSIZE(PointerRenderTypes));
-              ImGui::Checkbox("Compress", &m_enablePointerDataCompress);
-              if (m_pointerCompressFactor)
-                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
-                                 0.01f, 0.01f, 1.0f);
-              if (ImGui::ColorEdit4("Pointer color", &m_pointerColor.x))
-                m_updatePointer = true;
-              if (ImGui::DragFloat("Pointer length", &m_pointerLength, 0.01f,
-                                   0.01f, 3.0f))
-                m_updatePointer = true;
-              if (ImGui::DragFloat("Pointer width", &m_pointerWidth, 0.01f,
-                                   0.01f, 1.0f))
-                m_updatePointer = true;
-              ImGui::TreePop();
-            }
-          }
-          m_voxelSpaceModule.OnGui();
-
-#pragma endregion
           ImGui::EndMenu();
         }
-        ImGui::EndMenuBar();
+        ImGui::InputInt("New Tree Amount", &newTreeAmount);
+        if (newTreeAmount < 1)
+          newTreeAmount = 1;
+        FileUtils::OpenFile("Import parameters for all", ".treeparam",
+                            [](const std::filesystem::path &path) {
+                              newTreeParameters[0].Deserialize(path.string());
+                              for (int i = 1; i < newTreeParameters.size(); i++)
+                                newTreeParameters[i] = newTreeParameters[0];
+                            });
+        ImGui::EndMenu();
       }
-      viewPortSize = ImGui::GetWindowSize();
-      viewPortSize.y -= 20;
-      if (viewPortSize.y < 0)
-        viewPortSize.y = 0;
-      m_internodeDebuggingCameraResolutionX = viewPortSize.x;
-      m_internodeDebuggingCameraResolutionY = viewPortSize.y;
-      ImGui::Image(
-          reinterpret_cast<ImTextureID>(
-              m_internodeDebuggingCamera->GetTexture()->Texture()->Id()),
-          viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
-      glm::vec2 mousePosition = glm::vec2(FLT_MAX, FLT_MIN);
-      if (ImGui::IsWindowFocused()) {
-        bool valid = true;
-        mousePosition = InputManager::GetMouseAbsolutePositionInternal(
-            WindowManager::GetWindow());
-        float xOffset = 0;
-        float yOffset = 0;
-        if (valid) {
-          if (!m_startMouse) {
-            m_lastX = mousePosition.x;
-            m_lastY = mousePosition.y;
-            m_startMouse = true;
-          }
-          xOffset = mousePosition.x - m_lastX;
-          yOffset = -mousePosition.y + m_lastY;
-          m_lastX = mousePosition.x;
-          m_lastY = mousePosition.y;
-#pragma region Scene Camera Controller
-          if (!m_rightMouseButtonHold &&
-              InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
-                                             WindowManager::GetWindow())) {
-            m_rightMouseButtonHold = true;
-          }
-          if (m_rightMouseButtonHold &&
-              !EditorManager::GetInstance().m_lockCamera) {
-            glm::vec3 front =
-                EditorManager::GetInstance().m_sceneCameraRotation *
-                glm::vec3(0, 0, -1);
-            glm::vec3 right =
-                EditorManager::GetInstance().m_sceneCameraRotation *
-                glm::vec3(1, 0, 0);
-            if (InputManager::GetKeyInternal(GLFW_KEY_W,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition +=
-                  front * static_cast<float>(Application::Time().DeltaTime()) *
-                  EditorManager::GetInstance().m_velocity;
-            }
-            if (InputManager::GetKeyInternal(GLFW_KEY_S,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition -=
-                  front * static_cast<float>(Application::Time().DeltaTime()) *
-                  EditorManager::GetInstance().m_velocity;
-            }
-            if (InputManager::GetKeyInternal(GLFW_KEY_A,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition -=
-                  right * static_cast<float>(Application::Time().DeltaTime()) *
-                  EditorManager::GetInstance().m_velocity;
-            }
-            if (InputManager::GetKeyInternal(GLFW_KEY_D,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition +=
-                  right * static_cast<float>(Application::Time().DeltaTime()) *
-                  EditorManager::GetInstance().m_velocity;
-            }
-            if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_SHIFT,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition.y +=
-                  EditorManager::GetInstance().m_velocity *
-                  static_cast<float>(Application::Time().DeltaTime());
-            }
-            if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_CONTROL,
-                                             WindowManager::GetWindow())) {
-              EditorManager::GetInstance().m_sceneCameraPosition.y -=
-                  EditorManager::GetInstance().m_velocity *
-                  static_cast<float>(Application::Time().DeltaTime());
-            }
-            if (xOffset != 0.0f || yOffset != 0.0f) {
-              EditorManager::GetInstance().m_sceneCameraYawAngle +=
-                  xOffset * EditorManager::GetInstance().m_sensitivity;
-              EditorManager::GetInstance().m_sceneCameraPitchAngle +=
-                  yOffset * EditorManager::GetInstance().m_sensitivity;
-              if (EditorManager::GetInstance().m_sceneCameraPitchAngle > 89.0f)
-                EditorManager::GetInstance().m_sceneCameraPitchAngle = 89.0f;
-              if (EditorManager::GetInstance().m_sceneCameraPitchAngle < -89.0f)
-                EditorManager::GetInstance().m_sceneCameraPitchAngle = -89.0f;
-
-              EditorManager::GetInstance().m_sceneCameraRotation =
-                  Camera::ProcessMouseMovement(
-                      EditorManager::GetInstance().m_sceneCameraYawAngle,
-                      EditorManager::GetInstance().m_sceneCameraPitchAngle,
-                      false);
-            }
-          }
-#pragma endregion
-          if (m_drawBranches) {
-#pragma region Ray selection
-            m_currentFocusingInternode = Entity();
-            std::mutex writeMutex;
-            auto windowPos = ImGui::GetWindowPos();
-            auto windowSize = ImGui::GetWindowSize();
-            mousePosition.x -= windowPos.x;
-            mousePosition.x -= windowSize.x;
-            mousePosition.y -= windowPos.y + 20;
-            float minDistance = FLT_MAX;
-            GlobalTransform cameraLtw;
-            cameraLtw.m_value =
-                glm::translate(
-                    EditorManager::GetInstance().m_sceneCameraPosition) *
-                glm::mat4_cast(
-                    EditorManager::GetInstance().m_sceneCameraRotation);
-            const Ray cameraRay = m_internodeDebuggingCamera->ScreenPointToRay(
-                cameraLtw, mousePosition);
-            EntityManager::ForEach<GlobalTransform, BranchCylinderWidth,
-                                   InternodeGrowth>(
-                JobManager::PrimaryWorkers(),
-                m_plantSystem.Get<PlantSystem>()->m_internodeQuery,
-                [&, cameraLtw, cameraRay](int i, Entity entity,
-                                          GlobalTransform &ltw,
-                                          BranchCylinderWidth &width,
-                                          InternodeGrowth &internodeGrowth) {
-                  const glm::vec3 position = ltw.m_value[3];
-                  const auto parentPosition =
-                      entity.GetParent()
-                          .GetDataComponent<GlobalTransform>()
-                          .GetPosition();
-                  const auto center = (position + parentPosition) / 2.0f;
-                  auto dir = cameraRay.m_direction;
-                  auto pos = cameraRay.m_start;
-                  const auto radius = width.m_value;
-                  const auto height = glm::distance(parentPosition, position);
-                  if (internodeGrowth.m_distanceToRoot == 0) {
-                    if (!cameraRay.Intersect(
-                            position,
-                            glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
-                      return;
-                  } else {
-                    if (!cameraRay.Intersect(center, height / 2.0f))
-                      return;
-
-#pragma region Line Line intersection
-                    /*
-                     * http://geomalgorithms.com/a07-_distance.html
-                     */
-                    glm::vec3 u = pos - (pos + dir);
-                    glm::vec3 v = position - parentPosition;
-                    glm::vec3 w = (pos + dir) - parentPosition;
-                    const auto a = dot(u,
-                                       u); // always >= 0
-                    const auto b = dot(u, v);
-                    const auto c = dot(v,
-                                       v); // always >= 0
-                    const auto d = dot(u, w);
-                    const auto e = dot(v, w);
-                    const auto dotP = a * c - b * b; // always >= 0
-                    float sc, tc;
-                    // compute the line parameters of the two closest points
-                    if (dotP < 0.001f) { // the lines are almost parallel
-                      sc = 0.0f;
-                      tc = (b > c ? d / b
-                                  : e / c); // use the largest denominator
-                    } else {
-                      sc = (b * e - c * d) / dotP;
-                      tc = (a * e - b * d) / dotP;
-                    }
-                    // get the difference of the two closest points
-                    glm::vec3 dP = w + sc * u - tc * v; // =  L1(sc) - L2(tc)
-                    if (glm::length(dP) > radius)
-                      return;
-#pragma endregion
-                  }
-                  const auto distance = glm::distance(
-                      glm::vec3(cameraLtw.m_value[3]), glm::vec3(center));
-                  std::lock_guard<std::mutex> lock(writeMutex);
-                  if (distance < minDistance) {
-                    minDistance = distance;
-                    m_currentFocusingInternode = entity;
-                  }
-                });
-            if (InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT,
-                                               WindowManager::GetWindow())) {
-              if (!m_currentFocusingInternode.Get().IsNull()) {
-                EditorManager::SetSelectedEntity(
-                    m_currentFocusingInternode.Get());
-              }
-            }
-#pragma endregion
-          }
-        }
+      ImGui::EndMenuBar();
+    }
+    ImGui::Columns(1);
+    if (newTreePositions.size() < newTreeAmount) {
+      if (newTreeParameters.empty()) {
+        newTreeParameters.resize(1);
+        newTreeParameters[0].Deserialize(
+            std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
+            "Parameters/default.treeparam");
+      }
+      const auto currentSize = newTreePositions.size();
+      newTreeParameters.resize(newTreeAmount);
+      for (auto i = currentSize; i < newTreeAmount; i++) {
+        newTreeParameters[i] = newTreeParameters[0];
+      }
+      newTreePositions.resize(newTreeAmount);
+      newTreeRotations.resize(newTreeAmount);
+    }
+    for (auto i = 0; i < newTreeAmount; i++) {
+      std::string title = "New Tree No.";
+      title += std::to_string(i);
+      const bool opened = ImGui::TreeNodeEx(
+          title.c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                             ImGuiTreeNodeFlags_OpenOnArrow |
+                             ImGuiTreeNodeFlags_NoAutoOpenOnLog |
+                             (currentFocusedNewTreeIndex == i
+                                  ? ImGuiTreeNodeFlags_Framed
+                                  : ImGuiTreeNodeFlags_FramePadding));
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+        currentFocusedNewTreeIndex = i;
+      }
+      if (opened) {
+        ImGui::TreePush();
+        ImGui::InputFloat3(("Position##" + std::to_string(i)).c_str(),
+                           &newTreePositions[i].x);
+        ImGui::TreePop();
       }
     }
-    ImGui::EndChild();
-    auto *window = ImGui::FindWindowByName("Tree Internodes");
-    m_internodeDebuggingCamera->SetEnabled(
-        !(window->Hidden && !window->Collapsed));
-  }
-  ImGui::End();
-  ImGui::PopStyleVar();
 
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::SameLine();
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    ImGui::BeginChild("ChildR", ImVec2(400, 400), true,
+                      ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar()) {
+      if (ImGui::BeginMenu("Parameters")) {
+        FileUtils::OpenFile(
+            "Import parameters", ".treeparam",
+            [](const std::filesystem::path &path) {
+              newTreeParameters[currentFocusedNewTreeIndex].Deserialize(
+                  path.string());
+            });
+
+        FileUtils::SaveFile(
+            "Export parameters", ".treeparam",
+            [](const std::filesystem::path &path) {
+              newTreeParameters[currentFocusedNewTreeIndex].Serialize(
+                  path.string());
+            });
+        ImGui::EndMenu();
+      }
+      ImGui::EndMenuBar();
+    }
+    ImGui::Columns(1);
+    ImGui::PushItemWidth(200);
+    newTreeParameters[currentFocusedNewTreeIndex].OnGui();
+    ImGui::PopItemWidth();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::Separator();
+    if (ImGui::Button("OK", ImVec2(120, 0))) {
+      // Create tree here.
+      for (auto i = 0; i < newTreeAmount; i++) {
+        Transform treeTransform;
+        treeTransform.SetPosition(newTreePositions[i]);
+        treeTransform.SetEulerRotation(glm::radians(newTreeRotations[i]));
+        Entity tree = CreateTree(treeTransform);
+        tree.GetOrSetPrivateComponent<TreeData>().lock()->m_parameters =
+            newTreeParameters[i];
+      }
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SetItemDefaultFocus();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
 #pragma endregion
+
 }
 
 void TreeSystem::RenderBranchCylinders(const float &displayTime) {
@@ -3149,8 +2828,6 @@ void TreeSystem::Start() {
     m_colorMapColors[i] = glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
   }
 
-
-
   m_leavesArchetype =
       EntityManager::CreateEntityArchetype("Tree Leaves", TreeLeavesTag());
   m_rbvArchetype = EntityManager::CreateEntityArchetype("RBV", RbvTag());
@@ -3489,31 +3166,43 @@ void TreeSystem::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_density" << YAML::Value << m_density;
   out << YAML::Key << "m_linearDamping" << YAML::Value << m_linearDamping;
   out << YAML::Key << "m_angularDamping" << YAML::Value << m_angularDamping;
-  out << YAML::Key << "m_positionSolverIteration" << YAML::Value << m_positionSolverIteration;
-  out << YAML::Key << "m_velocitySolverIteration" << YAML::Value << m_velocitySolverIteration;
-  out << YAML::Key << "m_jointDriveStiffnessFactor" << YAML::Value << m_jointDriveStiffnessFactor;
-  out << YAML::Key << "m_jointDriveStiffnessThicknessFactor" << YAML::Value << m_jointDriveStiffnessThicknessFactor;
-  out << YAML::Key << "m_jointDriveDampingFactor" << YAML::Value << m_jointDriveDampingFactor;
-  out << YAML::Key << "m_jointDriveDampingThicknessFactor" << YAML::Value << m_jointDriveDampingThicknessFactor;
-  out << YAML::Key << "m_enableAccelerationForDrive" << YAML::Value << m_enableAccelerationForDrive;
+  out << YAML::Key << "m_positionSolverIteration" << YAML::Value
+      << m_positionSolverIteration;
+  out << YAML::Key << "m_velocitySolverIteration" << YAML::Value
+      << m_velocitySolverIteration;
+  out << YAML::Key << "m_jointDriveStiffnessFactor" << YAML::Value
+      << m_jointDriveStiffnessFactor;
+  out << YAML::Key << "m_jointDriveStiffnessThicknessFactor" << YAML::Value
+      << m_jointDriveStiffnessThicknessFactor;
+  out << YAML::Key << "m_jointDriveDampingFactor" << YAML::Value
+      << m_jointDriveDampingFactor;
+  out << YAML::Key << "m_jointDriveDampingThicknessFactor" << YAML::Value
+      << m_jointDriveDampingThicknessFactor;
+  out << YAML::Key << "m_enableAccelerationForDrive" << YAML::Value
+      << m_enableAccelerationForDrive;
 
   out << YAML::Key << "m_displayTime" << YAML::Value << m_displayTime;
-  out << YAML::Key << "m_previousGlobalTime" << YAML::Value << m_previousGlobalTime;
+  out << YAML::Key << "m_previousGlobalTime" << YAML::Value
+      << m_previousGlobalTime;
   out << YAML::Key << "m_connectionWidth" << YAML::Value << m_connectionWidth;
   out << YAML::Key << "m_displayThickness" << YAML::Value << m_displayThickness;
 
-  out << YAML::Key << "m_crownShynessDiameter" << YAML::Value << m_crownShynessDiameter;
+  out << YAML::Key << "m_crownShynessDiameter" << YAML::Value
+      << m_crownShynessDiameter;
 
   out << YAML::Key << "m_leafAmount" << YAML::Value << m_leafAmount;
   out << YAML::Key << "m_radius" << YAML::Value << m_radius;
   out << YAML::Key << "m_leafSize" << YAML::Value << m_leafSize;
-  out << YAML::Key << "m_distanceToEndNode" << YAML::Value << m_distanceToEndNode;
+  out << YAML::Key << "m_distanceToEndNode" << YAML::Value
+      << m_distanceToEndNode;
 
   out << YAML::Key << "m_meshResolution" << YAML::Value << m_meshResolution;
   out << YAML::Key << "m_meshSubdivision" << YAML::Value << m_meshSubdivision;
 
-  m_defaultRayTracingBranchAlbedoTexture.Save("m_defaultRayTracingBranchAlbedoTexture", out);
-  m_defaultRayTracingBranchNormalTexture.Save("m_defaultRayTracingBranchNormalTexture", out);
+  m_defaultRayTracingBranchAlbedoTexture.Save(
+      "m_defaultRayTracingBranchAlbedoTexture", out);
+  m_defaultRayTracingBranchNormalTexture.Save(
+      "m_defaultRayTracingBranchNormalTexture", out);
   m_defaultBranchAlbedoTexture.Save("m_defaultBranchAlbedoTexture", out);
   m_defaultBranchNormalTexture.Save("m_defaultBranchNormalTexture", out);
 
@@ -3528,9 +3217,11 @@ void TreeSystem::Deserialize(const YAML::Node &in) {
   m_positionSolverIteration = in["m_positionSolverIteration"].as<int>();
   m_velocitySolverIteration = in["m_velocitySolverIteration"].as<int>();
   m_jointDriveStiffnessFactor = in["m_jointDriveStiffnessFactor"].as<float>();
-  m_jointDriveStiffnessThicknessFactor = in["m_jointDriveStiffnessThicknessFactor"].as<float>();
+  m_jointDriveStiffnessThicknessFactor =
+      in["m_jointDriveStiffnessThicknessFactor"].as<float>();
   m_jointDriveDampingFactor = in["m_jointDriveDampingFactor"].as<float>();
-  m_jointDriveDampingThicknessFactor = in["m_jointDriveDampingThicknessFactor"].as<float>();
+  m_jointDriveDampingThicknessFactor =
+      in["m_jointDriveDampingThicknessFactor"].as<float>();
   m_enableAccelerationForDrive = in["m_enableAccelerationForDrive"].as<bool>();
 
   m_displayTime = in["m_displayTime"].as<float>();
@@ -3548,8 +3239,10 @@ void TreeSystem::Deserialize(const YAML::Node &in) {
   m_meshResolution = in["m_meshResolution"].as<float>();
   m_meshSubdivision = in["m_meshSubdivision"].as<float>();
 
-  m_defaultRayTracingBranchAlbedoTexture.Load("m_defaultRayTracingBranchAlbedoTexture", in);
-  m_defaultRayTracingBranchNormalTexture.Load("m_defaultRayTracingBranchNormalTexture", in);
+  m_defaultRayTracingBranchAlbedoTexture.Load(
+      "m_defaultRayTracingBranchAlbedoTexture", in);
+  m_defaultRayTracingBranchNormalTexture.Load(
+      "m_defaultRayTracingBranchNormalTexture", in);
   m_defaultBranchAlbedoTexture.Load("m_defaultBranchAlbedoTexture", in);
   m_defaultBranchNormalTexture.Load("m_defaultBranchNormalTexture", in);
 
@@ -3564,12 +3257,331 @@ void TreeSystem::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_defaultBranchNormalTexture);
 }
 void TreeSystem::OnCreate() {
-  #pragma region Internode camera
+#pragma region Internode camera
   m_internodeDebuggingCamera =
-  SerializationManager::ProduceSerializable<Camera>();
+      SerializationManager::ProduceSerializable<Camera>();
   m_internodeDebuggingCamera->m_useClearColor = true;
   m_internodeDebuggingCamera->m_clearColor = glm::vec3(0.1f);
   m_internodeDebuggingCamera->OnCreate();
 #pragma endregion
   Enable();
+}
+void TreeSystem::LateUpdate() {
+  #pragma region Internode debugging camera
+  ImVec2 viewPortSize;
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+  ImGui::Begin("Tree Internodes");
+  {
+    if (ImGui::BeginChild("CameraRenderer", ImVec2(0, 0), false,
+                          ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar)) {
+      if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("Settings")) {
+#pragma region Menu
+          ImGui::Checkbox("Force update", &m_alwaysUpdate);
+          ImGui::SliderFloat("Display Time", &m_displayTime, 0.0f,
+                             m_plantSystem.Get<PlantSystem>()->m_globalTime);
+          if (ImGui::ButtonEx(
+              "To present", ImVec2(0, 0),
+              m_displayTime !=
+              m_plantSystem.Get<PlantSystem>()->m_globalTime
+              ? 0
+              : ImGuiButtonFlags_Disabled))
+            m_displayTime = m_plantSystem.Get<PlantSystem>()->m_globalTime;
+          if (m_displayTime != m_plantSystem.Get<PlantSystem>()->m_globalTime) {
+            ImGui::SameLine();
+            if (ImGui::Button("Start from here.")) {
+              ResetTimeForTree(m_displayTime);
+            }
+          }
+
+          ImGui::Checkbox("Connections", &m_drawBranches);
+          if (m_drawBranches) {
+            if (ImGui::TreeNodeEx("Connection settings",
+                                  ImGuiTreeNodeFlags_DefaultOpen)) {
+              ImGui::Combo("Render type", (int *)&m_branchRenderType,
+                           BranchRenderTypes, IM_ARRAYSIZE(BranchRenderTypes));
+              ImGui::Checkbox("As transparency", &m_useTransparency);
+              if (m_useTransparency)
+                ImGui::SliderFloat("Alpha", &m_transparency, 0, 1);
+              ImGui::Checkbox("Compress", &m_enableBranchDataCompress);
+              if (m_enableBranchDataCompress)
+                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
+                                 0.01f, 0.01f, 1.0f);
+              ImGui::Checkbox("Color Map", &m_useColorMap);
+              if (m_useColorMap) {
+                static int savedAmount = 3;
+                ImGui::SliderInt("Slot amount", &m_colorMapSegmentAmount, 2,
+                                 10);
+                if (savedAmount != m_colorMapSegmentAmount) {
+                  m_colorMapValues.resize(m_colorMapSegmentAmount);
+                  m_colorMapColors.resize(m_colorMapSegmentAmount);
+                  for (int i = 0; i < m_colorMapSegmentAmount; i++) {
+                    if (i != 0 && m_colorMapValues[i] < m_colorMapValues[i - 1])
+                      m_colorMapValues[i] = m_colorMapValues[i - 1] + 1;
+                    if (i >= savedAmount)
+                      m_colorMapColors[i] =
+                          glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
+                  }
+                  savedAmount = m_colorMapSegmentAmount;
+                }
+                for (int i = 0; i < m_colorMapValues.size(); i++) {
+                  if (i == 0) {
+                    ImGui::DragFloat("Value 0", &m_colorMapValues[0], 0.1f,
+                                     0.0f, m_colorMapValues[1]);
+                    ImGui::ColorEdit3("Color 0", &m_colorMapColors[0].x);
+                  } else if (i == m_colorMapValues.size() - 1) {
+                    ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
+                                     &m_colorMapValues[i], 0.1f,
+                                     m_colorMapValues[i - 1] + 0.1f, 9999.0f);
+                    ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
+                                      &m_colorMapColors[i].x);
+                  } else {
+                    ImGui::DragFloat(("Value" + std::to_string(i)).c_str(),
+                                     &m_colorMapValues[i], 0.1f,
+                                     m_colorMapValues[i - 1] + 0.1f,
+                                     m_colorMapValues[i + 1]);
+                    ImGui::ColorEdit3(("Color" + std::to_string(i)).c_str(),
+                                      &m_colorMapColors[i].x);
+                  }
+                }
+              }
+
+              if (ImGui::Checkbox("Display thickness", &m_displayThickness))
+                m_updateBranch = true;
+              if (!m_displayThickness)
+                if (ImGui::DragFloat("Connection width", &m_connectionWidth,
+                                     0.01f, 0.01f, 1.0f))
+                  m_updateBranch = true;
+                ImGui::TreePop();
+            }
+          }
+          ImGui::Checkbox("Pointers", &m_drawPointers);
+          if (m_drawPointers) {
+            if (ImGui::TreeNodeEx("Pointer settings",
+                                  ImGuiTreeNodeFlags_DefaultOpen)) {
+              ImGui::Combo("Render type", (int *)&m_pointerRenderType,
+                           PointerRenderTypes,
+                           IM_ARRAYSIZE(PointerRenderTypes));
+              ImGui::Checkbox("Compress", &m_enablePointerDataCompress);
+              if (m_pointerCompressFactor)
+                ImGui::DragFloat("Compress factor", &m_branchCompressFactor,
+                                 0.01f, 0.01f, 1.0f);
+              if (ImGui::ColorEdit4("Pointer color", &m_pointerColor.x))
+                m_updatePointer = true;
+              if (ImGui::DragFloat("Pointer length", &m_pointerLength, 0.01f,
+                                   0.01f, 3.0f))
+                m_updatePointer = true;
+              if (ImGui::DragFloat("Pointer width", &m_pointerWidth, 0.01f,
+                                   0.01f, 1.0f))
+                m_updatePointer = true;
+              ImGui::TreePop();
+            }
+          }
+          m_voxelSpaceModule.OnGui();
+
+#pragma endregion
+          ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+      }
+      viewPortSize = ImGui::GetWindowSize();
+      viewPortSize.y -= 20;
+      if (viewPortSize.y < 0)
+        viewPortSize.y = 0;
+      m_internodeDebuggingCameraResolutionX = viewPortSize.x;
+      m_internodeDebuggingCameraResolutionY = viewPortSize.y;
+      ImGui::Image(
+          reinterpret_cast<ImTextureID>(
+              m_internodeDebuggingCamera->GetTexture()->Texture()->Id()),
+              viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
+      glm::vec2 mousePosition = glm::vec2(FLT_MAX, FLT_MIN);
+      if (ImGui::IsWindowFocused()) {
+        bool valid = true;
+        mousePosition = InputManager::GetMouseAbsolutePositionInternal(
+            WindowManager::GetWindow());
+        float xOffset = 0;
+        float yOffset = 0;
+        if (valid) {
+          if (!m_startMouse) {
+            m_lastX = mousePosition.x;
+            m_lastY = mousePosition.y;
+            m_startMouse = true;
+          }
+          xOffset = mousePosition.x - m_lastX;
+          yOffset = -mousePosition.y + m_lastY;
+          m_lastX = mousePosition.x;
+          m_lastY = mousePosition.y;
+#pragma region Scene Camera Controller
+          if (!m_rightMouseButtonHold &&
+          InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
+                                         WindowManager::GetWindow())) {
+            m_rightMouseButtonHold = true;
+          }
+          if (m_rightMouseButtonHold &&
+          !EditorManager::GetInstance().m_lockCamera) {
+            glm::vec3 front =
+                EditorManager::GetInstance().m_sceneCameraRotation *
+                glm::vec3(0, 0, -1);
+            glm::vec3 right =
+                EditorManager::GetInstance().m_sceneCameraRotation *
+                glm::vec3(1, 0, 0);
+            if (InputManager::GetKeyInternal(GLFW_KEY_W,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition +=
+                  front * static_cast<float>(Application::Time().DeltaTime()) *
+                  EditorManager::GetInstance().m_velocity;
+            }
+            if (InputManager::GetKeyInternal(GLFW_KEY_S,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition -=
+                  front * static_cast<float>(Application::Time().DeltaTime()) *
+                  EditorManager::GetInstance().m_velocity;
+            }
+            if (InputManager::GetKeyInternal(GLFW_KEY_A,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition -=
+                  right * static_cast<float>(Application::Time().DeltaTime()) *
+                  EditorManager::GetInstance().m_velocity;
+            }
+            if (InputManager::GetKeyInternal(GLFW_KEY_D,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition +=
+                  right * static_cast<float>(Application::Time().DeltaTime()) *
+                  EditorManager::GetInstance().m_velocity;
+            }
+            if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_SHIFT,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition.y +=
+                  EditorManager::GetInstance().m_velocity *
+                  static_cast<float>(Application::Time().DeltaTime());
+            }
+            if (InputManager::GetKeyInternal(GLFW_KEY_LEFT_CONTROL,
+                                             WindowManager::GetWindow())) {
+              EditorManager::GetInstance().m_sceneCameraPosition.y -=
+                  EditorManager::GetInstance().m_velocity *
+                  static_cast<float>(Application::Time().DeltaTime());
+            }
+            if (xOffset != 0.0f || yOffset != 0.0f) {
+              EditorManager::GetInstance().m_sceneCameraYawAngle +=
+                  xOffset * EditorManager::GetInstance().m_sensitivity;
+              EditorManager::GetInstance().m_sceneCameraPitchAngle +=
+                  yOffset * EditorManager::GetInstance().m_sensitivity;
+              if (EditorManager::GetInstance().m_sceneCameraPitchAngle > 89.0f)
+                EditorManager::GetInstance().m_sceneCameraPitchAngle = 89.0f;
+              if (EditorManager::GetInstance().m_sceneCameraPitchAngle < -89.0f)
+                EditorManager::GetInstance().m_sceneCameraPitchAngle = -89.0f;
+
+              EditorManager::GetInstance().m_sceneCameraRotation =
+                  Camera::ProcessMouseMovement(
+                      EditorManager::GetInstance().m_sceneCameraYawAngle,
+                      EditorManager::GetInstance().m_sceneCameraPitchAngle,
+                      false);
+            }
+          }
+#pragma endregion
+          if (m_drawBranches) {
+#pragma region Ray selection
+            m_currentFocusingInternode = Entity();
+            std::mutex writeMutex;
+            auto windowPos = ImGui::GetWindowPos();
+            auto windowSize = ImGui::GetWindowSize();
+            mousePosition.x -= windowPos.x;
+            mousePosition.x -= windowSize.x;
+            mousePosition.y -= windowPos.y + 20;
+            float minDistance = FLT_MAX;
+            GlobalTransform cameraLtw;
+            cameraLtw.m_value =
+                glm::translate(
+                    EditorManager::GetInstance().m_sceneCameraPosition) *
+                    glm::mat4_cast(
+                        EditorManager::GetInstance().m_sceneCameraRotation);
+            const Ray cameraRay = m_internodeDebuggingCamera->ScreenPointToRay(
+                cameraLtw, mousePosition);
+            EntityManager::ForEach<GlobalTransform, BranchCylinderWidth,
+            InternodeGrowth>(
+                JobManager::PrimaryWorkers(),
+                m_plantSystem.Get<PlantSystem>()->m_internodeQuery,
+                [&, cameraLtw, cameraRay](int i, Entity entity,
+                    GlobalTransform &ltw,
+                    BranchCylinderWidth &width,
+                    InternodeGrowth &internodeGrowth) {
+                  const glm::vec3 position = ltw.m_value[3];
+                  const auto parentPosition =
+                      entity.GetParent()
+                      .GetDataComponent<GlobalTransform>()
+                      .GetPosition();
+                  const auto center = (position + parentPosition) / 2.0f;
+                  auto dir = cameraRay.m_direction;
+                  auto pos = cameraRay.m_start;
+                  const auto radius = width.m_value;
+                  const auto height = glm::distance(parentPosition, position);
+                  if (internodeGrowth.m_distanceToRoot == 0) {
+                    if (!cameraRay.Intersect(
+                        position,
+                        glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
+                      return;
+                  } else {
+                    if (!cameraRay.Intersect(center, height / 2.0f))
+                      return;
+
+#pragma region Line Line intersection
+                    /*
+                     * http://geomalgorithms.com/a07-_distance.html
+                     */
+                    glm::vec3 u = pos - (pos + dir);
+                    glm::vec3 v = position - parentPosition;
+                    glm::vec3 w = (pos + dir) - parentPosition;
+                    const auto a = dot(u,
+                                       u); // always >= 0
+                                       const auto b = dot(u, v);
+                                       const auto c = dot(v,
+                                                          v); // always >= 0
+                                                          const auto d = dot(u, w);
+                                                          const auto e = dot(v, w);
+                                                          const auto dotP = a * c - b * b; // always >= 0
+                                                          float sc, tc;
+                                                          // compute the line parameters of the two closest points
+                                                          if (dotP < 0.001f) { // the lines are almost parallel
+                                                            sc = 0.0f;
+                                                            tc = (b > c ? d / b
+                                                                : e / c); // use the largest denominator
+                                                          } else {
+                                                            sc = (b * e - c * d) / dotP;
+                                                            tc = (a * e - b * d) / dotP;
+                                                          }
+                                                          // get the difference of the two closest points
+                                                          glm::vec3 dP = w + sc * u - tc * v; // =  L1(sc) - L2(tc)
+                                                          if (glm::length(dP) > radius)
+                                                            return;
+#pragma endregion
+                  }
+                  const auto distance = glm::distance(
+                      glm::vec3(cameraLtw.m_value[3]), glm::vec3(center));
+                  std::lock_guard<std::mutex> lock(writeMutex);
+                  if (distance < minDistance) {
+                    minDistance = distance;
+                    m_currentFocusingInternode = entity;
+                  }
+                });
+            if (InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT,
+                                               WindowManager::GetWindow())) {
+              if (!m_currentFocusingInternode.Get().IsNull()) {
+                EditorManager::SetSelectedEntity(
+                    m_currentFocusingInternode.Get());
+              }
+            }
+#pragma endregion
+          }
+        }
+      }
+    }
+    ImGui::EndChild();
+    auto *window = ImGui::FindWindowByName("Tree Internodes");
+    m_internodeDebuggingCamera->SetEnabled(
+        !(window->Hidden && !window->Collapsed));
+  }
+  ImGui::End();
+  ImGui::PopStyleVar();
+
+#pragma endregion
 }
