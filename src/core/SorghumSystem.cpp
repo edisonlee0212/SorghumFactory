@@ -485,8 +485,8 @@ void SorghumSystem::OnInspect() {
         if (newSorghumAmount < 1)
           newSorghumAmount = 1;
         FileUtils::OpenFile(
-            "Import parameters for all", ".sorghumparam",
-            [](const std::filesystem::path &path) {
+            "Import parameters for all", "Sorghum Parameters",
+            {".sorghumparam"}, [](const std::filesystem::path &path) {
               newSorghumParameters[0].Deserialize(path.string());
               for (int i = 1; i < newSorghumParameters.size(); i++)
                 newSorghumParameters[i] = newSorghumParameters[0];
@@ -535,14 +535,14 @@ void SorghumSystem::OnInspect() {
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("Parameters")) {
         FileUtils::OpenFile(
-            "Import parameters", ".treeparam",
+            "Import parameters", "Sorghum Params", {".sorghumparam"},
             [](const std::filesystem::path &path) {
               newSorghumParameters[currentFocusedNewSorghumIndex].Deserialize(
                   path.string());
             });
 
         FileUtils::SaveFile(
-            "Export parameters", ".treeparam",
+            "Export parameters", "Sorghum Params", {".sorghumparam"},
             [](const std::filesystem::path &path) {
               newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(
                   path.string());
@@ -639,7 +639,7 @@ void SorghumSystem::OnInspect() {
         EntityManager::DeleteEntity(rootInternode);
     }
   }
-  FileUtils::SaveFile("Export OBJ for all sorghums", ".obj",
+  FileUtils::SaveFile("Export OBJ for all sorghums", "3D Model", {".obj"},
                       [this](const std::filesystem::path &path) {
                         ExportAllSorghumsModel(path.string());
                       });

@@ -833,7 +833,7 @@ void TreeSystem::OnInspect() {
   if (ImGui::Button("Generate skinned mesh")) {
     GenerateSkinnedMeshForTree();
   }
-  FileUtils::SaveFile("Save scene as XML", ".xml",
+  FileUtils::SaveFile("Save scene as XML", "Scene XML", {".xml"},
                       [this](const std::filesystem::path &path) {
                         SerializeScene(path.string());
                       });
@@ -893,7 +893,7 @@ void TreeSystem::OnInspect() {
         ImGui::InputInt("New Tree Amount", &newTreeAmount);
         if (newTreeAmount < 1)
           newTreeAmount = 1;
-        FileUtils::OpenFile("Import parameters for all", ".treeparam",
+        FileUtils::OpenFile("Import parameters for all", "Tree Params", {".treeparam"},
                             [](const std::filesystem::path &path) {
                               newTreeParameters[0].Deserialize(path.string());
                               for (int i = 1; i < newTreeParameters.size(); i++)
@@ -949,14 +949,14 @@ void TreeSystem::OnInspect() {
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("Parameters")) {
         FileUtils::OpenFile(
-            "Import parameters", ".treeparam",
+            "Import parameters", "Tree Params", {".treeparam"},
             [](const std::filesystem::path &path) {
               newTreeParameters[currentFocusedNewTreeIndex].Deserialize(
                   path.string());
             });
 
         FileUtils::SaveFile(
-            "Export parameters", ".treeparam",
+            "Export parameters", "Tree Params", {".treeparam"},
             [](const std::filesystem::path &path) {
               newTreeParameters[currentFocusedNewTreeIndex].Serialize(
                   path.string());
@@ -992,7 +992,6 @@ void TreeSystem::OnInspect() {
     ImGui::EndPopup();
   }
 #pragma endregion
-
 }
 
 void TreeSystem::RenderBranchCylinders(const float &displayTime) {
@@ -3267,7 +3266,7 @@ void TreeSystem::OnCreate() {
   Enable();
 }
 void TreeSystem::LateUpdate() {
-  #pragma region Internode debugging camera
+#pragma region Internode debugging camera
   ImVec2 viewPortSize;
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
   ImGui::Begin("Tree Internodes");
@@ -3281,11 +3280,11 @@ void TreeSystem::LateUpdate() {
           ImGui::SliderFloat("Display Time", &m_displayTime, 0.0f,
                              m_plantSystem.Get<PlantSystem>()->m_globalTime);
           if (ImGui::ButtonEx(
-              "To present", ImVec2(0, 0),
-              m_displayTime !=
-              m_plantSystem.Get<PlantSystem>()->m_globalTime
-              ? 0
-              : ImGuiButtonFlags_Disabled))
+                  "To present", ImVec2(0, 0),
+                  m_displayTime !=
+                          m_plantSystem.Get<PlantSystem>()->m_globalTime
+                      ? 0
+                      : ImGuiButtonFlags_Disabled))
             m_displayTime = m_plantSystem.Get<PlantSystem>()->m_globalTime;
           if (m_displayTime != m_plantSystem.Get<PlantSystem>()->m_globalTime) {
             ImGui::SameLine();
@@ -3352,7 +3351,7 @@ void TreeSystem::LateUpdate() {
                 if (ImGui::DragFloat("Connection width", &m_connectionWidth,
                                      0.01f, 0.01f, 1.0f))
                   m_updateBranch = true;
-                ImGui::TreePop();
+              ImGui::TreePop();
             }
           }
           ImGui::Checkbox("Pointers", &m_drawPointers);
@@ -3393,7 +3392,7 @@ void TreeSystem::LateUpdate() {
       ImGui::Image(
           reinterpret_cast<ImTextureID>(
               m_internodeDebuggingCamera->GetTexture()->Texture()->Id()),
-              viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
+          viewPortSize, ImVec2(0, 1), ImVec2(1, 0));
       glm::vec2 mousePosition = glm::vec2(FLT_MAX, FLT_MIN);
       if (ImGui::IsWindowFocused()) {
         bool valid = true;
@@ -3413,12 +3412,12 @@ void TreeSystem::LateUpdate() {
           m_lastY = mousePosition.y;
 #pragma region Scene Camera Controller
           if (!m_rightMouseButtonHold &&
-          InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
-                                         WindowManager::GetWindow())) {
+              InputManager::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT,
+                                             WindowManager::GetWindow())) {
             m_rightMouseButtonHold = true;
           }
           if (m_rightMouseButtonHold &&
-          !EditorManager::GetInstance().m_lockCamera) {
+              !EditorManager::GetInstance().m_lockCamera) {
             glm::vec3 front =
                 EditorManager::GetInstance().m_sceneCameraRotation *
                 glm::vec3(0, 0, -1);
@@ -3493,23 +3492,23 @@ void TreeSystem::LateUpdate() {
             cameraLtw.m_value =
                 glm::translate(
                     EditorManager::GetInstance().m_sceneCameraPosition) *
-                    glm::mat4_cast(
-                        EditorManager::GetInstance().m_sceneCameraRotation);
+                glm::mat4_cast(
+                    EditorManager::GetInstance().m_sceneCameraRotation);
             const Ray cameraRay = m_internodeDebuggingCamera->ScreenPointToRay(
                 cameraLtw, mousePosition);
             EntityManager::ForEach<GlobalTransform, BranchCylinderWidth,
-            InternodeGrowth>(
+                                   InternodeGrowth>(
                 JobManager::PrimaryWorkers(),
                 m_plantSystem.Get<PlantSystem>()->m_internodeQuery,
                 [&, cameraLtw, cameraRay](int i, Entity entity,
-                    GlobalTransform &ltw,
-                    BranchCylinderWidth &width,
-                    InternodeGrowth &internodeGrowth) {
+                                          GlobalTransform &ltw,
+                                          BranchCylinderWidth &width,
+                                          InternodeGrowth &internodeGrowth) {
                   const glm::vec3 position = ltw.m_value[3];
                   const auto parentPosition =
                       entity.GetParent()
-                      .GetDataComponent<GlobalTransform>()
-                      .GetPosition();
+                          .GetDataComponent<GlobalTransform>()
+                          .GetPosition();
                   const auto center = (position + parentPosition) / 2.0f;
                   auto dir = cameraRay.m_direction;
                   auto pos = cameraRay.m_start;
@@ -3517,8 +3516,8 @@ void TreeSystem::LateUpdate() {
                   const auto height = glm::distance(parentPosition, position);
                   if (internodeGrowth.m_distanceToRoot == 0) {
                     if (!cameraRay.Intersect(
-                        position,
-                        glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
+                            position,
+                            glm::max(0.2f, internodeGrowth.m_thickness * 4.0f)))
                       return;
                   } else {
                     if (!cameraRay.Intersect(center, height / 2.0f))
@@ -3533,26 +3532,26 @@ void TreeSystem::LateUpdate() {
                     glm::vec3 w = (pos + dir) - parentPosition;
                     const auto a = dot(u,
                                        u); // always >= 0
-                                       const auto b = dot(u, v);
-                                       const auto c = dot(v,
-                                                          v); // always >= 0
-                                                          const auto d = dot(u, w);
-                                                          const auto e = dot(v, w);
-                                                          const auto dotP = a * c - b * b; // always >= 0
-                                                          float sc, tc;
-                                                          // compute the line parameters of the two closest points
-                                                          if (dotP < 0.001f) { // the lines are almost parallel
-                                                            sc = 0.0f;
-                                                            tc = (b > c ? d / b
-                                                                : e / c); // use the largest denominator
-                                                          } else {
-                                                            sc = (b * e - c * d) / dotP;
-                                                            tc = (a * e - b * d) / dotP;
-                                                          }
-                                                          // get the difference of the two closest points
-                                                          glm::vec3 dP = w + sc * u - tc * v; // =  L1(sc) - L2(tc)
-                                                          if (glm::length(dP) > radius)
-                                                            return;
+                    const auto b = dot(u, v);
+                    const auto c = dot(v,
+                                       v); // always >= 0
+                    const auto d = dot(u, w);
+                    const auto e = dot(v, w);
+                    const auto dotP = a * c - b * b; // always >= 0
+                    float sc, tc;
+                    // compute the line parameters of the two closest points
+                    if (dotP < 0.001f) { // the lines are almost parallel
+                      sc = 0.0f;
+                      tc = (b > c ? d / b
+                                  : e / c); // use the largest denominator
+                    } else {
+                      sc = (b * e - c * d) / dotP;
+                      tc = (a * e - b * d) / dotP;
+                    }
+                    // get the difference of the two closest points
+                    glm::vec3 dP = w + sc * u - tc * v; // =  L1(sc) - L2(tc)
+                    if (glm::length(dP) > radius)
+                      return;
 #pragma endregion
                   }
                   const auto distance = glm::distance(

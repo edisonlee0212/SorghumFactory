@@ -9,14 +9,17 @@ using namespace PlantFactory;
 void TreeData::OnGui() {
   if (ImGui::TreeNodeEx("I/O")) {
     if (m_meshGenerated) {
-      FileUtils::SaveFile(
-          "Export OBJ", ".obj",
-          [this](const std::filesystem::path &path) { ExportModel(path.string()); });
+      FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
+                          [this](const std::filesystem::path &path) {
+                            ExportModel(path.string());
+                          });
     }
     FileUtils::SaveFile(
-        "Export xml graph", ".xml", [this](const std::filesystem::path &path) {
+        "Export xml graph", "Graph", {".xml"},
+        [this](const std::filesystem::path &path) {
           std::ofstream ofs;
-          ofs.open(path.string().c_str(), std::ofstream::out | std::ofstream::trunc);
+          ofs.open(path.string().c_str(),
+                   std::ofstream::out | std::ofstream::trunc);
           if (!ofs.is_open()) {
             Debug::Error("Can't open file!");
             return;
@@ -149,14 +152,14 @@ void TreeData::CollectAssetRef(std::vector<AssetRef> &list) {
 }
 void TreeData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_height" << YAML::Value << m_height;
-  out << YAML::Key << "m_maxBranchingDepth" << YAML::Value << m_maxBranchingDepth;
+  out << YAML::Key << "m_maxBranchingDepth" << YAML::Value
+      << m_maxBranchingDepth;
   out << YAML::Key << "m_lateralBudsCount" << YAML::Value << m_lateralBudsCount;
   out << YAML::Key << "m_totalLength" << YAML::Value << m_totalLength;
   out << YAML::Key << "m_activeLength" << YAML::Value << m_activeLength;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
   out << YAML::Key << "m_foliageGenerated" << YAML::Value << m_foliageGenerated;
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
-
 
   m_branchMesh.Save("m_branchMesh", out);
   m_skinnedBranchMesh.Save("m_skinnedBranchMesh", out);

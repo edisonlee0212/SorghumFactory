@@ -243,7 +243,8 @@ void RadialBoundingVolume::FormEntity() {
     mmc->m_mesh = m_boundMeshes[i];
 
     auto rayTracedRenderer =
-        slice.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>().lock();
+        slice.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+            .lock();
     slice.SetParent(GetOwner(), false);
     rayTracedRenderer->SyncWithMeshRenderer();
   }
@@ -486,7 +487,8 @@ void RadialBoundingVolume::CalculateVolume(float maxHeight) {
 }
 
 void RadialBoundingVolume::OnGui() {
-  if(!m_meshGenerated) CalculateVolume();
+  if (!m_meshGenerated)
+    CalculateVolume();
   ImGui::Checkbox("Prune Buds", &m_pruneBuds);
   ImGui::Checkbox("Display bounds", &m_display);
   ImGui::ColorEdit4("Display Color", &m_displayColor.x);
@@ -507,9 +509,10 @@ void RadialBoundingVolume::OnGui() {
     for (int i = 0; i < m_layerAmount; i++) {
       if (ImGui::TreeNodeEx(("Layer " + std::to_string(i)).c_str())) {
         for (int j = 0; j < m_sectorAmount; j++) {
-          if (ImGui::DragFloat(("Sector " + std::to_string(j) + "##" + std::to_string(i)).c_str(),
-                               &m_layers[i][j].m_maxDistance, 0.1f, 0.0f,
-                               100.0f))
+          if (ImGui::DragFloat(
+                  ("Sector " + std::to_string(j) + "##" + std::to_string(i))
+                      .c_str(),
+                  &m_layers[i][j].m_maxDistance, 0.1f, 0.0f, 100.0f))
             GenerateMesh();
         }
 
@@ -523,18 +526,23 @@ void RadialBoundingVolume::OnGui() {
     ImGui::TreePop();
   }
 
-  FileUtils::SaveFile("Save RBV", ".rbv", [this](const std::filesystem::path &path) {
-    const std::string data = Save();
-    std::ofstream ofs;
-    ofs.open(path.string().c_str(), std::ofstream::out | std::ofstream::trunc);
-    ofs.write(data.c_str(), data.length());
-    ofs.flush();
-    ofs.close();
-  });
-  FileUtils::OpenFile("Load RBV", ".rbv",
-                      [this](const std::filesystem::path &path) { Load(path.string()); });
-  FileUtils::SaveFile("Export RBV as OBJ", ".obj",
-                      [this](const std::filesystem::path &path) { ExportAsObj(path.string()); });
+  FileUtils::SaveFile("Save RBV", "RBV", {".rbv"},
+                      [this](const std::filesystem::path &path) {
+                        const std::string data = Save();
+                        std::ofstream ofs;
+                        ofs.open(path.string().c_str(),
+                                 std::ofstream::out | std::ofstream::trunc);
+                        ofs.write(data.c_str(), data.length());
+                        ofs.flush();
+                        ofs.close();
+                      });
+  FileUtils::OpenFile(
+      "Load RBV", "RBV", {".rbv"},
+      [this](const std::filesystem::path &path) { Load(path.string()); });
+  FileUtils::SaveFile("Export RBV as OBJ", "3D Model", {".obj"},
+                      [this](const std::filesystem::path &path) {
+                        ExportAsObj(path.string());
+                      });
   if (!displayLayer && m_display && m_meshGenerated) {
     for (auto &i : m_boundMeshes) {
       RenderManager::DrawGizmoMesh(
@@ -553,7 +561,7 @@ bool RadialBoundingVolume::InVolume(const glm::vec3 &position) {
         glm::length(glm::vec2(position.x, position.z));
     return glm::max(1.0f, m_layers[sliceIndex.x][sliceIndex.y].m_maxDistance) >=
                currentDistance &&
-               position.y <= m_maxHeight;
+           position.y <= m_maxHeight;
   }
   return true;
 }
@@ -591,14 +599,15 @@ void RadialBoundingVolume::Deserialize(const YAML::Node &in) {
   m_displayPoints = in["m_displayPoints"].as<bool>();
   m_displayBounds = in["m_displayBounds"].as<bool>();
 
-  if(in["m_layers"]){
+  if (in["m_layers"]) {
     m_layers.resize(m_layerAmount);
-    for(auto& i : m_layers){
+    for (auto &i : m_layers) {
       i.resize(m_sectorAmount);
     }
     int index = 0;
-    for(const auto& i : in["m_layers"]){
-      m_layers[index / m_sectorAmount][index % m_sectorAmount].m_maxDistance = i["m_maxDistance"].as<float>();
+    for (const auto &i : in["m_layers"]) {
+      m_layers[index / m_sectorAmount][index % m_sectorAmount].m_maxDistance =
+          i["m_maxDistance"].as<float>();
       index++;
     }
   }
@@ -616,10 +625,10 @@ void RadialBoundingVolume::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_displayPoints" << YAML::Value << m_displayPoints;
   out << YAML::Key << "m_displayBounds" << YAML::Value << m_displayBounds;
 
-  if(!m_layers.empty()){
+  if (!m_layers.empty()) {
     out << YAML::Key << "m_layers" << YAML::BeginSeq;
-    for(const auto& i : m_layers){
-      for(const auto& j : i){
+    for (const auto &i : m_layers) {
+      for (const auto &j : i) {
         out << YAML::BeginMap;
         out << YAML::Key << "m_maxDistance" << YAML::Value << j.m_maxDistance;
         out << YAML::EndMap;

@@ -18,9 +18,10 @@ void SorghumData::OnDestroy() {
 void SorghumData::OnGui() {
   if (ImGui::TreeNodeEx("I/O")) {
     if (m_meshGenerated) {
-      FileUtils::SaveFile(
-          "Export OBJ", ".obj",
-          [this](const std::filesystem::path &path) { ExportModel(path.string()); });
+      FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
+                          [this](const std::filesystem::path &path) {
+                            ExportModel(path.string());
+                          });
     }
     ImGui::TreePop();
   }
