@@ -454,6 +454,11 @@ void InternodeData::Deserialize(const YAML::Node &in) {
 }
 
 void PlantSystem::OnInspect() {
+  if(!m_ready){
+    ImGui::Text("System not ready!");
+    return;
+  }
+
   if (m_iterationsToGrow == 0 && m_physicsSimulationRemainingTime == 0) {
     if (ImGui::Button("Delete all plants")) {
       ImGui::OpenPopup("Delete Warning");

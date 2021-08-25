@@ -25,7 +25,7 @@ struct RbvTag : IDataComponent {};
 
 class TreeSystem : public ISystem {
   SystemRef m_plantSystem;
-
+  bool m_ready = false;
 #pragma region Helpers
   static void ExportChains(int parentOrder, Entity internode,
                            rapidxml::xml_node<> *chains,

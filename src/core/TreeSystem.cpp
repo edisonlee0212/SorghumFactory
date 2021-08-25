@@ -778,6 +778,11 @@ const char *BranchRenderTypes[]{"Illumination",
 const char *PointerRenderTypes[]{"Illumination", "Bending"};
 
 void TreeSystem::OnInspect() {
+  if(!m_ready){
+    ImGui::Text("System not ready!");
+    return;
+  }
+
   ImGui::Text("Physics");
   ImGui::DragFloat("Internode Density", &m_density, 0.1f, 0.01f, 1000.0f);
   ImGui::DragFloat2("RigidBody Damping", &m_linearDamping, 0.1f, 0.01f,
@@ -2814,7 +2819,6 @@ void TreeSystem::DistributeResourcesForTree(
 }
 
 void TreeSystem::Start() {
-
   if (!m_plantSystem.Get<PlantSystem>())
     m_plantSystem = EntityManager::GetSystem<PlantSystem>();
   m_voxelSpaceModule.Reset();
@@ -2890,6 +2894,8 @@ void TreeSystem::Start() {
   m_plantSystem.Get<PlantSystem>()->m_deleteAllPlants.insert_or_assign(
       PlantType::GeneralTree, [this]() { DeleteAllPlantsHelper(); });
 #pragma endregion
+
+  m_ready = true;
 }
 
 void TreeSystem::SerializeScene(const std::string &filename) {

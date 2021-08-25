@@ -57,6 +57,7 @@ class SorghumSystem : public ISystem {
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
 
+  bool m_ready = false;
 public:
 #pragma region Illumination
   int m_seed;
@@ -87,8 +88,8 @@ public:
   AssetRef m_leafMaterial;
   AssetRef m_instancedLeafMaterial;
 
-
   void OnCreate() override;
+  void Start() override;
   Entity CreateSorghum();
   Entity CreateSorghumLeaf(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);

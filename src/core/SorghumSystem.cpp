@@ -103,8 +103,10 @@ void RectangularSorghumField::GenerateField(
     }
   }
 }
-
 void SorghumSystem::OnCreate() {
+  Enable();
+}
+void SorghumSystem::Start() {
 
   m_plantSystem = EntityManager::GetSystem<PlantSystem>();
 
@@ -157,7 +159,7 @@ void SorghumSystem::OnCreate() {
   m_plantSystem->m_deleteAllPlants.insert_or_assign(
       PlantType::Sorghum, [this]() { DeleteAllPlantsHelper(); });
 
-  Enable();
+  m_ready = true;
 }
 
 Entity SorghumSystem::CreateSorghum() {
@@ -416,6 +418,10 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
 }
 
 void SorghumSystem::OnInspect() {
+  if(!m_ready){
+    ImGui::Text("System not ready!");
+    return;
+  }
   ImGui::Checkbox("Display light probes", &m_displayLightProbes);
   ImGui::DragInt("Seed", &m_seed);
   if (ImGui::Button("Calculate illumination")) {
