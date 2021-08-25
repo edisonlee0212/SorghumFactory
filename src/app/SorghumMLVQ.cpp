@@ -11,10 +11,6 @@
 #include <PostProcessing.hpp>
 #include <RayTracerManager.hpp>
 #include <SorghumSystem.hpp>
-#include <TreeSystem.hpp>
-#include <TreeLeaves.hpp>
-#include <CubeVolume.hpp>
-#include <RadialBoundingVolume.hpp>
 #include <SorghumData.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
@@ -26,8 +22,6 @@ void EngineSetup(bool enableRayTracing);
 
 int main() {
   ClassRegistry::RegisterDataComponent<LeafInfo>("LeafInfo");
-  ClassRegistry::RegisterDataComponent<TreeLeavesTag>("TreeLeavesTag");
-  ClassRegistry::RegisterDataComponent<RbvTag>("RbvTag");
   ClassRegistry::RegisterDataComponent<PlantInfo>("PlantInfo");
   ClassRegistry::RegisterDataComponent<BranchCylinder>("BranchCylinder");
   ClassRegistry::RegisterDataComponent<BranchCylinderWidth>("BranchCylinderWidth");
@@ -42,16 +36,11 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
-  ClassRegistry::RegisterPrivateComponent<TreeData>("TreeData");
-  ClassRegistry::RegisterPrivateComponent<TreeLeaves>("TreeLeaves");
-  ClassRegistry::RegisterPrivateComponent<RadialBoundingVolume>("RadialBoundingVolume");
-  ClassRegistry::RegisterPrivateComponent<CubeVolume>("CubeVolume");
 
   ClassRegistry::RegisterPrivateComponent<InternodeData>("InternodeData");
 
   ClassRegistry::RegisterSystem<PlantSystem>("PlantSystem");
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
-  ClassRegistry::RegisterSystem<TreeSystem>("TreeSystem");
 
   ClassRegistry::RegisterPrivateComponent<RayTracedRenderer>(
       "RayTracedRenderer");
@@ -118,8 +107,6 @@ void EngineSetup(bool enableRayTracing) {
     auto plantSystem =
         EntityManager::GetOrCreateSystem<PlantSystem>(
             EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup);
-    auto treeSystem = EntityManager::GetOrCreateSystem<TreeSystem>(
-        EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
     auto sorghumSystem =
         EntityManager::GetOrCreateSystem<SorghumSystem>(
             EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);

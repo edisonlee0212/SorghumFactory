@@ -2,9 +2,7 @@
 #include <CUDAModule.hpp>
 #include <Camera.hpp>
 #include <InternodeRingSegment.hpp>
-#include <TreeData.hpp>
 #include <Volume.hpp>
-#include <VoxelSpace.hpp>
 #include <QuickHull.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
@@ -285,7 +283,6 @@ public:
 
 #pragma endregion
 #pragma region Helpers
-  Entity CreateCubeObstacle();
   void DeleteAllPlants();
   Entity CreatePlant(const PlantType &type, const Transform &transform);
   Entity CreateInternode(const PlantType &type, const Entity &parentEntity);

@@ -1,5 +1,4 @@
 #pragma once
-#include <Application.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
 class ObjectRotator : public IPrivateComponent {

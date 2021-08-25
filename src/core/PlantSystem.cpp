@@ -1,5 +1,4 @@
 #include <CUDAModule.hpp>
-#include <CubeVolume.hpp>
 #include <Joint.hpp>
 #include <PhysicsManager.hpp>
 #include <PlantSystem.hpp>
@@ -7,7 +6,6 @@
 #include <RayTracerManager.hpp>
 #include <RigidBody.hpp>
 #include <SorghumSystem.hpp>
-#include <TreeSystem.hpp>
 #include <Utilities.hpp>
 #include <Volume.hpp>
 
@@ -34,12 +32,6 @@ void InternodeData::OnGui() {
     RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube,
                                           m_pointColor, m_points,
                                           glm::mat4(1.0f), m_pointSize);
-    RenderManager::DrawGizmoMeshInstanced(
-        DefaultResources::Primitives::Cube,
-        EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
-        EditorManager::GetInstance().m_sceneCameraPosition,
-        EditorManager::GetInstance().m_sceneCameraRotation, m_pointColor,
-        m_points, glm::mat4(1.0f), m_pointSize);
   }
   if (m_displayHullMesh && !m_points.empty()) {
     ImGui::ColorEdit4("KDop Color", &m_hullMeshColor.x);
@@ -49,11 +41,6 @@ void InternodeData::OnGui() {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       glLineWidth(m_lineWidth);
       RenderManager::DrawGizmoMesh(m_hullMesh, m_hullMeshColor);
-      RenderManager::DrawGizmoMesh(
-          m_hullMesh,
-          EntityManager::GetSystem<TreeSystem>()->m_internodeDebuggingCamera,
-          EditorManager::GetInstance().m_sceneCameraPosition,
-          EditorManager::GetInstance().m_sceneCameraRotation, m_hullMeshColor);
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       glLineWidth(1.0f);
     } else {
@@ -569,19 +556,6 @@ bool PlantSystem::GrowAllPlants() {
   if (GrowCandidates(candidates)) {
     time = Application::Time().CurrentTime();
     std::vector<std::pair<GlobalTransform, Volume *>> obstacles;
-    const auto *entities =
-        EntityManager::UnsafeGetPrivateComponentOwnersList<CubeVolume>();
-    if (entities) {
-      for (const auto &entity : *entities) {
-        if (!entity.IsEnabled())
-          continue;
-        auto volume = entity.GetOrSetPrivateComponent<CubeVolume>().lock();
-        if (volume->IsEnabled() && volume->m_asObstacle)
-          obstacles.emplace_back(
-              volume->GetOwner().GetDataComponent<GlobalTransform>(),
-              volume.get());
-      }
-    }
     for (auto &i : m_plantInternodePruners) {
       i.second(obstacles);
     }
@@ -740,28 +714,6 @@ void ResourceParcel::Deserialize(const YAML::Node &in) {
 #pragma endregion
 #pragma region Helpers
 
-Entity PlantSystem::CreateCubeObstacle() {
-  const auto volumeEntity = EntityManager::CreateEntity("Volume");
-  volumeEntity.SetEnabled(false);
-  Transform transform;
-  transform.SetPosition(glm::vec3(0, 10, 0));
-  transform.SetScale(glm::vec3(4, 2, 4));
-  GlobalTransform globalTransform;
-  globalTransform.m_value = transform.m_value;
-  volumeEntity.SetDataComponent(transform);
-  volumeEntity.SetDataComponent(globalTransform);
-
-  auto meshRenderer =
-      volumeEntity.GetOrSetPrivateComponent<MeshRenderer>().lock();
-  meshRenderer->m_mesh = DefaultResources::Primitives::Cube;
-  meshRenderer->m_material =
-      AssetManager::LoadMaterial(DefaultResources::GLPrograms::StandardProgram);
-
-  auto volume = volumeEntity.GetOrSetPrivateComponent<CubeVolume>().lock();
-  volume->ApplyMeshRendererBounds();
-  return volumeEntity;
-}
-
 void PlantSystem::DeleteAllPlants() {
   m_globalTime = 0;
   std::vector<Entity> trees;
@@ -869,11 +821,6 @@ void PlantSystem::Start() {
             .lock();
     rayTracedRenderer->SyncWithMeshRenderer();
     rayTracedRenderer->m_enableMLVQ = true;
-
-    auto cubeVolume = ground.GetOrSetPrivateComponent<CubeVolume>().lock();
-    cubeVolume->m_asObstacle = true;
-    cubeVolume->m_minMaxBound.m_max = glm::vec3(1, -1.0f, 1);
-    cubeVolume->m_minMaxBound.m_min = glm::vec3(-1, -10.0f, -1);
   }
 #pragma endregion
 #pragma region Mask material
