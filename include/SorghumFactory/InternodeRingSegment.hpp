@@ -1,7 +1,9 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 using namespace UniEngine;
 namespace PlantFactory {
-struct InternodeRingSegment {
+struct SORGHUM_FACTORY_API InternodeRingSegment {
   glm::vec3 m_startPosition, m_endPosition;
   glm::vec3 m_startAxis, m_endAxis;
   float m_startRadius, m_endRadius;

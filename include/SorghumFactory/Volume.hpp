@@ -1,7 +1,9 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 using namespace UniEngine;
 namespace PlantFactory {
-class Volume : public IPrivateComponent {
+class SORGHUM_FACTORY_API Volume : public IPrivateComponent {
 public:
   bool m_asObstacle = false;
   virtual glm::vec3 GetRandomPoint() = 0;

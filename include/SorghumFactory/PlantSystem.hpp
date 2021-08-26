@@ -1,49 +1,51 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 #include <CUDAModule.hpp>
 #include <Camera.hpp>
 #include <InternodeRingSegment.hpp>
-#include <Volume.hpp>
 #include <QuickHull.hpp>
+#include <Volume.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
 enum class PlantType { GeneralTree, Sorghum };
 #pragma region Tree
-struct PlantInfo : IDataComponent {
+struct SORGHUM_FACTORY_API PlantInfo : IDataComponent {
   PlantType m_plantType;
   float m_startTime;
   float m_age;
 };
 #pragma endregion
 #pragma region Internode
-struct BranchCylinder : IDataComponent {
+struct SORGHUM_FACTORY_API BranchCylinder : IDataComponent {
   glm::mat4 m_value;
   bool operator==(const BranchCylinder &other) const {
     return other.m_value == m_value;
   }
 };
-struct BranchCylinderWidth : IDataComponent {
+struct SORGHUM_FACTORY_API BranchCylinderWidth : IDataComponent {
   float m_value;
   bool operator==(const BranchCylinderWidth &other) const {
     return other.m_value == m_value;
   }
 };
-struct BranchPointer : IDataComponent {
+struct SORGHUM_FACTORY_API BranchPointer : IDataComponent {
   glm::mat4 m_value;
   bool operator==(const BranchCylinder &other) const {
     return other.m_value == m_value;
   }
 };
 
-struct Illumination : IDataComponent {
+struct SORGHUM_FACTORY_API Illumination : IDataComponent {
   float m_currentIntensity = 0;
   glm::vec3 m_accumulatedDirection = glm::vec3(0.0f);
 };
 
-struct BranchColor : IDataComponent {
+struct SORGHUM_FACTORY_API BranchColor : IDataComponent {
   glm::vec4 m_value;
 };
 
-struct InternodeInfo : IDataComponent {
+struct SORGHUM_FACTORY_API InternodeInfo : IDataComponent {
   PlantType m_plantType;
 
   float m_usedResource;
@@ -54,7 +56,7 @@ struct InternodeInfo : IDataComponent {
   int m_level = 1;
   int m_index = -1;
 };
-struct InternodeGrowth : IDataComponent {
+struct SORGHUM_FACTORY_API InternodeGrowth : IDataComponent {
   float m_inhibitor = 0;
   float m_inhibitorTransmitFactor = 1;
   int m_distanceToRoot = 0; // Ok
@@ -72,9 +74,8 @@ struct InternodeGrowth : IDataComponent {
   glm::quat m_desiredGlobalRotation = glm::quat(glm::vec3(0.0f));
   // Will be used to calculate the gravity bending.
   glm::vec3 m_desiredGlobalPosition = glm::vec3(0.0f);
-
 };
-struct InternodeStatistics : IDataComponent {
+struct SORGHUM_FACTORY_API InternodeStatistics : IDataComponent {
   int m_childrenEndNodeAmount = 0;       // Ok
   bool m_isMaxChild = false;             // Ok
   bool m_isEndNode = false;              // Ok
@@ -89,7 +90,7 @@ struct InternodeStatistics : IDataComponent {
 #pragma endregion
 #pragma region Bud
 class Bud;
-struct InternodeCandidate {
+struct SORGHUM_FACTORY_API InternodeCandidate {
   Entity m_plant;
   Entity m_parent;
   std::vector<Bud> m_buds;
@@ -99,7 +100,7 @@ struct InternodeCandidate {
   InternodeStatistics m_statistics = InternodeStatistics();
 };
 
-struct ResourceParcel {
+struct SORGHUM_FACTORY_API ResourceParcel {
   float m_nutrient;
   float m_carbon;
   float m_globalTime = 0;
@@ -111,10 +112,9 @@ struct ResourceParcel {
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
-
 };
 
-class Bud {
+class SORGHUM_FACTORY_API Bud {
 public:
   bool m_enoughForGrowth = false;
   float m_resourceWeight = 1.0f;
@@ -131,7 +131,7 @@ public:
 };
 #pragma endregion
 
-struct KDop {
+struct SORGHUM_FACTORY_API KDop {
   std::vector<Plane> m_planes;
   std::vector<Vertex> m_vertices;
   std::vector<glm::uvec3> m_indices;
@@ -143,7 +143,7 @@ struct KDop {
   glm::vec3 GetIntersection(const Plane &p0, const Plane &p1, const Plane &p2);
 };
 
-class InternodeData : public IPrivateComponent {
+class SORGHUM_FACTORY_API InternodeData : public IPrivateComponent {
 public:
   glm::vec3 m_normalDir = glm::vec3(0, 0, 1);
   bool m_displayPoints = true;
@@ -152,7 +152,6 @@ public:
   float m_lineWidth = 5.0f;
   glm::vec4 m_pointColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
   glm::vec4 m_hullMeshColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
-
 
   EntityRef m_thickestChild;
   EntityRef m_plant;
@@ -163,7 +162,6 @@ public:
   KDop m_kDop;
   quickhull::ConvexHull<float> m_convexHull;
   std::shared_ptr<Mesh> m_hullMesh;
-
 
   int m_step;
   void OnGui() override;
@@ -178,7 +176,7 @@ public:
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 #pragma region Enums
-enum class BranchRenderType {
+enum class SORGHUM_FACTORY_API BranchRenderType {
   Illumination,
   Sagging,
   Inhibitor,
@@ -200,7 +198,7 @@ enum class BranchRenderType {
 
 enum class PointerRenderType { Illumination, Bending };
 #pragma endregion
-class PlantSystem : public ISystem {
+class SORGHUM_FACTORY_API PlantSystem : public ISystem {
 public:
   std::map<PlantType,
            std::function<void(std::vector<ResourceParcel> &resources)>>

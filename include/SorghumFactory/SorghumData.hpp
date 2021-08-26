@@ -1,8 +1,10 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 #include <SorghumParameters.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-class SorghumData : public IPrivateComponent {
+class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
 public:
   bool m_growthComplete = false;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);

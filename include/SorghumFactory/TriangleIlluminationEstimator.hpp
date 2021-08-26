@@ -1,8 +1,10 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 #include <CUDAModule.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-class TriangleIlluminationEstimator : public IPrivateComponent {
+class SORGHUM_FACTORY_API TriangleIlluminationEstimator : public IPrivateComponent {
 public:
   std::vector<Entity> m_entities;
   std::vector<glm::mat4> m_probeTransforms;

@@ -1,7 +1,9 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 using namespace UniEngine;
 namespace PlantFactory {
-class LeafSegment {
+class SORGHUM_FACTORY_API LeafSegment {
 public:
   glm::vec3 m_position;
   glm::vec3 m_front;

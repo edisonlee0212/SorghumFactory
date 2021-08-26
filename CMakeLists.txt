@@ -52,21 +52,21 @@ set(CMAKE_CXX_STANDARD 17)
 
 enable_language(CUDA)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib/MLVQ)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lib)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility/MLVQ)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${UNIENGINE_INCLUDES})
 
 file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL
-        "src/lib/*.cpp"
-        "src/lib/MLVQ/*.cpp"
+        "src/RayTracerFacility/*.cpp"
+        "src/RayTracerFacility/MLVQ/*.cpp"
         )
 file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL
-        "src/lib/*.cu"
+        "src/RayTracerFacility/*.cu"
         )
 
-cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/DefaultRendering.cu)
-cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/ptx/IlluminationEstimation.cu)
+cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/DefaultRendering.cu)
+cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/IlluminationEstimation.cu)
 
 add_library(rayTracerFacility
         SHARED
@@ -112,8 +112,8 @@ message(STATUS UNIENGINE_INCLUDES:${UNIENGINE_INCLUDES})
 set(RAY_TRACER_FACILITY_INCLUDES_LOCAL
         ${OptiX_INCLUDE}
         ${CUDA_TOOLKIT_ROOT_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/MLVQ
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility/MLVQ
         ${UNIENGINE_INCLUDES}
         ${CMAKE_CURRENT_BINARY_DIR}
         )
@@ -143,54 +143,58 @@ endif ()
 # ------------------------------------------------------------------
 # Plant Factory - Provides models for ray tracer.
 # ------------------------------------------------------------------
-file(GLOB PLANT_FACTORY_SOURCES_LOCAL "src/core/*.cpp")
-add_library(plantFactory
+file(GLOB PLANT_FACTORY_SOURCES_LOCAL "src/SorghumFactory/*.cpp")
+add_library(SorghumFactory
+        SHARED
         ${PLANT_FACTORY_SOURCES_LOCAL}
         )
 set(PLANT_FACTORY_PCH_LOCAL
         ${UNIENGINE_PCH}
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/core/SorghumMLVQ-pch.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/SorghumFactory-pch.hpp
         )
-
-target_compile_definitions(plantFactory
+generate_export_header(SorghumFactory
+        BASE_NAME SORGHUM_FACTORY
+        EXPORT_MACRO_NAME SORGHUM_FACTORY_API
+        )
+target_compile_definitions(SorghumFactory
         PRIVATE
         GLAD_GLAPI_EXPORT
         ${PLANT_FACTORY_RESOURCE_DEF}
         )
-target_precompile_headers(plantFactory
+target_precompile_headers(SorghumFactory
         PRIVATE
         ${PLANT_FACTORY_PCH_LOCAL}
         )
-target_include_directories(plantFactory
+target_include_directories(SorghumFactory
         PUBLIC
         ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/core
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/core/quickhull
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/quickhull
         )
-target_link_libraries(plantFactory
+target_link_libraries(SorghumFactory
         rayTracerFacility
         )
 
-add_executable(sorghumMLVQ
-        "src/app/SorghumMLVQ.cpp"
+add_executable(Application
+        "src/app/SorghumFactory.cpp"
         )
 
-target_include_directories(sorghumMLVQ
+target_include_directories(Application
         PRIVATE
         ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
         )
 
-target_precompile_headers(sorghumMLVQ
+target_precompile_headers(Application
         PRIVATE
         ${PLANT_FACTORY_PCH_LOCAL}
         )
-target_compile_definitions(sorghumMLVQ
+target_compile_definitions(Application
         PRIVATE
         ${PLANT_FACTORY_RESOURCE_DEF}
         )
-target_link_libraries(sorghumMLVQ
+target_link_libraries(Application
         rayTracerFacility
-        plantFactory
+        SorghumFactory
         )
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

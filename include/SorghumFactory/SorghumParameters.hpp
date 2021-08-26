@@ -1,7 +1,9 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 using namespace UniEngine;
 namespace PlantFactory {
-class SorghumParameters {
+class SORGHUM_FACTORY_API SorghumParameters {
 public:
   void OnGui();
   void Serialize(const std::string &path) const;

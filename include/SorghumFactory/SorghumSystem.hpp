@@ -1,4 +1,6 @@
 #pragma once
+#include <sorghum_factory_export.h>
+
 #include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
@@ -6,9 +8,9 @@
 #include <RayTracedRenderer.hpp>
 using namespace UniEngine;
 namespace PlantFactory {
-struct LeafInfo : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafInfo : IDataComponent {};
 
-struct PlantNode {
+struct SORGHUM_FACTORY_API PlantNode {
   glm::vec3 m_position;
   float m_theta;
   float m_width;
@@ -18,7 +20,7 @@ struct PlantNode {
             bool isLeaf);
 };
 
-class Spline : public IPrivateComponent {
+class SORGHUM_FACTORY_API Spline : public IPrivateComponent {
 public:
   glm::vec3 m_left;
   float m_startingPoint;
@@ -38,13 +40,13 @@ public:
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 
-class SorghumField {
+class SORGHUM_FACTORY_API SorghumField {
 public:
   virtual void
   GenerateField(std::vector<std::vector<glm::mat4>> &matricesList){};
 };
 
-class RectangularSorghumField : public SorghumField {
+class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
 public:
   glm::ivec2 m_size = glm::ivec2(4, 4);
   glm::vec2 m_distances = glm::vec2(2, 2);
@@ -52,7 +54,7 @@ public:
   GenerateField(std::vector<std::vector<glm::mat4>> &matricesList) override;
 };
 
-class SorghumSystem : public ISystem {
+class SORGHUM_FACTORY_API SorghumSystem : public ISystem {
   std::shared_ptr<PlantSystem> m_plantSystem;
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
