@@ -1,7 +1,7 @@
 #pragma once
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 class SORGHUM_FACTORY_API Curve {
 public:
   virtual glm::vec3 GetPoint(float t) const = 0;

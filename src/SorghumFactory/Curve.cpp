@@ -1,6 +1,6 @@
 #include <Curve.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 
 void Curve::GetUniformCurve(size_t pointAmount, std::vector<glm::vec3> &points) const {
     float step = 1.0f / (pointAmount - 1);

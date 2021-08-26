@@ -9,7 +9,7 @@
 #include <Utilities.hpp>
 #include <Volume.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 
 #pragma region GUI Related
 void ResourceParcel::OnGui() const {

@@ -3,7 +3,7 @@
 
 #include <SorghumParameters.hpp>
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
 public:
   bool m_growthComplete = false;

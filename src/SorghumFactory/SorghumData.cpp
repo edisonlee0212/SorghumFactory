@@ -1,7 +1,7 @@
 #include <SorghumData.hpp>
 #include <SorghumSystem.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 
 void SorghumData::OnCreate() {}
 

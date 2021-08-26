@@ -3,25 +3,25 @@
 //
 
 #include "ObjectRotator.hpp"
-void PlantFactory::ObjectRotator::FixedUpdate() {
+void SorghumFactory::ObjectRotator::FixedUpdate() {
   auto transform = GetOwner().GetDataComponent<Transform>();
   m_rotation.y += Application::Time().FixedDeltaTime() * m_rotateSpeed;
   transform.SetEulerRotation(glm::radians(m_rotation));
   GetOwner().SetDataComponent(transform);
 }
-void PlantFactory::ObjectRotator::Clone(
+void SorghumFactory::ObjectRotator::Clone(
     const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<ObjectRotator>(target);
 }
-void PlantFactory::ObjectRotator::OnGui() {
+void SorghumFactory::ObjectRotator::OnGui() {
   ImGui::DragFloat("Speed", &m_rotateSpeed);
   ImGui::DragFloat3("Rotation", &m_rotation.x);
 }
-void PlantFactory::ObjectRotator::Serialize(YAML::Emitter &out) {
+void SorghumFactory::ObjectRotator::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_rotateSpeed" << YAML::Value << m_rotateSpeed;
   out << YAML::Key << "m_rotation" << YAML::Value << m_rotation;
 }
-void PlantFactory::ObjectRotator::Deserialize(const YAML::Node &in) {
+void SorghumFactory::ObjectRotator::Deserialize(const YAML::Node &in) {
   m_rotateSpeed = in["m_rotateSpeed"].as<float>();
   m_rotation = in["m_rotation"].as<glm::vec3>();
 }

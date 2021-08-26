@@ -3,7 +3,7 @@
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 using namespace UniEngine;
 
 PlantNode::PlantNode(glm::vec3 position, float angle, float width,

@@ -3,7 +3,7 @@
 
 #include <CUDAModule.hpp>
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 class SORGHUM_FACTORY_API TriangleIlluminationEstimator : public IPrivateComponent {
 public:
   std::vector<Entity> m_entities;

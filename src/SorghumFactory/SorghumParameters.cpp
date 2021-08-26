@@ -3,7 +3,7 @@
 #include <rapidxml_print.hpp>
 #include <rapidxml_utils.hpp>
 
-void PlantFactory::SorghumParameters::OnGui() {
+void SorghumFactory::SorghumParameters::OnGui() {
   ImGui::DragInt("Leaf count", &m_leafCount, 0.01f);
   ImGui::DragFloat2("Branch angle mean/var", &m_branchAngleMean, 0.01f);
   ImGui::DragFloat2("Roll angle var/dist", &m_rollAngleVariance, 0.01f);
@@ -12,7 +12,7 @@ void PlantFactory::SorghumParameters::OnGui() {
   ImGui::DragFloat2("Leaf length/Decrease", &m_leafLengthBase, 0.01f);
 }
 
-void PlantFactory::SorghumParameters::Serialize(const std::string &path) const {
+void SorghumFactory::SorghumParameters::Serialize(const std::string &path) const {
   std::ofstream ofs;
   ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
   if (!ofs.is_open()) {
@@ -91,7 +91,7 @@ void PlantFactory::SorghumParameters::Serialize(const std::string &path) const {
   ofs.close();
 }
 
-void PlantFactory::SorghumParameters::Deserialize(const std::string &path) {
+void SorghumFactory::SorghumParameters::Deserialize(const std::string &path) {
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
@@ -144,7 +144,7 @@ void PlantFactory::SorghumParameters::Deserialize(const std::string &path) {
     Debug::Error("Failed to open file");
   }
 }
-void PlantFactory::SorghumParameters::Serialize(YAML::Emitter &out) {
+void SorghumFactory::SorghumParameters::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_leafCount" << YAML::Value << m_leafCount;
 
   out << YAML::Key << "m_branchAngleMean" << YAML::Value << m_branchAngleMean;
@@ -162,7 +162,7 @@ void PlantFactory::SorghumParameters::Serialize(YAML::Emitter &out) {
 
   out << YAML::Key << "m_leafLengthBase" << YAML::Value << m_leafLengthBase;
 }
-void PlantFactory::SorghumParameters::Deserialize(const YAML::Node &in) {
+void SorghumFactory::SorghumParameters::Deserialize(const YAML::Node &in) {
   m_leafCount = in["m_leafCount"].as<int>();
 
   m_branchAngleMean = in["m_branchAngleMean"].as<float>();

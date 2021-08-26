@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumParameters {
 public:
   void OnGui();

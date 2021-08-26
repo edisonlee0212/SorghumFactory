@@ -7,7 +7,7 @@
 #include <PlantSystem.hpp>
 #include <RayTracedRenderer.hpp>
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 struct SORGHUM_FACTORY_API LeafInfo : IDataComponent {};
 
 struct SORGHUM_FACTORY_API PlantNode {

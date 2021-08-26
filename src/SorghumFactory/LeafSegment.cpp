@@ -1,6 +1,6 @@
 #include <LeafSegment.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 
 LeafSegment::LeafSegment(glm::vec3 position, glm::vec3 up, glm::vec3 front, float leafHalfWidth,
                          float theta, bool isLeaf, float leftFlatness, float rightFlatness,

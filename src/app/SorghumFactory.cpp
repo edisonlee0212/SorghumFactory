@@ -15,7 +15,7 @@
 #include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
-using namespace PlantFactory;
+using namespace SorghumFactory;
 using namespace RayTracerFacility;
 
 void EngineSetup(bool enableRayTracing);

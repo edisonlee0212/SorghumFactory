@@ -1,6 +1,6 @@
 #include <InternodeRingSegment.hpp>
 
-using namespace PlantFactory;
+using namespace SorghumFactory;
 
 InternodeRingSegment::InternodeRingSegment(glm::vec3 startPosition, glm::vec3 endPosition, glm::vec3 startAxis,
                                            glm::vec3 endAxis, float startRadius, float endRadius)

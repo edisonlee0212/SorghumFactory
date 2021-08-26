@@ -7,7 +7,7 @@
 #include <QuickHull.hpp>
 #include <Volume.hpp>
 using namespace UniEngine;
-namespace PlantFactory {
+namespace SorghumFactory {
 enum class PlantType { GeneralTree, Sorghum };
 #pragma region Tree
 struct SORGHUM_FACTORY_API PlantInfo : IDataComponent {
