@@ -6,13 +6,6 @@ using namespace SorghumFactory;
 void SorghumData::OnCreate() {}
 
 void SorghumData::OnDestroy() {
-  Entity rootInternode;
-  GetOwner().ForEachChild([&](Entity child) {
-    if (child.HasDataComponent<InternodeInfo>())
-      rootInternode = child;
-  });
-  if (rootInternode.IsValid())
-    EntityManager::DeleteEntity(rootInternode);
 }
 
 void SorghumData::OnGui() {

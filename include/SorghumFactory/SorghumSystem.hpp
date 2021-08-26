@@ -1,14 +1,13 @@
 #pragma once
 #include <sorghum_factory_export.h>
-
 #include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
-#include <PlantSystem.hpp>
 #include <RayTracedRenderer.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
-struct SORGHUM_FACTORY_API LeafInfo : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
+struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 
 struct SORGHUM_FACTORY_API PlantNode {
   glm::vec3 m_position;
@@ -55,7 +54,6 @@ public:
 };
 
 class SORGHUM_FACTORY_API SorghumSystem : public ISystem {
-  std::shared_ptr<PlantSystem> m_plantSystem;
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
 
@@ -77,6 +75,8 @@ public:
   bool m_displayLightProbes = true;
   EntityArchetype m_leafArchetype;
   EntityQuery m_leafQuery;
+  EntityArchetype m_sorghumArchetype;
+  EntityQuery m_sorghumQuery;
 
   const float m_leafNodeSphereSize = 0.1f;
 
@@ -111,12 +111,6 @@ public:
   void CalculateIllumination(
       const RayTracerFacility::IlluminationEstimationProperties &properties =
           RayTracerFacility::IlluminationEstimationProperties());
-  void GenerateLeavesForSorghum();
-  void FormCandidates(std::vector<InternodeCandidate> &candidates);
-  void FormLeafNodes();
-  void RemoveInternodes(const Entity &sorghum);
-
-  void DeleteAllPlantsHelper();
 
   void Relink(const std::unordered_map<Handle, Handle> &map) override;
   void Serialize(YAML::Emitter &out) override;
