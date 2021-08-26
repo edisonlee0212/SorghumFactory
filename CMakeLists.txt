@@ -170,6 +170,7 @@ target_include_directories(SorghumFactory
         ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/quickhull
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/rapidxml
         )
 target_link_libraries(SorghumFactory
         rayTracerFacility
