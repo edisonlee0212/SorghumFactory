@@ -232,15 +232,25 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   case SplineType::Procedural: {
     if (m_startingPoint != -1) {
       float width = 0.1f - m_startingPoint * 0.05f;
-      m_nodes.emplace_back(
-          stemSpline->EvaluatePoint(m_startingPoint - 0.1f), 180.0f, width,
-          stemSpline->EvaluateAxis(m_startingPoint - 0.1f), true);
+      float startingPoint = m_startingPoint - 2.0 / m_unitAmount;
+      if(m_order == 0){
+        startingPoint = 0.0f;
+      }
+      for(float i = startingPoint; i < m_startingPoint; i += 1.0 / m_unitAmount)
+      {
+        if(i >= 0.0f) {
+          m_nodes.emplace_back(
+              stemSpline->EvaluatePoint(i), 180.0f, width,
+              -stemSpline->EvaluateAxis(i), false);
+        }
+      }
+      stemNodeCount = m_nodes.size();
 
       glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
       glm::vec3 direction = m_initialDirection;
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        m_nodes.emplace_back(position, 180.0f, width, direction, true);
+        m_nodes.emplace_back(position, glm::max(10.0f, 60.0f - i * 30.0f), 0.3f, -direction, true);
         direction = glm::rotate(
             direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
             m_left);
@@ -249,8 +259,9 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (int i = 0; i < m_unitAmount; i++) {
         m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
                                  static_cast<float>(i),
-                             180.0f, 0.04f, m_initialDirection, false);
+                             180.0f, 0.04f, -m_initialDirection, false);
       }
+      stemNodeCount = m_nodes.size();
     }
   } break;
   default:
