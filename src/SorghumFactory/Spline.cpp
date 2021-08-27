@@ -25,6 +25,23 @@ void Spline::OnGui() {
     ImGui::InputFloat3("Start Direction", &m_initialDirection.x);
   } break;
   }
+  static bool renderNodes = true;
+  static float nodeSize = 0.1f;
+  static glm::vec4 renderColor = glm::vec4(1.0f);
+  ImGui::Checkbox("Render nodes", &renderNodes);
+  if(renderNodes){
+    if(ImGui::TreeNodeEx("Render settings", ImGuiTreeNodeFlags_DefaultOpen)){
+      ImGui::DragFloat("Size", &nodeSize, 0.01f, 0.01f, 1.0f);
+      ImGui::ColorEdit4("Color", &renderColor.x);
+      ImGui::TreePop();
+    }
+    std::vector<glm::mat4> matrices;
+    matrices.resize(m_nodes.size());
+    for(int i = 0; i < m_nodes.size(); i++){
+      matrices[i] = glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
+    }
+    RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Sphere, renderColor, matrices, glm::mat4(1.0f), nodeSize);
+  }
 }
 
 void Spline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
