@@ -29,18 +29,21 @@ void Spline::OnGui() {
   static float nodeSize = 0.1f;
   static glm::vec4 renderColor = glm::vec4(1.0f);
   ImGui::Checkbox("Render nodes", &renderNodes);
-  if(renderNodes){
-    if(ImGui::TreeNodeEx("Render settings", ImGuiTreeNodeFlags_DefaultOpen)){
+  if (renderNodes) {
+    if (ImGui::TreeNodeEx("Render settings", ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::DragFloat("Size", &nodeSize, 0.01f, 0.01f, 1.0f);
       ImGui::ColorEdit4("Color", &renderColor.x);
       ImGui::TreePop();
     }
     std::vector<glm::mat4> matrices;
     matrices.resize(m_nodes.size());
-    for(int i = 0; i < m_nodes.size(); i++){
-      matrices[i] = glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
+    for (int i = 0; i < m_nodes.size(); i++) {
+      matrices[i] =
+          glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
     }
-    RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Sphere, renderColor, matrices, glm::mat4(1.0f), nodeSize);
+    RenderManager::DrawGizmoMeshInstanced(DefaultResources::Primitives::Sphere,
+                                          renderColor, matrices,
+                                          GetOwner().GetDataComponent<GlobalTransform>().m_value, nodeSize);
   }
 }
 
@@ -157,27 +160,25 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline,
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div = 1.0f / segmentAmount; div <= 1.0f;
-         div += 1.0f / segmentAmount) {
+    for (float div = 0; div < 1.0f;
+         div += 1.0f / static_cast<float>(segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
-
+      float surfacePush = 0.0f;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
-        rightPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
-        m_segments.emplace_back(
-            curve.GetPoint(div), up, front,
-            prev.m_width * (1.0f - div) + curr.m_width * div,
-            prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
-            glm::sin(leftPeriod) * leftFlatness,
-            glm::sin(rightPeriod) * rightFlatness, leftFlatnessFactor,
-            rightFlatnessFactor);
-      } else {
-        m_segments.emplace_back(
-            curve.GetPoint(div), up, front,
-            prev.m_width * (1.0f - div) + curr.m_width * div,
-            prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf);
+        leftPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
+        rightPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
+        surfacePush = 1.0f;
+      }else if(curr.m_isLeaf){
+        surfacePush = div;
       }
+      m_segments.emplace_back(curve.GetPoint(div), up, front,
+                              prev.m_width * (1.0f - div) + curr.m_width * div,
+                              prev.m_theta * (1.0f - div) + curr.m_theta * div,
+                              curr.m_isLeaf, surfacePush,
+                              glm::sin(leftPeriod) * leftFlatness,
+                              glm::sin(rightPeriod) * rightFlatness,
+                              leftFlatnessFactor, rightFlatnessFactor);
     }
   }
 
@@ -250,15 +251,14 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
     if (m_startingPoint != -1) {
       float width = 0.1f - m_startingPoint * 0.05f;
       float startingPoint = m_startingPoint - 2.0 / m_unitAmount;
-      if(m_order == 0){
+      if (m_order == 0) {
         startingPoint = 0.0f;
       }
-      for(float i = startingPoint; i < m_startingPoint; i += 1.0 / m_unitAmount)
-      {
-        if(i >= 0.0f) {
-          m_nodes.emplace_back(
-              stemSpline->EvaluatePoint(i), 180.0f, width,
-              -stemSpline->EvaluateAxis(i), false);
+      for (float i = startingPoint; i < m_startingPoint;
+           i += 1.0 / m_unitAmount) {
+        if (i >= 0.0f) {
+          m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
+                               -stemSpline->EvaluateAxis(i), false);
         }
       }
       stemNodeCount = m_nodes.size();
@@ -267,7 +267,8 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       glm::vec3 direction = m_initialDirection;
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        m_nodes.emplace_back(position, glm::max(10.0f, 60.0f - i * 30.0f), 0.3f, -direction, true);
+        m_nodes.emplace_back(position, glm::max(10.0f, 60.0f - i * 30.0f), 0.3f,
+                             -direction, true);
         direction = glm::rotate(
             direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
             m_left);

@@ -9,16 +9,17 @@ public:
   glm::vec3 m_front;
   glm::vec3 m_up;
   glm::quat m_rotation;
+  float m_surfacePush = 0.0f;
   float m_leafHalfWidth;
   float m_theta;
   float m_radius;
-  float m_leftFlatness;
-  float m_leftFlatnessFactor;
-  float m_rightFlatness;
-  float m_rightFlatnessFactor;
+  float m_leftFlatness = 0.0f;
+  float m_leftFlatnessFactor = 1.0f;
+  float m_rightFlatness = 0.0f;
+  float m_rightFlatnessFactor = 1.0f;
   bool m_isLeaf;
   LeafSegment(glm::vec3 position, glm::vec3 up, glm::vec3 front,
-              float leafHalfWidth, float theta, bool isLeaf,
+              float leafHalfWidth, float theta, bool isLeaf, float surfacePush,
               float leftFlatness = 0.0f, float rightFlatness = 0.0f,
               float leftFlatnessFactor = 1.0f,
               float rightFlatnessFactor = 1.0f);
