@@ -1,20 +1,29 @@
-//
-// Created by lllll on 8/26/2021.
-//
-
 #include "Spline.hpp"
 using namespace SorghumFactory;
 
 void Spline::OnGui() {
-  if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (int i = 0; i < m_curves.size(); i++) {
-      ImGui::Text(("Curve" + std::to_string(i)).c_str());
-      ImGui::InputFloat3("CP0", &m_curves[i].m_p0.x);
-      ImGui::InputFloat3("CP1", &m_curves[i].m_p1.x);
-      ImGui::InputFloat3("CP2", &m_curves[i].m_p2.x);
-      ImGui::InputFloat3("CP3", &m_curves[i].m_p3.x);
+
+  switch (m_type) {
+  case SplineType::BezierCurve: {
+    if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
+      for (int i = 0; i < m_curves.size(); i++) {
+        ImGui::Text(("Curve" + std::to_string(i)).c_str());
+        ImGui::InputFloat3("CP0", &m_curves[i].m_p0.x);
+        ImGui::InputFloat3("CP1", &m_curves[i].m_p1.x);
+        ImGui::InputFloat3("CP2", &m_curves[i].m_p2.x);
+        ImGui::InputFloat3("CP3", &m_curves[i].m_p3.x);
+      }
+      ImGui::TreePop();
     }
-    ImGui::TreePop();
+  } break;
+  case SplineType::Procedural: {
+    ImGui::DragFloat("Starting point", &m_startingPoint);
+    ImGui::DragFloat("Unit length", &m_unitLength);
+    ImGui::DragInt("Unit amount", &m_unitAmount);
+    ImGui::DragFloat("Gravitropism", &m_gravitropism);
+    ImGui::DragFloat("GravitropismFactor", &m_gravitropismFactor);
+    ImGui::InputFloat3("Start Direction", &m_initialDirection.x);
+  } break;
   }
 }
 
@@ -231,10 +240,10 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       glm::vec3 direction = m_initialDirection;
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        m_nodes.emplace_back(
-            position, 180.0f, width,
-            direction, true);
-        direction = glm::rotate(direction, glm::radians(m_gravitropism + i * m_gravitropismFactor), m_left);
+        m_nodes.emplace_back(position, 180.0f, width, direction, true);
+        direction = glm::rotate(
+            direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
+            m_left);
       }
     } else {
       for (int i = 0; i < m_unitAmount; i++) {

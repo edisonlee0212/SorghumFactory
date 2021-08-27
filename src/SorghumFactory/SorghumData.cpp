@@ -85,7 +85,7 @@ void SorghumData::ApplyParameters() {
     auto spline = newLeaf.GetOrSetPrivateComponent<Spline>().lock();
     spline->m_type = SplineType::Procedural;
     spline->m_order = i;
-    spline->m_startingPoint = 0.1f + static_cast<float>(childrenIndex) / m_parameters.m_leafCount * 0.9f;
+    spline->m_startingPoint = 0.1f + static_cast<float>(i) / m_parameters.m_leafCount * 0.9f;
     spline->m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 360.0f)), glm::vec3(0, 1, 0));
     spline->m_initialDirection = glm::rotate(glm::vec3(0, 1, 0), glm::radians(30.0f), spline->m_left);
   }

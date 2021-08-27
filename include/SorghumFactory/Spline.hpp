@@ -29,7 +29,7 @@ public:
 
   //Spline representation from procedural plant.
   int m_order = 0;
-  float m_unitLength = 4.0f;
+  float m_unitLength = 0.4f;
   int m_unitAmount = 16;
   float m_gravitropism = 2;
   float m_gravitropismFactor = 0.5;
