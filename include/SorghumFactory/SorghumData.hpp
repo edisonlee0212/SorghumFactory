@@ -18,5 +18,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
+
+  void ApplyParameters();
 };
 } // namespace PlantFactory

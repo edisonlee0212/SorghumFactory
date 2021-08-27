@@ -5,7 +5,7 @@
 using namespace SorghumFactory;
 using namespace UniEngine;
 
-PlantNode::PlantNode(glm::vec3 position, float angle, float width,
+SplineNode::SplineNode(glm::vec3 position, float angle, float width,
                      glm::vec3 axis, bool isLeaf) {
   m_position = position;
   m_theta = angle;
@@ -94,7 +94,8 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
   entity.SetParent(plantEntity);
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  auto spline = entity.GetOrSetPrivateComponent<Spline>();
+  auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
+
   entity.SetDataComponent(transform);
 
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
@@ -113,144 +114,22 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
 }
 
 void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
-  std::mutex meshMutex;
+  std::vector<Entity> plants;
+  m_sorghumQuery.ToEntityArray(plants);
+  for (auto &plant : plants) {
+    auto stemSpline = plant.GetOrSetPrivateComponent<Spline>().lock();
+    //Form the stem spline. Feed with unused shared_ptr to itself.
+    stemSpline->FormNodes(stemSpline);
+  }
   EntityManager::ForEach<GlobalTransform>(
       JobManager::PrimaryWorkers(), m_leafQuery,
-      [&meshMutex, segmentAmount, step](int index, Entity entity,
+      [segmentAmount, step](int index, Entity entity,
                                         GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
-        spline->m_nodes.clear();
-        int stemNodeCount = 0;
-        if (spline->m_startingPoint != -1) {
-          auto truckSpline =
-              entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
-          float width = 0.1f - spline->m_startingPoint * 0.05f;
-          for (float i = 0.0f; i < spline->m_startingPoint - 0.05f;
-               i += 0.05f) {
-            spline->m_nodes.emplace_back(
-                truckSpline->EvaluatePointFromCurve(i), 180.0f, width,
-                truckSpline->EvaluateAxisFromCurve(i), false);
-          }
-          stemNodeCount = spline->m_nodes.size();
-          for (float i = 0.05f; i <= 1.0f; i += 0.05f) {
-            float w = 0.2f;
-            if (i > 0.75f)
-              w -= (i - 0.75f) * 0.75f;
-            spline->m_nodes.emplace_back(
-                spline->EvaluatePointFromCurve(i), i == 0.05f ? 60.0f : 10.0f,
-                w, spline->EvaluateAxisFromCurve(i), true);
-          }
-        } else {
-          for (float i = 0.0f; i <= 1.0f; i += 0.05f) {
-            spline->m_nodes.emplace_back(
-                spline->EvaluatePointFromCurve(i), 180.0f, 0.04f,
-                spline->EvaluateAxisFromCurve(i), false);
-          }
-          auto endPoint = spline->EvaluatePointFromCurve(1.0f);
-          auto endAxis = spline->EvaluateAxisFromCurve(1.0f);
-          spline->m_nodes.emplace_back(endPoint + endAxis * 0.05f, 10.0f,
-                                       0.001f, endAxis, false);
-          stemNodeCount = spline->m_nodes.size();
-        }
-        spline->m_vertices.clear();
-        spline->m_indices.clear();
-        spline->m_segments.clear();
-
-        float temp = 0.0f;
-
-        float leftPeriod = 0.0f;
-        float rightPeriod = 0.0f;
-        float leftFlatness =
-            glm::gaussRand(1.75f,
-                           0.5f); // glm::linearRand(0.5f, 2.0f);
-        float rightFlatness =
-            glm::gaussRand(1.75f,
-                           0.5f); // glm::linearRand(0.5f, 2.0f);
-        float leftFlatnessFactor =
-            glm::gaussRand(1.25f,
-                           0.2f); // glm::linearRand(1.0f, 2.5f);
-        float rightFlatnessFactor =
-            glm::gaussRand(1.25f,
-                           0.2f); // glm::linearRand(1.0f, 2.5f);
-
-        int stemSegmentCount = 0;
-        for (int i = 1; i < spline->m_nodes.size(); i++) {
-          auto &prev = spline->m_nodes.at(i - 1);
-          auto &curr = spline->m_nodes.at(i);
-          if (i == stemNodeCount) {
-            stemSegmentCount = spline->m_segments.size();
-          }
-          float distance = glm::distance(prev.m_position, curr.m_position);
-          BezierCurve curve = BezierCurve(
-              prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
-              curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-          for (float div = 1.0f / segmentAmount; div <= 1.0f;
-               div += 1.0f / segmentAmount) {
-            auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
-
-            auto up = glm::normalize(glm::cross(spline->m_left, front));
-            if (prev.m_isLeaf) {
-              leftPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
-              rightPeriod += glm::gaussRand(1.25f, 0.5f) / segmentAmount;
-              spline->m_segments.emplace_back(
-                  curve.GetPoint(div), up, front,
-                  prev.m_width * (1.0f - div) + curr.m_width * div,
-                  prev.m_theta * (1.0f - div) + curr.m_theta * div,
-                  curr.m_isLeaf, glm::sin(leftPeriod) * leftFlatness,
-                  glm::sin(rightPeriod) * rightFlatness, leftFlatnessFactor,
-                  rightFlatnessFactor);
-            } else {
-              spline->m_segments.emplace_back(
-                  curve.GetPoint(div), up, front,
-                  prev.m_width * (1.0f - div) + curr.m_width * div,
-                  prev.m_theta * (1.0f - div) + curr.m_theta * div,
-                  curr.m_isLeaf);
-            }
-          }
-        }
-
-        const int vertexIndex = spline->m_vertices.size();
-        Vertex archetype;
-        const float xStep = 1.0f / step / 2.0f;
-        const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
-        const float yLeafStep =
-            0.5f / (spline->m_segments.size() -
-                    static_cast<float>(stemSegmentCount) + 1);
-        for (int i = 0; i < spline->m_segments.size(); i++) {
-          auto &segment = spline->m_segments.at(i);
-          const float angleStep = segment.m_theta / step;
-          const int vertsCount = step * 2 + 1;
-          for (int j = 0; j < vertsCount; j++) {
-            const auto position = segment.GetPoint((j - step) * angleStep);
-            archetype.m_position =
-                glm::vec3(position.x, position.y, position.z);
-            float yPos = (i < stemSegmentCount)
-                             ? yStemStep * i
-                             : 0.5f + yLeafStep * (i - stemSegmentCount + 1);
-            archetype.m_texCoords = glm::vec2(j * xStep, yPos);
-            spline->m_vertices.push_back(archetype);
-          }
-          if (i != 0) {
-            for (int j = 0; j < vertsCount - 1; j++) {
-              // Down triangle
-              spline->m_indices.push_back(vertexIndex +
-                                          ((i - 1) + 1) * vertsCount + j);
-              spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount +
-                                          j + 1);
-              spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount +
-                                          j);
-              // Up triangle
-              spline->m_indices.push_back(vertexIndex + (i - 1) * vertsCount +
-                                          j + 1);
-              spline->m_indices.push_back(vertexIndex +
-                                          ((i - 1) + 1) * vertsCount + j);
-              spline->m_indices.push_back(vertexIndex +
-                                          ((i - 1) + 1) * vertsCount + j + 1);
-            }
-          }
-        }
+        auto stemSpline = entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
+        if(stemSpline) spline->GenerateGeometry(stemSpline, segmentAmount, step);
       });
-  std::vector<Entity> plants;
+
   m_sorghumQuery.ToEntityArray(plants);
   for (auto &plant : plants) {
     plant.ForEachChild([](Entity child) {
@@ -281,6 +160,7 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
   sorghum.SetName(name);
   auto truckSpline = sorghum.GetOrSetPrivateComponent<Spline>().lock();
   truckSpline->m_startingPoint = -1;
+  truckSpline->m_startingPoint = -1;
   truckSpline->Import(file);
 
   // Recenter plant:
@@ -304,10 +184,10 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
     leafSpline->m_startingPoint = startingPoint;
     leafSpline->Import(file);
     for (auto &curve : leafSpline->m_curves) {
-      curve.m_p0 += truckSpline->EvaluatePointFromCurve(startingPoint);
-      curve.m_p1 += truckSpline->EvaluatePointFromCurve(startingPoint);
-      curve.m_p2 += truckSpline->EvaluatePointFromCurve(startingPoint);
-      curve.m_p3 += truckSpline->EvaluatePointFromCurve(startingPoint);
+      curve.m_p0 += truckSpline->EvaluatePoint(startingPoint);
+      curve.m_p1 += truckSpline->EvaluatePoint(startingPoint);
+      curve.m_p2 += truckSpline->EvaluatePoint(startingPoint);
+      curve.m_p3 += truckSpline->EvaluatePoint(startingPoint);
     }
 
     leafSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f),
@@ -353,7 +233,7 @@ void SorghumSystem::OnInspect() {
         static float yAxisVar = 180.0f;
         static float xzAxisVar = 0.0f;
         static int expand = 1;
-        if (ImGui::BeginMenu("Create forest...")) {
+        if (ImGui::BeginMenu("Create field...")) {
           ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f,
                            180.0f);
           ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f,
@@ -393,7 +273,7 @@ void SorghumSystem::OnInspect() {
         FileUtils::OpenFile(
             "Import parameters for all", "Sorghum Parameters",
             {".sorghumparam"}, [](const std::filesystem::path &path) {
-              newSorghumParameters[0].Deserialize(path.string());
+              newSorghumParameters[0].Load(path);
               for (int i = 1; i < newSorghumParameters.size(); i++)
                 newSorghumParameters[i] = newSorghumParameters[0];
             });
@@ -443,15 +323,13 @@ void SorghumSystem::OnInspect() {
         FileUtils::OpenFile(
             "Import parameters", "Sorghum Params", {".sorghumparam"},
             [](const std::filesystem::path &path) {
-              newSorghumParameters[currentFocusedNewSorghumIndex].Deserialize(
-                  path.string());
+              newSorghumParameters[currentFocusedNewSorghumIndex].Load(path);
             });
 
         FileUtils::SaveFile(
             "Export parameters", "Sorghum Params", {".sorghumparam"},
             [](const std::filesystem::path &path) {
-              newSorghumParameters[currentFocusedNewSorghumIndex].Serialize(
-                  path.string());
+              newSorghumParameters[currentFocusedNewSorghumIndex].Load(path);
             });
         ImGui::EndMenu();
       }
@@ -472,8 +350,11 @@ void SorghumSystem::OnInspect() {
         sorghumTransform.SetPosition(newSorghumPositions[i]);
         sorghumTransform.SetEulerRotation(glm::radians(newSorghumRotations[i]));
         sorghum.SetDataComponent(sorghumTransform);
-        sorghum.GetOrSetPrivateComponent<SorghumData>().lock()->m_parameters =
+        auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
+        sorghumData->m_parameters =
             newSorghumParameters[i];
+        sorghumData->ApplyParameters();
+        GenerateMeshForAllSorghums();
       }
       ImGui::CloseCurrentPopup();
     }

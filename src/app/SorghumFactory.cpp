@@ -20,7 +20,9 @@ using namespace RayTracerFacility;
 void EngineSetup(bool enableRayTracing);
 
 int main() {
-  ClassRegistry::RegisterDataComponent<LeafTag>("LeafInfo");
+  ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
+  ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
+
 
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
