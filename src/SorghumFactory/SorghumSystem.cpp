@@ -340,7 +340,8 @@ void SorghumSystem::OnInspect() {
     ImGui::PopStyleVar();
     ImGui::Separator();
     if (ImGui::Button("OK", ImVec2(120, 0))) {
-      // Create tree here.
+      auto field = EntityManager::CreateEntity("Field");
+      // Create sorghums here.
       for (auto i = 0; i < newSorghumAmount; i++) {
         Entity sorghum = CreateSorghum();
         auto sorghumTransform = sorghum.GetDataComponent<Transform>();
@@ -351,8 +352,9 @@ void SorghumSystem::OnInspect() {
         sorghumData->m_parameters =
             newSorghumParameters[i];
         sorghumData->ApplyParameters();
-        GenerateMeshForAllSorghums();
+        sorghum.SetParent(field);
       }
+      GenerateMeshForAllSorghums();
       ImGui::CloseCurrentPopup();
     }
     ImGui::SetItemDefaultFocus();

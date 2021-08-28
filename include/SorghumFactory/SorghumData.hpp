@@ -25,5 +25,7 @@ public:
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 
   void ApplyParameters();
+
+  void GenerateGeometry();
 };
 } // namespace PlantFactory

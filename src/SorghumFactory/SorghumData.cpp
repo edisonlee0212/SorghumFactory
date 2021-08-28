@@ -28,6 +28,9 @@ void SorghumData::OnGui() {
   ImGui::Checkbox("Force Same Rotation", &m_forceSameRotation);
   if (ImGui::Button("Apply parameters"))
     ApplyParameters();
+
+  if (ImGui::Button("Generate model"))
+    GenerateGeometry();
 }
 
 void SorghumData::ExportModel(const std::string &filename,
@@ -121,15 +124,23 @@ void SorghumData::ApplyParameters() {
         glm::radians(glm::gaussRand(m_parameters.m_branchingAngle,
                                     m_parameters.m_branchingAngleVariance)),
         spline->m_left);
-    spline->GenerateGeometry(stemSpline);
-    auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-    meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
-                                                  spline->m_indices);
+
   }
 
   for (int i = m_parameters.m_leafCount; i < children.size(); i++) {
     EntityManager::DeleteEntity(children[i]);
   }
 
-  m_meshGenerated = true;
+  m_meshGenerated = false;
+}
+void SorghumData::GenerateGeometry() {
+  auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
+  stemSpline->FormNodes(stemSpline);
+  GetOwner().ForEachChild([&](Entity child){
+    auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
+    spline->GenerateGeometry(stemSpline);
+    auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
+                                                  spline->m_indices);
+  });
 }

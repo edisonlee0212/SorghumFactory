@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 project(
-        RayMLVQ
+        SorghumFactory
         VERSION 0.1
-        DESCRIPTION "The MLVQ library with OptiX ray tracer"
+        DESCRIPTION "An implementation of MLVQ library in CUDA with OptiX ray tracer, and a procedural 3D model of sorghum plants. The project is based on UniEngine."
 )
 
 include(GenerateExportHeader)
@@ -68,7 +68,7 @@ file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL
 cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/DefaultRendering.cu)
 cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/IlluminationEstimation.cu)
 
-add_library(rayTracerFacility
+add_library(RayTracerFacility
         SHARED
         #Default
         ${DEFAULT_RENDERING_PTX}
@@ -83,14 +83,14 @@ add_library(rayTracerFacility
         ${CMAKE_MODULE_PATH}/FindOptiX.cmake
         )
 
-target_compile_definitions(rayTracerFacility
+target_compile_definitions(RayTracerFacility
         PRIVATE
         ${PLANT_FACTORY_RESOURCE_DEF}
         )
 
-set_property(TARGET rayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
+set_property(TARGET RayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
 
-generate_export_header(rayTracerFacility
+generate_export_header(RayTracerFacility
         BASE_NAME RAY_TRACER_FACILITY
         EXPORT_MACRO_NAME RAY_TRACER_FACILITY_API
         )
@@ -103,7 +103,7 @@ message(STATUS OptiX_INCLUDE:${OptiX_INCLUDE})
 message(STATUS CUDA_LIBRARIES:${CUDA_LIBRARIES})
 message(STATUS CUDA_CUDA_LIBRARY:${CUDA_CUDA_LIBRARY})
 # Linker settings for all platforms
-target_link_libraries(rayTracerFacility
+target_link_libraries(RayTracerFacility
         uniengine
         ${CUDA_LIBRARIES}
         ${CUDA_CUDA_LIBRARY}
@@ -118,7 +118,7 @@ set(RAY_TRACER_FACILITY_INCLUDES_LOCAL
         ${CMAKE_CURRENT_BINARY_DIR}
         )
 
-target_include_directories(rayTracerFacility
+target_include_directories(RayTracerFacility
         PRIVATE
         ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
         )
@@ -126,7 +126,7 @@ target_include_directories(rayTracerFacility
 if (WIN32)
     # Compiler settings for Windows platform
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    target_compile_definitions(rayTracerFacility
+    target_compile_definitions(RayTracerFacility
             PRIVATE
             RAY_TRACER_FACILITY_EXPORTS
             )
@@ -173,7 +173,7 @@ target_include_directories(SorghumFactory
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/rapidxml
         )
 target_link_libraries(SorghumFactory
-        rayTracerFacility
+        RayTracerFacility
         )
 
 add_executable(Application
@@ -194,7 +194,7 @@ target_compile_definitions(Application
         ${PLANT_FACTORY_RESOURCE_DEF}
         )
 target_link_libraries(Application
-        rayTracerFacility
+        RayTracerFacility
         SorghumFactory
         )
 
@@ -203,10 +203,10 @@ file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
     if (WIN32)
         add_custom_command(
-                TARGET rayTracerFacility
+                TARGET RayTracerFacility
                 POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                ${PROJECT_BINARY_DIR}/rayTracerFacility.dll
+                ${PROJECT_BINARY_DIR}/RayTracerFacility.dll
                 ${CMAKE_BINARY_DIR}
         )
     endif ()
