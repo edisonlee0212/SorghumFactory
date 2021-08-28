@@ -197,6 +197,10 @@ void SorghumSystem::OnInspect() {
   }
   ImGui::Checkbox("Display light probes", &m_displayLightProbes);
   ImGui::DragInt("Seed", &m_seed);
+  if (ImGui::Button("Generate mesh")) {
+    GenerateMeshForAllSorghums();
+  }
+
   if (ImGui::Button("Calculate illumination")) {
     RayTracerFacility::IlluminationEstimationProperties properties;
     properties.m_skylightPower = 1.0f;

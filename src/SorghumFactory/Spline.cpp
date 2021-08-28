@@ -231,7 +231,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
         if (i > 0.75f)
           w -= (i - 0.75f) * 0.75f;
         m_nodes.emplace_back(EvaluatePoint(i), i == 0.05f ? 60.0f : 10.0f, w,
-                             EvaluateAxis(i), true, 0.0f);
+                             EvaluateAxis(i), true, 1.0f);
       }
     } else {
       for (float i = 0.0f; i <= 1.0f; i += 0.05f) {
@@ -265,7 +265,10 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       glm::vec3 direction = m_initialDirection;
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), 0.3f,
+        float w = 0.2f;
+        if (i > m_unitAmount - 4)
+          w -= (i - m_unitAmount + 4) * 0.06f;
+        m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), w,
                              -direction, true, 1.0f);
         direction = glm::rotate(
             direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
