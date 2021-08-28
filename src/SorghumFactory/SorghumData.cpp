@@ -42,9 +42,9 @@ void SorghumData::ExportModel(const std::string &filename,
     unsigned startIndex = 1;
     SorghumSystem::ExportSorghum(GetOwner(), of, startIndex);
     of.close();
-    Debug::Log("Sorghums saved as " + filename);
+    UNIENGINE_LOG("Sorghums saved as " + filename);
   } else {
-    Debug::Error("Can't open file!");
+    UNIENGINE_ERROR("Can't open file!");
   }
 }
 void SorghumData::Clone(const std::shared_ptr<IPrivateComponent> &target) {

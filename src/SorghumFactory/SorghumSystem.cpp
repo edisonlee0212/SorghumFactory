@@ -143,7 +143,7 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
                                   const std::string &name) {
   std::ifstream file(path, std::fstream::in);
   if (!file.is_open()) {
-    Debug::Log("Failed to open file!");
+    UNIENGINE_LOG("Failed to open file!");
     return Entity();
   }
   // Number of leaves in the file
@@ -568,9 +568,9 @@ void SorghumSystem::ExportAllSorghumsModel(const std::string &filename) {
       ExportSorghum(plant, of, startIndex);
     }
     of.close();
-    Debug::Log("Sorghums saved as " + filename);
+    UNIENGINE_LOG("Sorghums saved as " + filename);
   } else {
-    Debug::Error("Can't open file!");
+    UNIENGINE_ERROR("Can't open file!");
   }
 }
 

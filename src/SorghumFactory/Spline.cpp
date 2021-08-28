@@ -2,7 +2,7 @@
 using namespace SorghumFactory;
 
 void Spline::OnGui() {
-  
+
   if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
     m_segmentAmount = glm::max(2, m_segmentAmount);
   }

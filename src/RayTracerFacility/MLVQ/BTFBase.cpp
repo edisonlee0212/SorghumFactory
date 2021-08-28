@@ -5,7 +5,7 @@
 #include <fstream>
 #include <filesystem>
 #include <mutex>
-#include <Debug.hpp>
+#include <ConsoleManager.hpp>
 using namespace RayTracerFacility;
 using namespace UniEngine;
 
