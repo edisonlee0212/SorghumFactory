@@ -41,6 +41,8 @@ public:
   std::vector<BezierCurve> m_curves;
 
   //Geometry generation
+  int m_segmentAmount = 2;
+  int m_step = 2;
   std::vector<SplineNode> m_nodes;
   std::vector<LeafSegment> m_segments;
   std::vector<Vertex> m_vertices;
@@ -57,6 +59,6 @@ public:
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
   void Copy(const std::shared_ptr<Spline> &target);
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
-  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline, int segmentAmount, int step);
+  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline);
 };
 } // namespace SorghumFactory

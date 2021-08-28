@@ -120,7 +120,7 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
                                         GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
         auto stemSpline = entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
-        if(stemSpline) spline->GenerateGeometry(stemSpline, segmentAmount, step);
+        if(stemSpline) spline->GenerateGeometry(stemSpline);
       });
 
   m_sorghumQuery.ToEntityArray(plants);

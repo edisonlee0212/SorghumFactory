@@ -6,9 +6,14 @@ using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
 public:
+  bool m_forceSameRotation = false;
   bool m_growthComplete = false;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
+
+  int m_segmentAmount = 2;
+  int m_step = 2;
+
   SorghumParameters m_parameters;
   void OnCreate() override;
   void OnDestroy() override;

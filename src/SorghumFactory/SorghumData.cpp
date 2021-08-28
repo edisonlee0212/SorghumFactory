@@ -18,6 +18,14 @@ void SorghumData::OnGui() {
     ImGui::TreePop();
   }
   m_parameters.OnGui();
+
+  if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
+    m_segmentAmount = glm::max(2, m_segmentAmount);
+  }
+  if (ImGui::DragInt("Step amount", &m_step)) {
+    m_step = glm::max(2, m_step);
+  }
+  ImGui::Checkbox("Force Same Rotation", &m_forceSameRotation);
   if (ImGui::Button("Apply parameters"))
     ApplyParameters();
 }
@@ -61,20 +69,21 @@ void SorghumData::Deserialize(const YAML::Node &in) {
 void SorghumData::ApplyParameters() {
   int unitAmount = 16;
   // 1. Set owner's spline
-  auto spline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
-  spline->m_unitAmount = unitAmount;
-  spline->m_unitLength = m_parameters.m_stemLength / unitAmount;
-  spline->m_gravitropism = m_parameters.m_gravitropism;
-  spline->m_gravitropismFactor = m_parameters.m_gravitropismFactor;
-
-  spline->m_type = SplineType::Procedural;
-  spline->m_order = -1;
-  spline->m_startingPoint = -1;
-  spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
-                               glm::radians(glm::linearRand(0.0f, 360.0f)),
-                               glm::vec3(0, 1, 0));
-  spline->m_initialDirection = glm::vec3(0, 1, 0);
-
+  auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
+  stemSpline->m_unitAmount = unitAmount;
+  stemSpline->m_unitLength = m_parameters.m_stemLength / unitAmount;
+  stemSpline->m_gravitropism = m_parameters.m_gravitropism;
+  stemSpline->m_gravitropismFactor = m_parameters.m_gravitropismFactor;
+  stemSpline->m_segmentAmount = m_segmentAmount;
+  stemSpline->m_step = m_step;
+  stemSpline->m_type = SplineType::Procedural;
+  stemSpline->m_order = -1;
+  stemSpline->m_startingPoint = -1;
+  stemSpline->m_left =
+      glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
+                  glm::vec3(0, 1, 0));
+  stemSpline->m_initialDirection = glm::vec3(0, 1, 0);
+  stemSpline->FormNodes(stemSpline);
   auto children = GetOwner().GetChildren();
   for (int i = 0; i < m_parameters.m_leafCount; i++) {
     Entity child;
@@ -96,23 +105,31 @@ void SorghumData::ApplyParameters() {
     spline->m_gravitropismFactor = m_parameters.m_gravitropismFactor;
     spline->m_type = SplineType::Procedural;
     spline->m_order = i;
+    spline->m_segmentAmount = m_segmentAmount;
+    spline->m_step = m_step;
     spline->m_startingPoint =
         m_parameters.m_firstLeafStartingPoint +
         static_cast<float>(i) / m_parameters.m_leafCount *
             (1.0f - m_parameters.m_firstLeafStartingPoint);
-    spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
-                                 glm::radians(glm::linearRand(0.0f, 0.0f)),
-                                 glm::vec3(0, 1, 0));
+    spline->m_left = glm::rotate(
+        glm::vec3(1, 0, 0),
+        m_forceSameRotation ? 0.0f
+                            : glm::radians(glm::linearRand(0.0f, 360.0f)),
+        glm::vec3(0, 1, 0));
     spline->m_initialDirection = glm::rotate(
         glm::vec3(0, 1, 0),
         glm::radians(glm::gaussRand(m_parameters.m_branchingAngle,
                                     m_parameters.m_branchingAngleVariance)),
         spline->m_left);
+    spline->GenerateGeometry(stemSpline);
+    auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
+                                                  spline->m_indices);
   }
 
   for (int i = m_parameters.m_leafCount; i < children.size(); i++) {
     EntityManager::DeleteEntity(children[i]);
   }
 
-  m_meshGenerated = false;
+  m_meshGenerated = true;
 }

@@ -2,6 +2,13 @@
 using namespace SorghumFactory;
 
 void Spline::OnGui() {
+  
+  if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
+    m_segmentAmount = glm::max(2, m_segmentAmount);
+  }
+  if (ImGui::DragInt("Step amount", &m_step)) {
+    m_step = glm::max(2, m_step);
+  }
 
   switch (m_type) {
   case SplineType::BezierCurve: {
@@ -125,8 +132,7 @@ glm::vec3 Spline::EvaluateAxis(float point) {
   throw 0;
 }
 
-void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline,
-                              int segmentAmount, int step) {
+void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
 
   auto stemNodeCount = FormNodes(stemSpline);
 
@@ -160,13 +166,13 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline,
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div = 1.0f / static_cast<float>(segmentAmount); div <= 1.0f;
-         div += 1.0f / static_cast<float>(segmentAmount)) {
+    for (float div = 1.0f / static_cast<float>(m_segmentAmount); div <= 1.0f;
+         div += 1.0f / static_cast<float>(m_segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
-        rightPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
+        leftPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(m_segmentAmount);
+        rightPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(m_segmentAmount);
       }
       m_segments.emplace_back(curve.GetPoint(div), up, front,
                               prev.m_width * (1.0f - div) + curr.m_width * div,
@@ -182,16 +188,16 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline,
 
   const int vertexIndex = m_vertices.size();
   Vertex archetype;
-  const float xStep = 1.0f / step / 2.0f;
+  const float xStep = 1.0f / m_step / 2.0f;
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
   const float yLeafStep =
       0.5f / (m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
   for (int i = 0; i < m_segments.size(); i++) {
     auto &segment = m_segments.at(i);
-    const float angleStep = segment.m_theta / step;
-    const int vertsCount = step * 2 + 1;
+    const float angleStep = segment.m_theta / m_step;
+    const int vertsCount = m_step * 2 + 1;
     for (int j = 0; j < vertsCount; j++) {
-      const auto position = segment.GetPoint((j - step) * angleStep);
+      const auto position = segment.GetPoint((j - m_step) * angleStep);
       archetype.m_position = glm::vec3(position.x, position.y, position.z);
       float yPos = (i < stemSegmentCount)
                        ? yStemStep * i
