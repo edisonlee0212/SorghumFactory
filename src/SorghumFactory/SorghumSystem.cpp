@@ -5,14 +5,7 @@
 using namespace SorghumFactory;
 using namespace UniEngine;
 
-SplineNode::SplineNode(glm::vec3 position, float angle, float width,
-                     glm::vec3 axis, bool isLeaf) {
-  m_position = position;
-  m_theta = angle;
-  m_width = width;
-  m_axis = axis;
-  m_isLeaf = isLeaf;
-}
+
 
 
 void RectangularSorghumField::GenerateField(
@@ -454,7 +447,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
 
     auto newSpline = sorghum.GetOrSetPrivateComponent<Spline>().lock();
     auto spline = original.GetOrSetPrivateComponent<Spline>().lock();
-    newSpline->Clone(std::static_pointer_cast<IPrivateComponent>(spline));
+    newSpline->Copy(spline);
 
     original.ForEachChild([this, &sorghum, &matrices](Entity child) {
       if (!child.HasDataComponent<LeafTag>())
@@ -464,7 +457,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
       newChild.SetDataComponent(child.GetDataComponent<Transform>());
       auto newSpline = newChild.GetOrSetPrivateComponent<Spline>().lock();
       auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
-      newSpline->Clone(std::static_pointer_cast<IPrivateComponent>(spline));
+      newSpline->Copy(spline);
       auto newMeshRenderer =
           newChild.GetOrSetPrivateComponent<MeshRenderer>().lock();
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();

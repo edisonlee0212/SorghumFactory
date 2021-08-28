@@ -160,25 +160,23 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline,
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div = 0; div < 1.0f;
+    for (float div = 1.0f / static_cast<float>(segmentAmount); div <= 1.0f;
          div += 1.0f / static_cast<float>(segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
-      float surfacePush = 0.0f;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
         leftPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
         rightPeriod += glm::gaussRand(1.25f, 0.5f) / static_cast<float>(segmentAmount);
-        surfacePush = 1.0f;
-      }else if(curr.m_isLeaf){
-        surfacePush = div;
       }
       m_segments.emplace_back(curve.GetPoint(div), up, front,
                               prev.m_width * (1.0f - div) + curr.m_width * div,
                               prev.m_theta * (1.0f - div) + curr.m_theta * div,
-                              curr.m_isLeaf, surfacePush,
+                              curr.m_isLeaf,
+                              prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) + curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
                               glm::sin(leftPeriod) * leftFlatness,
                               glm::sin(rightPeriod) * rightFlatness,
-                              leftFlatnessFactor, rightFlatnessFactor);
+                              leftFlatnessFactor,
+                              rightFlatnessFactor);
     }
   }
 
@@ -225,7 +223,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (float i = glm::max(0.0f, m_startingPoint - 0.3f);
            i < m_startingPoint - 0.05f; i += 0.05f) {
         m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
-                             stemSpline->EvaluateAxis(i), false);
+                             stemSpline->EvaluateAxis(i), false, 0.0f);
       }
       stemNodeCount = m_nodes.size();
       for (float i = 0.05f; i <= 1.0f; i += 0.05f) {
@@ -233,42 +231,42 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
         if (i > 0.75f)
           w -= (i - 0.75f) * 0.75f;
         m_nodes.emplace_back(EvaluatePoint(i), i == 0.05f ? 60.0f : 10.0f, w,
-                             EvaluateAxis(i), true);
+                             EvaluateAxis(i), true, 0.0f);
       }
     } else {
       for (float i = 0.0f; i <= 1.0f; i += 0.05f) {
         m_nodes.emplace_back(EvaluatePoint(i), 180.0f, 0.04f, EvaluateAxis(i),
-                             false);
+                             false, 0.0f);
       }
       auto endPoint = EvaluatePoint(1.0f);
       auto endAxis = EvaluateAxis(1.0f);
       m_nodes.emplace_back(endPoint + endAxis * 0.05f, 10.0f, 0.001f, endAxis,
-                           false);
+                           false, 0.0f);
       stemNodeCount = m_nodes.size();
     }
   } break;
   case SplineType::Procedural: {
     if (m_startingPoint != -1) {
       float width = 0.1f - m_startingPoint * 0.05f;
-      float startingPoint = m_startingPoint - 2.0 / m_unitAmount;
+      float backDistance = 0.1f;
+      if(m_startingPoint < 0.2f) backDistance = m_startingPoint / 2.0f;
+      float startingPoint = m_startingPoint - 2.0f * backDistance;
       if (m_order == 0) {
         startingPoint = 0.0f;
       }
-      for (float i = startingPoint; i < m_startingPoint;
-           i += 1.0 / m_unitAmount) {
-        if (i >= 0.0f) {
-          m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
-                               -stemSpline->EvaluateAxis(i), false);
-        }
-      }
+      m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint), 180.0f, width,
+                           -stemSpline->EvaluateAxis(startingPoint), false, 0.0f);
+      m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint + backDistance), 180.0f, width,
+                           -stemSpline->EvaluateAxis(startingPoint + backDistance), false, 0.0f);
+      m_nodes.emplace_back(stemSpline->EvaluatePoint(m_startingPoint), 90.0f, width,
+                           -stemSpline->EvaluateAxis(m_startingPoint), false, 0.0f);
       stemNodeCount = m_nodes.size();
-
       glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
       glm::vec3 direction = m_initialDirection;
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        m_nodes.emplace_back(position, glm::max(10.0f, 60.0f - i * 30.0f), 0.3f,
-                             -direction, true);
+        m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), 0.3f,
+                             -direction, true, 1.0f);
         direction = glm::rotate(
             direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
             m_left);
@@ -277,7 +275,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (int i = 0; i < m_unitAmount; i++) {
         m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
                                  static_cast<float>(i),
-                             180.0f, 0.04f, -m_initialDirection, false);
+                             180.0f, 0.04f, -m_initialDirection, false, 0.0f);
       }
       stemNodeCount = m_nodes.size();
     }
@@ -287,4 +285,28 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
     break;
   }
   return stemNodeCount;
+}
+void Spline::Copy(const std::shared_ptr<Spline> &target) {
+  m_type = target->m_type;
+  m_left = target->m_left;
+  m_startingPoint = target->m_startingPoint;
+  m_order = target->m_order;
+  m_unitAmount = target->m_unitAmount;
+  m_unitLength = target->m_unitLength;
+  m_gravitropismFactor = target->m_gravitropismFactor;
+  m_gravitropism = target->m_gravitropism;
+  m_initialDirection = target->m_initialDirection;
+  m_curves = target->m_curves;
+  m_nodes = target->m_nodes;
+  m_vertices = target->m_vertices;
+  m_indices = target->m_indices;
+}
+SplineNode::SplineNode(glm::vec3 position, float angle, float width, glm::vec3 axis,
+                       bool isLeaf, float surfacePush) {
+  m_position = position;
+  m_theta = angle;
+  m_width = width;
+  m_axis = axis;
+  m_isLeaf = isLeaf;
+  m_surfacePush = surfacePush;
 }

@@ -12,8 +12,9 @@ struct SORGHUM_FACTORY_API SplineNode {
   float m_width;
   glm::vec3 m_axis;
   bool m_isLeaf;
+  float m_surfacePush = 0.0f;
   SplineNode(glm::vec3 position, float angle, float width, glm::vec3 axis,
-            bool isLeaf);
+            bool isLeaf, float surfacePush);
 };
 enum class SORGHUM_FACTORY_API SplineType{
   BezierCurve,
@@ -54,6 +55,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
+  void Copy(const std::shared_ptr<Spline> &target);
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
   void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline, int segmentAmount, int step);
 };
