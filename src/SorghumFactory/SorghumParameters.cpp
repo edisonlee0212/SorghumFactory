@@ -13,7 +13,7 @@ void SorghumFactory::SorghumParameters::OnGui() {
   ImGui::DragFloat2("Gravitropism min/increase", &m_gravitropism, 0.01f);
 
 
-  m_leafLength.Graph("Leaf length control");
+  m_leafLength.DrawGraph("Leaf length control");
 }
 
 void SorghumFactory::SorghumParameters::Serialize(YAML::Emitter &out) {
@@ -23,6 +23,7 @@ void SorghumFactory::SorghumParameters::Deserialize(const YAML::Node &in) {
   m_leafCount = in["m_leafCount"].as<int>();
 }
 SorghumFactory::SorghumParameters::SorghumParameters() {
+  m_leafLength.m_fixed = false;
   m_leafLength.m_controlPoints[0] = glm::vec2(0, 1);
   m_leafLength.m_controlPoints[1] = glm::vec2(0.3, 1);
   m_leafLength.m_controlPoints[2] = glm::vec2(0.7, 1);

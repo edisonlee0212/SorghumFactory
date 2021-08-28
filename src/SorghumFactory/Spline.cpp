@@ -256,8 +256,8 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       }
       m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint), 180.0f, width,
                            -stemSpline->EvaluateAxis(startingPoint), false, 0.0f);
-      m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint + backDistance), 180.0f, width,
-                           -stemSpline->EvaluateAxis(startingPoint + backDistance), false, 0.0f);
+      m_nodes.emplace_back(stemSpline->EvaluatePoint(m_startingPoint - backDistance), 180.0f, width,
+                           -stemSpline->EvaluateAxis(m_startingPoint - backDistance), false, 0.0f);
       m_nodes.emplace_back(stemSpline->EvaluatePoint(m_startingPoint), 90.0f, width,
                            -stemSpline->EvaluateAxis(m_startingPoint), false, 0.0f);
       stemNodeCount = m_nodes.size();

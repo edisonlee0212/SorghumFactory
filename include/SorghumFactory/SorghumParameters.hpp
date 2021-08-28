@@ -18,7 +18,7 @@ public:
   float m_leafLengthBase = 5.0f;
   float m_branchingAngle = 30.0f;
   float m_branchingAngleVariance = 1.0f;
-  BezierCubic2D m_leafLength;
+  Bezier2D m_leafLength;
   float m_gravitropism = 2;
   float m_gravitropismFactor = 0.5;
 };

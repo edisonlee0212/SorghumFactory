@@ -3,11 +3,9 @@
 
 using namespace SorghumFactory;
 
-void SorghumData::OnCreate() {
-}
+void SorghumData::OnCreate() {}
 
-void SorghumData::OnDestroy() {
-}
+void SorghumData::OnDestroy() {}
 
 void SorghumData::OnGui() {
   if (ImGui::TreeNodeEx("I/O")) {
@@ -20,7 +18,8 @@ void SorghumData::OnGui() {
     ImGui::TreePop();
   }
   m_parameters.OnGui();
-  if(ImGui::Button("Apply parameters")) ApplyParameters();
+  if (ImGui::Button("Apply parameters"))
+    ApplyParameters();
 }
 
 void SorghumData::ExportModel(const std::string &filename,
@@ -61,7 +60,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
 }
 void SorghumData::ApplyParameters() {
   int unitAmount = 16;
-  //1. Set owner's spline
+  // 1. Set owner's spline
   auto spline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
   spline->m_unitAmount = unitAmount;
   spline->m_unitLength = m_parameters.m_stemLength / unitAmount;
@@ -71,45 +70,48 @@ void SorghumData::ApplyParameters() {
   spline->m_type = SplineType::Procedural;
   spline->m_order = -1;
   spline->m_startingPoint = -1;
-  spline->m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 360.0f)), glm::vec3(0, 1, 0));
+  spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
+                               glm::radians(glm::linearRand(0.0f, 360.0f)),
+                               glm::vec3(0, 1, 0));
   spline->m_initialDirection = glm::vec3(0, 1, 0);
 
-  //2. Make sure children is enough.
-  int childrenIndex = 0;
-  GetOwner().ForEachChild([&](Entity child){
-    if(childrenIndex >= m_parameters.m_leafCount) return;
+  auto children = GetOwner().GetChildren();
+  for (int i = 0; i < m_parameters.m_leafCount; i++) {
+    Entity child;
+    if (i < children.size()) {
+      child = children[i];
+    } else {
+      child = EntityManager::GetSystem<SorghumSystem>()->CreateSorghumLeaf(
+          GetOwner());
+    }
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->m_unitAmount = unitAmount;
-    spline->m_unitLength = m_parameters.m_leafLengthBase * m_parameters.m_leafLength.GetPoint(static_cast<float>(childrenIndex) / m_parameters.m_leafCount).y / unitAmount;
-    spline->m_gravitropism = m_parameters.m_gravitropism;
-    spline->m_gravitropismFactor = m_parameters.m_gravitropismFactor;
-    spline->m_type = SplineType::Procedural;
-    spline->m_order = childrenIndex;
-    spline->m_startingPoint = m_parameters.m_firstLeafStartingPoint + static_cast<float>(childrenIndex) / m_parameters.m_leafCount * (1.0f - m_parameters.m_firstLeafStartingPoint);
-    spline->m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 360.0f)), glm::vec3(0, 1, 0));
-    spline->m_initialDirection = glm::rotate(glm::vec3(0, 1, 0), glm::radians(glm::gaussRand(m_parameters.m_branchingAngle, m_parameters.m_branchingAngleVariance)), spline->m_left);
-    childrenIndex++;
-  });
-
-  if(childrenIndex > m_parameters.m_leafCount){
-    auto children = GetOwner().GetChildren();
-    for(int i = m_parameters.m_leafCount; i < children.size(); i++){
-      EntityManager::DeleteEntity(children[i]);
-    }
-  }
-
-  for(int i = childrenIndex; i < m_parameters.m_leafCount; i++){
-    Entity newLeaf = EntityManager::GetSystem<SorghumSystem>()->CreateSorghumLeaf(GetOwner());
-    auto spline = newLeaf.GetOrSetPrivateComponent<Spline>().lock();
-    spline->m_unitAmount = unitAmount;
-    spline->m_unitLength = m_parameters.m_leafLengthBase * m_parameters.m_leafLength.GetPoint(static_cast<float>(i) / m_parameters.m_leafCount).y / unitAmount;
+    spline->m_unitLength =
+        m_parameters.m_leafLengthBase *
+        m_parameters.m_leafLength
+            .GetPoint(static_cast<float>(i) / m_parameters.m_leafCount)
+            .y /
+        unitAmount;
     spline->m_gravitropism = m_parameters.m_gravitropism;
     spline->m_gravitropismFactor = m_parameters.m_gravitropismFactor;
     spline->m_type = SplineType::Procedural;
     spline->m_order = i;
-    spline->m_startingPoint = m_parameters.m_firstLeafStartingPoint + static_cast<float>(i) / m_parameters.m_leafCount * (1.0f - m_parameters.m_firstLeafStartingPoint);
-    spline->m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 360.0f)), glm::vec3(0, 1, 0));
-    spline->m_initialDirection = glm::rotate(glm::vec3(0, 1, 0), glm::radians(glm::gaussRand(m_parameters.m_branchingAngle, m_parameters.m_branchingAngleVariance)), spline->m_left);
+    spline->m_startingPoint =
+        m_parameters.m_firstLeafStartingPoint +
+        static_cast<float>(i) / m_parameters.m_leafCount *
+            (1.0f - m_parameters.m_firstLeafStartingPoint);
+    spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
+                                 glm::radians(glm::linearRand(0.0f, 0.0f)),
+                                 glm::vec3(0, 1, 0));
+    spline->m_initialDirection = glm::rotate(
+        glm::vec3(0, 1, 0),
+        glm::radians(glm::gaussRand(m_parameters.m_branchingAngle,
+                                    m_parameters.m_branchingAngleVariance)),
+        spline->m_left);
+  }
+
+  for (int i = m_parameters.m_leafCount; i < children.size(); i++) {
+    EntityManager::DeleteEntity(children[i]);
   }
 
   m_meshGenerated = false;
