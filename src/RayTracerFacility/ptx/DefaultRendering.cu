@@ -303,7 +303,8 @@ namespace RayTracerFacility {
     extern "C" __global__ void __miss__radiance() {
         DefaultRenderingRadianceRayData &prd = *GetRayDataPointer<DefaultRenderingRadianceRayData>();
         const float3 rayDir = optixGetWorldRayDirection();
-        float3 environmentalLightColor = make_float3(1.0f, 1.0f, 1.0f);
+        const glm::vec3 sunColor = glm::normalize(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_sunColor);
+        float3 environmentalLightColor = make_float3(sunColor.x, sunColor.y, sunColor.z);
         switch(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_environmentalLightingType){
         case EnvironmentalLightingType::White:
           break;

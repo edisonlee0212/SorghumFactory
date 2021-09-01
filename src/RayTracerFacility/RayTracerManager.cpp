@@ -376,3 +376,4 @@ void RayTracerRenderWindow::OnGui() {
   ImGui::End();
   ImGui::PopStyleVar();
 }
+

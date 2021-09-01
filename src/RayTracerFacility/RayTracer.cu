@@ -1,3 +1,4 @@
+#include <ImGuizmo.h>
 #include <RayTracer.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -5,7 +6,6 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <optix_function_table_definition.h>
-
 #define GL_TEXTURE_CUBE_MAP 0x8513
 
 #include <RayDataDefinations.hpp>
@@ -46,13 +46,25 @@ void DefaultRenderingProperties::OnGui() {
           if (ImGui::Combo("Environment Lighting", &type,
                            EnvironmentalLightingTypes,
                            IM_ARRAYSIZE(EnvironmentalLightingTypes))) {
-            m_environmentalLightingType = static_cast<EnvironmentalLightingType>(type);
+            m_environmentalLightingType =
+                static_cast<EnvironmentalLightingType>(type);
           }
 
-          ImGui::DragFloat("Skylight intensity", &m_skylightIntensity, 0.01f,
-                           0.0f, 5.0f);
-          ImGui::DragFloat3("Skylight Direction", &m_sunDirection.x, 0.01f,
-                           0.0f, 1.0f);
+          ImGui::DragFloat(
+              (m_environmentalLightingType == EnvironmentalLightingType::CIE
+                   ? "Env Lighting intensity"
+                   : "Zenith radiance"),
+              &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
+
+          static glm::vec2 angles = glm::vec2(90, 0);
+          if (ImGui::DragFloat2("Skylight Direction (X/Y axis)", &angles.x, 1.0f, 0.0f,
+                                180.0f)) {
+            m_sunDirection = glm::quat(glm::radians(glm::vec3(angles.x, angles.y, 0.0f))) * glm::vec3(0, 0, -1);
+          }
+          if (m_environmentalLightingType !=
+              EnvironmentalLightingType::EnvironmentalMap) {
+            ImGui::ColorEdit3("Sky light color", &m_sunColor.x);
+          }
           ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -71,7 +83,7 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties &properties) {
   std::vector<std::pair<unsigned, cudaTextureObject_t>> boundTextures;
   std::vector<cudaGraphicsResource_t> boundResources;
   BuildShaderBindingTable(boundTextures, boundResources);
-  if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties.                                                                                                                                                                                            Changed(
+  if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties.Changed(
           properties)) {
     m_defaultRenderingLaunchParams.m_defaultRenderingProperties = properties;
     m_defaultRenderingPipeline.m_statusChanged = true;

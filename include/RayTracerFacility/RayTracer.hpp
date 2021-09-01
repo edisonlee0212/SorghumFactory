@@ -38,6 +38,7 @@ struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
   EnvironmentalLightingType m_environmentalLightingType = EnvironmentalLightingType::White;
   float m_skylightIntensity = 0.8f;
   glm::vec3 m_sunDirection = glm::vec3(0, 1, 0);
+  glm::vec3 m_sunColor = glm::vec3(1, 1, 1);
   int m_bounceLimit = 4;
   int m_samplesPerPixel = 1;
   Camera m_camera;
