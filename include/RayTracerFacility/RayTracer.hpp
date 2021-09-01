@@ -28,11 +28,16 @@ struct RAY_TRACER_FACILITY_API Camera {
            const float &fov, const glm::ivec2 &size);
 };
 #pragma region MyRegion
-
+enum class EnvironmentalLightingType {
+  White,
+  EnvironmentalMap,
+  CIE
+};
 struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
   bool m_accumulate = true;
-  bool m_useEnvironmentalMap = false;
+  EnvironmentalLightingType m_environmentalLightingType = EnvironmentalLightingType::White;
   float m_skylightIntensity = 0.8f;
+  glm::vec3 m_sunDirection = glm::vec3(0, 1, 0);
   int m_bounceLimit = 4;
   int m_samplesPerPixel = 1;
   Camera m_camera;
@@ -42,8 +47,9 @@ struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
   [[nodiscard]] bool
   Changed(const DefaultRenderingProperties &properties) const {
     return properties.m_accumulate != m_accumulate ||
-           properties.m_useEnvironmentalMap != m_useEnvironmentalMap ||
+           properties.m_environmentalLightingType != m_environmentalLightingType ||
            properties.m_skylightIntensity != m_skylightIntensity ||
+           properties.m_sunDirection != m_sunDirection ||
            properties.m_bounceLimit != m_bounceLimit ||
            properties.m_samplesPerPixel != m_samplesPerPixel ||
            properties.m_outputTextureId != m_outputTextureId ||
@@ -91,8 +97,6 @@ struct DefaultRenderingLaunchParams {
   } m_frame;
   struct {
     cudaTextureObject_t m_environmentalMaps[6];
-    float m_lightSize = 1.0f;
-    glm::vec3 m_direction = glm::vec3(0, -1, 0);
   } m_skylight;
   OptixTraversableHandle m_traversable;
 };
@@ -196,8 +200,6 @@ public:
       std::vector<std::pair<unsigned, cudaTextureObject_t>> &boundTextures,
       std::vector<cudaGraphicsResource_t> &boundResources);
   void SetAccumulate(const bool &value);
-  void SetSkylightSize(const float &value);
-  void SetSkylightDir(const glm::vec3 &value);
   void ClearAccumulate();
 
 protected:

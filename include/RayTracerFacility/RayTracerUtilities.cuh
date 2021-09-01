@@ -3,6 +3,7 @@
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <optix_device.h>
 #include <random>
 #include <sstream>
@@ -129,6 +130,24 @@ BRDF(const float &metallic, Random &random, const glm::vec3 &normal,
                   hitPoint.z + normal.z * 1e-3f);
   out = make_float3(newRayDirection.x, newRayDirection.y, newRayDirection.z);
 }
-
+static __forceinline__ __device__ float
+CIESkyIntensity(glm::vec3 rayDir, const glm::vec3 &sunDir, const glm::vec3 &zenith){
+  if(rayDir.y <= 0){
+    rayDir = glm::normalize(glm::vec3(rayDir.x, 0.01f, rayDir.z));
+  }else {
+    rayDir = glm::normalize(rayDir);
+  }
+  const float gamma = glm::angle(sunDir, rayDir);
+  const float cosGamma = glm::cos(gamma);
+  const float cos2Gamma = cosGamma * cosGamma;
+  const float theta = glm::angle(zenith, rayDir);
+  const float cosTheta = glm::cos(theta);
+  const float z0 = glm::angle(zenith, sunDir);
+  const float cosz0 = glm::cos(z0);
+  const float cos2z0 = cosz0 * cosz0;
+  return (0.91f + 10.0f * glm::pow(2.7182818f, -3.0f * gamma) + 0.45f * cos2Gamma)
+      * (1.0f - glm::pow(2.7182818f, -0.32f / cosTheta))
+         / 0.27f / (0.91f + 10.0f * glm::pow(2.7182818f, -3.0f * z0) + 0.45f * cos2z0);
+}
 #pragma endregion
 } // namespace RayTracerFacility
