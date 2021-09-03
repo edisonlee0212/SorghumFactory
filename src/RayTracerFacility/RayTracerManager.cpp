@@ -1,7 +1,9 @@
-#include <ProjectManager.hpp>
 #include <RayTracedRenderer.hpp>
+
 #include <RayTracerManager.hpp>
+
 using namespace RayTracerFacility;
+#include <ProjectManager.hpp>
 
 void RayTracerManager::UpdateScene() const {
   bool rebuildAccelerationStructure = false;
