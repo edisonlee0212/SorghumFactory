@@ -309,9 +309,11 @@ namespace RayTracerFacility {
         case EnvironmentalLightingType::White:
           break;
         case EnvironmentalLightingType::EnvironmentalMap:
-          float4 color = SampleCubeMap<float4>(defaultRenderingLaunchParams.m_skylight.m_environmentalMaps,
-                                                         rayDir);
-          environmentalLightColor = make_float3(color.x, color.y, color.z);
+          if(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_environmentalMapId != 0) {
+            float4 color = SampleCubeMap<float4>(defaultRenderingLaunchParams.m_skylight.m_environmentalMaps,
+                                                 rayDir);
+            environmentalLightColor = make_float3(color.x, color.y, color.z);
+          }
           break;
         case EnvironmentalLightingType::CIE:
           float skylightIntensity = CIESkyIntensity(glm::vec3(rayDir.x, rayDir.y, rayDir.z), glm::normalize(defaultRenderingLaunchParams.m_defaultRenderingProperties.m_sunDirection), glm::vec3(0, 1, 0));
