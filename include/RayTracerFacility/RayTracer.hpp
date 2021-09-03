@@ -51,6 +51,7 @@ struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
            properties.m_environmentalLightingType != m_environmentalLightingType ||
            properties.m_skylightIntensity != m_skylightIntensity ||
            properties.m_sunDirection != m_sunDirection ||
+           properties.m_sunColor != m_sunColor ||
            properties.m_bounceLimit != m_bounceLimit ||
            properties.m_samplesPerPixel != m_samplesPerPixel ||
            properties.m_outputTextureId != m_outputTextureId ||

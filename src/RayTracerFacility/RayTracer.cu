@@ -57,9 +57,11 @@ void DefaultRenderingProperties::OnGui() {
               &m_skylightIntensity, 0.01f, 0.0f, 5.0f);
 
           static glm::vec2 angles = glm::vec2(90, 0);
-          if (ImGui::DragFloat2("Skylight Direction (X/Y axis)", &angles.x, 1.0f, 0.0f,
-                                180.0f)) {
-            m_sunDirection = glm::quat(glm::radians(glm::vec3(angles.x, angles.y, 0.0f))) * glm::vec3(0, 0, -1);
+          if (ImGui::DragFloat2("Skylight Direction (X/Y axis)", &angles.x,
+                                1.0f, 0.0f, 180.0f)) {
+            m_sunDirection =
+                glm::quat(glm::radians(glm::vec3(angles.x, angles.y, 0.0f))) *
+                glm::vec3(0, 0, -1);
           }
           if (m_environmentalLightingType !=
               EnvironmentalLightingType::EnvironmentalMap) {
@@ -124,64 +126,74 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties &properties) {
       &cudaResourceDesc));
 #pragma endregion
 #pragma region Bind environmental map as cudaTexture
-  CUDA_CHECK(GraphicsGLRegisterImage(
-      &environmentalMapTexture,
-      m_defaultRenderingLaunchParams.m_defaultRenderingProperties
-          .m_environmentalMapId,
-      GL_TEXTURE_CUBE_MAP, cudaGraphicsRegisterFlagsNone));
-  CUDA_CHECK(GraphicsMapResources(1, &environmentalMapTexture, nullptr));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapPosXArray, environmentalMapTexture,
-      cudaGraphicsCubeFacePositiveX, 0));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapNegXArray, environmentalMapTexture,
-      cudaGraphicsCubeFaceNegativeX, 0));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapPosYArray, environmentalMapTexture,
-      cudaGraphicsCubeFacePositiveY, 0));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapNegYArray, environmentalMapTexture,
-      cudaGraphicsCubeFaceNegativeY, 0));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapPosZArray, environmentalMapTexture,
-      cudaGraphicsCubeFacePositiveZ, 0));
-  CUDA_CHECK(GraphicsSubResourceGetMappedArray(
-      &environmentalMapNegZArray, environmentalMapTexture,
-      cudaGraphicsCubeFaceNegativeZ, 0));
-  memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
-  cudaResourceDesc.resType = cudaResourceTypeArray;
-  struct cudaTextureDesc cudaTextureDesc;
-  memset(&cudaTextureDesc, 0, sizeof(cudaTextureDesc));
-  cudaTextureDesc.addressMode[0] = cudaAddressModeWrap;
-  cudaTextureDesc.addressMode[1] = cudaAddressModeWrap;
-  cudaTextureDesc.filterMode = cudaFilterModeLinear;
-  cudaTextureDesc.readMode = cudaReadModeElementType;
-  cudaTextureDesc.normalizedCoords = 1;
-  // Create texture object
-  cudaResourceDesc.res.array.array = environmentalMapPosXArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
-  cudaResourceDesc.res.array.array = environmentalMapNegXArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
-  cudaResourceDesc.res.array.array = environmentalMapPosYArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
-  cudaResourceDesc.res.array.array = environmentalMapNegYArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
-  cudaResourceDesc.res.array.array = environmentalMapPosZArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
-  cudaResourceDesc.res.array.array = environmentalMapNegZArray;
-  CUDA_CHECK(CreateTextureObject(
-      &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5],
-      &cudaResourceDesc, &cudaTextureDesc, nullptr));
+  if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties
+          .m_environmentalMapId != 0) {
+    CUDA_CHECK(GraphicsGLRegisterImage(
+        &environmentalMapTexture,
+        m_defaultRenderingLaunchParams.m_defaultRenderingProperties
+            .m_environmentalMapId,
+        GL_TEXTURE_CUBE_MAP, cudaGraphicsRegisterFlagsNone));
+    CUDA_CHECK(GraphicsMapResources(1, &environmentalMapTexture, nullptr));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapPosXArray, environmentalMapTexture,
+        cudaGraphicsCubeFacePositiveX, 0));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapNegXArray, environmentalMapTexture,
+        cudaGraphicsCubeFaceNegativeX, 0));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapPosYArray, environmentalMapTexture,
+        cudaGraphicsCubeFacePositiveY, 0));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapNegYArray, environmentalMapTexture,
+        cudaGraphicsCubeFaceNegativeY, 0));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapPosZArray, environmentalMapTexture,
+        cudaGraphicsCubeFacePositiveZ, 0));
+    CUDA_CHECK(GraphicsSubResourceGetMappedArray(
+        &environmentalMapNegZArray, environmentalMapTexture,
+        cudaGraphicsCubeFaceNegativeZ, 0));
+    memset(&cudaResourceDesc, 0, sizeof(cudaResourceDesc));
+    cudaResourceDesc.resType = cudaResourceTypeArray;
+    struct cudaTextureDesc cudaTextureDesc;
+    memset(&cudaTextureDesc, 0, sizeof(cudaTextureDesc));
+    cudaTextureDesc.addressMode[0] = cudaAddressModeWrap;
+    cudaTextureDesc.addressMode[1] = cudaAddressModeWrap;
+    cudaTextureDesc.filterMode = cudaFilterModeLinear;
+    cudaTextureDesc.readMode = cudaReadModeElementType;
+    cudaTextureDesc.normalizedCoords = 1;
+    // Create texture object
+    cudaResourceDesc.res.array.array = environmentalMapPosXArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+    cudaResourceDesc.res.array.array = environmentalMapNegXArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+    cudaResourceDesc.res.array.array = environmentalMapPosYArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+    cudaResourceDesc.res.array.array = environmentalMapNegYArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+    cudaResourceDesc.res.array.array = environmentalMapPosZArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+    cudaResourceDesc.res.array.array = environmentalMapNegZArray;
+    CUDA_CHECK(CreateTextureObject(
+        &m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5],
+        &cudaResourceDesc, &cudaTextureDesc, nullptr));
+  } else {
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0] = 0;
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1] = 0;
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2] = 0;
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3] = 0;
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4] = 0;
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5] = 0;
+  }
 #pragma endregion
 #pragma endregion
 #pragma region Upload parameters
@@ -213,28 +225,30 @@ bool RayTracer::RenderDefault(const DefaultRenderingProperties &properties) {
   m_defaultRenderingLaunchParams.m_frame.m_outputTexture = 0;
   CUDA_CHECK(GraphicsUnmapResources(1, &outputTexture, 0));
   CUDA_CHECK(GraphicsUnregisterResource(outputTexture));
+  if (m_defaultRenderingLaunchParams.m_defaultRenderingProperties
+          .m_environmentalMapId != 0) {
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0] = 0;
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1] = 0;
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2] = 0;
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3] = 0;
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4] = 0;
+    CUDA_CHECK(DestroyTextureObject(
+        m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5]));
+    m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5] = 0;
 
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[0] = 0;
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[1] = 0;
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[2] = 0;
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[3] = 0;
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[4] = 0;
-  CUDA_CHECK(DestroyTextureObject(
-      m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5]));
-  m_defaultRenderingLaunchParams.m_skylight.m_environmentalMaps[5] = 0;
-
-  CUDA_CHECK(GraphicsUnmapResources(1, &environmentalMapTexture, 0));
-  CUDA_CHECK(GraphicsUnregisterResource(environmentalMapTexture));
+    CUDA_CHECK(GraphicsUnmapResources(1, &environmentalMapTexture, 0));
+    CUDA_CHECK(GraphicsUnregisterResource(environmentalMapTexture));
+  }
 #pragma endregion
 
   for (int i = 0; i < boundResources.size(); i++) {

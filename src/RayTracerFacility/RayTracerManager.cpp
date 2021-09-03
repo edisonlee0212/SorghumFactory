@@ -1,6 +1,6 @@
+#include <ProjectManager.hpp>
 #include <RayTracedRenderer.hpp>
 #include <RayTracerManager.hpp>
-#include <ProjectManager.hpp>
 using namespace RayTracerFacility;
 
 void RayTracerManager::UpdateScene() const {
@@ -174,21 +174,14 @@ RayTracerManager &RayTracerManager::GetInstance() {
 
 void RayTracerManager::Init() {
 
-
   auto &manager = GetInstance();
 
   CudaModule::Init();
 
-  CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(PLANT_FACTORY_RESOURCE_FOLDER);
+  CudaModule::GetInstance().m_rayTracer->LoadBtfMaterials(
+      PLANT_FACTORY_RESOURCE_FOLDER);
 
   manager.m_defaultWindow.Init("Ray:Default");
-#pragma region Environmental map
-  {
-    manager.m_environmentalMap = AssetManager::Import<Cubemap>(
-        AssetManager::GetResourceFolderPath() /
-        "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
-  }
-#pragma endregion
 
   Application::RegisterUpdateFunction([]() {
     Update();
@@ -217,8 +210,10 @@ void RayTracerManager::Update() {
         EditorManager::GetInstance().m_sceneCameraRotation,
         EditorManager::GetInstance().m_sceneCameraPosition,
         EditorManager::GetInstance().m_sceneCamera->m_fov, size);
-    manager.m_defaultRenderingProperties.m_environmentalMapId =
-        manager.m_environmentalMap->Texture()->Id();
+    if (manager.m_environmentalMap) {
+      manager.m_defaultRenderingProperties.m_environmentalMapId =
+          manager.m_environmentalMap->Texture()->Id();
+    }
     manager.m_defaultRenderingProperties.m_frameSize = size;
     manager.m_defaultRenderingProperties.m_outputTextureId =
         manager.m_defaultWindow.m_output->Id();
@@ -266,8 +261,8 @@ void RayTracerRenderWindow::OnGui() {
           ImGui::DragFloat("Resolution multiplier", &m_resolutionMultiplier,
                            0.01f, 0.1f, 1.0f);
           ImGui::DragFloat("FOV",
-                           &EditorManager::GetInstance().m_sceneCamera->m_fov, 1,
-                           1, 120);
+                           &EditorManager::GetInstance().m_sceneCamera->m_fov,
+                           1, 1, 120);
           ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -376,4 +371,3 @@ void RayTracerRenderWindow::OnGui() {
   ImGui::End();
   ImGui::PopStyleVar();
 }
-
