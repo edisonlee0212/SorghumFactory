@@ -8,12 +8,13 @@
 #include <ProjectManager.hpp>
 #include <PhysicsManager.hpp>
 #include <PostProcessing.hpp>
-#include <RayTracerManager.hpp>
+#include <MLVQRenderer.hpp>
 #include <SorghumSystem.hpp>
 #include <SorghumData.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
+#include <RayTracerManager.hpp>
 using namespace SorghumFactory;
 using namespace RayTracerFacility;
 
@@ -31,8 +32,8 @@ int main() {
 
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 
-  ClassRegistry::RegisterPrivateComponent<RayTracedRenderer>(
-      "RayTracedRenderer");
+  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
+      "MLVQRenderer");
 
   const bool enableRayTracing = true;
   EngineSetup(enableRayTracing);

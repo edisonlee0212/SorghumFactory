@@ -73,8 +73,6 @@ add_library(RayTracerFacility
         #Default
         ${DEFAULT_RENDERING_PTX}
         ${ILLUMINATION_ESTIMATION_PTX}
-        #RayMLVQ
-        ${MLVQ_RENDERING_PTX}
 
         #C++
         ${RAY_TRACER_FACILITY_SOURCES_LOCAL}

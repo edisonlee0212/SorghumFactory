@@ -1,7 +1,8 @@
 #include <SorghumData.hpp>
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
-
+#include <MLVQRenderer.hpp>
+using namespace RayTracerFacility;
 using namespace SorghumFactory;
 using namespace UniEngine;
 
@@ -96,13 +97,10 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
   mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
 
   auto rtt =
-      entity.GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+      entity.GetOrSetPrivateComponent<MLVQRenderer>()
           .lock();
-  rtt->m_mesh = mmc->m_mesh;
-  rtt->m_albedoTexture = m_rayTracedLeafSurfaceTexture;
-  if (m_rayTracedLeafNormalTexture.Get<Texture2D>())
-    rtt->m_normalTexture = m_rayTracedLeafNormalTexture;
-
+  rtt->Sync();
+  rtt->m_materialIndex = 1;
   return entity;
 }
 
@@ -470,9 +468,10 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
       newMeshRenderer->m_mesh = meshRenderer->m_mesh;
       auto newRayTracedRenderer =
           newChild
-              .GetOrSetPrivateComponent<RayTracerFacility::RayTracedRenderer>()
+              .GetOrSetPrivateComponent<MLVQRenderer>()
               .lock();
-      newRayTracedRenderer->m_mesh = meshRenderer->m_mesh;
+      newRayTracedRenderer->m_materialIndex = 1;
+      newRayTracedRenderer->Sync();
     });
     sorghum.SetParent(parent);
     sorghum.SetDataComponent(transform);

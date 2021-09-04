@@ -3,7 +3,7 @@
 #include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
-#include <RayTracedRenderer.hpp>
+
 #include <Spline.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {

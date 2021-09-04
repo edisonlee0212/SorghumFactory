@@ -2,7 +2,6 @@
 #include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
-#include <RayTracedRenderer.hpp>
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
