@@ -10,19 +10,48 @@ std::shared_ptr<OpenGLUtils::GLProgram> DepthCamera::m_depthTransferProgram;
 std::shared_ptr<OpenGLUtils::GLVAO> DepthCamera::m_depthTransferVAO;
 
 void DepthCamera::Clone(const std::shared_ptr<IPrivateComponent> &target) {}
-void DepthCamera::OnInspect() {}
+void DepthCamera::OnInspect() {
+  ImGui::Checkbox("Use Camera Resolution", &m_useCameraResolution);
+  if(!m_useCameraResolution){
+    ImGui::DragInt2("Resolution", &m_resX);
+  }
+
+  ImGui::DragFloat("Factor", &m_factor, 1.0f, 1.0f, 1000000.0f);
+  if (ImGui::TreeNode("Content"))
+  {
+    static float debugSacle = 0.25f;
+    ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
+    debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
+    ImGui::Image(
+        (ImTextureID)m_colorTexture->UnsafeGetGLTexture()->Id(),
+        ImVec2(m_resolutionX * debugSacle, m_resolutionY * debugSacle),
+        ImVec2(0, 1),
+        ImVec2(1, 0));
+    ImGui::TreePop();
+  }
+}
 void DepthCamera::Update() {
   if (!GetOwner().HasPrivateComponent<Camera>())
     return;
   auto cameraComponent = GetOwner().GetOrSetPrivateComponent<Camera>().lock();
-  // 1. Resize to camera's resolution
+  // 1. Resize to resolution
   auto resolution = cameraComponent->GetResolution();
-  if (m_resolutionX != resolution.x || m_resolutionY != resolution.y) {
-    m_resolutionX = resolution.x;
-    m_resolutionY = resolution.y;
-    m_colorTexture->Texture()->ReSize(0, GL_RGB16F, GL_RGB, GL_FLOAT, 0,
-                                      m_resolutionX, m_resolutionY);
+  if(m_useCameraResolution) {
+    m_resX = resolution.x;
+    m_resY = resolution.y;
+  }else{
+    int x = resolution.x;
+    int y = resolution.y;
+    m_resX = glm::clamp(m_resX, 1, x);
+    m_resY = glm::clamp(m_resY, 1, y);
   }
+  if (m_resolutionX != m_resX || m_resY) {
+    m_resolutionX = m_resX;
+    m_resolutionY = m_resY;
+    m_colorTexture->UnsafeGetGLTexture()->ReSize(
+        0, GL_RGB32F, GL_RGB, GL_FLOAT, 0, m_resolutionX, m_resolutionY);
+  }
+  m_factor = glm::clamp(m_factor, 1.0f, cameraComponent->m_farDistance - cameraComponent->m_nearDistance);
   // 2. Render to depth texture
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   glDisable(GL_BLEND);
@@ -32,12 +61,14 @@ void DepthCamera::Update() {
 
   m_depthTransferProgram->Bind();
 
-  AttachTexture(m_colorTexture->Texture().get(), GL_COLOR_ATTACHMENT0);
+  AttachTexture(m_colorTexture->UnsafeGetGLTexture().get(), GL_COLOR_ATTACHMENT0);
   Bind();
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
-  cameraComponent->GetDepthStencil()->Texture()->Bind(1);
+  cameraComponent->GetDepthStencil()->UnsafeGetGLTexture()->Bind(0);
   m_depthTransferProgram->SetInt("depthStencil", 0);
-
+  m_depthTransferProgram->SetFloat("near", cameraComponent->m_nearDistance);
+  m_depthTransferProgram->SetFloat("far", cameraComponent->m_farDistance);
+  m_depthTransferProgram->SetFloat("factor", m_factor);
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 void DepthCamera::OnCreate() {
@@ -75,12 +106,12 @@ void DepthCamera::OnCreate() {
 
   m_colorTexture = AssetManager::CreateAsset<Texture2D>();
   m_colorTexture->m_name = "CameraTexture";
-  m_colorTexture->Texture() = std::make_shared<OpenGLUtils::GLTexture2D>(
-      0, GL_RGB16F, m_resolutionX, m_resolutionY, false);
-  m_colorTexture->Texture()->SetData(0, GL_RGB16F, GL_RGB, GL_FLOAT, 0);
-  m_colorTexture->Texture()->SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  m_colorTexture->Texture()->SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  m_colorTexture->Texture()->SetInt(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  m_colorTexture->Texture()->SetInt(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  AttachTexture(m_colorTexture->Texture().get(), GL_COLOR_ATTACHMENT0);
+  m_colorTexture->UnsafeGetGLTexture() = std::make_shared<OpenGLUtils::GLTexture2D>(
+      0, GL_RGB32F, m_resolutionX, m_resolutionY, false);
+  m_colorTexture->UnsafeGetGLTexture()->SetData(0, GL_RGB32F, GL_RGB, GL_FLOAT, 0);
+  m_colorTexture->UnsafeGetGLTexture()->SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  m_colorTexture->UnsafeGetGLTexture()->SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  m_colorTexture->UnsafeGetGLTexture()->SetInt(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  m_colorTexture->UnsafeGetGLTexture()->SetInt(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  AttachTexture(m_colorTexture->UnsafeGetGLTexture().get(), GL_COLOR_ATTACHMENT0);
 }

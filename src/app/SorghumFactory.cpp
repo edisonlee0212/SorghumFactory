@@ -18,6 +18,8 @@
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <ProceduralSorghumSegmentationMask.hpp>
+
+#include <DepthCamera.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 using namespace RayTracerFacility;
@@ -28,7 +30,7 @@ int main() {
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
 
-
+  ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");

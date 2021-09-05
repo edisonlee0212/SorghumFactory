@@ -8,8 +8,10 @@ class DepthCamera : public IPrivateComponent, public RenderTarget{
   static std::shared_ptr<OpenGLUtils::GLProgram> m_depthTransferProgram;
   static std::shared_ptr<OpenGLUtils::GLVAO> m_depthTransferVAO;
 public:
-  float m_min;
-  float m_max;
+  bool m_useCameraResolution = true;
+  int m_resX = 1;
+  int m_resY = 1;
+  float m_factor = 1.0f;
   void Update() override;
   void OnCreate() override;
   std::shared_ptr<Texture2D> m_colorTexture;
