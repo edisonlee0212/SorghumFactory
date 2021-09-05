@@ -7,7 +7,7 @@ void SorghumData::OnCreate() {}
 
 void SorghumData::OnDestroy() {}
 
-void SorghumData::OnGui() {
+void SorghumData::OnInspect() {
   if (ImGui::TreeNodeEx("I/O")) {
     if (m_meshGenerated) {
       FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},

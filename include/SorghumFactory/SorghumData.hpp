@@ -17,7 +17,7 @@ public:
   SorghumParameters m_parameters;
   void OnCreate() override;
   void OnDestroy() override;
-  void OnGui() override;
+  void OnInspect() override;
   void ExportModel(const std::string &filename,
                    const bool &includeFoliage = true) const;
   void Serialize(YAML::Emitter &out) override;

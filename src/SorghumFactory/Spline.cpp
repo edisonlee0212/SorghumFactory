@@ -1,7 +1,7 @@
 #include "Spline.hpp"
 using namespace SorghumFactory;
 
-void Spline::OnGui() {
+void Spline::OnInspect() {
 
   if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
     m_segmentAmount = glm::max(2, m_segmentAmount);

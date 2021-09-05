@@ -4,7 +4,7 @@
 using namespace SorghumFactory;
 using namespace RayTracerFacility;
 
-void TriangleIlluminationEstimator::OnGui() {
+void TriangleIlluminationEstimator::OnInspect() {
     ImGui::Text("Light probes size: %d", m_lightProbes.size());
     if (ImGui::Button("Calculate illumination")) {
         IlluminationEstimationProperties properties;
