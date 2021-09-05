@@ -1,13 +1,10 @@
+#include <MLVQRenderer.hpp>
 #include <SorghumData.hpp>
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
-#include <MLVQRenderer.hpp>
 using namespace RayTracerFacility;
 using namespace SorghumFactory;
 using namespace UniEngine;
-
-
-
 
 void RectangularSorghumField::GenerateField(
     std::vector<std::vector<glm::mat4>> &matricesList) {
@@ -45,28 +42,19 @@ void SorghumSystem::Start() {
   m_leafMaterial.Get<Material>()->SetProgram(
       DefaultResources::GLPrograms::StandardProgram);
   m_leafMaterial.Get<Material>()->m_cullingMode = MaterialCullingMode::Off;
-  m_leafSurfaceTexture = AssetManager::Import<Texture2D>(
-      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-      "Textures/leafSurfaceBright.jpg");
-
-  m_rayTracedLeafSurfaceTexture = AssetManager::Import<Texture2D>(
-      std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-      "Textures/leafSurfaceBright.jpg");
-
-  m_leafMaterial.Get<Material>()->SetTexture(
-      TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
-  m_leafMaterial.Get<Material>()->m_roughness = 0.0f;
+  m_leafMaterial.Get<Material>()->m_albedoColor =
+      glm::vec3(113.0f / 255, 169.0f / 255, 44.0f / 255);
+  m_leafMaterial.Get<Material>()->m_roughness = 1.0f;
   m_leafMaterial.Get<Material>()->m_metallic = 0.0f;
 
+  /*
   m_instancedLeafMaterial = AssetManager::LoadMaterial(
       DefaultResources::GLPrograms::StandardInstancedProgram);
   m_instancedLeafMaterial.Get<Material>()->m_cullingMode =
       MaterialCullingMode::Off;
-  m_instancedLeafMaterial.Get<Material>()->SetTexture(
-      TextureType::Albedo, m_leafSurfaceTexture.Get<Texture2D>());
-  m_instancedLeafMaterial.Get<Material>()->m_roughness = 0.0f;
+  m_instancedLeafMaterial.Get<Material>()->m_roughness = 1.0f;
   m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
-
+  */
   m_ready = true;
 }
 
@@ -96,9 +84,7 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity) {
   mmc->m_material = m_leafMaterial;
   mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
 
-  auto rtt =
-      entity.GetOrSetPrivateComponent<MLVQRenderer>()
-          .lock();
+  auto rtt = entity.GetOrSetPrivateComponent<MLVQRenderer>().lock();
   rtt->Sync();
   rtt->m_materialIndex = 1;
   return entity;
@@ -109,16 +95,17 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   m_sorghumQuery.ToEntityArray(plants);
   for (auto &plant : plants) {
     auto stemSpline = plant.GetOrSetPrivateComponent<Spline>().lock();
-    //Form the stem spline. Feed with unused shared_ptr to itself.
+    // Form the stem spline. Feed with unused shared_ptr to itself.
     stemSpline->FormNodes(stemSpline);
   }
   EntityManager::ForEach<GlobalTransform>(
       JobManager::PrimaryWorkers(), m_leafQuery,
-      [segmentAmount, step](int index, Entity entity,
-                                        GlobalTransform &ltw) {
+      [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
-        auto stemSpline = entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
-        if(stemSpline) spline->GenerateGeometry(stemSpline);
+        auto stemSpline =
+            entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
+        if (stemSpline)
+          spline->GenerateGeometry(stemSpline);
       });
 
   m_sorghumQuery.ToEntityArray(plants);
@@ -332,7 +319,7 @@ void SorghumSystem::OnInspect() {
     }
     ImGui::Columns(1);
     ImGui::PushItemWidth(200);
-    newSorghumParameters[currentFocusedNewSorghumIndex].OnGui();
+    newSorghumParameters[currentFocusedNewSorghumIndex].OnInspect();
     ImGui::PopItemWidth();
     ImGui::EndChild();
     ImGui::PopStyleVar();
@@ -346,9 +333,9 @@ void SorghumSystem::OnInspect() {
         sorghumTransform.SetPosition(newSorghumPositions[i]);
         sorghumTransform.SetEulerRotation(glm::radians(newSorghumRotations[i]));
         sorghum.SetDataComponent(sorghumTransform);
-        auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-        sorghumData->m_parameters =
-            newSorghumParameters[i];
+        auto sorghumData =
+            sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
+        sorghumData->m_parameters = newSorghumParameters[i];
         sorghumData->ApplyParameters();
         sorghum.SetParent(field);
       }
@@ -374,22 +361,18 @@ void SorghumSystem::OnInspect() {
     ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
     if (ImGui::Button("OK", ImVec2(120, 0))) {
       std::vector<Entity> candidates;
-      candidates.push_back(
-          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                          "Sorghum/skeleton_procedural_1.txt",
-                      "Sorghum 1"));
-      candidates.push_back(
-          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                          "Sorghum/skeleton_procedural_2.txt",
-                      "Sorghum 2"));
-      candidates.push_back(
-          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                          "Sorghum/skeleton_procedural_3.txt",
-                      "Sorghum 3"));
-      candidates.push_back(
-          ImportPlant(std::filesystem::path(PLANT_FACTORY_RESOURCE_FOLDER) /
-                          "Sorghum/skeleton_procedural_4.txt",
-                      "Sorghum 4"));
+      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
+                                           "Sorghum/skeleton_procedural_1.txt",
+                                       "Sorghum 1"));
+      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
+                                           "Sorghum/skeleton_procedural_2.txt",
+                                       "Sorghum 2"));
+      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
+                                           "Sorghum/skeleton_procedural_3.txt",
+                                       "Sorghum 3"));
+      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
+                                           "Sorghum/skeleton_procedural_4.txt",
+                                       "Sorghum 4"));
       GenerateMeshForAllSorghums();
 
       CreateGrid(field, candidates);
@@ -467,9 +450,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
       newMeshRenderer->m_mesh = meshRenderer->m_mesh;
       auto newRayTracedRenderer =
-          newChild
-              .GetOrSetPrivateComponent<MLVQRenderer>()
-              .lock();
+          newChild.GetOrSetPrivateComponent<MLVQRenderer>().lock();
       newRayTracedRenderer->m_materialIndex = 1;
       newRayTracedRenderer->Sync();
     });

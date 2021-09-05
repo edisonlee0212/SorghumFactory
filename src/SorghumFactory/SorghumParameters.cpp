@@ -3,7 +3,7 @@
 #include <rapidxml_print.hpp>
 #include <rapidxml_utils.hpp>
 
-void SorghumFactory::SorghumParameters::OnGui() {
+void SorghumFactory::SorghumParameters::OnInspect() {
   ImGui::DragInt("Leaf count", &m_leafCount, 0.01f);
 
   ImGui::DragFloat("Stem length", &m_stemLength, 0.01f);

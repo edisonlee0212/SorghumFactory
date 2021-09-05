@@ -7,7 +7,7 @@ namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumParameters : public IAsset {
 public:
   SorghumParameters();
-  void OnGui();
+  void OnInspect();
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);

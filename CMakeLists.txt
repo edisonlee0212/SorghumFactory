@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 project(
         SorghumFactory
         VERSION 0.1
-        DESCRIPTION "An implementation of MLVQ library in CUDA with OptiX ray tracer, and a procedural 3D model of sorghum plants. The project is based on UniEngine."
+        DESCRIPTION "An implementation of MLVQ library in CUDA with OptiX ray tracer, and a procedural 3D model of sorghum. The project is based on UniEngine."
 )
 
 include(GenerateExportHeader)
@@ -45,9 +45,6 @@ include_directories(${OptiX_INCLUDE})
 # RayMLVQ
 # ------------------------------------------------------------------
 
-set(PLANT_FACTORY_RESOURCE_DIR_LOCAL ${CMAKE_CURRENT_SOURCE_DIR}/Resources/)
-set(PLANT_FACTORY_RESOURCE_DEF PLANT_FACTORY_RESOURCE_FOLDER=\"${PLANT_FACTORY_RESOURCE_DIR_LOCAL}\")
-
 set(CMAKE_CXX_STANDARD 17)
 
 enable_language(CUDA)
@@ -79,11 +76,6 @@ add_library(RayTracerFacility
         ${RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL}
         ${CMAKE_MODULE_PATH}/configure_optix.cmake
         ${CMAKE_MODULE_PATH}/FindOptiX.cmake
-        )
-
-target_compile_definitions(RayTracerFacility
-        PRIVATE
-        ${PLANT_FACTORY_RESOURCE_DEF}
         )
 
 set_property(TARGET RayTracerFacility PROPERTY CUDA_ARCHITECTURES 75-real 75-virtual)
@@ -139,14 +131,14 @@ elseif (APPLE)
 endif ()
 
 # ------------------------------------------------------------------
-# Plant Factory - Provides models for ray tracer.
+# Sorghum Factory - Provides models for ray tracer.
 # ------------------------------------------------------------------
-file(GLOB PLANT_FACTORY_SOURCES_LOCAL "src/SorghumFactory/*.cpp")
+file(GLOB SORGHUM_FACTORY_SOURCES_LOCAL "src/SorghumFactory/*.cpp")
 add_library(SorghumFactory
         SHARED
-        ${PLANT_FACTORY_SOURCES_LOCAL}
+        ${SORGHUM_FACTORY_SOURCES_LOCAL}
         )
-set(PLANT_FACTORY_PCH_LOCAL
+set(SORGHUM_FACTORY_PCH_LOCAL
         ${UNIENGINE_PCH}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/SorghumFactory-pch.hpp
         )
@@ -157,21 +149,49 @@ generate_export_header(SorghumFactory
 target_compile_definitions(SorghumFactory
         PRIVATE
         GLAD_GLAPI_EXPORT
-        ${PLANT_FACTORY_RESOURCE_DEF}
         )
 target_precompile_headers(SorghumFactory
         PRIVATE
-        ${PLANT_FACTORY_PCH_LOCAL}
+        ${SORGHUM_FACTORY_PCH_LOCAL}
         )
-target_include_directories(SorghumFactory
-        PUBLIC
+set(SORGHUM_FACTORY_INCLUDES_LOCAL
         ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/quickhull
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/rapidxml
         )
+
+target_include_directories(SorghumFactory
+        PUBLIC
+        ${SORGHUM_FACTORY_INCLUDES_LOCAL}
+        )
 target_link_libraries(SorghumFactory
         RayTracerFacility
+        )
+
+# ------------------------------------------------------------------
+# Scripts
+# ------------------------------------------------------------------
+file(GLOB SCRIPTS_SOURCES_LOCAL "src/Scripts/*.cpp")
+add_library(Scripts
+        ${SCRIPTS_SOURCES_LOCAL}
+        )
+target_precompile_headers(Scripts
+        PRIVATE
+        ${UNIENGINE_PCH_LOCAL}
+        ${SORGHUM_FACTORY_PCH_LOCAL}
+        )
+set(SCRIPTS_INCLUDES_LOCAL
+        ${SORGHUM_FACTORY_INCLUDES_LOCAL}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Scripts
+        )
+target_include_directories(Scripts
+        PUBLIC
+        ${SCRIPTS_INCLUDES_LOCAL}
+        )
+target_link_libraries(Scripts
+        RayTracerFacility
+        SorghumFactory
         )
 
 add_executable(Application
@@ -185,15 +205,13 @@ target_include_directories(Application
 
 target_precompile_headers(Application
         PRIVATE
-        ${PLANT_FACTORY_PCH_LOCAL}
+        ${SORGHUM_FACTORY_PCH_LOCAL}
         )
-target_compile_definitions(Application
-        PRIVATE
-        ${PLANT_FACTORY_RESOURCE_DEF}
-        )
+
 target_link_libraries(Application
         RayTracerFacility
         SorghumFactory
+        Scripts
         )
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -209,5 +227,5 @@ if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
         )
     endif ()
     set(RAY_TRACER_FACILITY_INCLUDES ${RAY_TRACER_FACILITY_INCLUDES_LOCAL} PARENT_SCOPE)
-    set(RAY_TRACER_FACILITY_PCH ${PLANT_FACTORY_PCH_LOCAL} PARENT_SCOPE)
+    set(RAY_TRACER_FACILITY_PCH ${SORGHUM_FACTORY_PCH_LOCAL} PARENT_SCOPE)
 endif ()

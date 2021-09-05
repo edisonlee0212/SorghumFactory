@@ -15,6 +15,10 @@
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
 #include <RayTracerManager.hpp>
+
+#include <AutoSorghumGenerationPipeline.hpp>
+#include <ProceduralSorghumSegmentationMask.hpp>
+using namespace Scripts;
 using namespace SorghumFactory;
 using namespace RayTracerFacility;
 
