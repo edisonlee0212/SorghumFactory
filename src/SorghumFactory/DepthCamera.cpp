@@ -29,6 +29,10 @@ void DepthCamera::OnInspect() {
         ImVec2(1, 0));
     ImGui::TreePop();
   }
+
+  FileUtils::SaveFile("Screenshot", "Texture2D", {".png", ".jpg"}, [this](const std::filesystem::path &filePath) {
+    m_colorTexture->Save(filePath);
+  });
 }
 void DepthCamera::Update() {
   if (!GetOwner().HasPrivateComponent<Camera>())

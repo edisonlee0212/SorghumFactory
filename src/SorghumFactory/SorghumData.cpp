@@ -94,7 +94,7 @@ void SorghumData::ApplyParameters() {
       child = children[i];
     } else {
       child = EntityManager::GetSystem<SorghumSystem>()->CreateSorghumLeaf(
-          GetOwner());
+          GetOwner(), i);
     }
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->m_unitAmount = unitAmount;

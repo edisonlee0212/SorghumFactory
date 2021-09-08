@@ -7,7 +7,9 @@
 #include <Spline.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
-struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
+  int m_index = 0;
+};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 
 class SORGHUM_FACTORY_API SorghumField {
@@ -20,6 +22,7 @@ class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
 public:
   glm::ivec2 m_size = glm::ivec2(4, 4);
   glm::vec2 m_distances = glm::vec2(2, 2);
+  glm::vec3 m_rotationVariation = glm::vec3(0, 0, 0);
   void
   GenerateField(std::vector<std::vector<glm::mat4>> &matricesList) override;
 };
@@ -56,13 +59,16 @@ public:
   AssetRef m_leafMaterial;
   // AssetRef m_instancedLeafMaterial;
 
+  AssetRef m_segmentedLeafMaterials[25];
+
+
   void OnCreate() override;
   void Start() override;
-  Entity CreateSorghum();
-  Entity CreateSorghumLeaf(const Entity &plantEntity);
+  Entity CreateSorghum(bool segmentedMask = false);
+  Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
   Entity ImportPlant(const std::filesystem::path &path,
-                     const std::string &name);
+                     const std::string &name, bool segmentedMask = false);
   void OnInspect() override;
   void Update() override;
   void CreateGrid(SorghumField &field, const std::vector<Entity> &candidates);
