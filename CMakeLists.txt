@@ -193,6 +193,9 @@ target_link_libraries(Scripts
         RayTracerFacility
         SorghumFactory
         )
+# ------------------------------------------------------------------
+# Executables
+# ------------------------------------------------------------------
 
 add_executable(Application
         "src/app/SorghumFactory.cpp"
@@ -213,6 +216,29 @@ target_link_libraries(Application
         SorghumFactory
         Scripts
         )
+
+add_executable(SDF
+        "src/app/SDF.cpp"
+        )
+
+target_include_directories(SDF
+        PRIVATE
+        ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
+        )
+
+target_precompile_headers(SDF
+        PRIVATE
+        ${SORGHUM_FACTORY_PCH_LOCAL}
+        )
+
+target_link_libraries(SDF
+        RayTracerFacility
+        SorghumFactory
+        Scripts
+        )
+
+
+
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 

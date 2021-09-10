@@ -22,7 +22,7 @@ void RectangularSorghumField::GenerateField(
               glm::vec3(glm::gaussRand(0.0f, m_rotationVariation.x),
                         glm::gaussRand(0.0f, m_rotationVariation.y),
                         glm::gaussRand(0.0f, m_rotationVariation.z))))) *
-              glm::scale(glm::vec3(1.0f)));
+          glm::scale(glm::vec3(1.0f)));
     }
   }
 }
@@ -394,6 +394,10 @@ void SorghumSystem::OnInspect() {
   if (ImGui::Button("Create field...")) {
     ImGui::OpenPopup("Sorghum field wizard");
   }
+  FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
+                      [this](const std::filesystem::path &path) {
+                        ImportPlant(path, "Sorghum", true);
+                      });
   const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
   ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
   if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
