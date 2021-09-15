@@ -1,7 +1,7 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 #include <SorghumSystem.hpp>
-#include <SorghumParameters.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
 class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
@@ -9,7 +9,7 @@ class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   int m_turnAngle = -1;
   Entity m_currentGrowingSorghum;
 public:
-  SorghumParameters m_parameters;
+  SorghumProceduralDescriptor m_parameters;
 
   bool m_segmentedMask = false;
 
@@ -30,8 +30,11 @@ public:
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
   float m_cameraMin = 1;
   float m_cameraMax = 30;
-
-
+  std::vector<glm::mat4> m_cameraModels;
+  std::vector<glm::mat4> m_sorghumModels;
+  std::vector<glm::mat4> m_projections;
+  std::vector<glm::mat4> m_views;
+  std::vector<std::string> m_names;
   void OnIdle(AutoSorghumGenerationPipeline & pipeline) override;
   void OnBeforeGrowth(AutoSorghumGenerationPipeline & pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline & pipeline) override;

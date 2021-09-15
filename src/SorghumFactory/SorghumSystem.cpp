@@ -242,13 +242,13 @@ void SorghumSystem::OnInspect() {
   }
   if (ImGui::BeginPopupModal("New sorghum wizard", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    static std::vector<SorghumParameters> newSorghumParameters;
+    static std::vector<SorghumProceduralDescriptor> newSorghumParameters;
     static std::vector<glm::vec3> newSorghumPositions;
     static std::vector<glm::vec3> newSorghumRotations;
     static int newSorghumAmount = 1;
     static int currentFocusedNewSorghumIndex = 0;
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-    ImGui::BeginChild("ChildL", ImVec2(300, 400), true,
+    ImGui::BeginChild("ChildL", ImVec2(200, 600), true,
                       ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("Settings")) {
@@ -340,7 +340,7 @@ void SorghumSystem::OnInspect() {
     ImGui::PopStyleVar();
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-    ImGui::BeginChild("ChildR", ImVec2(400, 400), true,
+    ImGui::BeginChild("ChildR", ImVec2(400, 650), true,
                       ImGuiWindowFlags_None | ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("Parameters")) {

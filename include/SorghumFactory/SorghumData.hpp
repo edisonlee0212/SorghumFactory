@@ -1,7 +1,7 @@
 #pragma once
 #include <sorghum_factory_export.h>
 
-#include <SorghumParameters.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
@@ -14,7 +14,7 @@ public:
   int m_segmentAmount = 2;
   int m_step = 2;
 
-  SorghumParameters m_parameters;
+  SorghumProceduralDescriptor m_parameters;
   void OnCreate() override;
   void OnDestroy() override;
   void OnInspect() override;

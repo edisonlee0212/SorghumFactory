@@ -1,7 +1,7 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 #include <SorghumSystem.hpp>
-#include <SorghumParameters.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
     class ProceduralSorghumSegmentationMask
@@ -9,7 +9,7 @@ namespace Scripts {
         int m_remainingInstanceAmount = 0;
         Entity m_currentGrowingTree;
     public:
-        SorghumParameters m_parameters;
+      SorghumProceduralDescriptor m_parameters;
         int m_generationAmount = 10;
         std::filesystem::path m_currentExportFolder = "./export/";
         int m_perTreeGrowthIteration = 40;

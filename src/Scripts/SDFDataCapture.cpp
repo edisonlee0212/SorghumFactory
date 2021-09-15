@@ -37,6 +37,11 @@ void Scripts::SDFDataCapture::OnInspect() {
                                                                                            "Sorghum/skeleton_procedural_4.txt",
                                                                                        "Sorghum 4", m_segmentedMask);
       sorghumSystem->GenerateMeshForAllSorghums();
+      m_projections.clear();
+      m_views.clear();
+      m_names.clear();
+      m_cameraModels.clear();
+      m_sorghumModels.clear();
     }
   }
 }
@@ -61,6 +66,27 @@ void Scripts::SDFDataCapture::OnBeforeGrowth(
     pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
     m_pitchAngle = m_turnAngle = -1;
     if(!m_currentGrowingSorghum.IsNull()) EntityManager::DeleteEntity(m_currentGrowingSorghum);
+    {
+      auto directory = m_currentExportFolder;
+      directory.remove_filename();
+      std::filesystem::create_directories(directory);
+      YAML::Emitter out;
+      out << YAML::BeginMap;
+      for(int i = 0; i < m_projections.size(); i++){
+        out << YAML::Key << "Capture " + std::to_string(i) << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "File Prefix" << YAML::Value << m_names[i];
+        out << YAML::Key << "Projection" << YAML::Value << m_projections[i];
+        out << YAML::Key << "View" << YAML::Value << m_views[i];
+        out << YAML::Key << "Camera Model" << YAML::Value << m_cameraModels[i];
+        out << YAML::Key << "Sorghum Model" << YAML::Value << m_sorghumModels[i];
+        out << YAML::EndMap;
+      }
+      out << YAML::EndMap;
+      std::ofstream fout((m_currentExportFolder / "camera_matrices.yml").string());
+      fout << out.c_str();
+      fout.flush();
+    }
+
     return;
   }
   auto height = m_distance * glm::sin(glm::radians((float)m_pitchAngle));
@@ -124,15 +150,18 @@ void Scripts::SDFDataCapture::OnAfterGrowth(
       cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
 
   std::filesystem::create_directories(m_currentExportFolder);
+  auto prefix = std::to_string(m_pitchAngle) + "_" +
+                std::to_string(m_turnAngle);
   camera->GetTexture()->Save(m_currentExportFolder /
-                             (std::to_string(m_pitchAngle) + "_" +
-                              std::to_string(m_turnAngle) + (m_segmentedMask ? "_m.png" : ".png")));
+                             (prefix + (m_segmentedMask ? "_m.png" : ".png")));
   depthCamera->m_colorTexture->Save(m_currentExportFolder /
-                                    (std::to_string(m_pitchAngle) + "_" +
-                                     std::to_string(m_turnAngle) + "_d.png"));
+                                    (prefix + "_d.png"));
   m_pitchAngle += m_pitchAngleStep;
-
-
+  m_cameraModels.push_back(cameraEntity.GetDataComponent<GlobalTransform>().m_value);
+  m_sorghumModels.push_back(m_currentGrowingSorghum.GetDataComponent<GlobalTransform>().m_value);
+  m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
+  m_views.push_back(Camera::m_cameraInfoBlock.m_view);
+  m_names.push_back(prefix);
   if (m_pitchAngle > m_pitchAngleEnd) {
     m_pitchAngle = 0;
     m_turnAngle += m_turnAngleStep;
