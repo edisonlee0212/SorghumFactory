@@ -66,6 +66,14 @@ void DefaultRenderingProperties::OnGui() {
                    IM_ARRAYSIZE(OutputTypes))) {
     m_outputType = static_cast<OutputType>(outputType);
   }
+
+  ImGui::Checkbox("Enable ground", &m_enableGround);
+  if(m_enableGround){
+    ImGui::ColorEdit3("Ground color", &m_groundColor.x);
+    ImGui::DragFloat("Ground metallic", &m_groundMetallic, 0.01, 0.0, 1.0);
+    ImGui::DragFloat("Ground roughness", &m_groundRoughness, 0.01, 0.0, 1.0);
+    ImGui::DragFloat("Ground height", &m_groundHeight, 0.01);
+  }
 }
 
 bool RayTracer::RenderDefault(const DefaultRenderingProperties &properties) {

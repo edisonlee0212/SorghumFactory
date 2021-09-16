@@ -67,6 +67,11 @@ struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
   glm::ivec2 m_frameSize = glm::vec2(0, 0);
   OutputType m_outputType = OutputType::Color;
 
+  bool m_enableGround = true;
+  glm::vec3 m_groundColor = glm::vec3(1.0f);
+  float m_groundMetallic = 0.3;
+  float m_groundRoughness = 0.3;
+  float m_groundHeight = 0.0f;
   [[nodiscard]] bool
   Changed(const DefaultRenderingProperties &properties) const {
     return properties.m_accumulate != m_accumulate ||
@@ -81,7 +86,12 @@ struct RAY_TRACER_FACILITY_API DefaultRenderingProperties {
            properties.m_environmentalMapId != m_environmentalMapId ||
            properties.m_frameSize != m_frameSize ||
            properties.m_outputType != m_outputType ||
-           properties.m_camera != m_camera;
+           properties.m_camera != m_camera ||
+           properties.m_enableGround != m_enableGround ||
+           properties.m_groundColor != m_groundColor ||
+           properties.m_groundMetallic != m_groundMetallic ||
+           properties.m_groundRoughness != m_groundRoughness ||
+           properties.m_groundHeight != m_groundHeight;
   }
 
   void OnGui();
