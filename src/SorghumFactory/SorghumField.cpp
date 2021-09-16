@@ -29,11 +29,11 @@ void SorghumFactory::RectangularSorghumFieldPattern::GenerateField(
 }
 void SorghumFactory::SorghumField::OnInspect() {
   if (ImGui::BeginMenu("Settings")) {
-    static float distance = 10;
-    static float variance = 4;
-    static float yAxisVar = 180.0f;
-    static float xzAxisVar = 0.0f;
-    static int expand = 1;
+    static float distance = 3;
+    static float variance = 0.2;
+    static float yAxisVar = 30.0f;
+    static float xzAxisVar = 3.0f;
+    static int expand = 3;
     if (ImGui::BeginMenu("Create field...")) {
       ImGui::DragFloat("Avg. Y axis rotation", &yAxisVar, 0.01f, 0.0f, 180.0f);
       ImGui::DragFloat("Avg. XZ axis rotation", &xzAxisVar, 0.01f, 0.0f, 90.0f);
@@ -108,19 +108,6 @@ void SorghumFactory::SorghumField::OnInspect() {
       }
     }
   }
-
-  /*
-   * Entity sorghum = CreateSorghum();
-auto sorghumTransform = sorghum.GetDataComponent<Transform>();
-sorghumTransform.SetPosition(newSorghumPositions[i]);
-sorghumTransform.SetEulerRotation(glm::radians(newSorghumRotations[i]));
-sorghum.SetDataComponent(sorghumTransform);
-auto sorghumData =
-    sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-sorghumData->m_parameters = newSorghumParameters[i];
-sorghumData->ApplyParameters();
-sorghum.SetParent(field);
-   */
 }
 void SorghumFactory::SorghumField::Serialize(YAML::Emitter &out) {}
 void SorghumFactory::SorghumField::Deserialize(const YAML::Node &in) {}

@@ -178,26 +178,26 @@ void SorghumProceduralDescriptor::Deserialize(const YAML::Node &in) {
   }
 }
 SorghumProceduralDescriptor::SorghumProceduralDescriptor() {
-  m_l1LeafLengthDistribution = UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+  m_l1LeafLengthDistribution = UniEngine::Curve(0.333, 0.247, {0, 0}, {1, 1});
 
   m_l1LeafLengthVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
 
-  m_l1BranchingAngleDistribution = UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+  m_l1BranchingAngleDistribution = UniEngine::Curve(0.5, 0.1, {0, 0}, {1, 1});
 
   m_l1BranchingAngleVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
 
   m_l1RollAngleVarianceDistribution =
-      UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+      UniEngine::Curve(0.1, 1, {0, 0}, {1, 1});
 
-  m_l1GravitropismDistribution = UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+  m_l1GravitropismDistribution = UniEngine::Curve(0.5, 0.0, {0, 0}, {1, 1});
 
   m_l1GravitropismVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
 
   m_l1GravitropismFactorDistribution =
-      UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+      UniEngine::Curve(0.9, 0.0, {0, 0}, {1, 1});
 
   m_l1GravitropismFactorVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});

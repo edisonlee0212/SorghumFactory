@@ -36,8 +36,8 @@ public:
   int m_cascadeIndex = 1;
 #pragma region L1 (No variance, better control of single leaf)
   int       m_l1LeafCount = 8;
-  float     m_l1StemLength = 4.0f;
-  float     m_l1FirstLeafStartingPoint = 0.2f;
+  float     m_l1StemLength = 3.5f;
+  float     m_l1FirstLeafStartingPoint = 0.3f;
 
   float     m_l1LeafLengthMax = 10.0f;
   UniEngine::Curve  m_l1LeafLengthDistribution;
@@ -45,13 +45,13 @@ public:
   float     m_l1LeafLengthVarianceMax = 0.0f;
   UniEngine::Curve  m_l1LeafLengthVarianceDistribution;
 
-  float     m_l1BranchingAngleMax = 60;
+  float     m_l1BranchingAngleMax = 50;
   UniEngine::Curve  m_l1BranchingAngleDistribution;
 
   float     m_l1BranchingAngleVarianceMax = 0.0f;
   UniEngine::Curve  m_l1BranchingAngleVarianceDistribution;
 
-  float     m_l1RollAngleVarianceMax = 0.0f;
+  float     m_l1RollAngleVarianceMax = 10.0f;
   UniEngine::Curve  m_l1RollAngleVarianceDistribution;
 
   float     m_l1GravitropismMax = 4;

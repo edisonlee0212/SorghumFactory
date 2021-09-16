@@ -247,6 +247,7 @@ void SorghumSystem::OnInspect() {
     auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
     sorghumData->m_parameters = newSorghumDescriptorAsset;
     sorghumData->ApplyParameters();
+    sorghumData->GenerateGeometry();
     newSorghumDescriptorAsset.Clear();
   }
 
