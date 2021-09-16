@@ -25,27 +25,27 @@ struct SORGHUM_FACTORY_API SorghumLeafDescriptor {
 };
 
 class SORGHUM_FACTORY_API SorghumProceduralDescriptor : public IAsset {
+  void L1ToBase();
 public:
   SorghumProceduralDescriptor();
   void OnInspect() override;
-  void L1ToBase();
+  void Ready();
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 
-
+  int m_cascadeIndex = 1;
 #pragma region L1 (No variance, better control of single leaf)
-  bool      m_l1Locked = true;
   int       m_l1LeafCount = 8;
   float     m_l1StemLength = 4.0f;
   float     m_l1FirstLeafStartingPoint = 0.2f;
 
-  float     m_l1LeafLengthMax = 5.0f;
+  float     m_l1LeafLengthMax = 10.0f;
   UniEngine::Curve  m_l1LeafLengthDistribution;
 
   float     m_l1LeafLengthVarianceMax = 0.0f;
   UniEngine::Curve  m_l1LeafLengthVarianceDistribution;
 
-  float     m_l1BranchingAngleMax = 30;
+  float     m_l1BranchingAngleMax = 60;
   UniEngine::Curve  m_l1BranchingAngleDistribution;
 
   float     m_l1BranchingAngleVarianceMax = 0.0f;
@@ -54,13 +54,13 @@ public:
   float     m_l1RollAngleVarianceMax = 0.0f;
   UniEngine::Curve  m_l1RollAngleVarianceDistribution;
 
-  float     m_l1GravitropismMax = 2;
+  float     m_l1GravitropismMax = 4;
   UniEngine::Curve  m_l1GravitropismDistribution;
 
   float     m_l1GravitropismVarianceMax = 0.0f;
   UniEngine::Curve  m_l1GravitropismVarianceDistribution;
 
-  float     m_l1GravitropismFactorMax = 0.5;
+  float     m_l1GravitropismFactorMax = 1.0f;
   UniEngine::Curve  m_l1GravitropismFactorDistribution;
 
   float     m_l1GravitropismFactorVarianceMax = 0.0f;
@@ -68,7 +68,6 @@ public:
 #pragma endregion
 
 #pragma region Base
-  bool m_baseLocked = true;
   SorghumStemDescriptor m_stemDescriptor;
   std::vector<SorghumLeafDescriptor> m_leafDescriptors;
 #pragma endregion

@@ -20,6 +20,8 @@
 #include <DepthCamera.hpp>
 #include <ProceduralSorghumSegmentationMask.hpp>
 #include <SDFDataCapture.hpp>
+#include <SorghumProceduralDescriptor.hpp>
+#include <SorghumField.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 using namespace RayTracerFacility;
@@ -44,6 +46,9 @@ int main() {
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 
   ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
+
+  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
+  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
 
   const bool enableRayTracing = true;
   EngineSetup(enableRayTracing);

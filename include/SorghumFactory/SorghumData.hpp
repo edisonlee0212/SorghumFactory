@@ -14,7 +14,7 @@ public:
   int m_segmentAmount = 2;
   int m_step = 2;
 
-  SorghumProceduralDescriptor m_parameters;
+  AssetRef m_parameters;
   void OnCreate() override;
   void OnDestroy() override;
   void OnInspect() override;

@@ -17,8 +17,7 @@ void SorghumData::OnInspect() {
 
     ImGui::TreePop();
   }
-  m_parameters.OnInspect();
-
+  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters, "Descriptor");
   if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
     m_segmentAmount = glm::max(2, m_segmentAmount);
   }
@@ -26,11 +25,10 @@ void SorghumData::OnInspect() {
     m_step = glm::max(2, m_step);
   }
   ImGui::Checkbox("Force Same Rotation", &m_forceSameRotation);
-  if (ImGui::Button("Apply parameters"))
+  if (ImGui::Button("Apply")) {
     ApplyParameters();
-
-  if (ImGui::Button("Generate model"))
     GenerateGeometry();
+  }
 }
 
 void SorghumData::ExportModel(const std::string &filename,
@@ -70,11 +68,15 @@ void SorghumData::Deserialize(const YAML::Node &in) {
   m_parameters.Deserialize(in["m_parameters"]);
 }
 void SorghumData::ApplyParameters() {
+  auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
+  if(!descriptor) return;
+  descriptor->Ready();
+
   int unitAmount = 16;
   // 1. Set owner's spline
   auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->m_unitAmount = unitAmount;
-  stemSpline->m_unitLength = m_parameters.m_stemDescriptor.m_length / unitAmount;
+  stemSpline->m_unitLength = descriptor->m_stemDescriptor.m_length / unitAmount;
   stemSpline->m_gravitropism = 0.0f;
   stemSpline->m_gravitropismFactor = 0.0f;
   stemSpline->m_segmentAmount = m_segmentAmount;
@@ -88,7 +90,7 @@ void SorghumData::ApplyParameters() {
   stemSpline->m_initialDirection = glm::vec3(0, 1, 0);
   stemSpline->FormNodes(stemSpline);
   auto children = GetOwner().GetChildren();
-  for (int i = 0; i < m_parameters.m_leafDescriptors.size(); i++) {
+  for (int i = 0; i < descriptor->m_leafDescriptors.size(); i++) {
     Entity child;
     if (i < children.size()) {
       child = children[i];
@@ -96,7 +98,7 @@ void SorghumData::ApplyParameters() {
       child = EntityManager::GetSystem<SorghumSystem>()->CreateSorghumLeaf(
           GetOwner(), i);
     }
-    auto leafDescriptor = m_parameters.m_leafDescriptors[i];
+    auto leafDescriptor = descriptor->m_leafDescriptors[i];
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->m_unitAmount = unitAmount;
     spline->m_unitLength =
@@ -117,7 +119,7 @@ void SorghumData::ApplyParameters() {
         spline->m_left);
   }
 
-  for (int i = m_parameters.m_leafDescriptors.size(); i < children.size(); i++) {
+  for (int i = descriptor->m_leafDescriptors.size(); i < children.size(); i++) {
     EntityManager::DeleteEntity(children[i]);
   }
 

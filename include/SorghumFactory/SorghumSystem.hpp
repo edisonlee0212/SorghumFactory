@@ -3,7 +3,7 @@
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
 #include <sorghum_factory_export.h>
-
+#include "SorghumField.hpp"
 #include <Spline.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
@@ -12,27 +12,10 @@ struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
 };
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 
-class SORGHUM_FACTORY_API SorghumField {
-public:
-  virtual void
-  GenerateField(std::vector<std::vector<glm::mat4>> &matricesList){};
-};
-
-class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
-public:
-  glm::ivec2 m_size = glm::ivec2(4, 4);
-  glm::vec2 m_distances = glm::vec2(2, 2);
-  glm::vec3 m_rotationVariation = glm::vec3(0, 0, 0);
-  void
-  GenerateField(std::vector<std::vector<glm::mat4>> &matricesList) override;
-};
-
 class SORGHUM_FACTORY_API SorghumSystem : public ISystem {
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
-
   bool m_ready = false;
-
 public:
 #pragma region Illumination
   int m_seed;
@@ -71,7 +54,7 @@ public:
                      const std::string &name, bool segmentedMask = false);
   void OnInspect() override;
   void Update() override;
-  void CreateGrid(SorghumField &field, const std::vector<Entity> &candidates);
+  void CreateGrid(RectangularSorghumFieldPattern &field, const std::vector<Entity> &candidates);
   void CloneSorghums(const Entity &parent, const Entity &original,
                      std::vector<glm::mat4> &matrices);
   static void ExportSorghum(const Entity &sorghum, std::ofstream &of,

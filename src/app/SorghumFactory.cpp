@@ -18,7 +18,8 @@
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <ProceduralSorghumSegmentationMask.hpp>
-
+#include <SorghumProceduralDescriptor.hpp>
+#include <SorghumField.hpp>
 #include <DepthCamera.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
@@ -41,6 +42,8 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
       "MLVQRenderer");
 
+  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
+  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   const bool enableRayTracing = true;
   EngineSetup(enableRayTracing);
 
