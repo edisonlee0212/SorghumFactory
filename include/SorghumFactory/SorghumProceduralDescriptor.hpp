@@ -40,31 +40,31 @@ public:
   float     m_l1FirstLeafStartingPoint = 0.2f;
 
   float     m_l1LeafLengthMax = 5.0f;
-  Bezier2D  m_l1LeafLengthDistribution;
+  UniEngine::Curve  m_l1LeafLengthDistribution;
 
   float     m_l1LeafLengthVarianceMax = 0.0f;
-  Bezier2D  m_l1LeafLengthVarianceDistribution;
+  UniEngine::Curve  m_l1LeafLengthVarianceDistribution;
 
   float     m_l1BranchingAngleMax = 30;
-  Bezier2D  m_l1BranchingAngleDistribution;
+  UniEngine::Curve  m_l1BranchingAngleDistribution;
 
   float     m_l1BranchingAngleVarianceMax = 0.0f;
-  Bezier2D  m_l1BranchingAngleVarianceDistribution;
+  UniEngine::Curve  m_l1BranchingAngleVarianceDistribution;
 
   float     m_l1RollAngleVarianceMax = 0.0f;
-  Bezier2D  m_l1RollAngleVarianceDistribution;
+  UniEngine::Curve  m_l1RollAngleVarianceDistribution;
 
   float     m_l1GravitropismMax = 2;
-  Bezier2D  m_l1GravitropismDistribution;
+  UniEngine::Curve  m_l1GravitropismDistribution;
 
   float     m_l1GravitropismVarianceMax = 0.0f;
-  Bezier2D  m_l1GravitropismVarianceDistribution;
+  UniEngine::Curve  m_l1GravitropismVarianceDistribution;
 
   float     m_l1GravitropismFactorMax = 0.5;
-  Bezier2D  m_l1GravitropismFactorDistribution;
+  UniEngine::Curve  m_l1GravitropismFactorDistribution;
 
   float     m_l1GravitropismFactorVarianceMax = 0.0f;
-  Bezier2D  m_l1GravitropismFactorVarianceDistribution;
+  UniEngine::Curve  m_l1GravitropismFactorVarianceDistribution;
 #pragma endregion
 
 #pragma region Base
