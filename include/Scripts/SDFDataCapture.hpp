@@ -13,7 +13,7 @@ public:
 
   bool m_segmentedMask = false;
 
-  std::filesystem::path m_currentExportFolder = "./export/";
+  std::filesystem::path m_currentExportFolder = "export/";
 
   glm::vec3 m_focusPoint = glm::vec3(0, 3, 0);
   float m_pitchAngleStart = 0;

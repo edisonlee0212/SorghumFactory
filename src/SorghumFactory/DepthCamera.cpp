@@ -31,7 +31,7 @@ void DepthCamera::OnInspect() {
   }
 
   FileUtils::SaveFile("Screenshot", "Texture2D", {".png", ".jpg"}, [this](const std::filesystem::path &filePath) {
-    m_colorTexture->Save(filePath);
+    m_colorTexture->SetPathAndSave(ProjectManager::GetRelativePath(filePath));
   });
 }
 void DepthCamera::Update() {

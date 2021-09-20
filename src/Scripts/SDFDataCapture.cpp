@@ -82,7 +82,7 @@ void Scripts::SDFDataCapture::OnBeforeGrowth(
         out << YAML::EndMap;
       }
       out << YAML::EndMap;
-      std::ofstream fout((m_currentExportFolder / "camera_matrices.yml").string());
+      std::ofstream fout((ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "camera_matrices.yml").string());
       fout << out.c_str();
       fout.flush();
     }
@@ -149,12 +149,12 @@ void Scripts::SDFDataCapture::OnAfterGrowth(
   auto depthCamera =
       cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
 
-  std::filesystem::create_directories(m_currentExportFolder);
+  std::filesystem::create_directories(ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder);
   auto prefix = std::to_string(m_pitchAngle) + "_" +
                 std::to_string(m_turnAngle);
-  camera->GetTexture()->Save(m_currentExportFolder /
+  camera->GetTexture()->SetPathAndSave(m_currentExportFolder /
                              (prefix + (m_segmentedMask ? "_m.png" : ".png")));
-  depthCamera->m_colorTexture->Save(m_currentExportFolder /
+  depthCamera->m_colorTexture->SetPathAndSave(m_currentExportFolder /
                                     (prefix + "_d.png"));
   m_pitchAngle += m_pitchAngleStep;
   m_cameraModels.push_back(cameraEntity.GetDataComponent<GlobalTransform>().m_value);
