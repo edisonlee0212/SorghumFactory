@@ -372,7 +372,9 @@ void RayTracerManager::Init() {
   CudaModule::Init();
   manager.m_defaultWindow.Init("Ray Tracer");
   Application::RegisterUpdateFunction([]() {
-    Update();
+    if(Application::IsPlaying()) {
+      Update();
+    }
     OnGui();
   });
 

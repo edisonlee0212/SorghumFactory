@@ -5,8 +5,7 @@
 using namespace RayTracerFacility;
 using namespace SorghumFactory;
 using namespace UniEngine;
-void SorghumSystem::OnCreate() { Enable(); }
-void SorghumSystem::Start() {
+void SorghumSystem::OnCreate() {
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
@@ -15,6 +14,9 @@ void SorghumSystem::Start() {
       EntityManager::CreateEntityArchetype("Sorghum", SorghumTag());
   m_sorghumQuery = EntityManager::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
+  Enable();
+}
+void SorghumSystem::Start() {
 
   if (!m_leafNodeMaterial.Get<Material>()) {
     m_leafNodeMaterial = AssetManager::LoadMaterial(
