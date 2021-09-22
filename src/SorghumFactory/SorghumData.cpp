@@ -61,9 +61,9 @@ void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::EndMap;
 }
 void SorghumData::Deserialize(const YAML::Node &in) {
-  m_growthComplete = in["m_growthComplete"].as<float>();
+  m_growthComplete = in["m_growthComplete"].as<bool>();
   m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
-  m_meshGenerated = in["m_meshGenerated"].as<float>();
+  m_meshGenerated = in["m_meshGenerated"].as<bool>();
 
   m_parameters.Deserialize(in["m_parameters"]);
 }
@@ -135,4 +135,7 @@ void SorghumData::GenerateGeometry() {
     meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
                                                   spline->m_indices);
   });
+}
+void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
+  list.push_back(m_parameters);
 }

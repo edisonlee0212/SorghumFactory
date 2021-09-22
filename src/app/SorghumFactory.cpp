@@ -48,7 +48,6 @@ int main() {
   EngineSetup(enableRayTracing);
 
   ApplicationConfigs applicationConfigs;
-  applicationConfigs.m_projectPath = "temp/SorghumFactory/SorghumFactory.ueproj";
   Application::Init(applicationConfigs);
 
 #pragma region Engine Loop
