@@ -57,8 +57,59 @@ void Spline::OnInspect() {
 void Spline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<Spline>(target);
 }
-void Spline::Serialize(YAML::Emitter &out) {}
-void Spline::Deserialize(const YAML::Node &in) {}
+void Spline::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_type" << YAML::Value << (unsigned) m_type;
+  out << YAML::Key << "m_left" << YAML::Value << m_left;
+  out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
+  out << YAML::Key << "m_order" << YAML::Value << m_order;
+  out << YAML::Key << "m_unitLength" << YAML::Value << m_unitLength;
+  out << YAML::Key << "m_unitAmount" << YAML::Value << m_unitAmount;
+  out << YAML::Key << "m_gravitropism" << YAML::Value << m_gravitropism;
+  out << YAML::Key << "m_gravitropismFactor" << YAML::Value << m_gravitropismFactor;
+  out << YAML::Key << "m_initialDirection" << YAML::Value << m_initialDirection;
+  out << YAML::Key << "m_stemWidth" << YAML::Value << m_stemWidth;
+  out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
+  out << YAML::Key << "m_leafMinWidth" << YAML::Value << m_leafMinWidth;
+  out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value << m_leafWidthDecreaseStart;
+  out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
+  out << YAML::Key << "m_step" << YAML::Value << m_step;
+
+  out << YAML::Key << "m_curves" << YAML::BeginSeq;
+  for(const auto& i : m_curves){
+    out << YAML::BeginMap;
+    out << YAML::Key << "m_p0" << YAML::Value << i.m_p0;
+    out << YAML::Key << "m_p1" << YAML::Value << i.m_p1;
+    out << YAML::Key << "m_p2" << YAML::Value << i.m_p2;
+    out << YAML::Key << "m_p3" << YAML::Value << i.m_p3;
+    out << YAML::EndMap;
+  }
+  out << YAML::EndSeq;
+
+}
+void Spline::Deserialize(const YAML::Node &in) {
+
+  m_type = (SplineType) in["m_type"].as<unsigned>();
+  m_left = in["m_left"].as<glm::vec3>();
+  m_startingPoint = in["m_startingPoint"].as<float>();
+  m_order = in["m_order"].as<int>();
+  m_unitLength = in["m_unitLength"].as<float>();
+  m_unitAmount = in["m_unitAmount"].as<int>();
+  m_gravitropism = in["m_gravitropism"].as<float>();
+  m_gravitropismFactor = in["m_gravitropismFactor"].as<float>();
+  m_initialDirection = in["m_initialDirection"].as<glm::vec3>();
+  m_stemWidth = in["m_stemWidth"].as<float>();
+  m_leafMaxWidth = in["m_leafMaxWidth"].as<float>();
+  m_leafMinWidth = in["m_leafMinWidth"].as<float>();
+  m_leafWidthDecreaseStart = in["m_leafWidthDecreaseStart"].as<float>();
+  if(in["m_curves"]){
+    m_curves.clear();
+    for(const auto& i : in["m_curves"]){
+      m_curves.push_back(BezierCurve(i["m_p0"].as<glm::vec3>(), i["m_p1"].as<glm::vec3>(), i["m_p2"].as<glm::vec3>(), i["m_p3"].as<glm::vec3>()));
+    }
+  }
+  m_segmentAmount = in["m_segmentAmount"].as<float>();
+  m_step = in["m_step"].as<float>();
+}
 
 void Spline::Import(std::ifstream &stream) {
   int curveAmount;
@@ -225,19 +276,26 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   switch (m_type) {
   case SplineType::BezierCurve: {
     if (m_startingPoint != -1) {
-      float width = 0.1f - m_startingPoint * 0.05f;
+      float width = m_stemWidth;
       for (float i = glm::max(0.0f, m_startingPoint - 0.3f);
            i < m_startingPoint - 0.05f; i += 0.05f) {
         m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
                              stemSpline->EvaluateAxis(i), false, 0.0f);
       }
-      stemNodeCount = m_nodes.size();
+
+      float w = m_leafMaxWidth;
+      float lengthDecrease = (m_leafMaxWidth - m_leafMinWidth) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
+      for (int i = 0; i < m_unitAmount; i++) {
+        if (i > m_leafWidthDecreaseStart * m_unitAmount)
+          w -= lengthDecrease;
+        float factor = (float)i / m_unitAmount;
+        m_nodes.emplace_back(EvaluatePoint(factor), factor <= 0.05f ? 60.0f : 10.0f, w,
+                             EvaluateAxis(factor), true, 1.0f);
+      }
+
+
       for (float i = 0.05f; i <= 1.0f; i += 0.05f) {
-        float w = 0.2f;
-        if (i > 0.75f)
-          w -= (i - 0.75f) * 0.75f;
-        m_nodes.emplace_back(EvaluatePoint(i), i == 0.05f ? 60.0f : 10.0f, w,
-                             EvaluateAxis(i), true, 1.0f);
+
       }
     } else {
       for (float i = 0.0f; i <= 1.0f; i += 0.05f) {
@@ -253,7 +311,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   } break;
   case SplineType::Procedural: {
     if (m_startingPoint != -1) {
-      float width = 0.1f - m_startingPoint * 0.05f;
+      float width = m_stemWidth;
       float backDistance = 0.1f;
       if(m_startingPoint < 0.2f) backDistance = m_startingPoint / 2.0f;
       float startingPoint = m_startingPoint - 2.0f * backDistance;
@@ -269,11 +327,12 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       stemNodeCount = m_nodes.size();
       glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
       glm::vec3 direction = m_initialDirection;
+      float w = m_leafMaxWidth;
+      float lengthDecrease = (m_leafMaxWidth - m_leafMinWidth) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
-        float w = 0.2f;
-        if (i > m_unitAmount - 4)
-          w -= (i - m_unitAmount + 4) * 0.06f;
+        if (i > m_leafWidthDecreaseStart * m_unitAmount)
+          w -= lengthDecrease;
         m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), w,
                              -direction, true, 1.0f);
         direction = glm::rotate(

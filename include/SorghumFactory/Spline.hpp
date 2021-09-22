@@ -34,7 +34,10 @@ public:
   float m_gravitropism = 2;
   float m_gravitropismFactor = 0.5;
   glm::vec3 m_initialDirection = glm::vec3(0, 1, 0);
-
+  float m_stemWidth = 0.1f;
+  float m_leafMaxWidth = 0.2f;
+  float m_leafMinWidth = 0.03f;
+  float m_leafWidthDecreaseStart = 0.5;
   //Spline representation from Mathieu's skeleton
 
   std::vector<BezierCurve> m_curves;
