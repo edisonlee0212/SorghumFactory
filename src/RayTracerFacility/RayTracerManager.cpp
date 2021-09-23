@@ -372,9 +372,8 @@ void RayTracerManager::Init() {
   CudaModule::Init();
   manager.m_defaultWindow.Init("Ray Tracer");
   Application::RegisterUpdateFunction([]() {
-    if(Application::IsPlaying()) {
-      Update();
-    }
+    Update();
+
     OnGui();
   });
 
@@ -474,7 +473,7 @@ void RayTracerManager::OnGui() {
           static float zenithIntensityFactor = 1.0f;
           static bool useDayRange = true;
           ImGui::Checkbox("Use day range", &useDayRange);
-          if(useDayRange){
+          if (useDayRange) {
             static float dayRange = 0.5f;
             if (ImGui::DragFloat("Day range", &dayRange, 0.01f, 0.0f, 0.99f)) {
               dayRange = glm::clamp(dayRange, 0.0f, 0.99f);
@@ -482,7 +481,7 @@ void RayTracerManager::OnGui() {
               minute = (glm::mod(dayRange, 1.0f / 24) * 60.0f);
               updated = true;
             }
-          }else {
+          } else {
             if (ImGui::DragInt("Hour", &hour, 1, 0, 23)) {
               hour = glm::clamp(hour, 0, 23);
               updated = true;
@@ -500,9 +499,7 @@ void RayTracerManager::OnGui() {
           }
           if (ImGui::Button("Update") || (autoUpdate && updated)) {
             updated = false;
-            SunlightCalculator::CalculateSunlightAngle(
-                hour, minute,
-                angles.x);
+            SunlightCalculator::CalculateSunlightAngle(hour, minute, angles.x);
             SunlightCalculator::CalculateSunlightIntensity(
                 hour, minute,
                 manager.m_defaultRenderingProperties.m_skylightIntensity);
@@ -512,7 +509,11 @@ void RayTracerManager::OnGui() {
                 glm::quat(glm::radians(glm::vec3(angles.x, angles.y, 0.0f))) *
                 glm::vec3(0, 0, -1);
           }
-          ImGui::Text(("Intensity: " + std::to_string(manager.m_defaultRenderingProperties.m_skylightIntensity)).c_str());
+          ImGui::Text(
+              ("Intensity: " +
+               std::to_string(
+                   manager.m_defaultRenderingProperties.m_skylightIntensity))
+                  .c_str());
           ImGui::Text(("Angle: [" + std::to_string(angles.x)).c_str());
         }
         ImGui::TreePop();
@@ -579,12 +580,13 @@ void SunlightCalculator::CalculateSunlightIntensity(int hour, int minute,
       lastVal = i.second.first;
       index++;
     }
-    if(!found) intensity = lastVal;
+    if (!found)
+      intensity = lastVal;
   }
   intensity *= sunlightCalculator.m_intensityFactor;
 }
 void SunlightCalculator::CalculateSunlightAngle(int hour, int minute,
-                                                    float& angle) {
+                                                float &angle) {
   float actualHour = glm::clamp(hour, 0, 23);
   float actualMinute = glm::clamp(minute, 0, 59) / 60.0f;
   float combinedTime = actualHour + actualMinute;
@@ -612,7 +614,7 @@ void SunlightCalculator::CalculateSunlightAngle(int hour, int minute,
       index++;
     }
 
-    if(!found){
+    if (!found) {
       angle = lastVal;
     }
   }
