@@ -14,6 +14,7 @@ struct SORGHUM_FACTORY_API SplineNode {
   float m_surfacePush = 0.0f;
   SplineNode(glm::vec3 position, float angle, float width, glm::vec3 axis,
             bool isLeaf, float surfacePush);
+  SplineNode();
 };
 enum class SORGHUM_FACTORY_API SplineType{
   BezierCurve,
