@@ -9,71 +9,98 @@ void SorghumProceduralDescriptor::OnInspect() {
     L1ToBase();
   }
   if (ImGui::TreeNodeEx("Level 1")) {
-    ImGui::DragInt("Leaf count", &m_l1LeafCount);
+    if (ImGui::DragInt("Leaf count", &m_l1LeafCount))
+      m_saved = false;
 
     if (ImGui::TreeNode("Leaf width")) {
-      ImGui::DragFloat("Max stem width", &m_l1StemWidthMax, 0.01f);
-      m_l1StemWidthDistribution.CurveEditor("Stem width curve");
+      if (ImGui::DragFloat("Max stem width", &m_l1StemWidthMax, 0.01f))
+        m_saved = false;
+      if (m_l1StemWidthDistribution.CurveEditor("Stem width curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max leaf width", &m_l1LeafWidthMax, 0.01f);
-      m_l1LeafWidthDistribution.CurveEditor("Leaf width curve");
+      if (ImGui::DragFloat("Max leaf width", &m_l1LeafWidthMax, 0.01f))
+        m_saved = false;
+      if (m_l1LeafWidthDistribution.CurveEditor("Leaf width curve"))
+        m_saved = false;
 
-      m_l1LeafLengthDecreaseStartingPointDistribution.CurveEditor(
-          "Leaf width decrease starting point");
+      if (m_l1LeafLengthDecreaseStartingPointDistribution.CurveEditor(
+              "Leaf width decrease starting point"))
+        m_saved = false;
 
       ImGui::TreePop();
     }
 
     if (ImGui::TreeNode("Leaf length")) {
-      ImGui::DragFloat("Stem length", &m_l1StemLength, 0.01f);
-      ImGui::DragFloat("First Leaf Starting Point", &m_l1FirstLeafStartingPoint,
-                       0.01f);
+      if (ImGui::DragFloat("Stem length", &m_l1StemLength, 0.01f))
+        m_saved = false;
+      if (ImGui::DragFloat("First Leaf Starting Point",
+                           &m_l1FirstLeafStartingPoint, 0.01f))
+        m_saved = false;
 
-      ImGui::DragFloat("Max leaf length", &m_l1LeafLengthMax, 0.01f);
-      m_l1LeafLengthDistribution.CurveEditor("Leaf length curve");
+      if (ImGui::DragFloat("Max leaf length", &m_l1LeafLengthMax, 0.01f))
+        m_saved = false;
+      if (m_l1LeafLengthDistribution.CurveEditor("Leaf length curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max leaf length variance", &m_l1LeafLengthVarianceMax,
-                       0.01f);
-      m_l1LeafLengthVarianceDistribution.CurveEditor(
-          "Leaf length variance curve");
+      if (ImGui::DragFloat("Max leaf length variance",
+                           &m_l1LeafLengthVarianceMax, 0.01f))
+        m_saved = false;
+      if (m_l1LeafLengthVarianceDistribution.CurveEditor(
+              "Leaf length variance curve"))
+        m_saved = false;
 
       ImGui::TreePop();
     }
     if (ImGui::TreeNode("Leaf angle")) {
-      ImGui::DragFloat("Max branching angle", &m_l1BranchingAngleMax, 0.01f);
-      m_l1BranchingAngleDistribution.CurveEditor("Branching angle curve");
+      if (ImGui::DragFloat("Max branching angle", &m_l1BranchingAngleMax,
+                           0.01f))
+        m_saved = false;
+      if (m_l1BranchingAngleDistribution.CurveEditor("Branching angle curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max branching angle variance",
-                       &m_l1BranchingAngleVarianceMax, 0.01f);
-      m_l1BranchingAngleVarianceDistribution.CurveEditor(
-          "Branching angle variance curve");
+      if (ImGui::DragFloat("Max branching angle variance",
+                           &m_l1BranchingAngleVarianceMax, 0.01f))
+        m_saved = false;
+      if (m_l1BranchingAngleVarianceDistribution.CurveEditor(
+              "Branching angle variance curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max roll angle variance", &m_l1RollAngleVarianceMax,
-                       0.01f);
-      m_l1RollAngleVarianceDistribution.CurveEditor(
-          "Roll angle variance curve");
+      if (ImGui::DragFloat("Max roll angle variance", &m_l1RollAngleVarianceMax,
+                           0.01f))
+        m_saved = false;
+      if (m_l1RollAngleVarianceDistribution.CurveEditor(
+              "Roll angle variance curve"))
+        m_saved = false;
 
       ImGui::TreePop();
     }
 
     if (ImGui::TreeNode("Leaf bending")) {
-      ImGui::DragFloat("Max bending", &m_l1GravitropismMax, 0.01f);
-      m_l1GravitropismDistribution.CurveEditor("Bending curve");
+      if (ImGui::DragFloat("Max bending", &m_l1GravitropismMax, 0.01f))
+        m_saved = false;
+      if (m_l1GravitropismDistribution.CurveEditor("Bending curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max bending variance",
-                       &m_l1GravitropismVarianceMax, 0.01f);
-      m_l1GravitropismVarianceDistribution.CurveEditor(
-          "Bending variance curve");
+      if (ImGui::DragFloat("Max bending variance", &m_l1GravitropismVarianceMax,
+                           0.01f))
+        m_saved = false;
+      if (m_l1GravitropismVarianceDistribution.CurveEditor(
+              "Bending variance curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max bending increase", &m_l1GravitropismFactorMax,
-                       0.01f);
-      m_l1GravitropismFactorDistribution.CurveEditor(
-          "Bending increase curve");
+      if (ImGui::DragFloat("Max bending increase", &m_l1GravitropismFactorMax,
+                           0.01f))
+        m_saved = false;
+      if (m_l1GravitropismFactorDistribution.CurveEditor(
+              "Bending increase curve"))
+        m_saved = false;
 
-      ImGui::DragFloat("Max bending increase variance",
-                       &m_l1GravitropismFactorVarianceMax, 0.01f);
-      m_l1GravitropismFactorVarianceDistribution.CurveEditor(
-          "Bending increase variance curve");
+      if (ImGui::DragFloat("Max bending increase variance",
+                           &m_l1GravitropismFactorVarianceMax, 0.01f))
+        m_saved = false;
+      if (m_l1GravitropismFactorVarianceDistribution.CurveEditor(
+              "Bending increase variance curve"))
+        m_saved = false;
 
       ImGui::TreePop();
     }
@@ -81,13 +108,15 @@ void SorghumProceduralDescriptor::OnInspect() {
   }
   if (ImGui::TreeNodeEx("Base")) {
     if (ImGui::TreeNodeEx("Stem", ImGuiTreeNodeFlags_DefaultOpen)) {
-      m_stemDescriptor.OnInspect();
+      if (m_stemDescriptor.OnInspect())
+        m_saved = false;
       ImGui::TreePop();
     }
     if (ImGui::TreeNodeEx("Leaves", ImGuiTreeNodeFlags_DefaultOpen)) {
       for (int i = 0; i < m_leafDescriptors.size(); i++) {
         if (ImGui::TreeNodeEx(("No. " + std::to_string(i)).c_str())) {
-          m_leafDescriptors[i].OnInspect();
+          if (m_leafDescriptors[i].OnInspect())
+            m_saved = false;
           ImGui::TreePop();
         }
       }
@@ -113,8 +142,8 @@ void SorghumProceduralDescriptor::Serialize(YAML::Emitter &out) {
   m_l1LeafWidthDistribution.Serialize(out);
   out << YAML::EndMap;
 
-  out << YAML::Key << "m_l1LeafLengthDecreaseStartingPointDistribution" << YAML::Value
-      << YAML::BeginMap;
+  out << YAML::Key << "m_l1LeafLengthDecreaseStartingPointDistribution"
+      << YAML::Value << YAML::BeginMap;
   m_l1LeafLengthDecreaseStartingPointDistribution.Serialize(out);
   out << YAML::EndMap;
 
@@ -204,7 +233,8 @@ void SorghumProceduralDescriptor::Deserialize(const YAML::Node &in) {
   m_l1StemWidthDistribution.Deserialize(in["m_l1StemWidthDistribution"]);
   m_l1LeafWidthMax = in["m_l1LeafWidthMax"].as<float>();
   m_l1LeafWidthDistribution.Deserialize(in["m_l1LeafWidthDistribution"]);
-  m_l1LeafLengthDecreaseStartingPointDistribution.Deserialize(in["m_l1LeafLengthDecreaseStartingPointDistribution"]);
+  m_l1LeafLengthDecreaseStartingPointDistribution.Deserialize(
+      in["m_l1LeafLengthDecreaseStartingPointDistribution"]);
 
   m_l1LeafCount = in["m_l1LeafCount"].as<int>();
   m_l1StemLength = in["m_l1StemLength"].as<float>();
@@ -280,11 +310,9 @@ SorghumProceduralDescriptor::SorghumProceduralDescriptor() {
   m_l1GravitropismFactorVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
 
-  m_l1StemWidthDistribution =
-      UniEngine::Curve(1.0, 0.4, {0, 0}, {1, 1});
+  m_l1StemWidthDistribution = UniEngine::Curve(1.0, 0.4, {0, 0}, {1, 1});
 
-  m_l1LeafWidthDistribution =
-      UniEngine::Curve(1.0, 0.8, {0, 0}, {1, 1});
+  m_l1LeafWidthDistribution = UniEngine::Curve(1.0, 0.8, {0, 0}, {1, 1});
 
   m_l1LeafLengthDecreaseStartingPointDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
@@ -293,15 +321,19 @@ void SorghumProceduralDescriptor::L1ToBase() {
   m_stemDescriptor = SorghumStemDescriptor();
   m_stemDescriptor.m_direction = glm::vec3(0, 1, 0);
   m_stemDescriptor.m_length = m_l1StemLength;
-  m_stemDescriptor.m_stemWidth = m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(1.0f);
+  m_stemDescriptor.m_stemWidth =
+      m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(1.0f);
   m_leafDescriptors.resize(m_l1LeafCount);
   for (int i = 0; i < m_l1LeafCount; i++) {
     float step =
         static_cast<float>(i) / (static_cast<float>(m_l1LeafCount) - 1.0f);
     auto &leafDescriptor = m_leafDescriptors[i];
-    leafDescriptor.m_stemWidth = m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(step);
-    leafDescriptor.m_leafMaxWidth = m_l1LeafWidthMax * m_l1LeafWidthDistribution.GetValue(step);
-    leafDescriptor.m_leafWidthDecreaseStart = m_l1LeafLengthDecreaseStartingPointDistribution.GetValue(step);
+    leafDescriptor.m_stemWidth =
+        m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(step);
+    leafDescriptor.m_leafMaxWidth =
+        m_l1LeafWidthMax * m_l1LeafWidthDistribution.GetValue(step);
+    leafDescriptor.m_leafWidthDecreaseStart =
+        m_l1LeafLengthDecreaseStartingPointDistribution.GetValue(step);
 
     leafDescriptor.m_leafIndex = i;
     leafDescriptor.m_leafStartingPoint =
@@ -352,24 +384,28 @@ void SorghumStemDescriptor::Deserialize(const YAML::Node &in) {
   m_stemWidth = in["m_stemWidth"].as<float>();
 }
 
-void SorghumStemDescriptor::OnInspect() {
-  ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
-  ImGui::DragFloat("Length", &m_length, 0.01f);
-  ImGui::DragFloat("Stem Width", &m_stemWidth, 0.01f);
+bool SorghumStemDescriptor::OnInspect() {
+  bool changed = false;
+  changed = changed || ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
+  changed = changed || ImGui::DragFloat("Length", &m_length, 0.01f);
+  changed = changed || ImGui::DragFloat("Stem Width", &m_stemWidth, 0.01f);
+  return changed;
 }
 
-void SorghumLeafDescriptor::OnInspect() {
-  ImGui::DragFloat("Starting point", &m_leafStartingPoint, 0.01f);
-  ImGui::DragFloat("Leaf Length", &m_leafLength, 0.01f);
-  ImGui::DragFloat("Branching angle", &m_branchingAngle, 0.01f);
-  ImGui::DragFloat("Roll angle", &m_rollAngle, 0.01f);
-  ImGui::DragFloat("Gravitropism", &m_gravitropism, 0.01f);
-  ImGui::DragFloat("Gravitropism increase", &m_gravitropismFactor, 0.01f);
+bool SorghumLeafDescriptor::OnInspect() {
+  bool changed = false;
+  changed = changed || ImGui::DragFloat("Starting point", &m_leafStartingPoint, 0.01f);
+  changed = changed || ImGui::DragFloat("Leaf Length", &m_leafLength, 0.01f);
+  changed = changed || ImGui::DragFloat("Branching angle", &m_branchingAngle, 0.01f);
+  changed = changed || ImGui::DragFloat("Roll angle", &m_rollAngle, 0.01f);
+  changed = changed || ImGui::DragFloat("Gravitropism", &m_gravitropism, 0.01f);
+  changed = changed || ImGui::DragFloat("Gravitropism increase", &m_gravitropismFactor, 0.01f);
 
-  ImGui::DragFloat("Stem width", &m_stemWidth, 0.01f);
-  ImGui::DragFloat("Max width", &m_leafMaxWidth, 0.01f);
-  ImGui::DragFloat("Width decrease starting point", &m_leafWidthDecreaseStart,
+  changed = changed || ImGui::DragFloat("Stem width", &m_stemWidth, 0.01f);
+  changed = changed || ImGui::DragFloat("Max width", &m_leafMaxWidth, 0.01f);
+  changed = changed || ImGui::DragFloat("Width decrease starting point", &m_leafWidthDecreaseStart,
                    0.01f);
+  return changed;
 }
 void SorghumLeafDescriptor::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_leafIndex" << YAML::Value << m_leafIndex;

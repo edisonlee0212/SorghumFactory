@@ -7,7 +7,7 @@ struct SORGHUM_FACTORY_API SorghumStemDescriptor{
   glm::vec3 m_direction = glm::vec3(0, 1, 0);
   float m_length = 8;
   float m_stemWidth = 0.1f;
-  void OnInspect();
+  bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
@@ -24,7 +24,7 @@ struct SORGHUM_FACTORY_API SorghumLeafDescriptor {
   float m_stemWidth = 0.1f;
   float m_leafMaxWidth = 0.2f;
   float m_leafWidthDecreaseStart = 0.5;
-  void OnInspect();
+  bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
