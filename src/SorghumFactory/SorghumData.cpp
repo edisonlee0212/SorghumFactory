@@ -24,7 +24,6 @@ void SorghumData::OnInspect() {
   if (ImGui::DragInt("Step amount", &m_step)) {
     m_step = glm::max(2, m_step);
   }
-  ImGui::Checkbox("Force Same Rotation", &m_forceSameRotation);
   if (ImGui::Button("Apply")) {
     ApplyParameters();
     GenerateGeometry();
@@ -52,7 +51,6 @@ void SorghumData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<SorghumData>(target);
 }
 void SorghumData::Serialize(YAML::Emitter &out) {
-  out << YAML::Key << "m_growthComplete" << YAML::Value << m_growthComplete;
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
 
@@ -61,7 +59,6 @@ void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::EndMap;
 }
 void SorghumData::Deserialize(const YAML::Node &in) {
-  m_growthComplete = in["m_growthComplete"].as<bool>();
   m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
   m_meshGenerated = in["m_meshGenerated"].as<bool>();
 
@@ -88,6 +85,8 @@ void SorghumData::ApplyParameters() {
       glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
                   glm::vec3(0, 1, 0));
   stemSpline->m_initialDirection = glm::vec3(0, 1, 0);
+  stemSpline->m_stemWidth = descriptor->m_stemDescriptor.m_stemWidth;
+
   stemSpline->FormNodes(stemSpline);
   auto children = GetOwner().GetChildren();
   for (int i = 0; i < descriptor->m_leafDescriptors.size(); i++) {
@@ -117,6 +116,9 @@ void SorghumData::ApplyParameters() {
         glm::vec3(0, 1, 0),
         glm::radians(leafDescriptor.m_branchingAngle),
         spline->m_left);
+    spline->m_stemWidth = leafDescriptor.m_stemWidth;
+    spline->m_leafMaxWidth = leafDescriptor.m_leafMaxWidth;
+    spline->m_leafWidthDecreaseStart = leafDescriptor.m_leafWidthDecreaseStart;
   }
 
   for (int i = descriptor->m_leafDescriptors.size(); i < children.size(); i++) {

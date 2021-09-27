@@ -4,7 +4,7 @@
 #include <SorghumProceduralDescriptor.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
-class DepthCamera : public IPrivateComponent, public RenderTarget{
+class SORGHUM_FACTORY_API DepthCamera : public IPrivateComponent, public RenderTarget{
   static std::shared_ptr<OpenGLUtils::GLProgram> m_depthTransferProgram;
   static std::shared_ptr<OpenGLUtils::GLVAO> m_depthTransferVAO;
 public:

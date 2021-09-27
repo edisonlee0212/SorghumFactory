@@ -72,8 +72,9 @@ void Scripts::SDFDataCapture::OnBeforeGrowth(
       std::filesystem::create_directories(directory);
       YAML::Emitter out;
       out << YAML::BeginMap;
+      out << YAML::Key << "Capture Info" << YAML::BeginSeq;
       for(int i = 0; i < m_projections.size(); i++){
-        out << YAML::Key << "Capture " + std::to_string(i) << YAML::Value << YAML::BeginMap;
+        out << YAML::BeginMap;
         out << YAML::Key << "File Prefix" << YAML::Value << m_names[i];
         out << YAML::Key << "Projection" << YAML::Value << m_projections[i];
         out << YAML::Key << "View" << YAML::Value << m_views[i];
@@ -81,6 +82,7 @@ void Scripts::SDFDataCapture::OnBeforeGrowth(
         out << YAML::Key << "Sorghum Model" << YAML::Value << m_sorghumModels[i];
         out << YAML::EndMap;
       }
+      out << YAML::EndSeq;
       out << YAML::EndMap;
       std::ofstream fout((ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "camera_matrices.yml").string());
       fout << out.c_str();

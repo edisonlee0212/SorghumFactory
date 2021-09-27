@@ -6,6 +6,7 @@ namespace SorghumFactory {
 struct SORGHUM_FACTORY_API SorghumStemDescriptor{
   glm::vec3 m_direction = glm::vec3(0, 1, 0);
   float m_length = 8;
+  float m_stemWidth = 0.1f;
   void OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -19,6 +20,10 @@ struct SORGHUM_FACTORY_API SorghumLeafDescriptor {
   float m_rollAngle;
   float m_gravitropism;
   float m_gravitropismFactor;
+
+  float m_stemWidth = 0.1f;
+  float m_leafMaxWidth = 0.2f;
+  float m_leafWidthDecreaseStart = 0.5;
   void OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -35,6 +40,13 @@ public:
 
   int m_cascadeIndex = 1;
 #pragma region L1 (No variance, better control of single leaf)
+  float     m_l1StemWidthMax = 0.1f;
+  UniEngine::Curve m_l1StemWidthDistribution;
+  float     m_l1LeafWidthMax = 0.2f;
+  UniEngine::Curve  m_l1LeafWidthDistribution;
+
+  UniEngine::Curve  m_l1LeafLengthDecreaseStartingPointDistribution;
+
   int       m_l1LeafCount = 8;
   float     m_l1StemLength = 3.5f;
   float     m_l1FirstLeafStartingPoint = 0.3f;

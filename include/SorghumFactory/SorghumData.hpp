@@ -6,8 +6,6 @@ using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
 public:
-  bool m_forceSameRotation = false;
-  bool m_growthComplete = false;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
   bool m_segmentedMask = false;

@@ -69,7 +69,6 @@ void Spline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_initialDirection" << YAML::Value << m_initialDirection;
   out << YAML::Key << "m_stemWidth" << YAML::Value << m_stemWidth;
   out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
-  out << YAML::Key << "m_leafMinWidth" << YAML::Value << m_leafMinWidth;
   out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value << m_leafWidthDecreaseStart;
   out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
   out << YAML::Key << "m_step" << YAML::Value << m_step;
@@ -99,7 +98,6 @@ void Spline::Deserialize(const YAML::Node &in) {
   m_initialDirection = in["m_initialDirection"].as<glm::vec3>();
   m_stemWidth = in["m_stemWidth"].as<float>();
   m_leafMaxWidth = in["m_leafMaxWidth"].as<float>();
-  m_leafMinWidth = in["m_leafMinWidth"].as<float>();
   m_leafWidthDecreaseStart = in["m_leafWidthDecreaseStart"].as<float>();
   if(in["m_curves"]){
     m_curves.clear();
@@ -284,7 +282,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       }
 
       float w = m_leafMaxWidth;
-      float lengthDecrease = (m_leafMaxWidth - m_leafMinWidth) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
+      float lengthDecrease = (m_leafMaxWidth - 0.02f) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
       for (int i = 0; i < m_unitAmount; i++) {
         if (i > m_leafWidthDecreaseStart * m_unitAmount)
           w -= lengthDecrease;
@@ -328,7 +326,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
       glm::vec3 direction = m_initialDirection;
       float w = m_leafMaxWidth;
-      float lengthDecrease = (m_leafMaxWidth - m_leafMinWidth) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
+      float lengthDecrease = (m_leafMaxWidth - 0.02f) / (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;
         if (i > m_leafWidthDecreaseStart * m_unitAmount)
