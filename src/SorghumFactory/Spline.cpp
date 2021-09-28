@@ -239,7 +239,7 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div = 1.0f / static_cast<float>(m_segmentAmount); div <= 1.0f;
+    for (float div = (i == 1 ? 0.0f : 1.0f / static_cast<float>(m_segmentAmount)); div <= 1.0f;
          div += 1.0f / static_cast<float>(m_segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
@@ -344,10 +344,6 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint), 180.0f,
                            width, -stemSpline->EvaluateAxis(startingPoint),
                            false, 0.0f);
-
-      m_nodes.emplace_back(
-          stemSpline->EvaluatePoint(startingPoint + 0.01), 180.0f, width,
-          -stemSpline->EvaluateAxis(startingPoint), false, 0.0f);
       m_nodes.emplace_back(
           stemSpline->EvaluatePoint(m_startingPoint - backDistance), 180.0f,
           width, -stemSpline->EvaluateAxis(m_startingPoint - backDistance),
