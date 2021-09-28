@@ -119,6 +119,10 @@ void SorghumData::ApplyParameters() {
     spline->m_stemWidth = leafDescriptor.m_stemWidth;
     spline->m_leafMaxWidth = leafDescriptor.m_leafMaxWidth;
     spline->m_leafWidthDecreaseStart = leafDescriptor.m_leafWidthDecreaseStart;
+
+    spline->m_waviness = leafDescriptor.m_waviness;
+    spline->m_wavinessFactor = leafDescriptor.m_wavinessFactor;
+    spline->m_wavinessPeriod = leafDescriptor.m_wavinessPeriod;
   }
 
   for (int i = descriptor->m_leafDescriptors.size(); i < children.size(); i++) {

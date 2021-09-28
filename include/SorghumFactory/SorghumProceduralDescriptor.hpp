@@ -24,6 +24,11 @@ struct SORGHUM_FACTORY_API SorghumLeafDescriptor {
   float m_stemWidth = 0.1f;
   float m_leafMaxWidth = 0.2f;
   float m_leafWidthDecreaseStart = 0.5;
+
+  float m_wavinessPeriod = 1.25f;
+  float m_waviness = 0.5f;
+  float m_wavinessFactor = 1.25f;
+
   bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -40,6 +45,12 @@ public:
 
   int m_cascadeIndex = 1;
 #pragma region L1 (No variance, better control of single leaf)
+  float m_l1maxLeafWaviness = 1.0f;
+  UniEngine::Curve  m_l1LeafWavinessDistribution;
+
+  float m_l1maxLeafWavinessPeriod = 2.5f;
+  UniEngine::Curve  m_l1LeafWavinessPeriodDistribution;
+
   float     m_l1StemWidthMax = 0.1f;
   UniEngine::Curve m_l1StemWidthDistribution;
   float     m_l1LeafWidthMax = 0.2f;

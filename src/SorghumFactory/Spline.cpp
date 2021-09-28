@@ -70,6 +70,11 @@ void Spline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_type" << YAML::Value << (unsigned)m_type;
   out << YAML::Key << "m_left" << YAML::Value << m_left;
   out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
+
+  out << YAML::Key << "m_wavinessPeriod" << YAML::Value << m_wavinessPeriod;
+  out << YAML::Key << "m_waviness" << YAML::Value << m_waviness;
+  out << YAML::Key << "m_wavinessFactor" << YAML::Value << m_wavinessFactor;
+
   out << YAML::Key << "m_order" << YAML::Value << m_order;
   out << YAML::Key << "m_unitLength" << YAML::Value << m_unitLength;
   out << YAML::Key << "m_unitAmount" << YAML::Value << m_unitAmount;
@@ -95,11 +100,10 @@ void Spline::Serialize(YAML::Emitter &out) {
   }
   out << YAML::EndSeq;
 
-  if (!m_nodes.empty())
-  {
+  if (!m_nodes.empty()) {
     out << YAML::Key << "m_nodes" << YAML::Value
-        << YAML::Binary(
-               (const unsigned char *)m_nodes.data(), m_nodes.size() * sizeof(SplineNode));
+        << YAML::Binary((const unsigned char *)m_nodes.data(),
+                        m_nodes.size() * sizeof(SplineNode));
   }
 }
 void Spline::Deserialize(const YAML::Node &in) {
@@ -107,6 +111,11 @@ void Spline::Deserialize(const YAML::Node &in) {
   m_type = (SplineType)in["m_type"].as<unsigned>();
   m_left = in["m_left"].as<glm::vec3>();
   m_startingPoint = in["m_startingPoint"].as<float>();
+
+  if(in["m_wavinessPeriod"]) m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
+  if(in["m_waviness"]) m_waviness = in["m_waviness"].as<float>();
+  if(in["m_wavinessFactor"]) m_wavinessFactor = in["m_wavinessFactor"].as<float>();
+
   m_order = in["m_order"].as<int>();
   m_unitLength = in["m_unitLength"].as<float>();
   m_unitAmount = in["m_unitAmount"].as<int>();
@@ -127,8 +136,7 @@ void Spline::Deserialize(const YAML::Node &in) {
   m_segmentAmount = in["m_segmentAmount"].as<float>();
   m_step = in["m_step"].as<float>();
 
-  if (in["m_nodes"])
-  {
+  if (in["m_nodes"]) {
     YAML::Binary nodes = in["m_nodes"].as<YAML::Binary>();
     m_nodes.resize(nodes.size() / sizeof(SplineNode));
     std::memcpy(m_nodes.data(), nodes.data(), nodes.size());
@@ -219,16 +227,10 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
 
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
-  float leftFlatness = glm::gaussRand(1.75f,
-                                      0.5f); // glm::linearRand(0.5f, 2.0f);
-  float rightFlatness = glm::gaussRand(1.75f,
-                                       0.5f); // glm::linearRand(0.5f, 2.0f);
-  float leftFlatnessFactor =
-      glm::gaussRand(1.25f,
-                     0.2f); // glm::linearRand(1.0f, 2.5f);
-  float rightFlatnessFactor =
-      glm::gaussRand(1.25f,
-                     0.2f); // glm::linearRand(1.0f, 2.5f);
+  float leftFlatness = m_waviness;              // glm::linearRand(0.5f, 2.0f);
+  float rightFlatness = m_waviness;             // glm::linearRand(0.5f, 2.0f);
+  float leftFlatnessFactor = m_wavinessFactor;  // glm::linearRand(1.0f, 2.5f);
+  float rightFlatnessFactor = m_wavinessFactor; // glm::linearRand(1.0f, 2.5f);
 
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {
@@ -246,10 +248,8 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod +=
-            glm::gaussRand(1.25f, 0.5f) / static_cast<float>(m_segmentAmount);
-        rightPeriod +=
-            glm::gaussRand(1.25f, 0.5f) / static_cast<float>(m_segmentAmount);
+        leftPeriod += m_wavinessPeriod / static_cast<float>(m_segmentAmount);
+        rightPeriod += m_wavinessPeriod / static_cast<float>(m_segmentAmount);
       }
       m_segments.emplace_back(
           curve.GetPoint(div), up, front,
@@ -257,9 +257,8 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
           prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
           prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
               curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
-          glm::sin(leftPeriod) * leftFlatness,
-          glm::sin(rightPeriod) * rightFlatness, leftFlatnessFactor,
-          rightFlatnessFactor);
+          1.0f + glm::sin(leftPeriod) * leftFlatness,
+          1.0f + glm::sin(rightPeriod) * rightFlatness);
     }
   }
 
@@ -350,9 +349,9 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
                            width, -stemSpline->EvaluateAxis(startingPoint),
                            false, 0.0f);
 
-      m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint + 0.01), 180.0f,
-                           width, -stemSpline->EvaluateAxis(startingPoint),
-                           false, 0.0f);
+      m_nodes.emplace_back(
+          stemSpline->EvaluatePoint(startingPoint + 0.01), 180.0f, width,
+          -stemSpline->EvaluateAxis(startingPoint), false, 0.0f);
       m_nodes.emplace_back(
           stemSpline->EvaluatePoint(m_startingPoint - backDistance), 180.0f,
           width, -stemSpline->EvaluateAxis(m_startingPoint - backDistance),
@@ -392,21 +391,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   }
   return stemNodeCount;
 }
-void Spline::Copy(const std::shared_ptr<Spline> &target) {
-  m_type = target->m_type;
-  m_left = target->m_left;
-  m_startingPoint = target->m_startingPoint;
-  m_order = target->m_order;
-  m_unitAmount = target->m_unitAmount;
-  m_unitLength = target->m_unitLength;
-  m_gravitropismFactor = target->m_gravitropismFactor;
-  m_gravitropism = target->m_gravitropism;
-  m_initialDirection = target->m_initialDirection;
-  m_curves = target->m_curves;
-  m_nodes = target->m_nodes;
-  m_vertices = target->m_vertices;
-  m_indices = target->m_indices;
-}
+void Spline::Copy(const std::shared_ptr<Spline> &target) { *this = *target; }
 SplineNode::SplineNode(glm::vec3 position, float angle, float width,
                        glm::vec3 axis, bool isLeaf, float surfacePush) {
   m_position = position;

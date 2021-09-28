@@ -28,6 +28,10 @@ public:
 
   float m_startingPoint = -1;
 
+  float m_wavinessPeriod = 1.25f;
+  float m_waviness = 0.5f;
+  float m_wavinessFactor = 1.25f;
+
   //Spline representation from procedural plant.
   int m_order = 0;
   float m_unitLength = 0.4f;

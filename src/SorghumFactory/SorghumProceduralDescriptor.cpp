@@ -11,7 +11,17 @@ void SorghumProceduralDescriptor::OnInspect() {
   if (ImGui::TreeNodeEx("Level 1")) {
     if (ImGui::DragInt("Leaf count", &m_l1LeafCount))
       m_saved = false;
-
+    if(ImGui::TreeNode("Leaf waviness")){
+      if (ImGui::DragFloat("Max waviness", &m_l1maxLeafWaviness, 0.01f))
+        m_saved = false;
+      if (m_l1LeafWavinessDistribution.CurveEditor("Waviness curve"))
+        m_saved = false;
+      if (ImGui::DragFloat("Max waviness period", &m_l1maxLeafWavinessPeriod, 0.01f))
+        m_saved = false;
+      if (m_l1LeafWavinessPeriodDistribution.CurveEditor("Waviness period curve"))
+        m_saved = false;
+      ImGui::TreePop();
+    }
     if (ImGui::TreeNode("Leaf width")) {
       if (ImGui::DragFloat("Max stem width", &m_l1StemWidthMax, 0.01f))
         m_saved = false;
@@ -287,6 +297,12 @@ void SorghumProceduralDescriptor::Deserialize(const YAML::Node &in) {
   }
 }
 SorghumProceduralDescriptor::SorghumProceduralDescriptor() {
+  m_l1LeafWavinessDistribution =
+      UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+
+  m_l1LeafWavinessPeriodDistribution =
+      UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
+
   m_l1LeafLengthDistribution = UniEngine::Curve(0.333, 0.247, {0, 0}, {1, 1});
 
   m_l1LeafLengthVarianceDistribution =
@@ -334,6 +350,9 @@ void SorghumProceduralDescriptor::L1ToBase() {
         m_l1LeafWidthMax * m_l1LeafWidthDistribution.GetValue(step);
     leafDescriptor.m_leafWidthDecreaseStart =
         m_l1LeafLengthDecreaseStartingPointDistribution.GetValue(step);
+
+    leafDescriptor.m_wavinessPeriod = m_l1LeafWavinessPeriodDistribution.GetValue(step);
+    leafDescriptor.m_waviness = m_l1LeafWavinessDistribution.GetValue(step);
 
     leafDescriptor.m_leafIndex = i;
     leafDescriptor.m_leafStartingPoint =
@@ -405,6 +424,11 @@ bool SorghumLeafDescriptor::OnInspect() {
   changed = changed || ImGui::DragFloat("Max width", &m_leafMaxWidth, 0.01f);
   changed = changed || ImGui::DragFloat("Width decrease starting point", &m_leafWidthDecreaseStart,
                    0.01f);
+
+  changed = changed || ImGui::DragFloat("Waviness period", &m_wavinessPeriod, 0.01f);
+  changed = changed || ImGui::DragFloat("Waviness", &m_waviness, 0.01f);
+  changed = changed || ImGui::DragFloat("Waviness factor", &m_wavinessFactor, 0.01f);
+
   return changed;
 }
 void SorghumLeafDescriptor::Serialize(YAML::Emitter &out) {
@@ -422,6 +446,10 @@ void SorghumLeafDescriptor::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
   out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value
       << m_leafWidthDecreaseStart;
+
+  out << YAML::Key << "m_wavinessPeriod" << YAML::Value << m_wavinessPeriod;
+  out << YAML::Key << "m_waviness" << YAML::Value << m_waviness;
+  out << YAML::Key << "m_wavinessFactor" << YAML::Value << m_wavinessFactor;
 }
 void SorghumLeafDescriptor::Deserialize(const YAML::Node &in) {
   m_leafIndex = in["m_leafIndex"].as<int>();
@@ -435,4 +463,8 @@ void SorghumLeafDescriptor::Deserialize(const YAML::Node &in) {
   m_stemWidth = in["m_stemWidth"].as<float>();
   m_leafMaxWidth = in["m_leafMaxWidth"].as<float>();
   m_leafWidthDecreaseStart = in["m_leafWidthDecreaseStart"].as<float>();
+
+  if(in["m_wavinessPeriod"]) m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
+  if(in["m_waviness"]) m_waviness = in["m_waviness"].as<float>();
+  if(in["m_wavinessFactor"]) m_wavinessFactor = in["m_wavinessFactor"].as<float>();
 }
