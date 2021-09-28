@@ -27,7 +27,6 @@ struct SORGHUM_FACTORY_API SorghumLeafDescriptor {
 
   float m_wavinessPeriod = 1.25f;
   float m_waviness = 0.5f;
-  float m_wavinessFactor = 1.25f;
 
   bool OnInspect();
   void Serialize(YAML::Emitter &out);

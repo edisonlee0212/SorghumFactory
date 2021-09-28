@@ -73,7 +73,6 @@ void Spline::Serialize(YAML::Emitter &out) {
 
   out << YAML::Key << "m_wavinessPeriod" << YAML::Value << m_wavinessPeriod;
   out << YAML::Key << "m_waviness" << YAML::Value << m_waviness;
-  out << YAML::Key << "m_wavinessFactor" << YAML::Value << m_wavinessFactor;
 
   out << YAML::Key << "m_order" << YAML::Value << m_order;
   out << YAML::Key << "m_unitLength" << YAML::Value << m_unitLength;
@@ -114,7 +113,6 @@ void Spline::Deserialize(const YAML::Node &in) {
 
   if(in["m_wavinessPeriod"]) m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
   if(in["m_waviness"]) m_waviness = in["m_waviness"].as<float>();
-  if(in["m_wavinessFactor"]) m_wavinessFactor = in["m_wavinessFactor"].as<float>();
 
   m_order = in["m_order"].as<int>();
   m_unitLength = in["m_unitLength"].as<float>();
@@ -229,8 +227,6 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
   float rightPeriod = 0.0f;
   float leftFlatness = m_waviness;              // glm::linearRand(0.5f, 2.0f);
   float rightFlatness = m_waviness;             // glm::linearRand(0.5f, 2.0f);
-  float leftFlatnessFactor = m_wavinessFactor;  // glm::linearRand(1.0f, 2.5f);
-  float rightFlatnessFactor = m_wavinessFactor; // glm::linearRand(1.0f, 2.5f);
 
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {

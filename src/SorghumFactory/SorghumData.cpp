@@ -121,7 +121,6 @@ void SorghumData::ApplyParameters() {
     spline->m_leafWidthDecreaseStart = leafDescriptor.m_leafWidthDecreaseStart;
 
     spline->m_waviness = leafDescriptor.m_waviness;
-    spline->m_wavinessFactor = leafDescriptor.m_wavinessFactor;
     spline->m_wavinessPeriod = leafDescriptor.m_wavinessPeriod;
   }
 
