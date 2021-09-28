@@ -18,10 +18,10 @@ void SorghumData::OnInspect() {
     ImGui::TreePop();
   }
   EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters, "Descriptor");
-  if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
+  if (ImGui::DragInt("Vertical subdivision", &m_segmentAmount)) {
     m_segmentAmount = glm::max(2, m_segmentAmount);
   }
-  if (ImGui::DragInt("Step amount", &m_step)) {
+  if (ImGui::DragInt("Horizontal subdivision", &m_step)) {
     m_step = glm::max(2, m_step);
   }
   if (ImGui::Button("Apply")) {
