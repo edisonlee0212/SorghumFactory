@@ -1,5 +1,4 @@
 #pragma once
-#include <CUDAModule.hpp>
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
 #include <sorghum_factory_export.h>

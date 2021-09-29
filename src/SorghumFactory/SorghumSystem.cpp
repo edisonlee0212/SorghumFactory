@@ -1,8 +1,12 @@
+#ifdef RAYTRACERFACILITY
 #include <MLVQRenderer.hpp>
+#endif
 #include <SorghumData.hpp>
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
+#ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
+#endif
 using namespace SorghumFactory;
 using namespace UniEngine;
 void SorghumSystem::OnCreate() {
@@ -105,10 +109,11 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity,
     auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
     mmc->m_material = m_leafMaterial;
     mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
-
+#ifdef RAYTRACERFACILITY
     auto rtt = entity.GetOrSetPrivateComponent<MLVQRenderer>().lock();
     rtt->Sync();
     rtt->m_materialIndex = 1;
+#endif
   }
   return entity;
 }
@@ -203,6 +208,7 @@ void SorghumSystem::OnInspect() {
     ImGui::Text("System not ready!");
     return;
   }
+#ifdef RAYTRACERFACILITY
   ImGui::Checkbox("Display light probes", &m_displayLightProbes);
   ImGui::DragInt("Seed", &m_seed);
   if (ImGui::Button("Generate mesh")) {
@@ -218,7 +224,7 @@ void SorghumSystem::OnInspect() {
     properties.m_numScatterSamples = 10;
     CalculateIllumination(properties);
   }
-
+#endif
   static AssetRef newFieldAsset;
   EditorManager::DragAndDropButton<SorghumField>(newFieldAsset,
                                                  "To sorghum field");
@@ -303,6 +309,7 @@ void SorghumSystem::OnInspect() {
                       });
 
   static bool opened = false;
+#ifdef RAYTRACERFACILITY
   if (m_processing && !opened) {
     ImGui::OpenPopup("Illumination Estimation");
     opened = true;
@@ -328,6 +335,7 @@ void SorghumSystem::OnInspect() {
     }
     ImGui::EndPopup();
   }
+#endif
 }
 
 void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
@@ -352,13 +360,14 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
       auto newSpline = newChild.GetOrSetPrivateComponent<Spline>().lock();
       auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
       newSpline->Copy(spline);
-
+#ifdef RAYTRACERFACILITY
       if (child.HasPrivateComponent<MLVQRenderer>()) {
         auto newRayTracedRenderer =
             newChild.GetOrSetPrivateComponent<MLVQRenderer>().lock();
         newRayTracedRenderer->m_materialIndex = 1;
         newRayTracedRenderer->Sync();
       }
+#endif
       auto newMeshRenderer =
           newChild.GetOrSetPrivateComponent<MeshRenderer>().lock();
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
@@ -466,7 +475,7 @@ void SorghumSystem::ExportAllSorghumsModel(const std::string &filename) {
     UNIENGINE_ERROR("Can't open file!");
   }
 }
-
+#ifdef RAYTRACERFACILITY
 void SorghumSystem::RenderLightProbes() {
   if (m_probeTransforms.empty() || m_probeColors.empty() ||
       m_probeTransforms.size() != m_probeColors.size())
@@ -475,7 +484,7 @@ void SorghumSystem::RenderLightProbes() {
       DefaultResources::Primitives::Cube, m_probeColors, m_probeTransforms,
       glm::mat4(1.0f), 0.2f);
 }
-
+#endif
 void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
                                     const Entity &walker) {
   walker.ForEachChild([&](Entity child) {
@@ -485,7 +494,7 @@ void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
     CollectEntities(entities, child);
   });
 }
-
+#ifdef RAYTRACERFACILITY
 void SorghumSystem::CalculateIllumination(
     const RayTracerFacility::IlluminationEstimationProperties &properties) {
   const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
@@ -502,8 +511,9 @@ void SorghumSystem::CalculateIllumination(
   m_processingIndex = m_processingEntities.size();
   m_processing = true;
 }
-
+#endif
 void SorghumSystem::Update() {
+#ifdef RAYTRACERFACILITY
   if (m_displayLightProbes) {
     RenderLightProbes();
   }
@@ -535,6 +545,7 @@ void SorghumSystem::Update() {
           m_probeTransforms.data(), GL_DYNAMIC_DRAW);
     }
   }
+#endif
 }
 
 void SorghumSystem::CreateGrid(RectangularSorghumFieldPattern &field,

@@ -1,10 +1,13 @@
+
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 
 using namespace SorghumFactory;
+#ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
-
+#endif
 void TriangleIlluminationEstimator::OnInspect() {
+#ifdef RAYTRACERFACILITY
     ImGui::Text("Light probes size: %d", m_lightProbes.size());
     if (ImGui::Button("Calculate illumination")) {
         IlluminationEstimationProperties properties;
@@ -14,11 +17,12 @@ void TriangleIlluminationEstimator::OnInspect() {
         properties.m_numScatterSamples = 20;
         CalculateIllumination(properties);
     }
+#endif
     ImGui::Text(("Surface area: " + std::to_string(m_totalArea)).c_str());
     ImGui::Text(("Total energy: " + std::to_string(m_totalEnergy)).c_str());
     ImGui::Text(("Radiant flux: " + std::to_string(m_radiantFlux)).c_str());
 }
-
+#ifdef RAYTRACERFACILITY
 void TriangleIlluminationEstimator::CalculateIllumination(
         const IlluminationEstimationProperties &properties) {
 #pragma region Prepare light probes;
@@ -103,6 +107,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
         }
     }
 }
+#endif
 void TriangleIlluminationEstimator::Clone(
     const std::shared_ptr<IPrivateComponent> &target) {
   *this = *std::static_pointer_cast<TriangleIlluminationEstimator>(target);

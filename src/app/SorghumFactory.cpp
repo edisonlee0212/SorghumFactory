@@ -2,19 +2,23 @@
 // begins and ends there.
 //
 #include <Application.hpp>
+#ifdef RAYTRACERFACILITY
 #include <CUDAModule.hpp>
+#include <MLVQRenderer.hpp>
+#include <RayTracerManager.hpp>
+#endif
 #include <EditorManager.hpp>
 #include <Utilities.hpp>
 #include <ProjectManager.hpp>
 #include <PhysicsManager.hpp>
 #include <PostProcessing.hpp>
-#include <MLVQRenderer.hpp>
+
 #include <SorghumSystem.hpp>
 #include <SorghumData.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
-#include <RayTracerManager.hpp>
+
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <ProceduralSorghumSegmentationMask.hpp>
@@ -23,8 +27,9 @@
 #include <DepthCamera.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
+#ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
-
+#endif
 void EngineSetup(bool enableRayTracing);
 
 int main() {
@@ -38,10 +43,10 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
 
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
-
+#ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
       "MLVQRenderer");
-
+#endif
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   const bool enableRayTracing = true;
@@ -53,8 +58,10 @@ int main() {
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion
+#ifdef RAYTRACERFACILITY
   if (enableRayTracing)
     RayTracerManager::End();
+#endif
   Application::End();
 }
 
@@ -100,9 +107,10 @@ void EngineSetup(bool enableRayTracing) {
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
     */
+#ifdef RAYTRACERFACILITY
     if (enableRayTracing)
       RayTracerManager::Init();
-
+#endif
     auto sorghumSystem =
         EntityManager::GetOrCreateSystem<SorghumSystem>(
             EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
