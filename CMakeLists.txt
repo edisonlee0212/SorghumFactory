@@ -276,6 +276,13 @@ target_precompile_headers(SDF
         ${SORGHUM_FACTORY_PCH_LOCAL}
         )
 
+# ------------------------------------------------------------------
+# Copy Internal resources
+# ------------------------------------------------------------------
+add_custom_command(TARGET SorghumFactory POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Internals
+        ${CMAKE_BINARY_DIR})
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 if (BUILD_RAY_TRACER_FACILITY)
