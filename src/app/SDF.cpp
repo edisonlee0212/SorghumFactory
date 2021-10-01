@@ -2,15 +2,17 @@
 // begins and ends there.
 //
 #include <Application.hpp>
+#ifdef RAYTRACERFACILITY
 #include <CUDAModule.hpp>
+#include <MLVQRenderer.hpp>
+#include <RayTracerManager.hpp>
+#endif
 #include <ClassRegistry.hpp>
 #include <EditorManager.hpp>
-#include <MLVQRenderer.hpp>
 #include <ObjectRotator.hpp>
 #include <PhysicsManager.hpp>
 #include <PostProcessing.hpp>
 #include <ProjectManager.hpp>
-#include <RayTracerManager.hpp>
 #include <SorghumData.hpp>
 #include <SorghumSystem.hpp>
 #include <TriangleIlluminationEstimator.hpp>
@@ -24,7 +26,9 @@
 #include <SorghumField.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
+#ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
+#endif
 
 void EngineSetup(bool enableRayTracing);
 
@@ -45,7 +49,10 @@ int main() {
 
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 
-  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
+#ifdef RAYTRACERFACILITY
+  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
+      "MLVQRenderer");
+#endif
 
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
@@ -60,8 +67,10 @@ int main() {
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion
+#ifdef RAYTRACERFACILITY
   if (enableRayTracing)
     RayTracerManager::End();
+#endif
   Application::End();
 }
 
@@ -69,7 +78,6 @@ void EngineSetup(bool enableRayTracing) {
   ProjectManager::SetScenePostLoadActions([=]() {
 #pragma region Engine Setup
 #pragma region Global light settings
-    RenderManager::GetInstance().m_stableFit = false;
     RenderManager::GetInstance().m_maxShadowDistance = 100;
     RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
 
@@ -108,14 +116,16 @@ void EngineSetup(bool enableRayTracing) {
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
     */
+#ifdef RAYTRACERFACILITY
     if (enableRayTracing)
       RayTracerManager::Init();
+#endif
 
     auto sorghumSystem = EntityManager::GetOrCreateSystem<SorghumSystem>(
         EntityManager::GetCurrentScene(),
         SystemGroup::SimulationSystemGroup + 0.1f);
 
-    auto sdfEntity = EntityManager::CreateEntity("SDFPipeline");
+    auto sdfEntity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "SDFPipeline");
     auto pipeline =
         sdfEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
             .lock();

@@ -67,7 +67,7 @@ Entity SorghumSystem::CreateSorghum(bool segmentedMask) {
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
   const Entity entity =
-      EntityManager::CreateEntity(m_sorghumArchetype, "Sorghum");
+      EntityManager::CreateEntity(EntityManager::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
   entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   sorghumData->m_segmentedMask = segmentedMask;
@@ -78,7 +78,7 @@ Entity SorghumSystem::CreateSorghum(bool segmentedMask) {
 
 Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity,
                                         int leafIndex) {
-  const Entity entity = EntityManager::CreateEntity(m_leafArchetype);
+  const Entity entity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), m_leafArchetype);
   entity.SetName("Leaf");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -120,14 +120,14 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity,
 
 void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   std::vector<Entity> plants;
-  m_sorghumQuery.ToEntityArray(plants);
+  m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     auto stemSpline = plant.GetOrSetPrivateComponent<Spline>().lock();
     // Form the stem spline. Feed with unused shared_ptr to itself.
     stemSpline->FormNodes(stemSpline);
   }
-  EntityManager::ForEach<GlobalTransform>(
-      JobManager::PrimaryWorkers(), m_leafQuery,
+  EntityManager::ForEach<GlobalTransform>(EntityManager::GetCurrentScene(),
+                                          JobManager::PrimaryWorkers(), m_leafQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
         auto stemSpline =
@@ -136,7 +136,7 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
           spline->GenerateGeometry(stemSpline);
       });
 
-  m_sorghumQuery.ToEntityArray(plants);
+  m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     plant.ForEachChild([](Entity child) {
       if (!child.HasPrivateComponent<Spline>())
@@ -230,7 +230,7 @@ void SorghumSystem::OnInspect() {
                                                  "To sorghum field");
   if (newFieldAsset.Get<SorghumField>()) {
     auto newField = newFieldAsset.Get<SorghumField>();
-    auto field = EntityManager::CreateEntity("Field");
+    auto field = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
     // Create sorghums here.
     for (auto i = 0; i < newField->m_newSorghumAmount; i++) {
       Entity sorghum = CreateSorghum();
@@ -465,7 +465,7 @@ void SorghumSystem::ExportAllSorghumsModel(const std::string &filename) {
 
     unsigned startIndex = 1;
     std::vector<Entity> sorghums;
-    m_sorghumQuery.ToEntityArray(sorghums);
+    m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghums);
     for (const auto &plant : sorghums) {
       ExportSorghum(plant, of, startIndex);
     }
@@ -550,7 +550,7 @@ void SorghumSystem::Update() {
 
 void SorghumSystem::CreateGrid(RectangularSorghumFieldPattern &field,
                                const std::vector<Entity> &candidates) {
-  const Entity entity = EntityManager::CreateEntity("Field");
+  const Entity entity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
   std::vector<std::vector<glm::mat4>> matricesList;
   matricesList.resize(candidates.size());
   for (auto &i : matricesList) {
@@ -562,9 +562,6 @@ void SorghumSystem::CreateGrid(RectangularSorghumFieldPattern &field,
   }
 }
 
-void SorghumSystem::Relink(const std::unordered_map<Handle, Handle> &map) {
-  ISystem::Relink(map);
-}
 void SorghumSystem::Deserialize(const YAML::Node &in) {
   ISerializable::Deserialize(in);
 }

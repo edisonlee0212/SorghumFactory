@@ -32,7 +32,7 @@ void Scripts::SDFDataCapture::OnInspect() {
   if (!cameraEntity.IsNull()) {
     if (ImGui::Button("Start")) {
       m_pitchAngle = m_turnAngle = 0;
-      auto sorghumSystem = EntityManager::GetSystem<SorghumSystem>();
+      auto sorghumSystem = EntityManager::GetSystem<SorghumSystem>(EntityManager::GetCurrentScene());
       m_currentGrowingSorghum = sorghumSystem->ImportPlant(std::filesystem::path("../Resources") /
                                                                                            "Sorghum/skeleton_procedural_4.txt",
                                                                                        "Sorghum 4", m_segmentedMask);

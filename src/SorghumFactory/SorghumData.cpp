@@ -94,7 +94,7 @@ void SorghumData::ApplyParameters() {
     if (i < children.size()) {
       child = children[i];
     } else {
-      child = EntityManager::GetSystem<SorghumSystem>()->CreateSorghumLeaf(
+      child = EntityManager::GetSystem<SorghumSystem>(EntityManager::GetCurrentScene())->CreateSorghumLeaf(
           GetOwner(), i);
     }
     auto leafDescriptor = descriptor->m_leafDescriptors[i];

@@ -69,8 +69,7 @@ void EngineSetup(bool enableRayTracing) {
   ProjectManager::SetScenePostLoadActions([=](){
     #pragma region Engine Setup
 #pragma region Global light settings
-    RenderManager::GetInstance().m_stableFit = false;
-    RenderManager::GetInstance().m_maxShadowDistance = 400;
+    RenderManager::GetInstance().m_maxShadowDistance = 100;
     RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
 #pragma endregion
 

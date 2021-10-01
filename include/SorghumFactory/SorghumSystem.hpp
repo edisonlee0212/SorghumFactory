@@ -49,7 +49,6 @@ public:
 
   AssetRef m_leafNodeMaterial;
   AssetRef m_leafMaterial;
-  // AssetRef m_instancedLeafMaterial;
 
   AssetRef m_segmentedLeafMaterials[25];
 
@@ -73,7 +72,6 @@ public:
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
 
-  void Relink(const std::unordered_map<Handle, Handle> &map) override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 
