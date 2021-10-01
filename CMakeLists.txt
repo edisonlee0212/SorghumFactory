@@ -48,7 +48,7 @@ if (BUILD_RAY_TRACER_FACILITY)
 endif ()
 
 # ------------------------------------------------------------------
-# RayMLVQ
+# RayTracer
 # ------------------------------------------------------------------
 
 set(CMAKE_CXX_STANDARD 17)
@@ -230,17 +230,13 @@ endif ()
 # ------------------------------------------------------------------
 
 add_executable(Application
-        "src/app/SorghumFactory.cpp"
+        "src/app/Application.cpp"
         )
 target_precompile_headers(Application
         PRIVATE
         ${SORGHUM_FACTORY_PCH_LOCAL}
         )
 if (BUILD_RAY_TRACER_FACILITY)
-    target_include_directories(Application
-            PRIVATE
-            ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-            )
     target_link_libraries(Application
             RayTracerFacility
             SorghumFactory
@@ -256,10 +252,6 @@ add_executable(SDF
         "src/app/SDF.cpp"
         )
 if (BUILD_RAY_TRACER_FACILITY)
-    target_include_directories(SDF
-            PRIVATE
-            ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-            )
     target_link_libraries(SDF
             RayTracerFacility
             SorghumFactory
