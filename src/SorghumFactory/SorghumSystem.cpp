@@ -251,11 +251,7 @@ void SorghumSystem::OnInspect() {
   EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
       newSorghumDescriptorAsset, "To sorghum");
   if (newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>()) {
-    Entity sorghum = CreateSorghum();
-    auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-    sorghumData->m_parameters = newSorghumDescriptorAsset;
-    sorghumData->ApplyParameters();
-    sorghumData->GenerateGeometry();
+    Entity sorghum = CreateSorghum(newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>());
     newSorghumDescriptorAsset.Clear();
   }
 
@@ -570,4 +566,16 @@ void SorghumSystem::CollectAssetRef(std::vector<AssetRef> &list) {
 }
 void SorghumSystem::Serialize(YAML::Emitter &out) {
   ISerializable::Serialize(out);
+}
+Entity SorghumSystem::CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor, bool segmentedMask) {
+  if(!descriptor){
+    UNIENGINE_ERROR("Descriptor empty!");
+    return Entity();
+  }
+  Entity sorghum = CreateSorghum(segmentedMask);
+  auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
+  sorghumData->m_parameters = descriptor;
+  sorghumData->ApplyParameters();
+  sorghumData->GenerateGeometry();
+  return sorghum;
 }

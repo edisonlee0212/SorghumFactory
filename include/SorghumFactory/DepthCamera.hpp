@@ -11,11 +11,11 @@ public:
   bool m_useCameraResolution = true;
   int m_resX = 1;
   int m_resY = 1;
-  float m_factor = 1.0f;
   void Update() override;
   void OnCreate() override;
   std::shared_ptr<Texture2D> m_colorTexture;
   void OnInspect() override;
   void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
+  void ExportAsYaml(const std::filesystem::path& exportPath);
 };
 } // namespace SorghumFactory

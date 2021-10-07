@@ -13,7 +13,7 @@ struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
   int m_index = 0;
 };
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
-
+class SorghumProceduralDescriptor;
 class SORGHUM_FACTORY_API SorghumSystem : public ISystem {
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
@@ -55,6 +55,7 @@ public:
   void OnCreate() override;
   void Start() override;
   Entity CreateSorghum(bool segmentedMask = false);
+  Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor, bool segmentedMask = false);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
   Entity ImportPlant(const std::filesystem::path &path, const std::string &name,

@@ -4,17 +4,20 @@
 
 #include "SDFDataCapture.hpp"
 #include "DepthCamera.hpp"
-void Scripts::SDFDataCapture::OnInspect() {
-  if(!Application::IsPlaying()){
+#include <SorghumProceduralDescriptor.hpp>
+using namespace Scripts;
+void SDFDataCapture::OnInspect() {
+  if (!Application::IsPlaying()) {
     ImGui::Text("Start Engine first!");
     return;
   }
 
   EditorManager::DragAndDropButton(m_cameraEntity, "Camera Entity");
 
-  ImGui::Text("Sorghum");
-  ImGui::Checkbox("Enable mask", &m_segmentedMask);
-
+  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
+      m_parameters, "Sorghum Descriptors");
+  ImGui::Checkbox("Capture color", &m_captureColor);
+  ImGui::DragInt("Instance Count", &m_generationAmount, 1, 0);
   ImGui::Text("Camera Positioning");
   ImGui::DragFloat3("Focus point", &m_focusPoint.x, 0.1f);
   ImGui::DragFloat3("Pitch Angle From/Step/End", &m_pitchAngleStart, 1);
@@ -29,14 +32,10 @@ void Scripts::SDFDataCapture::OnInspect() {
   ImGui::ColorEdit3("Camera Clear Color", &m_backgroundColor.x);
 
   auto cameraEntity = m_cameraEntity.Get();
-  if (!cameraEntity.IsNull()) {
+  if (!cameraEntity.IsNull() && m_remainingInstanceAmount == 0) {
     if (ImGui::Button("Start")) {
       m_pitchAngle = m_turnAngle = 0;
-      auto sorghumSystem = EntityManager::GetSystem<SorghumSystem>(EntityManager::GetCurrentScene());
-      m_currentGrowingSorghum = sorghumSystem->ImportPlant(std::filesystem::path("../Resources") /
-                                                                                           "Sorghum/skeleton_procedural_4.txt",
-                                                                                       "Sorghum 4", m_segmentedMask);
-      sorghumSystem->GenerateMeshForAllSorghums();
+      m_remainingInstanceAmount = m_generationAmount;
       m_projections.clear();
       m_views.clear();
       m_names.clear();
@@ -46,70 +45,149 @@ void Scripts::SDFDataCapture::OnInspect() {
   }
 }
 
-void Scripts::SDFDataCapture::OnIdle(
-    Scripts::AutoSorghumGenerationPipeline &pipeline) {
-  if (m_pitchAngle == 0 && m_turnAngle == 0 && !m_cameraEntity.Get().IsNull()) {
+void SDFDataCapture::OnIdle(AutoSorghumGenerationPipeline &pipeline) {
+  if (m_cameraEntity.Get().IsNull()) {
+    m_pitchAngle = m_pitchAngleStart;
+    m_turnAngle = -1;
+    m_generationAmount = 0;
+    return;
+  }
+  if (m_pitchAngle == m_pitchAngleStart && m_turnAngle == 0 &&
+      m_remainingInstanceAmount > 0) {
     pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
-  } else {
-    m_pitchAngle = m_turnAngle = -1;
   }
 }
-void Scripts::SDFDataCapture::OnBeforeGrowth(
-    Scripts::AutoSorghumGenerationPipeline &pipeline) {
+void SDFDataCapture::OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) {
+  if (!SetUpCamera()) {
+    pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
+    m_generationAmount = 0;
+    m_pitchAngle = m_turnAngle = -1;
+    return;
+  }
+  auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
+  m_currentGrowingSorghum =
+      EntityManager::GetSystem<SorghumSystem>(EntityManager::GetCurrentScene())
+          ->CreateSorghum(descriptor, true);
+  pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
+}
+void SDFDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
+  pipeline.m_status = AutoSorghumGenerationPipelineStatus::AfterGrowth;
+  m_skipCurrentFrame = true;
+}
+
+void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
+  if (m_skipCurrentFrame) {
+    if (!SetUpCamera()) {
+      pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
+      m_generationAmount = 0;
+      m_pitchAngle = m_turnAngle = -1;
+      return;
+    }
+    m_skipCurrentFrame = false;
+  } else {
+    auto cameraEntity = m_cameraEntity.Get();
+    auto prefix =
+        std::to_string(m_generationAmount - m_remainingInstanceAmount) + "_" +
+        std::to_string(m_pitchAngle) + "_" + std::to_string(m_turnAngle);
+    switch (m_captureStatus) {
+    case MultipleAngleCaptureStatus::Info: {
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder);
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "Mask");
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "Depth");
+      m_cameraModels.push_back(
+          cameraEntity.GetDataComponent<GlobalTransform>().m_value);
+      m_sorghumModels.push_back(
+          m_currentGrowingSorghum.GetDataComponent<GlobalTransform>().m_value);
+      m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
+      m_views.push_back(Camera::m_cameraInfoBlock.m_view);
+      m_names.push_back(prefix);
+      auto depthCamera =
+          cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
+      auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
+      camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Mask" /
+                                           (prefix + "_mask.png"));
+
+      depthCamera->m_colorTexture->SetPathAndSave(
+          m_currentExportFolder / "Depth" / (prefix + "_depth.png"));
+      if (m_captureColor) {
+        m_captureStatus = MultipleAngleCaptureStatus::Color;
+        m_skipCurrentFrame = true;
+      } else {
+        m_captureStatus = MultipleAngleCaptureStatus::Angles;
+      }
+    } break;
+    case MultipleAngleCaptureStatus::Color: {
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "Color");
+      auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
+      camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Color" /
+                                           (prefix + ".png"));
+      m_captureStatus = MultipleAngleCaptureStatus::Angles;
+    } break;
+    case MultipleAngleCaptureStatus::Angles: {
+      m_captureStatus = MultipleAngleCaptureStatus::Info;
+      if (m_pitchAngle + m_pitchAngleStep < m_pitchAngleEnd) {
+        m_pitchAngle += m_pitchAngleStep;
+        SetUpCamera();
+        m_skipCurrentFrame = true;
+      } else if (m_turnAngle + m_turnAngleStep < 360.0f) {
+        m_turnAngle += m_turnAngleStep;
+        m_pitchAngle = m_pitchAngleStart;
+        SetUpCamera();
+        m_skipCurrentFrame = true;
+      } else {
+        EntityManager::DeleteEntity(m_currentGrowingSorghum);
+        m_remainingInstanceAmount--;
+        m_pitchAngle = m_pitchAngleStart;
+        m_turnAngle = 0;
+        if (m_remainingInstanceAmount == 0) {
+          ExportMatrices(ProjectManager::GetProjectPath().parent_path() /
+                         m_currentExportFolder /
+                         ("camera_matrices.yml"));
+          ProjectManager::ScanProjectFolder(true);
+          pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
+        } else {
+          pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
+        }
+      }
+    } break;
+    }
+  }
+}
+bool SDFDataCapture::SetUpCamera() {
   auto cameraEntity = m_cameraEntity.Get();
   if (cameraEntity.IsNull()) {
-    pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
-    m_pitchAngle = m_turnAngle = -1;
-    return;
+    m_pitchAngle = m_pitchAngleStart;
+    m_turnAngle = m_remainingInstanceAmount = 0;
+    UNIENGINE_ERROR("Camera entity missing!");
+    return false;
   }
-  if (m_turnAngle > 360) {
-    pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
-    m_pitchAngle = m_turnAngle = -1;
-    if(!m_currentGrowingSorghum.IsNull()) EntityManager::DeleteEntity(m_currentGrowingSorghum);
-    {
-      auto directory = m_currentExportFolder;
-      directory.remove_filename();
-      std::filesystem::create_directories(directory);
-      YAML::Emitter out;
-      out << YAML::BeginMap;
-      out << YAML::Key << "Capture Info" << YAML::BeginSeq;
-      for(int i = 0; i < m_projections.size(); i++){
-        out << YAML::BeginMap;
-        out << YAML::Key << "File Prefix" << YAML::Value << m_names[i];
-        out << YAML::Key << "Projection" << YAML::Value << m_projections[i];
-        out << YAML::Key << "View" << YAML::Value << m_views[i];
-        out << YAML::Key << "Camera Model" << YAML::Value << m_cameraModels[i];
-        out << YAML::Key << "Sorghum Model" << YAML::Value << m_sorghumModels[i];
-        out << YAML::EndMap;
-      }
-      out << YAML::EndSeq;
-      out << YAML::EndMap;
-      std::ofstream fout((ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "camera_matrices.yml").string());
-      fout << out.c_str();
-      fout.flush();
-    }
-
-    return;
-  }
+  EntityManager::GetCurrentScene()->m_environmentSettings.m_environmentType = UniEngine::EnvironmentType::Color;
+  EntityManager::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
+  EntityManager::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
   auto height = m_distance * glm::sin(glm::radians((float)m_pitchAngle));
   auto groundDistance =
       m_distance * glm::cos(glm::radians((float)m_pitchAngle));
-  glm::vec3 cameraPosition =
-      m_distance *
-      glm::vec3(glm::sin(glm::radians((float)m_turnAngle)) * groundDistance,
-                height,
-                glm::cos(glm::radians((float)m_turnAngle)) * groundDistance);
-  GlobalTransform cameraGlobalTransform;
-  cameraGlobalTransform.SetPosition(cameraPosition + m_focusPoint);
-  cameraGlobalTransform.SetRotation(
-      glm::quatLookAt(glm::normalize(-cameraPosition), glm::vec3(0, 1, 0)));
+  glm::vec3 cameraPosition = glm::vec3(
+      glm::sin(glm::radians((float)m_turnAngle)) * groundDistance, height,
+      glm::cos(glm::radians((float)m_turnAngle)) * groundDistance);
+  m_cameraPosition = cameraPosition + m_focusPoint;
+  m_cameraRotation =
+      glm::quatLookAt(glm::normalize(-cameraPosition), glm::vec3(0, 1, 0));
 
+  GlobalTransform cameraGlobalTransform;
+  cameraGlobalTransform.SetPosition(m_cameraPosition);
+  cameraGlobalTransform.SetRotation(m_cameraRotation);
   cameraEntity.SetDataComponent(cameraGlobalTransform);
+
   auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-  auto postProcessing = cameraEntity.GetOrSetPrivateComponent<PostProcessing>().lock();
-  auto depthCamera =
-      cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
-  postProcessing->SetEnabled(false);
   camera->m_fov = m_fov;
   camera->m_allowAutoResize = false;
   camera->m_farDistance = m_cameraMax;
@@ -118,55 +196,33 @@ void Scripts::SDFDataCapture::OnBeforeGrowth(
   camera->m_clearColor = m_backgroundColor;
   camera->m_useClearColor = m_useClearColor;
 
-  depthCamera->m_factor = m_cameraMax - m_cameraMin;
+  auto depthCamera =
+      cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
   depthCamera->m_useCameraResolution = true;
-  pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
 
-
+  if (cameraEntity.HasPrivateComponent<PostProcessing>()) {
+    auto postProcessing =
+        cameraEntity.GetOrSetPrivateComponent<PostProcessing>().lock();
+    postProcessing->SetEnabled(false);
+  }
+  return true;
 }
-void Scripts::SDFDataCapture::OnGrowth(
-    Scripts::AutoSorghumGenerationPipeline &pipeline) {
-  auto cameraEntity = m_cameraEntity.Get();
-  if (cameraEntity.IsNull()) {
-    pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
-    m_pitchAngle = m_turnAngle = -1;
-    return;
+void SDFDataCapture::ExportMatrices(const std::filesystem::path &path) {
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "Capture Info" << YAML::BeginSeq;
+  for (int i = 0; i < m_projections.size(); i++) {
+    out << YAML::BeginMap;
+    out << YAML::Key << "File Prefix" << YAML::Value << m_names[i];
+    out << YAML::Key << "Projection" << YAML::Value << m_projections[i];
+    out << YAML::Key << "View" << YAML::Value << m_views[i];
+    out << YAML::Key << "Camera Model" << YAML::Value << m_cameraModels[i];
+    out << YAML::Key << "Sorghum Model" << YAML::Value << m_sorghumModels[i];
+    out << YAML::EndMap;
   }
-  auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-  auto depthCamera =
-      cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
-
-  pipeline.m_status = AutoSorghumGenerationPipelineStatus::AfterGrowth;
-}
-
-void Scripts::SDFDataCapture::OnAfterGrowth(
-    Scripts::AutoSorghumGenerationPipeline &pipeline) {
-  auto cameraEntity = m_cameraEntity.Get();
-  if (cameraEntity.IsNull()) {
-    pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
-    m_pitchAngle = m_turnAngle = -1;
-    return;
-  }
-  auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-  auto depthCamera =
-      cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
-
-  std::filesystem::create_directories(ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder);
-  auto prefix = std::to_string(m_pitchAngle) + "_" +
-                std::to_string(m_turnAngle);
-  camera->GetTexture()->SetPathAndSave(m_currentExportFolder /
-                             (prefix + (m_segmentedMask ? "_m.png" : ".png")));
-  depthCamera->m_colorTexture->SetPathAndSave(m_currentExportFolder /
-                                    (prefix + "_d.png"));
-  m_pitchAngle += m_pitchAngleStep;
-  m_cameraModels.push_back(cameraEntity.GetDataComponent<GlobalTransform>().m_value);
-  m_sorghumModels.push_back(m_currentGrowingSorghum.GetDataComponent<GlobalTransform>().m_value);
-  m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
-  m_views.push_back(Camera::m_cameraInfoBlock.m_view);
-  m_names.push_back(prefix);
-  if (m_pitchAngle > m_pitchAngleEnd) {
-    m_pitchAngle = 0;
-    m_turnAngle += m_turnAngleStep;
-  }
-  pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
+  out << YAML::EndSeq;
+  out << YAML::EndMap;
+  std::ofstream fout(path.string());
+  fout << out.c_str();
+  fout.flush();
 }

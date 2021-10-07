@@ -1,17 +1,26 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
-#include <SorghumProceduralDescriptor.hpp>
+
 #include <SorghumSystem.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
+enum class MultipleAngleCaptureStatus { Info, Color, Angles };
 class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   int m_pitchAngle = -1;
   int m_turnAngle = -1;
   Entity m_currentGrowingSorghum;
-public:
-  SorghumProceduralDescriptor m_parameters;
+  int m_remainingInstanceAmount = 0;
+  bool m_skipCurrentFrame = false;
 
-  bool m_segmentedMask = false;
+  MultipleAngleCaptureStatus m_captureStatus = MultipleAngleCaptureStatus::Info;
+  bool SetUpCamera();
+  void ExportMatrices(const std::filesystem::path& path);
+  glm::vec3 m_cameraPosition;
+  glm::quat m_cameraRotation;
+public:
+  AssetRef m_parameters;
+
+  bool m_captureColor = false;
 
   std::filesystem::path m_currentExportFolder = "export/";
 
@@ -20,11 +29,11 @@ public:
   float m_pitchAngleStep = 10;
   float m_pitchAngleEnd = 30;
   float m_turnAngleStep = 90;
-  float m_distance = 4.5;
+  float m_distance = 20;
   float m_fov = 60;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   EntityRef m_cameraEntity;
-
+  int m_generationAmount = 2;
 
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
@@ -35,10 +44,10 @@ public:
   std::vector<glm::mat4> m_projections;
   std::vector<glm::mat4> m_views;
   std::vector<std::string> m_names;
-  void OnIdle(AutoSorghumGenerationPipeline & pipeline) override;
-  void OnBeforeGrowth(AutoSorghumGenerationPipeline & pipeline) override;
-  void OnGrowth(AutoSorghumGenerationPipeline & pipeline) override;
-  void OnAfterGrowth(AutoSorghumGenerationPipeline & pipeline) override;
+  void OnIdle(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnInspect() override;
 };
-}
+} // namespace Scripts
