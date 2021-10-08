@@ -4,6 +4,7 @@
 
 #include "SDFDataCapture.hpp"
 #include "DepthCamera.hpp"
+#include <SorghumData.hpp>
 #include <SorghumProceduralDescriptor.hpp>
 using namespace Scripts;
 void SDFDataCapture::OnInspect() {
@@ -87,6 +88,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
   } else {
     auto cameraEntity = m_cameraEntity.Get();
     auto prefix =
+        m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().stem().string() + "_" +
         std::to_string(m_generationAmount - m_remainingInstanceAmount) + "_" +
         std::to_string(m_pitchAngle) + "_" + std::to_string(m_turnAngle);
     switch (m_captureStatus) {
@@ -100,6 +102,9 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
       std::filesystem::create_directories(
           ProjectManager::GetProjectPath().parent_path() /
           m_currentExportFolder / "Depth");
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "Mesh");
       m_cameraModels.push_back(
           cameraEntity.GetDataComponent<GlobalTransform>().m_value);
       m_sorghumModels.push_back(
@@ -143,7 +148,10 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         SetUpCamera();
         m_skipCurrentFrame = true;
       } else {
-        EntityManager::DeleteEntity(m_currentGrowingSorghum);
+        m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>().lock()->ExportModel((ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "Mesh" /
+                                                                                             (m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().stem().string() + "_" + std::to_string(m_generationAmount - m_remainingInstanceAmount) + ".obj")).string());
+
+        m_parameters.Get<SorghumProceduralDescriptor>()->Export(std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path()) / m_currentExportFolder / m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().filename());
         m_remainingInstanceAmount--;
         m_pitchAngle = m_pitchAngleStart;
         m_turnAngle = 0;
@@ -156,6 +164,8 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         } else {
           pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
         }
+
+        EntityManager::DeleteEntity(m_currentGrowingSorghum);
       }
     } break;
     }

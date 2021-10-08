@@ -26,14 +26,14 @@ public:
 
   glm::vec3 m_focusPoint = glm::vec3(0, 3, 0);
   float m_pitchAngleStart = 0;
-  float m_pitchAngleStep = 10;
-  float m_pitchAngleEnd = 30;
-  float m_turnAngleStep = 90;
+  float m_pitchAngleStep = 20;
+  float m_pitchAngleEnd = 60;
+  float m_turnAngleStep = 120;
   float m_distance = 20;
   float m_fov = 60;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   EntityRef m_cameraEntity;
-  int m_generationAmount = 2;
+  int m_generationAmount = 5;
 
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
