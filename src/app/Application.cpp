@@ -30,7 +30,7 @@ using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
-void EngineSetup(bool enableRayTracing);
+void EngineSetup();
 
 int main() {
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
@@ -50,11 +50,13 @@ int main() {
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   const bool enableRayTracing = true;
-  EngineSetup(enableRayTracing);
-
+  EngineSetup();
   ApplicationConfigs applicationConfigs;
   Application::Init(applicationConfigs);
-
+#ifdef RAYTRACERFACILITY
+  if (enableRayTracing)
+    RayTracerManager::Init();
+#endif
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion
@@ -65,7 +67,7 @@ int main() {
   Application::End();
 }
 
-void EngineSetup(bool enableRayTracing) {
+void EngineSetup() {
   ProjectManager::SetScenePostLoadActions([=](){
     #pragma region Engine Setup
 #pragma region Global light settings
@@ -73,10 +75,7 @@ void EngineSetup(bool enableRayTracing) {
     RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
 #pragma endregion
 
-#ifdef RAYTRACERFACILITY
-    if (enableRayTracing)
-      RayTracerManager::Init();
-#endif
+
     auto sorghumSystem =
         EntityManager::GetOrCreateSystem<SorghumSystem>(
             EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);

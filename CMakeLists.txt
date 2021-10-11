@@ -6,7 +6,7 @@ project(
 )
 
 option(BUILD_RAY_TRACER_FACILITY "Build Ray Tracer Facility" ON)
-set(BUILD_RAY_TRACER_FACILITY OFF)
+set(BUILD_RAY_TRACER_FACILITY ON)
 include(GenerateExportHeader)
 
 # Set a default build type if none was specified
@@ -242,6 +242,10 @@ if (BUILD_RAY_TRACER_FACILITY)
             SorghumFactory
             Scripts
             )
+    target_compile_definitions(Application
+            PRIVATE
+            RAYTRACERFACILITY
+            )
 else ()
     target_link_libraries(Application
             SorghumFactory
@@ -256,6 +260,10 @@ if (BUILD_RAY_TRACER_FACILITY)
             RayTracerFacility
             SorghumFactory
             Scripts
+            )
+    target_compile_definitions(SDF
+            PRIVATE
+            RAYTRACERFACILITY
             )
 else ()
     target_link_libraries(SDF

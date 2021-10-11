@@ -30,7 +30,7 @@ using namespace SorghumFactory;
 using namespace RayTracerFacility;
 #endif
 
-void EngineSetup(bool enableRayTracing);
+void EngineSetup();
 
 int main() {
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
@@ -58,12 +58,15 @@ int main() {
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
 
   const bool enableRayTracing = true;
-  EngineSetup(enableRayTracing);
+  EngineSetup();
 
   ApplicationConfigs applicationConfigs;
   applicationConfigs.m_projectPath = "temp/SDF/SDF.ueproj";
   Application::Init(applicationConfigs);
-
+#ifdef RAYTRACERFACILITY
+  if (enableRayTracing)
+    RayTracerManager::Init();
+#endif
 #pragma region Engine Loop
   Application::Run();
 #pragma endregion
@@ -74,7 +77,7 @@ int main() {
   Application::End();
 }
 
-void EngineSetup(bool enableRayTracing) {
+void EngineSetup() {
   ProjectManager::SetScenePostLoadActions([=]() {
 #pragma region Engine Setup
 #pragma region Global light settings
@@ -91,7 +94,7 @@ void EngineSetup(bool enableRayTracing) {
     transform = Transform();
     transform.SetPosition(glm::vec3(0, 2, 35));
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));
-    auto mainCamera = EntityManager::GetCurrentScene()->m_mainCamera.Get<Camera>();
+    auto mainCamera = EntityManager::GetCurrentScene()->m_mainCamera.Get<UniEngine::Camera>();
     if (mainCamera) {
       auto postProcessing = mainCamera->GetOwner()
                                 .GetOrSetPrivateComponent<PostProcessing>()
@@ -116,10 +119,7 @@ void EngineSetup(bool enableRayTracing) {
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
     */
-#ifdef RAYTRACERFACILITY
-    if (enableRayTracing)
-      RayTracerManager::Init();
-#endif
+
 
     auto sorghumSystem = EntityManager::GetOrCreateSystem<SorghumSystem>(
         EntityManager::GetCurrentScene(),
