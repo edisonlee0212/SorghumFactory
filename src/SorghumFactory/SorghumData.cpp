@@ -47,9 +47,7 @@ void SorghumData::ExportModel(const std::string &filename,
     UNIENGINE_ERROR("Can't open file!");
   }
 }
-void SorghumData::Clone(const std::shared_ptr<IPrivateComponent> &target) {
-  *this = *std::static_pointer_cast<SorghumData>(target);
-}
+
 void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
@@ -125,7 +123,7 @@ void SorghumData::ApplyParameters() {
   }
 
   for (int i = descriptor->m_leafDescriptors.size(); i < children.size(); i++) {
-    EntityManager::DeleteEntity(children[i]);
+    EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), children[i]);
   }
 
   m_meshGenerated = false;
@@ -133,7 +131,7 @@ void SorghumData::ApplyParameters() {
 void SorghumData::GenerateGeometry() {
   auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormNodes(stemSpline);
-  GetOwner().ForEachChild([&](Entity child){
+  GetOwner().ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child){
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->GenerateGeometry(stemSpline);
     auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();

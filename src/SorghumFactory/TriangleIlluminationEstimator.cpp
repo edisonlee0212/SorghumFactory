@@ -108,7 +108,3 @@ void TriangleIlluminationEstimator::CalculateIllumination(
     }
 }
 #endif
-void TriangleIlluminationEstimator::Clone(
-    const std::shared_ptr<IPrivateComponent> &target) {
-  *this = *std::static_pointer_cast<TriangleIlluminationEstimator>(target);
-}

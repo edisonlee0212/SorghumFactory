@@ -9,7 +9,6 @@ using namespace SorghumFactory;
 std::shared_ptr<OpenGLUtils::GLProgram> DepthCamera::m_depthTransferProgram;
 std::shared_ptr<OpenGLUtils::GLVAO> DepthCamera::m_depthTransferVAO;
 
-void DepthCamera::Clone(const std::shared_ptr<IPrivateComponent> &target) {}
 void DepthCamera::OnInspect() {
   ImGui::Checkbox("Use Camera Resolution", &m_useCameraResolution);
   if(!m_useCameraResolution){
@@ -117,4 +116,11 @@ void DepthCamera::OnCreate() {
 }
 void DepthCamera::ExportAsYaml(const std::filesystem::path& exportPath) {
 
+}
+DepthCamera &DepthCamera::operator=(const DepthCamera &source) {
+  m_useCameraResolution = source.m_useCameraResolution;
+  m_resX = source.m_resX;
+  m_resY = source.m_resY;
+  m_colorTexture = source.m_colorTexture;
+  return *this;
 }

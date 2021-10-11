@@ -5,9 +5,6 @@
 #include "AutoSorghumGenerationPipeline.hpp"
 #include "EditorManager.hpp"
 using namespace Scripts;
-void AutoSorghumGenerationPipeline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
-
-}
 
 void AutoSorghumGenerationPipeline::Update() {
     auto behaviour = m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>();

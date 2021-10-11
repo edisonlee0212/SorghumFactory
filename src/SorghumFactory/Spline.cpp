@@ -63,9 +63,6 @@ void Spline::OnInspect() {
   }
 }
 
-void Spline::Clone(const std::shared_ptr<IPrivateComponent> &target) {
-  *this = *std::static_pointer_cast<Spline>(target);
-}
 void Spline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_type" << YAML::Value << (unsigned)m_type;
   out << YAML::Key << "m_left" << YAML::Value << m_left;

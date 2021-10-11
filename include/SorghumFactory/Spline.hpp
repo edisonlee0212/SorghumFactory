@@ -60,7 +60,6 @@ public:
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
   void Copy(const std::shared_ptr<Spline> &target);
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
   void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline);

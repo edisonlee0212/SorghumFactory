@@ -12,7 +12,8 @@ void RayTracerManager::UpdateMeshesStorage(
     i.m_removeTag = true;
   }
   if (const auto *rayTracedEntities =
-          EntityManager::UnsafeGetPrivateComponentOwnersList<MeshRenderer>();
+          EntityManager::UnsafeGetPrivateComponentOwnersList<MeshRenderer>(
+              EntityManager::GetCurrentScene());
       rayTracedEntities) {
     for (auto entity : *rayTracedEntities) {
       if (!entity.IsEnabled())
@@ -129,7 +130,8 @@ void RayTracerManager::UpdateMeshesStorage(
     }
   }
   if (const auto *rayTracedEntities =
-          EntityManager::UnsafeGetPrivateComponentOwnersList<MLVQRenderer>();
+          EntityManager::UnsafeGetPrivateComponentOwnersList<MLVQRenderer>(
+              EntityManager::GetCurrentScene());
       rayTracedEntities) {
     for (auto entity : *rayTracedEntities) {
       if (!entity.IsEnabled())
@@ -213,7 +215,7 @@ void RayTracerManager::UpdateSkinnedMeshesStorage(
   }
   if (const auto *rayTracedEntities =
           EntityManager::UnsafeGetPrivateComponentOwnersList<
-              SkinnedMeshRenderer>();
+              SkinnedMeshRenderer>(EntityManager::GetCurrentScene());
       rayTracedEntities) {
     for (auto entity : *rayTracedEntities) {
       if (!entity.IsEnabled())

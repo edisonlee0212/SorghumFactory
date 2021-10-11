@@ -165,7 +165,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
           pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
         }
 
-        EntityManager::DeleteEntity(m_currentGrowingSorghum);
+        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), m_currentGrowingSorghum);
       }
     } break;
     }

@@ -15,7 +15,7 @@ public:
   void OnCreate() override;
   std::shared_ptr<Texture2D> m_colorTexture;
   void OnInspect() override;
-  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
+  DepthCamera& operator=(const DepthCamera& source);
   void ExportAsYaml(const std::filesystem::path& exportPath);
 };
 } // namespace SorghumFactory

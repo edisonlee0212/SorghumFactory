@@ -17,9 +17,7 @@ namespace Scripts {
         AutoSorghumGenerationPipelineStatus m_status = AutoSorghumGenerationPipelineStatus::Idle;
         AssetRef m_pipelineBehaviour;
         void Update() override;
-        void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
         void OnInspect() override;
-
     };
 
     class IAutoSorghumGenerationPipelineBehaviour : public IAsset{

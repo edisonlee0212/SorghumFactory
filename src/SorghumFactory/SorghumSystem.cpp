@@ -138,7 +138,7 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
 
   m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
   for (auto &plant : plants) {
-    plant.ForEachChild([](Entity child) {
+    plant.ForEachChild([](const std::shared_ptr<Scene>& scene, Entity child) {
       if (!child.HasPrivateComponent<Spline>())
         return;
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
@@ -289,7 +289,7 @@ void SorghumSystem::OnInspect() {
 
       CreateGrid(field, candidates);
       for (auto &i : candidates)
-        EntityManager::DeleteEntity(i);
+        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), i);
       ImGui::CloseCurrentPopup();
     }
     ImGui::SetItemDefaultFocus();
@@ -346,7 +346,7 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
     auto spline = original.GetOrSetPrivateComponent<Spline>().lock();
     newSpline->Copy(spline);
 
-    original.ForEachChild([this, &sorghum, &matrices](Entity child) {
+    original.ForEachChild([this, &sorghum, &matrices](const std::shared_ptr<Scene>& scene, Entity child) {
       if (!child.HasDataComponent<LeafTag>())
         return;
       auto tag = child.GetDataComponent<LeafTag>();
@@ -382,7 +382,7 @@ void SorghumSystem::ExportSorghum(const Entity &sorghum, std::ofstream &of,
   of.flush();
   const auto position =
       sorghum.GetDataComponent<GlobalTransform>().GetPosition();
-  sorghum.ForEachChild([&](Entity child) {
+  sorghum.ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child) {
     if (!child.HasPrivateComponent<MeshRenderer>())
       return;
     const auto leafMesh = child.GetOrSetPrivateComponent<MeshRenderer>()
@@ -483,7 +483,7 @@ void SorghumSystem::RenderLightProbes() {
 #endif
 void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
                                     const Entity &walker) {
-  walker.ForEachChild([&](Entity child) {
+  walker.ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child) {
     if (!child.HasPrivateComponent<MeshRenderer>())
       return;
     entities.push_back(child);
@@ -494,7 +494,7 @@ void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
 void SorghumSystem::CalculateIllumination(
     const RayTracerFacility::IlluminationEstimationProperties &properties) {
   const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
-      TriangleIlluminationEstimator>();
+      TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
   if (!owners)
     return;
   m_processingEntities.clear();

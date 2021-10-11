@@ -45,7 +45,7 @@ public:
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
 
-  const float m_leafNodeSphereSize = 0.1f;
+  float m_leafNodeSphereSize = 0.1f;
 
   AssetRef m_leafNodeMaterial;
   AssetRef m_leafMaterial;

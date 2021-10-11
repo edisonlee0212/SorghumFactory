@@ -23,8 +23,5 @@ public:
   float m_totalEnergy = 0.0f;
   float m_radiantFlux = 0.0f;
   void OnInspect() override;
-
-
-  void Clone(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace SorghumFactory
