@@ -25,14 +25,7 @@ endif ()
 # 3rd Party libraries
 # ------------------------------------------------------------------
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/UniEngine)
-include_directories(${UNIENGINE_INCLUDES})
-if (BUILD_RAY_TRACER_FACILITY)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/RayTracerFacility)
-    include_directories(${RAY_TRACER_FACILITY_INCLUDES})
-endif ()
-
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_CXX_STANDARD 17)
