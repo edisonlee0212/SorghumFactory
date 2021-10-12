@@ -6,7 +6,7 @@ project(
 )
 
 option(BUILD_RAY_TRACER_FACILITY "Build Ray Tracer Facility" ON)
-set(BUILD_RAY_TRACER_FACILITY OFF)
+set(BUILD_RAY_TRACER_FACILITY ON)
 include(GenerateExportHeader)
 
 # Set a default build type if none was specified
@@ -26,6 +26,7 @@ endif ()
 # ------------------------------------------------------------------
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_CXX_STANDARD 17)
