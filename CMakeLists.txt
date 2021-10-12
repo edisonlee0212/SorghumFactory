@@ -71,7 +71,6 @@ if (BUILD_RAY_TRACER_FACILITY)
             RAYTRACERFACILITY
             )
     set(SORGHUM_FACTORY_INCLUDES_LOCAL
-            ${UNIENGINE_INCLUDES}
             ${RAY_TRACER_FACILITY_INCLUDES}
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory
@@ -98,7 +97,6 @@ target_include_directories(SorghumFactory
         )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(SorghumFactory
-            uniengine
             RayTracerFacility
             )
 else ()
@@ -153,7 +151,6 @@ target_precompile_headers(Application
         )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(Application
-            uniengine
             RayTracerFacility
             SorghumFactory
             Scripts
@@ -182,7 +179,6 @@ target_precompile_headers(SDF
         )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(SDF
-            uniengine
             RayTracerFacility
             SorghumFactory
             Scripts
@@ -208,18 +204,3 @@ add_custom_command(TARGET SorghumFactory POST_BUILD
         ${CMAKE_BINARY_DIR})
 
 file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-if (BUILD_RAY_TRACER_FACILITY)
-    if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
-        if (WIN32)
-            add_custom_command(
-                    TARGET RayTracerFacility
-                    POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy
-                    ${PROJECT_BINARY_DIR}/RayTracerFacility.dll
-                    ${CMAKE_BINARY_DIR}
-            )
-        endif ()
-        set(RAY_TRACER_FACILITY_INCLUDES ${RAY_TRACER_FACILITY_INCLUDES_LOCAL} PARENT_SCOPE)
-        set(RAY_TRACER_FACILITY_PCH ${SORGHUM_FACTORY_PCH_LOCAL} PARENT_SCOPE)
-    endif ()
-endif ()
