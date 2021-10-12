@@ -24,105 +24,18 @@ endif ()
 # ------------------------------------------------------------------
 # 3rd Party libraries
 # ------------------------------------------------------------------
-if (BUILD_RAY_TRACER_FACILITY)
-    if (NOT WIN32)
-        set(OptiX_INSTALL_DIR "~/NVIDIA-OptiX-SDK-7.3.0-linux64-x86_64")
-    endif ()
-endif ()
-# We need a CMAKE_DIR with some code to find external dependencies
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_subdirectory(${3RD_PARTY_DIR})
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/UniEngine)
 include_directories(${UNIENGINE_INCLUDES})
+if (BUILD_RAY_TRACER_FACILITY)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/RayTracerFacility)
+    include_directories(${RAY_TRACER_FACILITY_INCLUDES})
+endif ()
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-if (BUILD_RAY_TRACER_FACILITY)
-    include(${CMAKE_MODULE_PATH}/configure_build_type.cmake)
-    include(${CMAKE_MODULE_PATH}/configure_optix.cmake)
-    mark_as_advanced(CUDA_SDK_ROOT_DIR)
-    include_directories(${OptiX_INCLUDE})
-endif ()
-
-# ------------------------------------------------------------------
-# RayTracer
-# ------------------------------------------------------------------
-
 set(CMAKE_CXX_STANDARD 17)
-if (BUILD_RAY_TRACER_FACILITY)
-    enable_language(CUDA)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility/MLVQ)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility)
-
-    file(GLOB RAY_TRACER_FACILITY_SOURCES_LOCAL
-            "src/RayTracerFacility/*.cpp"
-            "src/RayTracerFacility/MLVQ/*.cpp"
-            )
-    file(GLOB RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL
-            "src/RayTracerFacility/*.cu"
-            )
-
-    cuda_compile_and_embed(DEFAULT_RENDERING_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/DefaultRendering.cu)
-    cuda_compile_and_embed(ILLUMINATION_ESTIMATION_PTX ${CMAKE_CURRENT_SOURCE_DIR}/src/RayTracerFacility/ptx/IlluminationEstimation.cu)
-
-    add_library(RayTracerFacility
-            SHARED
-            #Default
-            ${DEFAULT_RENDERING_PTX}
-            ${ILLUMINATION_ESTIMATION_PTX}
-
-            #C++
-            ${RAY_TRACER_FACILITY_SOURCES_LOCAL}
-            ${RAY_TRACER_FACILITY_CUDA_SOURCES_LOCAL}
-            ${CMAKE_MODULE_PATH}/configure_optix.cmake
-            ${CMAKE_MODULE_PATH}/FindOptiX.cmake
-            )
-
-    set_property(TARGET RayTracerFacility PROPERTY CUDA_ARCHITECTURES 61-real 61-virtual)
-
-    generate_export_header(RayTracerFacility
-            BASE_NAME RAY_TRACER_FACILITY
-            EXPORT_MACRO_NAME RAY_TRACER_FACILITY_API
-            )
-
-    if (NOT WIN32)
-        message(STATUS CUDALIB=${CUDA_TOOLKIT_ROOT_DIR})
-        set(CUDA_CUDA_LIBRARY ${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs)
-    endif ()
-    message(STATUS OptiX_INCLUDE:${OptiX_INCLUDE})
-    message(STATUS CUDA_LIBRARIES:${CUDA_LIBRARIES})
-    message(STATUS CUDA_CUDA_LIBRARY:${CUDA_CUDA_LIBRARY})
-    # Linker settings for all platforms
-    target_link_libraries(RayTracerFacility
-            uniengine
-            ${CUDA_LIBRARIES}
-            ${CUDA_CUDA_LIBRARY}
-            )
-    set(RAY_TRACER_FACILITY_INCLUDES_LOCAL
-            ${OptiX_INCLUDE}
-            ${CUDA_TOOLKIT_ROOT_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/RayTracerFacility/MLVQ
-            ${UNIENGINE_INCLUDES}
-            ${CMAKE_CURRENT_BINARY_DIR}
-            )
-
-    target_include_directories(RayTracerFacility
-            PRIVATE
-            ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
-            )
-    if (WIN32)
-        target_compile_definitions(RayTracerFacility
-                PRIVATE
-                RAY_TRACER_FACILITY_EXPORTS
-                )
-        set(CUDA_PROPAGATE_HOST_FLAGS ON)
-    endif ()
-
-endif ()
 if (WIN32)
     # Compiler settings for Windows platform
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -144,6 +57,7 @@ add_library(SorghumFactory
         )
 set(SORGHUM_FACTORY_PCH_LOCAL
         ${UNIENGINE_PCH}
+        ${RAY_TRACER_FACILITY_PCH}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/SorghumFactory-pch.hpp
         )
 generate_export_header(SorghumFactory
@@ -163,7 +77,9 @@ if (BUILD_RAY_TRACER_FACILITY)
             RAYTRACERFACILITY
             )
     set(SORGHUM_FACTORY_INCLUDES_LOCAL
-            ${RAY_TRACER_FACILITY_INCLUDES_LOCAL}
+            ${UNIENGINE_INCLUDES}
+            ${RAY_TRACER_FACILITY_INCLUDES}
+            ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory
             ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/quickhull
             ${CMAKE_CURRENT_SOURCE_DIR}/include/SorghumFactory/rapidxml
@@ -188,6 +104,7 @@ target_include_directories(SorghumFactory
         )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(SorghumFactory
+            uniengine
             RayTracerFacility
             )
 else ()
@@ -204,7 +121,6 @@ add_library(Scripts
         )
 target_precompile_headers(Scripts
         PRIVATE
-        ${UNIENGINE_PCH_LOCAL}
         ${SORGHUM_FACTORY_PCH_LOCAL}
         )
 set(SCRIPTS_INCLUDES_LOCAL
@@ -222,6 +138,7 @@ if (BUILD_RAY_TRACER_FACILITY)
             )
 else ()
     target_link_libraries(Scripts
+            uniengine
             SorghumFactory
             )
 endif ()
@@ -232,12 +149,17 @@ endif ()
 add_executable(Application
         "src/app/Application.cpp"
         )
+target_include_directories(Application
+        PUBLIC
+        ${SCRIPTS_INCLUDES_LOCAL}
+        )
 target_precompile_headers(Application
         PRIVATE
         ${SORGHUM_FACTORY_PCH_LOCAL}
         )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(Application
+            uniengine
             RayTracerFacility
             SorghumFactory
             Scripts
@@ -248,6 +170,7 @@ if (BUILD_RAY_TRACER_FACILITY)
             )
 else ()
     target_link_libraries(Application
+            uniengine
             SorghumFactory
             Scripts
             )
@@ -255,8 +178,17 @@ endif ()
 add_executable(SDF
         "src/app/SDF.cpp"
         )
+target_include_directories(SDF
+        PUBLIC
+        ${SCRIPTS_INCLUDES_LOCAL}
+        )
+target_precompile_headers(SDF
+        PRIVATE
+        ${SORGHUM_FACTORY_PCH_LOCAL}
+        )
 if (BUILD_RAY_TRACER_FACILITY)
     target_link_libraries(SDF
+            uniengine
             RayTracerFacility
             SorghumFactory
             Scripts
@@ -267,14 +199,11 @@ if (BUILD_RAY_TRACER_FACILITY)
             )
 else ()
     target_link_libraries(SDF
+            uniengine
             SorghumFactory
             Scripts
             )
 endif ()
-target_precompile_headers(SDF
-        PRIVATE
-        ${SORGHUM_FACTORY_PCH_LOCAL}
-        )
 
 # ------------------------------------------------------------------
 # Copy Internal resources
