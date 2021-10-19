@@ -8,23 +8,22 @@
 #include <RayTracerManager.hpp>
 #endif
 #include <EditorManager.hpp>
-#include <Utilities.hpp>
-#include <ProjectManager.hpp>
 #include <PhysicsManager.hpp>
 #include <PostProcessing.hpp>
+#include <ProjectManager.hpp>
+#include <Utilities.hpp>
 
-#include <SorghumSystem.hpp>
-#include <SorghumData.hpp>
-#include <TriangleIlluminationEstimator.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
-
+#include <SorghumData.hpp>
+#include <SorghumSystem.hpp>
+#include <TriangleIlluminationEstimator.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
-#include <ProceduralSorghumSegmentationMask.hpp>
-#include <SorghumProceduralDescriptor.hpp>
-#include <SorghumField.hpp>
 #include <DepthCamera.hpp>
+#include <ProceduralSorghumSegmentationMask.hpp>
+#include <SorghumField.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -40,14 +39,15 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-  ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>("TriangleIlluminationEstimator");
+  ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>(
+      "TriangleIlluminationEstimator");
 
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 #ifdef RAYTRACERFACILITY
-  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
-      "MLVQRenderer");
+  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
 #endif
-  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
+  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
+      "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   const bool enableRayTracing = true;
   EngineSetup();
@@ -68,16 +68,15 @@ int main() {
 }
 
 void EngineSetup() {
-  ProjectManager::SetScenePostLoadActions([=](){
-    #pragma region Engine Setup
+  ProjectManager::SetScenePostLoadActions([=]() {
+#pragma region Engine Setup
 #pragma region Global light settings
     RenderManager::GetInstance().m_maxShadowDistance = 100;
     RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
 #pragma endregion
 
-
     auto sorghumSystem =
-        EntityManager::GetOrCreateSystem<SorghumSystem>(
-            EntityManager::GetCurrentScene(), SystemGroup::SimulationSystemGroup + 0.1f);
+        EntityManager::GetCurrentScene()->GetOrCreateSystem<SorghumSystem>(
+            SystemGroup::SimulationSystemGroup + 0.1f);
   });
 }

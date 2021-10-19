@@ -66,9 +66,9 @@ void SDFDataCapture::OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) {
     return;
   }
   auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
-  m_currentGrowingSorghum =
-      EntityManager::GetSystem<SorghumSystem>(EntityManager::GetCurrentScene())
-          ->CreateSorghum(descriptor, true);
+  m_currentGrowingSorghum = EntityManager::GetCurrentScene()
+                                ->GetSystem<SorghumSystem>()
+                                ->CreateSorghum(descriptor, true);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
 }
 void SDFDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
@@ -88,9 +88,12 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
   } else {
     auto cameraEntity = m_cameraEntity.Get();
     auto prefix =
-        m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().stem().string() + "_" +
-        std::to_string(m_generationAmount - m_remainingInstanceAmount) + "_" +
-        std::to_string(m_pitchAngle) + "_" + std::to_string(m_turnAngle);
+        m_parameters.Get<SorghumProceduralDescriptor>()
+            ->GetPath()
+            .stem()
+            .string() +
+        "_" + std::to_string(m_generationAmount - m_remainingInstanceAmount) +
+        "_" + std::to_string(m_pitchAngle) + "_" + std::to_string(m_turnAngle);
     switch (m_captureStatus) {
     case MultipleAngleCaptureStatus::Info: {
       std::filesystem::create_directories(
@@ -148,24 +151,41 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         SetUpCamera();
         m_skipCurrentFrame = true;
       } else {
-        m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>().lock()->ExportModel((ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "Mesh" /
-                                                                                             (m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().stem().string() + "_" + std::to_string(m_generationAmount - m_remainingInstanceAmount) + ".obj")).string());
+        m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+            .lock()
+            ->ExportModel((ProjectManager::GetProjectPath().parent_path() /
+                           m_currentExportFolder / "Mesh" /
+                           (m_parameters.Get<SorghumProceduralDescriptor>()
+                                ->GetPath()
+                                .stem()
+                                .string() +
+                            "_" +
+                            std::to_string(m_generationAmount -
+                                           m_remainingInstanceAmount) +
+                            ".obj"))
+                              .string());
 
-        m_parameters.Get<SorghumProceduralDescriptor>()->Export(std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path()) / m_currentExportFolder / m_parameters.Get<SorghumProceduralDescriptor>()->GetPath().filename());
+        m_parameters.Get<SorghumProceduralDescriptor>()->Export(
+            std::filesystem::absolute(
+                ProjectManager::GetProjectPath().parent_path()) /
+            m_currentExportFolder /
+            m_parameters.Get<SorghumProceduralDescriptor>()
+                ->GetPath()
+                .filename());
         m_remainingInstanceAmount--;
         m_pitchAngle = m_pitchAngleStart;
         m_turnAngle = 0;
         if (m_remainingInstanceAmount == 0) {
           ExportMatrices(ProjectManager::GetProjectPath().parent_path() /
-                         m_currentExportFolder /
-                         ("camera_matrices.yml"));
+                         m_currentExportFolder / ("camera_matrices.yml"));
           ProjectManager::ScanProjectFolder(true);
           pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
         } else {
           pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
         }
 
-        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), m_currentGrowingSorghum);
+        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(),
+                                    m_currentGrowingSorghum);
       }
     } break;
     }
@@ -179,9 +199,12 @@ bool SDFDataCapture::SetUpCamera() {
     UNIENGINE_ERROR("Camera entity missing!");
     return false;
   }
-  EntityManager::GetCurrentScene()->m_environmentSettings.m_environmentType = UniEngine::EnvironmentType::Color;
-  EntityManager::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
-  EntityManager::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
+  EntityManager::GetCurrentScene()->m_environmentSettings.m_environmentType =
+      UniEngine::EnvironmentType::Color;
+  EntityManager::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
+      glm::vec3(1.0f);
+  EntityManager::GetCurrentScene()
+      ->m_environmentSettings.m_ambientLightIntensity = 1.0f;
   auto height = m_distance * glm::sin(glm::radians((float)m_pitchAngle));
   auto groundDistance =
       m_distance * glm::cos(glm::radians((float)m_pitchAngle));

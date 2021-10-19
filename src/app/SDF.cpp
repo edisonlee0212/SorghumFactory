@@ -22,8 +22,8 @@
 #include <DepthCamera.hpp>
 #include <ProceduralSorghumSegmentationMask.hpp>
 #include <SDFDataCapture.hpp>
-#include <SorghumProceduralDescriptor.hpp>
 #include <SorghumField.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -50,11 +50,11 @@ int main() {
   ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 
 #ifdef RAYTRACERFACILITY
-  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>(
-      "MLVQRenderer");
+  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
 #endif
 
-  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>("SorghumProceduralDescriptor", ".spd");
+  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
+      "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
 
   const bool enableRayTracing = true;
@@ -94,7 +94,8 @@ void EngineSetup() {
     transform = Transform();
     transform.SetPosition(glm::vec3(0, 2, 35));
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));
-    auto mainCamera = EntityManager::GetCurrentScene()->m_mainCamera.Get<UniEngine::Camera>();
+    auto mainCamera =
+        EntityManager::GetCurrentScene()->m_mainCamera.Get<UniEngine::Camera>();
     if (mainCamera) {
       auto postProcessing = mainCamera->GetOwner()
                                 .GetOrSetPrivateComponent<PostProcessing>()
@@ -120,19 +121,17 @@ void EngineSetup() {
     lightEntity.SetDataComponent(transform);
     */
 
+    auto sorghumSystem =
+        EntityManager::GetCurrentScene()->GetOrCreateSystem<SorghumSystem>(
+            SystemGroup::SimulationSystemGroup + 0.1f);
 
-    auto sorghumSystem = EntityManager::GetOrCreateSystem<SorghumSystem>(
-        EntityManager::GetCurrentScene(),
-        SystemGroup::SimulationSystemGroup + 0.1f);
-
-    auto sdfEntity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "SDFPipeline");
+    auto sdfEntity = EntityManager::CreateEntity(
+        EntityManager::GetCurrentScene(), "SDFPipeline");
     auto pipeline =
         sdfEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
             .lock();
     auto capture = AssetManager::CreateAsset<SDFDataCapture>();
     pipeline->m_pipelineBehaviour = capture;
-    capture->m_cameraEntity =
-        mainCamera->GetOwner();
-
+    capture->m_cameraEntity = mainCamera->GetOwner();
   });
 }
