@@ -18,9 +18,6 @@ void SorghumSystem::OnCreate() {
       EntityManager::CreateEntityArchetype("Sorghum", SorghumTag());
   m_sorghumQuery = EntityManager::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
-  Enable();
-}
-void SorghumSystem::Start() {
 
   if (!m_leafNodeMaterial.Get<Material>()) {
     m_leafNodeMaterial = AssetManager::LoadMaterial(
@@ -61,6 +58,12 @@ void SorghumSystem::Start() {
   m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
   */
   m_ready = true;
+
+  Enable();
+}
+void SorghumSystem::Start() {
+
+
 }
 
 Entity SorghumSystem::CreateSorghum(bool segmentedMask) {
