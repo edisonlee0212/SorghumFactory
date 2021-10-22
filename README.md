@@ -15,4 +15,4 @@ Please visit script for further details.
     - Plant scale illumination estimation with ray tracer facility.
     - Video demo: 
     - [![Procedural Sorghum](https://img.youtube.com/vi/AnWrYYsf0Ns/0.jpg)](https://www.youtube.com/watch?v=AnWrYYsf0Ns)
- 
+ - Automated data generation pipeline for procedural sorghums. Users are allowed to generate hundreds of sorghums and store data including RGB image, Depth image, OBJ model, semantic mask, etc.
