@@ -10,8 +10,9 @@ E.g. For Linux, the command may be :
 Please visit script for further details.
 ## Main features
  - Procedural Sorghum model:
-    - Procedural Sorghum Descriptor that allows targeted user to create procedural sorghums without any prior knowledge about programming. 
-    - Sorghum Field
-       - Video demo: 
-       - [![Procedural Sorghum](https://img.youtube.com/vi/AnWrYYsf0Ns/0.jpg)](https://www.youtube.com/watch?v=AnWrYYsf0Ns)
+    - SorghumProceduralDescriptor(SPD) that allows targeted user to create procedural sorghums without any prior knowledge about programming. 
+    - SorghumField for instantiating a field of sorghums based on different pattern with SPD.
+    - Plant scale illumination estimation with ray tracer facility.
+    - Video demo: 
+    - [![Procedural Sorghum](https://img.youtube.com/vi/AnWrYYsf0Ns/0.jpg)](https://www.youtube.com/watch?v=AnWrYYsf0Ns)
  
