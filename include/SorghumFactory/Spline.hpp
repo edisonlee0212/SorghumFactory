@@ -51,7 +51,7 @@ public:
   std::vector<LeafSegment> m_segments;
   std::vector<Vertex> m_vertices;
   std::vector<unsigned> m_indices;
-
+  glm::vec4 m_vertexColor = glm::vec4(0, 1, 0, 1);
   //Import from Mathieu's procedural skeleton
   void Import(std::ifstream &stream);
   glm::vec3 EvaluatePoint(float point);
@@ -62,6 +62,6 @@ public:
   void Deserialize(const YAML::Node &in) override;
   void Copy(const std::shared_ptr<Spline> &target);
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
-  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline);
+  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline, bool segmentedMask);
 };
 } // namespace SorghumFactory

@@ -8,32 +8,40 @@
 #include <SorghumProceduralDescriptor.hpp>
 using namespace Scripts;
 void SDFDataCapture::OnInspect() {
-  if (!Application::IsPlaying()) {
-    ImGui::Text("Start Engine first!");
-    return;
-  }
-
   EditorManager::DragAndDropButton(m_cameraEntity, "Camera Entity");
-
   EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
       m_parameters, "Sorghum Descriptors");
-  ImGui::Checkbox("Capture color", &m_captureColor);
   ImGui::DragInt("Instance Count", &m_generationAmount, 1, 0);
-  ImGui::Text("Camera Positioning");
-  ImGui::DragFloat3("Focus point", &m_focusPoint.x, 0.1f);
-  ImGui::DragFloat3("Pitch Angle From/Step/End", &m_pitchAngleStart, 1);
-  ImGui::DragFloat("Turn Angle Step", &m_turnAngleStep, 1);
-  ImGui::DragFloat("Distance to plant", &m_distance, 0.1);
-
-  ImGui::Text("Camera Settings");
-  ImGui::DragFloat("Camera FOV", &m_fov);
-  ImGui::DragInt2("Camera Resolution", &m_resolution.x);
-  ImGui::DragFloat2("Camera near/far", &m_cameraMin);
-  ImGui::Checkbox("Use clear color", &m_useClearColor);
-  ImGui::ColorEdit3("Camera Clear Color", &m_backgroundColor.x);
-
+  if (ImGui::TreeNode("Data selection")) {
+    ImGui::Checkbox("Capture image", &m_captureImage);
+    ImGui::Checkbox("Capture mask", &m_captureMask);
+    ImGui::Checkbox("Capture depth", &m_captureDepth);
+    ImGui::Checkbox("Capture mesh", &m_captureMesh);
+    ImGui::TreePop();
+  }
+  if (ImGui::TreeNode("Camera Settings")) {
+    ImGui::DragFloat3("Focus point", &m_focusPoint.x, 0.1f);
+    ImGui::DragFloat3("Pitch Angle From/Step/End", &m_pitchAngleStart, 1);
+    ImGui::DragFloat("Turn Angle Step", &m_turnAngleStep, 1);
+    ImGui::DragFloat("Distance to plant", &m_distance, 0.1);
+    ImGui::Separator();
+    ImGui::DragFloat("Camera FOV", &m_fov);
+    ImGui::DragInt2("Camera Resolution", &m_resolution.x);
+    ImGui::DragFloat2("Camera near/far", &m_cameraMin);
+    ImGui::Checkbox("Use clear color", &m_useClearColor);
+    ImGui::ColorEdit3("Camera Clear Color", &m_backgroundColor.x);
+    ImGui::TreePop();
+  }
   auto cameraEntity = m_cameraEntity.Get();
-  if (!cameraEntity.IsNull() && m_remainingInstanceAmount == 0) {
+  if (!Application::IsPlaying()) {
+    ImGui::Text("Application not Playing!");
+  } else if (!m_parameters.Get<SorghumProceduralDescriptor>()) {
+    ImGui::Text("SPD Missing");
+  } else if (cameraEntity.IsNull()) {
+    ImGui::Text("Camera Missing");
+  } else if (m_remainingInstanceAmount != 0) {
+    ImGui::Text("Busy...");
+  } else {
     if (ImGui::Button("Start")) {
       m_pitchAngle = m_turnAngle = 0;
       m_remainingInstanceAmount = m_generationAmount;
@@ -42,6 +50,30 @@ void SDFDataCapture::OnInspect() {
       m_names.clear();
       m_cameraModels.clear();
       m_sorghumModels.clear();
+
+      std::filesystem::create_directories(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder);
+      if (m_captureImage) {
+        std::filesystem::create_directories(
+            ProjectManager::GetProjectPath().parent_path() /
+            m_currentExportFolder / "Image");
+      }
+      if (m_captureMask) {
+        std::filesystem::create_directories(
+            ProjectManager::GetProjectPath().parent_path() /
+            m_currentExportFolder / "Mask");
+      }
+      if (m_captureDepth) {
+        std::filesystem::create_directories(
+            ProjectManager::GetProjectPath().parent_path() /
+            m_currentExportFolder / "Depth");
+      }
+      if (m_captureMesh) {
+        std::filesystem::create_directories(
+            ProjectManager::GetProjectPath().parent_path() /
+            m_currentExportFolder / "Mesh");
+      }
     }
   }
 }
@@ -66,7 +98,8 @@ void SDFDataCapture::OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) {
     return;
   }
   auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
-  m_currentGrowingSorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(descriptor, true);
+  m_currentGrowingSorghum =
+      Application::GetLayer<SorghumLayer>()->CreateSorghum(descriptor);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
 }
 void SDFDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
@@ -94,18 +127,6 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         "_" + std::to_string(m_pitchAngle) + "_" + std::to_string(m_turnAngle);
     switch (m_captureStatus) {
     case MultipleAngleCaptureStatus::Info: {
-      std::filesystem::create_directories(
-          ProjectManager::GetProjectPath().parent_path() /
-          m_currentExportFolder);
-      std::filesystem::create_directories(
-          ProjectManager::GetProjectPath().parent_path() /
-          m_currentExportFolder / "Mask");
-      std::filesystem::create_directories(
-          ProjectManager::GetProjectPath().parent_path() /
-          m_currentExportFolder / "Depth");
-      std::filesystem::create_directories(
-          ProjectManager::GetProjectPath().parent_path() /
-          m_currentExportFolder / "Mesh");
       m_cameraModels.push_back(
           cameraEntity.GetDataComponent<GlobalTransform>().m_value);
       m_sorghumModels.push_back(
@@ -113,28 +134,34 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
       m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
       m_views.push_back(Camera::m_cameraInfoBlock.m_view);
       m_names.push_back(prefix);
-      auto depthCamera =
-          cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
-      auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-      camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Mask" /
-                                           (prefix + "_mask.png"));
-
-      depthCamera->m_colorTexture->SetPathAndSave(
-          m_currentExportFolder / "Depth" / (prefix + "_depth.png"));
-      if (m_captureColor) {
-        m_captureStatus = MultipleAngleCaptureStatus::Color;
+      if (m_captureImage) {
+        auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
+        camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Image" /
+                                             (prefix + "_image.png"));
+      }
+      if (m_captureDepth) {
+        auto depthCamera =
+            cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
+        depthCamera->m_colorTexture->SetPathAndSave(
+            m_currentExportFolder / "Depth" / (prefix + "_depth.png"));
+      }
+      if (m_captureMask) {
+        m_captureStatus = MultipleAngleCaptureStatus::Mask;
+        m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+            .lock()
+            ->GenerateGeometry(true);
         m_skipCurrentFrame = true;
       } else {
         m_captureStatus = MultipleAngleCaptureStatus::Angles;
       }
     } break;
-    case MultipleAngleCaptureStatus::Color: {
-      std::filesystem::create_directories(
-          ProjectManager::GetProjectPath().parent_path() /
-          m_currentExportFolder / "Color");
+    case MultipleAngleCaptureStatus::Mask: {
       auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-      camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Color" /
-                                           (prefix + ".png"));
+      camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Mask" /
+                                           (prefix + "_mask.png"));
+      m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+          .lock()
+          ->GenerateGeometry(false);
       m_captureStatus = MultipleAngleCaptureStatus::Angles;
     } break;
     case MultipleAngleCaptureStatus::Angles: {
@@ -149,20 +176,21 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         SetUpCamera();
         m_skipCurrentFrame = true;
       } else {
-        m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-            .lock()
-            ->ExportModel((ProjectManager::GetProjectPath().parent_path() /
-                           m_currentExportFolder / "Mesh" /
-                           (m_parameters.Get<SorghumProceduralDescriptor>()
-                                ->GetPath()
-                                .stem()
-                                .string() +
-                            "_" +
-                            std::to_string(m_generationAmount -
-                                           m_remainingInstanceAmount) +
-                            ".obj"))
-                              .string());
-
+        if (m_captureMesh) {
+          m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+              .lock()
+              ->ExportModel((ProjectManager::GetProjectPath().parent_path() /
+                             m_currentExportFolder / "Mesh" /
+                             (m_parameters.Get<SorghumProceduralDescriptor>()
+                                  ->GetPath()
+                                  .stem()
+                                  .string() +
+                              "_" +
+                              std::to_string(m_generationAmount -
+                                             m_remainingInstanceAmount) +
+                              ".obj"))
+                                .string());
+        }
         m_parameters.Get<SorghumProceduralDescriptor>()->Export(
             std::filesystem::absolute(
                 ProjectManager::GetProjectPath().parent_path()) /

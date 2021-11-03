@@ -45,20 +45,17 @@ public:
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
 
-  float m_leafNodeSphereSize = 0.1f;
-
   AssetRef m_leafNodeMaterial;
   AssetRef m_leafMaterial;
 
   AssetRef m_segmentedLeafMaterials[25];
 
   void OnCreate() override;
-  Entity CreateSorghum(bool segmentedMask = false);
-  Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor, bool segmentedMask = false);
+  Entity CreateSorghum();
+  Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
-  Entity ImportPlant(const std::filesystem::path &path, const std::string &name,
-                     bool segmentedMask = false);
+  Entity ImportPlant(const std::filesystem::path &path, const std::string &name);
   void OnInspect() override;
   void Update() override;
   void CreateGrid(RectangularSorghumFieldPattern &field,

@@ -8,7 +8,6 @@ class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
 public:
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
-  bool m_segmentedMask = false;
   int m_segmentAmount = 2;
   int m_step = 4;
 
@@ -23,6 +22,6 @@ public:
 
   void ApplyParameters();
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void GenerateGeometry();
+  void GenerateGeometry(bool segmentedMask);
 };
 } // namespace PlantFactory

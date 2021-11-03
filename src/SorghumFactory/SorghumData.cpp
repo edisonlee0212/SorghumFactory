@@ -1,6 +1,11 @@
+#ifdef RAYTRACERFACILITY
+#include "MLVQRenderer.hpp"
+#endif
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
-
+#ifdef RAYTRACERFACILITY
+using namespace RayTracerFacility;
+#endif
 using namespace SorghumFactory;
 
 void SorghumData::OnCreate() {}
@@ -10,14 +15,15 @@ void SorghumData::OnDestroy() {}
 void SorghumData::OnInspect() {
   if (ImGui::TreeNodeEx("I/O")) {
 
-      FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
-                          [this](const std::filesystem::path &path) {
-                            ExportModel(path.string());
-                          });
+    FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
+                        [this](const std::filesystem::path &path) {
+                          ExportModel(path.string());
+                        });
 
     ImGui::TreePop();
   }
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters, "Descriptor");
+  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters,
+                                                                "Descriptor");
   if (ImGui::DragInt("Vertical subdivision", &m_segmentAmount)) {
     m_segmentAmount = glm::max(2, m_segmentAmount);
   }
@@ -26,7 +32,7 @@ void SorghumData::OnInspect() {
   }
   if (ImGui::Button("Apply")) {
     ApplyParameters();
-    GenerateGeometry();
+    GenerateGeometry(false);
   }
 }
 
@@ -64,7 +70,8 @@ void SorghumData::Deserialize(const YAML::Node &in) {
 }
 void SorghumData::ApplyParameters() {
   auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
-  if(!descriptor) return;
+  if (!descriptor)
+    return;
   descriptor->Ready();
 
   int unitAmount = 16;
@@ -92,13 +99,13 @@ void SorghumData::ApplyParameters() {
     if (i < children.size()) {
       child = children[i];
     } else {
-      child = Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
+      child = Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(
+          GetOwner(), i);
     }
     auto leafDescriptor = descriptor->m_leafDescriptors[i];
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->m_unitAmount = unitAmount;
-    spline->m_unitLength =
-        leafDescriptor.m_leafLength / unitAmount;
+    spline->m_unitLength = leafDescriptor.m_leafLength / unitAmount;
     spline->m_gravitropism = leafDescriptor.m_gravitropism;
     spline->m_gravitropismFactor = leafDescriptor.m_gravitropismFactor;
     spline->m_type = SplineType::Procedural;
@@ -106,12 +113,11 @@ void SorghumData::ApplyParameters() {
     spline->m_segmentAmount = m_segmentAmount;
     spline->m_step = m_step;
     spline->m_startingPoint = leafDescriptor.m_leafStartingPoint;
-    spline->m_left = glm::rotate(
-        glm::vec3(1, 0, 0), glm::radians(leafDescriptor.m_rollAngle),
-        glm::vec3(0, 1, 0));
+    spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
+                                 glm::radians(leafDescriptor.m_rollAngle),
+                                 glm::vec3(0, 1, 0));
     spline->m_initialDirection = glm::rotate(
-        glm::vec3(0, 1, 0),
-        glm::radians(leafDescriptor.m_branchingAngle),
+        glm::vec3(0, 1, 0), glm::radians(leafDescriptor.m_branchingAngle),
         spline->m_left);
     spline->m_stemWidth = leafDescriptor.m_stemWidth;
     spline->m_leafMaxWidth = leafDescriptor.m_leafMaxWidth;
@@ -127,19 +133,57 @@ void SorghumData::ApplyParameters() {
 
   m_meshGenerated = false;
 }
-void SorghumData::GenerateGeometry() {
-  auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
+void SorghumData::GenerateGeometry(bool segmentedMask) {
+  auto owner = GetOwner();
+  auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormNodes(stemSpline);
-  stemSpline->GenerateGeometry(stemSpline);
-  auto meshRenderer = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
+  stemSpline->GenerateGeometry(stemSpline, segmentedMask);
+  auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
   meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, stemSpline->m_vertices,
                                                 stemSpline->m_indices);
-  GetOwner().ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child){
-    auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
-    spline->GenerateGeometry(stemSpline);
+  if (segmentedMask) {
+    auto material = AssetManager::LoadMaterial(
+        DefaultResources::GLPrograms::StandardProgram);
+    meshRenderer->m_material = material;
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    material->m_cullingMode = MaterialCullingMode::Off;
+    material->m_albedoColor = stemSpline->m_vertexColor;
+    material->m_roughness = 1.0f;
+    material->m_metallic = 0.0f;
+
+  } else {
+    meshRenderer->m_material = Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+  }
+#ifdef RAYTRACERFACILITY
+  auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+  rtt->Sync();
+  rtt->m_materialIndex = 1;
+#endif
+  GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
+                              Entity child) {
+    auto leafSpline = child.GetOrSetPrivateComponent<Spline>().lock();
+    leafSpline->GenerateGeometry(stemSpline, segmentedMask);
     auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-    meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
-                                                  spline->m_indices);
+    meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, leafSpline->m_vertices,
+                                                  leafSpline->m_indices);
+    if (segmentedMask) {
+
+      auto material = AssetManager::LoadMaterial(
+          DefaultResources::GLPrograms::StandardProgram);
+      meshRenderer->m_material = material;
+      material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+      material->m_cullingMode = MaterialCullingMode::Off;
+      material->m_albedoColor = leafSpline->m_vertexColor;
+      material->m_roughness = 1.0f;
+      material->m_metallic = 0.0f;
+    } else {
+      meshRenderer->m_material = Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+    }
+#ifdef RAYTRACERFACILITY
+    auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+    rtt->Sync();
+    rtt->m_materialIndex = 1;
+#endif
   });
 }
 void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {

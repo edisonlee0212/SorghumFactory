@@ -210,16 +210,13 @@ glm::vec3 Spline::EvaluateAxis(float point) {
   throw 0;
 }
 
-void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
+void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline, bool segmentedMask) {
 
   auto stemNodeCount = FormNodes(stemSpline);
 
   m_vertices.clear();
   m_indices.clear();
   m_segments.clear();
-
-  float temp = 0.0f;
-
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
   float leftFlatness = m_waviness;              // glm::linearRand(0.5f, 2.0f);
@@ -257,6 +254,13 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
 
   const int vertexIndex = m_vertices.size();
   Vertex archetype;
+  m_vertexColor = glm::vec4(0, 1, 0, 1.0f);
+  if(true){
+    auto index = m_order + 1;
+    m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f, ((index / 9) % 3) * 0.5f, 1.0f);
+  }
+  if(m_startingPoint == -1) m_vertexColor = glm::vec4(0, 0, 0, 1);
+  archetype.m_color = m_vertexColor;
   const float xStep = 1.0f / m_step / 2.0f;
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
   const float yLeafStep =

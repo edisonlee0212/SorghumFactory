@@ -4,7 +4,7 @@
 #include <SorghumLayer.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
-enum class MultipleAngleCaptureStatus { Info, Color, Angles };
+enum class MultipleAngleCaptureStatus { Info, Mask, Angles };
 class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   int m_pitchAngle = -1;
   int m_turnAngle = -1;
@@ -19,9 +19,10 @@ class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   glm::quat m_cameraRotation;
 public:
   AssetRef m_parameters;
-
-  bool m_captureColor = false;
-
+  bool m_captureImage = true;
+  bool m_captureMask = true;
+  bool m_captureDepth = true;
+  bool m_captureMesh = true;
   std::filesystem::path m_currentExportFolder = "export/";
 
   glm::vec3 m_focusPoint = glm::vec3(0, 3, 0);
