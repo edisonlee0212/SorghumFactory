@@ -10,7 +10,7 @@ public:
   bool m_meshGenerated = false;
   bool m_segmentedMask = false;
   int m_segmentAmount = 2;
-  int m_step = 2;
+  int m_step = 4;
 
   AssetRef m_parameters;
   void OnCreate() override;

@@ -8,7 +8,7 @@
 #include <RayTracerManager.hpp>
 #endif
 #include <EditorManager.hpp>
-#include <PhysicsManager.hpp>
+#include <PhysicsLayer.hpp>
 #include <PostProcessing.hpp>
 #include <ProjectManager.hpp>
 #include <Utilities.hpp>
@@ -16,7 +16,7 @@
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
 #include <SorghumData.hpp>
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
@@ -42,7 +42,6 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>(
       "TriangleIlluminationEstimator");
 
-  ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 #ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
 #endif
@@ -50,33 +49,17 @@ int main() {
       "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   const bool enableRayTracing = true;
-  EngineSetup();
   ApplicationConfigs applicationConfigs;
-  Application::Init(applicationConfigs);
+  Application::Create(applicationConfigs);
 #ifdef RAYTRACERFACILITY
   if (enableRayTracing)
-    RayTracerManager::Init();
+    Application::PushLayer<RayTracerManager>();
 #endif
+  Application::PushLayer<SorghumLayer>();
 #pragma region Engine Loop
-  Application::Run();
+  Application::Start();
 #pragma endregion
-#ifdef RAYTRACERFACILITY
-  if (enableRayTracing)
-    RayTracerManager::End();
-#endif
+
   Application::End();
 }
 
-void EngineSetup() {
-  ProjectManager::SetScenePostLoadActions([=]() {
-#pragma region Engine Setup
-#pragma region Global light settings
-    RenderManager::GetInstance().m_maxShadowDistance = 100;
-    RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
-#pragma endregion
-
-    auto sorghumSystem =
-        EntityManager::GetCurrentScene()->GetOrCreateSystem<SorghumSystem>(
-            SystemGroup::SimulationSystemGroup + 0.1f);
-  });
-}

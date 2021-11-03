@@ -50,7 +50,7 @@ public:
   float m_l1maxLeafWavinessPeriod = 2.5f;
   UniEngine::Curve  m_l1LeafWavinessPeriodDistribution;
 
-  float     m_l1StemWidthMax = 0.1f;
+  float     m_l1StemWidthMax = 0.06f;
   UniEngine::Curve m_l1StemWidthDistribution;
   float     m_l1LeafWidthMax = 0.2f;
   UniEngine::Curve  m_l1LeafWidthDistribution;

@@ -356,7 +356,7 @@ void SorghumProceduralDescriptor::L1ToBase() {
   m_stemDescriptor.m_direction = glm::vec3(0, 1, 0);
   m_stemDescriptor.m_length = m_l1StemLength;
   m_stemDescriptor.m_stemWidth =
-      m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(1.0f);
+      m_l1StemWidthMax * m_l1StemWidthDistribution.GetValue(0.0f);
   m_leafDescriptors.resize(m_l1LeafCount);
   for (int i = 0; i < m_l1LeafCount; i++) {
     float step =

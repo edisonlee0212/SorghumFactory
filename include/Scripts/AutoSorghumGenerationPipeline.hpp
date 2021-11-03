@@ -1,5 +1,5 @@
 #pragma once
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 
 using namespace SorghumFactory;
 

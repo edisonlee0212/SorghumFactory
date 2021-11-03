@@ -1,5 +1,5 @@
 
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 
 using namespace SorghumFactory;
@@ -33,7 +33,7 @@ void TriangleIlluminationEstimator::CalculateIllumination(
     const Entity walker = GetOwner();
 
     m_entities.push_back(walker);
-    SorghumSystem::CollectEntities(m_entities, walker);
+    SorghumLayer::CollectEntities(m_entities, walker);
     for (const auto &entity : m_entities) {
         if (entity.HasPrivateComponent<MeshRenderer>()) {
             auto globalTransform = entity.GetDataComponent<GlobalTransform>();

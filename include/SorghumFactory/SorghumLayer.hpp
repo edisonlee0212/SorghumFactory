@@ -6,6 +6,7 @@
 #include <Curve.hpp>
 #include <LeafSegment.hpp>
 #include <Spline.hpp>
+#include "ILayer.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
@@ -14,10 +15,9 @@ struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
 };
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 class SorghumProceduralDescriptor;
-class SORGHUM_FACTORY_API SorghumSystem : public ISystem {
+class SORGHUM_FACTORY_API SorghumLayer : public ILayer {
   static void ObjExportHelper(glm::vec3 position, std::shared_ptr<Mesh> mesh,
                               std::ofstream &of, unsigned &startIndex);
-  bool m_ready = false;
 
 public:
 #pragma region Illumination
@@ -53,7 +53,6 @@ public:
   AssetRef m_segmentedLeafMaterials[25];
 
   void OnCreate() override;
-  void Start() override;
   Entity CreateSorghum(bool segmentedMask = false);
   Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor, bool segmentedMask = false);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
@@ -72,10 +71,5 @@ public:
 
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
-
-  void Serialize(YAML::Emitter &out) override;
-  void Deserialize(const YAML::Node &in) override;
-
-  void CollectAssetRef(std::vector<AssetRef> &list) override;
 };
 } // namespace SorghumFactory

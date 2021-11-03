@@ -1,5 +1,5 @@
 #include <SorghumData.hpp>
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 
 using namespace SorghumFactory;
 
@@ -40,7 +40,7 @@ void SorghumData::ExportModel(const std::string &filename,
     of.write(start.c_str(), start.size());
     of.flush();
     unsigned startIndex = 1;
-    SorghumSystem::ExportSorghum(GetOwner(), of, startIndex);
+    SorghumLayer::ExportSorghum(GetOwner(), of, startIndex);
     of.close();
     UNIENGINE_LOG("Sorghums saved as " + filename);
   } else {
@@ -92,7 +92,7 @@ void SorghumData::ApplyParameters() {
     if (i < children.size()) {
       child = children[i];
     } else {
-      child = EntityManager::GetCurrentScene()->GetSystem<SorghumSystem>()->CreateSorghumLeaf(GetOwner(), i);
+      child = Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
     }
     auto leafDescriptor = descriptor->m_leafDescriptors[i];
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
@@ -130,6 +130,10 @@ void SorghumData::ApplyParameters() {
 void SorghumData::GenerateGeometry() {
   auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormNodes(stemSpline);
+  stemSpline->GenerateGeometry(stemSpline);
+  auto meshRenderer = GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
+  meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, stemSpline->m_vertices,
+                                                stemSpline->m_indices);
   GetOwner().ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child){
     auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
     spline->GenerateGeometry(stemSpline);

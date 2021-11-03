@@ -1,7 +1,7 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
+#include <SorghumLayer.hpp>
 #include <SorghumProceduralDescriptor.hpp>
-#include <SorghumSystem.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
     class ProceduralSorghumSegmentationMask

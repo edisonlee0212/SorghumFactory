@@ -66,9 +66,7 @@ void SDFDataCapture::OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) {
     return;
   }
   auto descriptor = m_parameters.Get<SorghumProceduralDescriptor>();
-  m_currentGrowingSorghum = EntityManager::GetCurrentScene()
-                                ->GetSystem<SorghumSystem>()
-                                ->CreateSorghum(descriptor, true);
+  m_currentGrowingSorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(descriptor, true);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
 }
 void SDFDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {

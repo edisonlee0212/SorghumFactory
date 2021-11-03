@@ -3,8 +3,8 @@
 //
 
 #include "SorghumField.hpp"
+#include "SorghumLayer.hpp"
 #include "SorghumProceduralDescriptor.hpp"
-#include "SorghumSystem.hpp"
 #include <SorghumField.hpp>
 
 void SorghumFactory::RectangularSorghumFieldPattern::GenerateField(

@@ -20,7 +20,7 @@ public:
 
 
 class SORGHUM_FACTORY_API SorghumField : public IAsset {
-  friend class SorghumSystem;
+  friend class SorghumLayer;
   std::vector<AssetRef> m_newSorghumParameters;
   std::vector<glm::vec3> m_newSorghumPositions;
   std::vector<glm::vec3> m_newSorghumRotations;

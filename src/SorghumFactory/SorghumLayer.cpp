@@ -2,14 +2,14 @@
 #include <MLVQRenderer.hpp>
 #endif
 #include <SorghumData.hpp>
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
 using namespace SorghumFactory;
 using namespace UniEngine;
-void SorghumSystem::OnCreate() {
+void SorghumLayer::OnCreate() {
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
@@ -57,31 +57,39 @@ void SorghumSystem::OnCreate() {
   m_instancedLeafMaterial.Get<Material>()->m_roughness = 1.0f;
   m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
   */
-  m_ready = true;
-
-  Enable();
-}
-void SorghumSystem::Start() {
-
-
 }
 
-Entity SorghumSystem::CreateSorghum(bool segmentedMask) {
+Entity SorghumLayer::CreateSorghum(bool segmentedMask) {
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  const Entity entity =
-      EntityManager::CreateEntity(EntityManager::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
+  const Entity entity = EntityManager::CreateEntity(
+      EntityManager::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
   entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   sorghumData->m_segmentedMask = segmentedMask;
   entity.SetName("Sorghum");
   entity.GetOrSetPrivateComponent<TriangleIlluminationEstimator>();
+
+  auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  // mmc->m_material = m_segmentedLeafMaterials[leafIndex];
+  {
+    auto material = AssetManager::LoadMaterial(
+        DefaultResources::GLPrograms::StandardProgram);
+    mmc->m_material = material;
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    material->m_cullingMode = MaterialCullingMode::Off;
+    material->m_albedoColor = glm::vec3(0, 0, 0);
+    material->m_roughness = 1.0f;
+    material->m_metallic = 0.0f;
+  }
+  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
   return entity;
 }
 
-Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity,
-                                        int leafIndex) {
-  const Entity entity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), m_leafArchetype);
+Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
+                                       int leafIndex) {
+  const Entity entity = EntityManager::CreateEntity(
+      EntityManager::GetCurrentScene(), m_leafArchetype);
   entity.SetName("Leaf");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -121,7 +129,7 @@ Entity SorghumSystem::CreateSorghumLeaf(const Entity &plantEntity,
   return entity;
 }
 
-void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
+void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   std::vector<Entity> plants;
   m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
   for (auto &plant : plants) {
@@ -129,8 +137,9 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
     // Form the stem spline. Feed with unused shared_ptr to itself.
     stemSpline->FormNodes(stemSpline);
   }
-  EntityManager::ForEach<GlobalTransform>(EntityManager::GetCurrentScene(),
-                                          JobManager::PrimaryWorkers(), m_leafQuery,
+  EntityManager::ForEach<GlobalTransform>(
+      EntityManager::GetCurrentScene(), JobManager::PrimaryWorkers(),
+      m_leafQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
         auto stemSpline =
@@ -141,7 +150,7 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
 
   m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
   for (auto &plant : plants) {
-    plant.ForEachChild([](const std::shared_ptr<Scene>& scene, Entity child) {
+    plant.ForEachChild([](const std::shared_ptr<Scene> &scene, Entity child) {
       if (!child.HasPrivateComponent<Spline>())
         return;
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
@@ -155,8 +164,8 @@ void SorghumSystem::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   }
 }
 
-Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
-                                  const std::string &name, bool segmentedMask) {
+Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
+                                 const std::string &name, bool segmentedMask) {
   std::ifstream file(path, std::fstream::in);
   if (!file.is_open()) {
     UNIENGINE_LOG("Failed to open file!");
@@ -206,139 +215,145 @@ Entity SorghumSystem::ImportPlant(const std::filesystem::path &path,
   return sorghum;
 }
 
-void SorghumSystem::OnInspect() {
-  if (!m_ready) {
-    ImGui::Text("System not ready!");
-    return;
-  }
+void SorghumLayer::OnInspect() {
+  if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
-  ImGui::Checkbox("Display light probes", &m_displayLightProbes);
-  ImGui::DragInt("Seed", &m_seed);
-  if (ImGui::Button("Generate mesh")) {
-    GenerateMeshForAllSorghums();
-  }
-
-  if (ImGui::Button("Calculate illumination")) {
-    RayTracerFacility::IlluminationEstimationProperties properties;
-    properties.m_skylightPower = 1.0f;
-    properties.m_bounceLimit = 2;
-    properties.m_seed = glm::abs(m_seed);
-    properties.m_numPointSamples = 100;
-    properties.m_numScatterSamples = 10;
-    CalculateIllumination(properties);
-  }
-#endif
-  static AssetRef newFieldAsset;
-  EditorManager::DragAndDropButton<SorghumField>(newFieldAsset,
-                                                 "To sorghum field");
-  if (newFieldAsset.Get<SorghumField>()) {
-    auto newField = newFieldAsset.Get<SorghumField>();
-    auto field = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
-    // Create sorghums here.
-    for (auto i = 0; i < newField->m_newSorghumAmount; i++) {
-      Entity sorghum = CreateSorghum();
-      auto sorghumTransform = sorghum.GetDataComponent<Transform>();
-      sorghumTransform.SetPosition(newField->m_newSorghumPositions[i]);
-      sorghumTransform.SetEulerRotation(
-          glm::radians(newField->m_newSorghumRotations[i]));
-      sorghum.SetDataComponent(sorghumTransform);
-      auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-      sorghumData->m_parameters = newField->m_newSorghumParameters[i];
-      sorghumData->ApplyParameters();
-      sorghumData->GenerateGeometry();
-      sorghum.SetParent(field);
-    }
-    newFieldAsset.Clear();
-  }
-  static AssetRef newSorghumDescriptorAsset;
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
-      newSorghumDescriptorAsset, "To sorghum");
-  if (newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>()) {
-    Entity sorghum = CreateSorghum(newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>());
-    newSorghumDescriptorAsset.Clear();
-  }
-
-  if (ImGui::Button("Create field...")) {
-    ImGui::OpenPopup("Sorghum field wizard");
-  }
-  FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
-                      [this](const std::filesystem::path &path) {
-                        ImportPlant(path, "Sorghum", true);
-                      });
-  const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-  ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-  if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
-                             ImGuiWindowFlags_AlwaysAutoResize)) {
-    static RectangularSorghumFieldPattern field;
-    ImGui::DragInt2("Size", &field.m_size.x, 1, 1, 10);
-    ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
-    ImGui::DragFloat3("Rotation variance", &field.m_rotationVariation.x, 0.1f,
-                      0.0f, 10.0f);
-    if (ImGui::Button("OK", ImVec2(120, 0))) {
-      std::vector<Entity> candidates;
-      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
-                                           "Sorghum/skeleton_procedural_1.txt",
-                                       "Sorghum 1", true));
-      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
-                                           "Sorghum/skeleton_procedural_2.txt",
-                                       "Sorghum 2", true));
-      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
-                                           "Sorghum/skeleton_procedural_3.txt",
-                                       "Sorghum 3", true));
-      candidates.push_back(ImportPlant(std::filesystem::path("../Resources") /
-                                           "Sorghum/skeleton_procedural_4.txt",
-                                       "Sorghum 4", true));
+    ImGui::Checkbox("Display light probes", &m_displayLightProbes);
+    ImGui::DragInt("Seed", &m_seed);
+    if (ImGui::Button("Generate mesh")) {
       GenerateMeshForAllSorghums();
+    }
 
-      CreateGrid(field, candidates);
-      for (auto &i : candidates)
-        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), i);
-      ImGui::CloseCurrentPopup();
+    if (ImGui::Button("Calculate illumination")) {
+      RayTracerFacility::IlluminationEstimationProperties properties;
+      properties.m_skylightPower = 1.0f;
+      properties.m_bounceLimit = 2;
+      properties.m_seed = glm::abs(m_seed);
+      properties.m_numPointSamples = 100;
+      properties.m_numScatterSamples = 10;
+      CalculateIllumination(properties);
     }
-    ImGui::SetItemDefaultFocus();
-    ImGui::SameLine();
-    if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-      ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-  }
-  FileUtils::SaveFile("Export OBJ for all sorghums", "3D Model", {".obj"},
-                      [this](const std::filesystem::path &path) {
-                        ExportAllSorghumsModel(path.string());
-                      });
-
-  static bool opened = false;
-#ifdef RAYTRACERFACILITY
-  if (m_processing && !opened) {
-    ImGui::OpenPopup("Illumination Estimation");
-    opened = true;
-  }
-  if (ImGui::BeginPopupModal("Illumination Estimation", nullptr,
-                             ImGuiWindowFlags_AlwaysAutoResize)) {
-    ImGui::Text("Progress: ");
-    float fraction = 1.0f - static_cast<float>(m_processingIndex) /
-                                m_processingEntities.size();
-    std::string text =
-        std::to_string(static_cast<int>(fraction * 100.0f)) + "% - " +
-        std::to_string(m_processingEntities.size() - m_processingIndex) + "/" +
-        std::to_string(m_processingEntities.size());
-    ImGui::ProgressBar(fraction, ImVec2(240, 0), text.c_str());
-    ImGui::SetItemDefaultFocus();
-    ImGui::Text(("Estimation time for 1 plant: " +
-                 std::to_string(m_perPlantCalculationTime) + " seconds")
-                    .c_str());
-    if (ImGui::Button("Cancel") || m_processing == false) {
-      m_processing = false;
-      opened = false;
-      ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-  }
 #endif
+    static AssetRef newFieldAsset;
+    EditorManager::DragAndDropButton<SorghumField>(newFieldAsset,
+                                                   "To sorghum field");
+    if (newFieldAsset.Get<SorghumField>()) {
+      auto newField = newFieldAsset.Get<SorghumField>();
+      auto field = EntityManager::CreateEntity(EntityManager::GetCurrentScene(),
+                                               "Field");
+      // Create sorghums here.
+      for (auto i = 0; i < newField->m_newSorghumAmount; i++) {
+        Entity sorghum = CreateSorghum();
+        auto sorghumTransform = sorghum.GetDataComponent<Transform>();
+        sorghumTransform.SetPosition(newField->m_newSorghumPositions[i]);
+        sorghumTransform.SetEulerRotation(
+            glm::radians(newField->m_newSorghumRotations[i]));
+        sorghum.SetDataComponent(sorghumTransform);
+        auto sorghumData =
+            sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
+        sorghumData->m_parameters = newField->m_newSorghumParameters[i];
+        sorghumData->ApplyParameters();
+        sorghumData->GenerateGeometry();
+        sorghum.SetParent(field);
+      }
+      newFieldAsset.Clear();
+    }
+    static AssetRef newSorghumDescriptorAsset;
+    EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
+        newSorghumDescriptorAsset, "To sorghum");
+    if (newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>()) {
+      Entity sorghum = CreateSorghum(
+          newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>());
+      newSorghumDescriptorAsset.Clear();
+    }
+
+    if (ImGui::Button("Create field...")) {
+      ImGui::OpenPopup("Sorghum field wizard");
+    }
+    FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
+                        [this](const std::filesystem::path &path) {
+                          ImportPlant(path, "Sorghum", true);
+                        });
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      static RectangularSorghumFieldPattern field;
+      ImGui::DragInt2("Size", &field.m_size.x, 1, 1, 10);
+      ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
+      ImGui::DragFloat3("Rotation variance", &field.m_rotationVariation.x, 0.1f,
+                        0.0f, 10.0f);
+      if (ImGui::Button("OK", ImVec2(120, 0))) {
+        std::vector<Entity> candidates;
+        candidates.push_back(
+            ImportPlant(std::filesystem::path("../Resources") /
+                            "Sorghum/skeleton_procedural_1.txt",
+                        "Sorghum 1", true));
+        candidates.push_back(
+            ImportPlant(std::filesystem::path("../Resources") /
+                            "Sorghum/skeleton_procedural_2.txt",
+                        "Sorghum 2", true));
+        candidates.push_back(
+            ImportPlant(std::filesystem::path("../Resources") /
+                            "Sorghum/skeleton_procedural_3.txt",
+                        "Sorghum 3", true));
+        candidates.push_back(
+            ImportPlant(std::filesystem::path("../Resources") /
+                            "Sorghum/skeleton_procedural_4.txt",
+                        "Sorghum 4", true));
+        GenerateMeshForAllSorghums();
+
+        CreateGrid(field, candidates);
+        for (auto &i : candidates)
+          EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), i);
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::SetItemDefaultFocus();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+    FileUtils::SaveFile("Export OBJ for all sorghums", "3D Model", {".obj"},
+                        [this](const std::filesystem::path &path) {
+                          ExportAllSorghumsModel(path.string());
+                        });
+
+    static bool opened = false;
+#ifdef RAYTRACERFACILITY
+    if (m_processing && !opened) {
+      ImGui::OpenPopup("Illumination Estimation");
+      opened = true;
+    }
+    if (ImGui::BeginPopupModal("Illumination Estimation", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      ImGui::Text("Progress: ");
+      float fraction = 1.0f - static_cast<float>(m_processingIndex) /
+                                  m_processingEntities.size();
+      std::string text =
+          std::to_string(static_cast<int>(fraction * 100.0f)) + "% - " +
+          std::to_string(m_processingEntities.size() - m_processingIndex) +
+          "/" + std::to_string(m_processingEntities.size());
+      ImGui::ProgressBar(fraction, ImVec2(240, 0), text.c_str());
+      ImGui::SetItemDefaultFocus();
+      ImGui::Text(("Estimation time for 1 plant: " +
+                   std::to_string(m_perPlantCalculationTime) + " seconds")
+                      .c_str());
+      if (ImGui::Button("Cancel") || m_processing == false) {
+        m_processing = false;
+        opened = false;
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+#endif
+  }
+  ImGui::End();
 }
 
-void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
-                                  std::vector<glm::mat4> &matrices) {
+void SorghumLayer::CloneSorghums(const Entity &parent, const Entity &original,
+                                 std::vector<glm::mat4> &matrices) {
   auto sorghumData = original.GetOrSetPrivateComponent<SorghumData>().lock();
   for (const auto &matrix : matrices) {
     Entity sorghum = CreateSorghum(sorghumData->m_segmentedMask);
@@ -349,7 +364,9 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
     auto spline = original.GetOrSetPrivateComponent<Spline>().lock();
     newSpline->Copy(spline);
 
-    original.ForEachChild([this, &sorghum, &matrices](const std::shared_ptr<Scene>& scene, Entity child) {
+    original.ForEachChild([this, &sorghum,
+                           &matrices](const std::shared_ptr<Scene> &scene,
+                                      Entity child) {
       if (!child.HasDataComponent<LeafTag>())
         return;
       auto tag = child.GetDataComponent<LeafTag>();
@@ -378,14 +395,14 @@ void SorghumSystem::CloneSorghums(const Entity &parent, const Entity &original,
   }
 }
 
-void SorghumSystem::ExportSorghum(const Entity &sorghum, std::ofstream &of,
-                                  unsigned &startIndex) {
+void SorghumLayer::ExportSorghum(const Entity &sorghum, std::ofstream &of,
+                                 unsigned &startIndex) {
   const std::string start = "#Sorghum\n";
   of.write(start.c_str(), start.size());
   of.flush();
   const auto position =
       sorghum.GetDataComponent<GlobalTransform>().GetPosition();
-  sorghum.ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child) {
+  sorghum.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
     if (!child.HasPrivateComponent<MeshRenderer>())
       return;
     const auto leafMesh = child.GetOrSetPrivateComponent<MeshRenderer>()
@@ -395,9 +412,9 @@ void SorghumSystem::ExportSorghum(const Entity &sorghum, std::ofstream &of,
   });
 }
 
-void SorghumSystem::ObjExportHelper(glm::vec3 position,
-                                    std::shared_ptr<Mesh> mesh,
-                                    std::ofstream &of, unsigned &startIndex) {
+void SorghumLayer::ObjExportHelper(glm::vec3 position,
+                                   std::shared_ptr<Mesh> mesh,
+                                   std::ofstream &of, unsigned &startIndex) {
   if (!mesh->UnsafeGetTriangles().empty()) {
     std::string header =
         "#Vertices: " + std::to_string(mesh->GetVerticesAmount()) +
@@ -453,7 +470,7 @@ void SorghumSystem::ObjExportHelper(glm::vec3 position,
   }
 }
 
-void SorghumSystem::ExportAllSorghumsModel(const std::string &filename) {
+void SorghumLayer::ExportAllSorghumsModel(const std::string &filename) {
   std::ofstream of;
   of.open(filename, std::ofstream::out | std::ofstream::trunc);
   if (of.is_open()) {
@@ -475,7 +492,7 @@ void SorghumSystem::ExportAllSorghumsModel(const std::string &filename) {
   }
 }
 #ifdef RAYTRACERFACILITY
-void SorghumSystem::RenderLightProbes() {
+void SorghumLayer::RenderLightProbes() {
   if (m_probeTransforms.empty() || m_probeColors.empty() ||
       m_probeTransforms.size() != m_probeColors.size())
     return;
@@ -484,9 +501,9 @@ void SorghumSystem::RenderLightProbes() {
       glm::mat4(1.0f), 0.2f);
 }
 #endif
-void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
-                                    const Entity &walker) {
-  walker.ForEachChild([&](const std::shared_ptr<Scene>& scene, Entity child) {
+void SorghumLayer::CollectEntities(std::vector<Entity> &entities,
+                                   const Entity &walker) {
+  walker.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
     if (!child.HasPrivateComponent<MeshRenderer>())
       return;
     entities.push_back(child);
@@ -494,7 +511,7 @@ void SorghumSystem::CollectEntities(std::vector<Entity> &entities,
   });
 }
 #ifdef RAYTRACERFACILITY
-void SorghumSystem::CalculateIllumination(
+void SorghumLayer::CalculateIllumination(
     const RayTracerFacility::IlluminationEstimationProperties &properties) {
   const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
       TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
@@ -511,7 +528,7 @@ void SorghumSystem::CalculateIllumination(
   m_processing = true;
 }
 #endif
-void SorghumSystem::Update() {
+void SorghumLayer::Update() {
 #ifdef RAYTRACERFACILITY
   if (m_displayLightProbes) {
     RenderLightProbes();
@@ -547,9 +564,10 @@ void SorghumSystem::Update() {
 #endif
 }
 
-void SorghumSystem::CreateGrid(RectangularSorghumFieldPattern &field,
-                               const std::vector<Entity> &candidates) {
-  const Entity entity = EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
+void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
+                              const std::vector<Entity> &candidates) {
+  const Entity entity =
+      EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
   std::vector<std::vector<glm::mat4>> matricesList;
   matricesList.resize(candidates.size());
   for (auto &i : matricesList) {
@@ -561,17 +579,10 @@ void SorghumSystem::CreateGrid(RectangularSorghumFieldPattern &field,
   }
 }
 
-void SorghumSystem::Deserialize(const YAML::Node &in) {
-  ISerializable::Deserialize(in);
-}
-void SorghumSystem::CollectAssetRef(std::vector<AssetRef> &list) {
-  ISystem::CollectAssetRef(list);
-}
-void SorghumSystem::Serialize(YAML::Emitter &out) {
-  ISerializable::Serialize(out);
-}
-Entity SorghumSystem::CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor, bool segmentedMask) {
-  if(!descriptor){
+Entity SorghumLayer::CreateSorghum(
+    const std::shared_ptr<SorghumProceduralDescriptor> &descriptor,
+    bool segmentedMask) {
+  if (!descriptor) {
     UNIENGINE_ERROR("Descriptor empty!");
     return Entity();
   }

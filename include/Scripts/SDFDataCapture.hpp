@@ -1,7 +1,7 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
 
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 using namespace SorghumFactory;
 namespace Scripts {
 enum class MultipleAngleCaptureStatus { Info, Color, Angles };

@@ -10,11 +10,11 @@
 #include <ClassRegistry.hpp>
 #include <EditorManager.hpp>
 #include <ObjectRotator.hpp>
-#include <PhysicsManager.hpp>
+#include <PhysicsLayer.hpp>
 #include <PostProcessing.hpp>
 #include <ProjectManager.hpp>
 #include <SorghumData.hpp>
-#include <SorghumSystem.hpp>
+#include <SorghumLayer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #include <Utilities.hpp>
 
@@ -47,7 +47,6 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>(
       "TriangleIlluminationEstimator");
 
-  ClassRegistry::RegisterSystem<SorghumSystem>("SorghumSystem");
 
 #ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
@@ -62,29 +61,21 @@ int main() {
 
   ApplicationConfigs applicationConfigs;
   applicationConfigs.m_projectPath = "temp/SDF/SDF.ueproj";
-  Application::Init(applicationConfigs);
+  Application::Create(applicationConfigs);
 #ifdef RAYTRACERFACILITY
   if (enableRayTracing)
-    RayTracerManager::Init();
+    Application::PushLayer<RayTracerManager>();
 #endif
+  Application::PushLayer<SorghumLayer>();
 #pragma region Engine Loop
-  Application::Run();
+  Application::Start();
 #pragma endregion
-#ifdef RAYTRACERFACILITY
-  if (enableRayTracing)
-    RayTracerManager::End();
-#endif
   Application::End();
 }
 
 void EngineSetup() {
   ProjectManager::SetScenePostLoadActions([=]() {
 #pragma region Engine Setup
-#pragma region Global light settings
-    RenderManager::GetInstance().m_maxShadowDistance = 100;
-    RenderManager::SetSplitRatio(0.15f, 0.3f, 0.5f, 1.0f);
-
-#pragma endregion
 
     Transform transform;
     transform.SetEulerRotation(glm::radians(glm::vec3(150, 30, 0)));
@@ -120,10 +111,6 @@ void EngineSetup() {
     transform.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
     lightEntity.SetDataComponent(transform);
     */
-
-    auto sorghumSystem =
-        EntityManager::GetCurrentScene()->GetOrCreateSystem<SorghumSystem>(
-            SystemGroup::SimulationSystemGroup + 0.1f);
 
     auto sdfEntity = EntityManager::CreateEntity(
         EntityManager::GetCurrentScene(), "SDFPipeline");
