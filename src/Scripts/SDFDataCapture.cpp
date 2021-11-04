@@ -22,7 +22,7 @@ void SDFDataCapture::OnInspect() {
   if (ImGui::TreeNode("Camera Settings")) {
     ImGui::DragFloat3("Focus point", &m_focusPoint.x, 0.1f);
     ImGui::DragFloat3("Pitch Angle From/Step/End", &m_pitchAngleStart, 1);
-    ImGui::DragFloat("Turn Angle Step", &m_turnAngleStep, 1);
+    ImGui::DragFloat("Turn Angle From/Step/End", &m_turnAngleStart, 1);
     ImGui::DragFloat("Distance to plant", &m_distance, 0.1);
     ImGui::Separator();
     ImGui::DragFloat("Camera FOV", &m_fov);
@@ -166,11 +166,11 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
     } break;
     case MultipleAngleCaptureStatus::Angles: {
       m_captureStatus = MultipleAngleCaptureStatus::Info;
-      if (m_pitchAngle + m_pitchAngleStep < m_pitchAngleEnd) {
+      if ((m_pitchAngle + m_pitchAngleStep) <= m_pitchAngleEnd) {
         m_pitchAngle += m_pitchAngleStep;
         SetUpCamera();
         m_skipCurrentFrame = true;
-      } else if (m_turnAngle + m_turnAngleStep < 360.0f) {
+      } else if ((m_turnAngle + m_turnAngleStep) < 360.0f || (m_turnAngle + m_turnAngleEnd) < 360.0f) {
         m_turnAngle += m_turnAngleStep;
         m_pitchAngle = m_pitchAngleStart;
         SetUpCamera();
