@@ -193,19 +193,17 @@ void SorghumLayer::OnInspect() {
   if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
     ImGui::Checkbox("Display light probes", &m_displayLightProbes);
+    if(m_displayLightProbes){
+      ImGui::DragFloat("Size", &m_lightProbeSize);
+    }
     ImGui::DragInt("Seed", &m_seed);
+
     if (ImGui::Button("Generate mesh")) {
       GenerateMeshForAllSorghums();
     }
 
     if (ImGui::Button("Calculate illumination")) {
-      RayTracerFacility::IlluminationEstimationProperties properties;
-      properties.m_skylightPower = 1.0f;
-      properties.m_bounceLimit = 2;
-      properties.m_seed = glm::abs(m_seed);
-      properties.m_numPointSamples = 100;
-      properties.m_numScatterSamples = 10;
-      CalculateIllumination(properties);
+      CalculateIlluminationFrameByFrame();
     }
 #endif
     static AssetRef newFieldAsset;
@@ -351,7 +349,7 @@ void SorghumLayer::CloneSorghums(const Entity &parent, const Entity &original,
       auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
       newSpline->Copy(spline);
 #ifdef RAYTRACERFACILITY
-      if (child.HasPrivateComponent<MLVQRenderer>()) {
+      if (m_enableMLVQ && child.HasPrivateComponent<MLVQRenderer>()) {
         auto newRayTracedRenderer =
             newChild.GetOrSetPrivateComponent<MLVQRenderer>().lock();
         newRayTracedRenderer->m_materialIndex = 1;
@@ -478,7 +476,7 @@ void SorghumLayer::RenderLightProbes() {
     return;
   RenderManager::DrawGizmoMeshInstancedColored(
       DefaultResources::Primitives::Cube, m_probeColors, m_probeTransforms,
-      glm::mat4(1.0f), 0.2f);
+      glm::mat4(1.0f), m_lightProbeSize);
 }
 #endif
 void SorghumLayer::CollectEntities(std::vector<Entity> &entities,
@@ -491,8 +489,7 @@ void SorghumLayer::CollectEntities(std::vector<Entity> &entities,
   });
 }
 #ifdef RAYTRACERFACILITY
-void SorghumLayer::CalculateIllumination(
-    const RayTracerFacility::IlluminationEstimationProperties &properties) {
+void SorghumLayer::CalculateIlluminationFrameByFrame() {
   const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
       TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
   if (!owners)
@@ -500,12 +497,41 @@ void SorghumLayer::CalculateIllumination(
   m_processingEntities.clear();
   m_probeTransforms.clear();
   m_probeColors.clear();
-  m_properties = properties;
-  m_properties.m_pushNormal = true;
   m_processingEntities.insert(m_processingEntities.begin(), owners->begin(),
                               owners->end());
   m_processingIndex = m_processingEntities.size();
   m_processing = true;
+}
+void SorghumLayer::CalculateIllumination() {
+  const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
+      TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
+  if (!owners)
+    return;
+  m_processingEntities.clear();
+  m_probeTransforms.clear();
+  m_probeColors.clear();
+  m_processingEntities.insert(m_processingEntities.begin(), owners->begin(),
+                              owners->end());
+  m_processingIndex = m_processingEntities.size();
+  while (m_processing) {
+    m_processingIndex--;
+    if (m_processingIndex == -1) {
+      m_processing = false;
+    } else {
+      const float timer = Application::Time().CurrentTime();
+      auto estimator =
+          m_processingEntities[m_processingIndex]
+              .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
+              .lock();
+      estimator->CalculateIlluminationForDescendents();
+      m_probeTransforms.insert(m_probeTransforms.end(),
+                               estimator->m_probeTransforms.begin(),
+                               estimator->m_probeTransforms.end());
+      m_probeColors.insert(m_probeColors.end(),
+                           estimator->m_probeColors.begin(),
+                           estimator->m_probeColors.end());
+    }
+  }
 }
 #endif
 void SorghumLayer::Update() {
@@ -513,7 +539,6 @@ void SorghumLayer::Update() {
   if (m_displayLightProbes) {
     RenderLightProbes();
   }
-
   if (m_processing) {
     m_processingIndex--;
     if (m_processingIndex == -1) {
@@ -524,7 +549,7 @@ void SorghumLayer::Update() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIllumination(m_properties);
+      estimator->CalculateIlluminationForDescendents();
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
@@ -532,13 +557,6 @@ void SorghumLayer::Update() {
                            estimator->m_probeColors.begin(),
                            estimator->m_probeColors.end());
       m_perPlantCalculationTime = Application::Time().CurrentTime() - timer;
-      const auto count = m_probeTransforms.size();
-      m_lightProbeRenderingColorBuffer.SetData(
-          static_cast<GLsizei>(count) * sizeof(glm::vec4), m_probeColors.data(),
-          GL_DYNAMIC_DRAW);
-      m_lightProbeRenderingTransformBuffer.SetData(
-          static_cast<GLsizei>(count) * sizeof(glm::mat4),
-          m_probeTransforms.data(), GL_DYNAMIC_DRAW);
     }
   }
 #endif

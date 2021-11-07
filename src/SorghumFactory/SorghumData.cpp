@@ -155,9 +155,12 @@ void SorghumData::GenerateGeometry(bool segmentedMask) {
     meshRenderer->m_material = Application::GetLayer<SorghumLayer>()->m_leafMaterial;
   }
 #ifdef RAYTRACERFACILITY
-  auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
-  rtt->Sync();
-  rtt->m_materialIndex = 1;
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  if(sorghumLayer->m_enableMLVQ) {
+    auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+    rtt->Sync();
+    rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+  }
 #endif
   GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
                               Entity child) {
@@ -180,9 +183,11 @@ void SorghumData::GenerateGeometry(bool segmentedMask) {
       meshRenderer->m_material = Application::GetLayer<SorghumLayer>()->m_leafMaterial;
     }
 #ifdef RAYTRACERFACILITY
-    auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
-    rtt->Sync();
-    rtt->m_materialIndex = 1;
+    if(sorghumLayer->m_enableMLVQ) {
+      auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+      rtt->Sync();
+      rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+    }
 #endif
   });
 }

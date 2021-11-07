@@ -95,7 +95,7 @@ void SorghumFactory::SorghumField::OnInspect() {
     m_newSorghumPositions.resize(m_newSorghumAmount);
     m_newSorghumRotations.resize(m_newSorghumAmount);
   }
-  if(ImGui::CollapsingHeader("Details")) {
+  if (ImGui::CollapsingHeader("Details")) {
     for (auto i = 0; i < m_newSorghumAmount; i++) {
       std::string title = "New Sorghum No.";
       title += std::to_string(i);
@@ -109,5 +109,20 @@ void SorghumFactory::SorghumField::OnInspect() {
     }
   }
 }
-void SorghumFactory::SorghumField::Serialize(YAML::Emitter &out) {}
-void SorghumFactory::SorghumField::Deserialize(const YAML::Node &in) {}
+void SorghumFactory::SorghumField::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_newSorghumAmount" << YAML::Value << m_newSorghumAmount;
+  SaveListAsBinary<glm::vec3>("m_newSorghumPositions", m_newSorghumPositions, out);
+  SaveListAsBinary<glm::vec3>("m_newSorghumRotations", m_newSorghumRotations, out);
+  SaveList("m_newSorghumParameters", m_newSorghumParameters, out);
+}
+void SorghumFactory::SorghumField::Deserialize(const YAML::Node &in) {
+  m_newSorghumAmount = in["m_newSorghumAmount"].as<int>();
+  LoadListFromBinary<glm::vec3>("m_newSorghumPositions", m_newSorghumPositions, in);
+  LoadListFromBinary<glm::vec3>("m_newSorghumRotations", m_newSorghumRotations, in);
+  LoadList("m_newSorghumParameters", m_newSorghumParameters, in);
+}
+void SorghumFactory::SorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
+  for(auto& i : m_newSorghumParameters){
+    list.push_back(i);
+  }
+}
