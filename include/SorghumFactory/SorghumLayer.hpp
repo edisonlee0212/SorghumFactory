@@ -21,7 +21,9 @@ class SORGHUM_FACTORY_API SorghumLayer : public ILayer {
 
 public:
 #pragma region Illumination
-  int m_seed;
+  int m_seed = 0;
+  float m_pushDistance = 0.001f;
+  int m_sampleAmount = 300;
 #ifdef RAYTRACERFACILITY
   bool m_enableMLVQ = false;
   int m_MLVQMaterialIndex = 1;
@@ -33,6 +35,7 @@ public:
   float m_lightProbeSize = 0.05f;
   float m_perPlantCalculationTime = 0.0f;
   bool m_displayLightProbes = true;
+
   void RenderLightProbes();
   void CalculateIlluminationFrameByFrame();
   void CalculateIllumination();

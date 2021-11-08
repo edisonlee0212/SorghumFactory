@@ -192,18 +192,26 @@ Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
 void SorghumLayer::OnInspect() {
   if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
-    ImGui::Checkbox("Display light probes", &m_displayLightProbes);
-    if(m_displayLightProbes){
-      ImGui::DragFloat("Size", &m_lightProbeSize);
-    }
-    ImGui::DragInt("Seed", &m_seed);
+    if(ImGui::TreeNodeEx("Illumination Estimation", ImGuiTreeNodeFlags_DefaultOpen)) {
+      ImGui::Checkbox("Display light probes", &m_displayLightProbes);
+      if (m_displayLightProbes) {
+        ImGui::DragFloat("Size", &m_lightProbeSize, 0.0001f, 0.0001f, 0.2f,
+                         "%.5f");
+      }
+      ImGui::DragInt("Seed", &m_seed);
+      ImGui::DragInt("Sample amount", &m_sampleAmount);
+      ImGui::DragFloat("Push distance along normal", &m_pushDistance, 0.0001f, -1.0f, 1.0f, "%.5f");
+      if (ImGui::Button("Generate mesh")) {
+        GenerateMeshForAllSorghums();
+      }
 
-    if (ImGui::Button("Generate mesh")) {
-      GenerateMeshForAllSorghums();
-    }
-
-    if (ImGui::Button("Calculate illumination")) {
-      CalculateIlluminationFrameByFrame();
+      if (ImGui::Button("Calculate illumination")) {
+        CalculateIlluminationFrameByFrame();
+      }
+      if (ImGui::Button("Calculate illumination instantly")) {
+        CalculateIllumination();
+      }
+      ImGui::TreePop();
     }
 #endif
     static AssetRef newFieldAsset;
@@ -523,7 +531,7 @@ void SorghumLayer::CalculateIllumination() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents();
+      estimator->CalculateIlluminationForDescendents(m_seed, m_pushDistance, m_sampleAmount);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
@@ -549,7 +557,7 @@ void SorghumLayer::Update() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents();
+      estimator->CalculateIlluminationForDescendents(m_seed, m_pushDistance, m_sampleAmount);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
