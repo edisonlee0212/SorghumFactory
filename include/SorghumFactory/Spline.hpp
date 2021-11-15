@@ -62,6 +62,6 @@ public:
   void Deserialize(const YAML::Node &in) override;
   void Copy(const std::shared_ptr<Spline> &target);
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
-  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline, bool segmentedMask);
+  void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline);
 };
 } // namespace SorghumFactory

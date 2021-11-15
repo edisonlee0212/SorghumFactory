@@ -137,7 +137,7 @@ void SorghumData::GenerateGeometry(bool segmentedMask) {
   auto owner = GetOwner();
   auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormNodes(stemSpline);
-  stemSpline->GenerateGeometry(stemSpline, segmentedMask);
+  stemSpline->GenerateGeometry(stemSpline);
   auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
   meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, stemSpline->m_vertices,
                                                 stemSpline->m_indices);
@@ -165,7 +165,7 @@ void SorghumData::GenerateGeometry(bool segmentedMask) {
   GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
                               Entity child) {
     auto leafSpline = child.GetOrSetPrivateComponent<Spline>().lock();
-    leafSpline->GenerateGeometry(stemSpline, segmentedMask);
+    leafSpline->GenerateGeometry(stemSpline);
     auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, leafSpline->m_vertices,
                                                   leafSpline->m_indices);

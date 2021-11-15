@@ -48,15 +48,6 @@ void SorghumLayer::OnCreate() {
       material->m_metallic = 0.0f;
     }
   }
-
-  /*
-  m_instancedLeafMaterial = AssetManager::LoadMaterial(
-      DefaultResources::GLPrograms::StandardInstancedProgram);
-  m_instancedLeafMaterial.Get<Material>()->m_cullingMode =
-      MaterialCullingMode::Off;
-  m_instancedLeafMaterial.Get<Material>()->m_roughness = 1.0f;
-  m_instancedLeafMaterial.Get<Material>()->m_metallic = 0.0f;
-  */
 }
 
 Entity SorghumLayer::CreateSorghum() {
@@ -119,7 +110,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
         auto stemSpline =
             entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
         if (stemSpline)
-          spline->GenerateGeometry(stemSpline, false);
+          spline->GenerateGeometry(stemSpline);
       });
 
   m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
@@ -192,7 +183,7 @@ Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
 void SorghumLayer::OnInspect() {
   if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
-    if(ImGui::TreeNodeEx("Illumination Estimation", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if(ImGui::TreeNodeEx("Illumination Estimation")) {
       ImGui::Checkbox("Display light probes", &m_displayLightProbes);
       if (m_displayLightProbes) {
         ImGui::DragFloat("Size", &m_lightProbeSize, 0.0001f, 0.0001f, 0.2f,
@@ -214,6 +205,41 @@ void SorghumLayer::OnInspect() {
       ImGui::TreePop();
     }
 #endif
+
+    ImGui::Separator();
+
+    if(EditorManager::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
+                                                   "Replace Leaf Albedo Texture")){
+      auto tex = m_leafAlbedoTexture.Get<Texture2D>();
+      if(tex){
+        m_leafMaterial.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
+        std::vector<Entity> sorghumEntities;
+        m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghumEntities, false);
+        for(const auto& i : sorghumEntities){
+          if(i.HasPrivateComponent<MeshRenderer>()){
+            i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
+          }
+        }
+      }
+    }
+
+    if(EditorManager::DragAndDropButton<Texture2D>(m_leafNormalTexture,
+                                                    "Replace Leaf Normal Texture")){
+      auto tex = m_leafNormalTexture.Get<Texture2D>();
+      if(tex){
+        m_leafMaterial.Get<Material>()->m_normalTexture = m_leafNormalTexture;
+        std::vector<Entity> sorghumEntities;
+        m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghumEntities, false);
+        for(const auto& i : sorghumEntities){
+          if(i.HasPrivateComponent<MeshRenderer>()){
+            i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_normalTexture = m_leafNormalTexture;
+          }
+        }
+      }
+    }
+
+    ImGui::Separator();
+
     static AssetRef newFieldAsset;
     EditorManager::DragAndDropButton<SorghumField>(newFieldAsset,
                                                    "To sorghum field");
@@ -246,14 +272,14 @@ void SorghumLayer::OnInspect() {
           newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>());
       newSorghumDescriptorAsset.Clear();
     }
-
-    if (ImGui::Button("Create field...")) {
-      ImGui::OpenPopup("Sorghum field wizard");
-    }
     FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
                         [this](const std::filesystem::path &path) {
                           ImportPlant(path, "Sorghum");
                         });
+    /*
+    if (ImGui::Button("Create field...")) {
+      ImGui::OpenPopup("Sorghum field wizard");
+    }
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
@@ -295,6 +321,7 @@ void SorghumLayer::OnInspect() {
       }
       ImGui::EndPopup();
     }
+    */
     FileUtils::SaveFile("Export OBJ for all sorghums", "3D Model", {".obj"},
                         [this](const std::filesystem::path &path) {
                           ExportAllSorghumsModel(path.string());

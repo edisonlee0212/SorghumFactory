@@ -48,7 +48,8 @@ public:
 
   AssetRef m_leafNodeMaterial;
   AssetRef m_leafMaterial;
-
+  AssetRef m_leafAlbedoTexture;
+  AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
 
   void OnCreate() override;

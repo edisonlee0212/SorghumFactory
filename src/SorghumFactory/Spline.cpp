@@ -108,8 +108,10 @@ void Spline::Deserialize(const YAML::Node &in) {
   m_left = in["m_left"].as<glm::vec3>();
   m_startingPoint = in["m_startingPoint"].as<float>();
 
-  if(in["m_wavinessPeriod"]) m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
-  if(in["m_waviness"]) m_waviness = in["m_waviness"].as<float>();
+  if (in["m_wavinessPeriod"])
+    m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
+  if (in["m_waviness"])
+    m_waviness = in["m_waviness"].as<float>();
 
   m_order = in["m_order"].as<int>();
   m_unitLength = in["m_unitLength"].as<float>();
@@ -210,7 +212,7 @@ glm::vec3 Spline::EvaluateAxis(float point) {
   throw 0;
 }
 
-void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline, bool segmentedMask) {
+void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
 
   auto stemNodeCount = FormNodes(stemSpline);
 
@@ -219,8 +221,8 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline, bool se
   m_segments.clear();
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
-  float leftFlatness = m_waviness;              // glm::linearRand(0.5f, 2.0f);
-  float rightFlatness = m_waviness;             // glm::linearRand(0.5f, 2.0f);
+  float leftFlatness = m_waviness;  // glm::linearRand(0.5f, 2.0f);
+  float rightFlatness = m_waviness; // glm::linearRand(0.5f, 2.0f);
 
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {
@@ -233,8 +235,9 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline, bool se
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div = (i == 1 ? 0.0f : 1.0f / static_cast<float>(m_segmentAmount)); div <= 1.0f;
-         div += 1.0f / static_cast<float>(m_segmentAmount)) {
+    for (float div =
+             (i == 1 ? 0.0f : 1.0f / static_cast<float>(m_segmentAmount));
+         div <= 1.0f; div += 1.0f / static_cast<float>(m_segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
@@ -253,13 +256,14 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline, bool se
   }
 
   const int vertexIndex = m_vertices.size();
-  Vertex archetype;
-  m_vertexColor = glm::vec4(0, 1, 0, 1.0f);
-  if(true){
-    auto index = m_order + 1;
-    m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f, ((index / 9) % 3) * 0.5f, 1.0f);
-  }
-  if(m_startingPoint == -1) m_vertexColor = glm::vec4(0, 0, 0, 1);
+  Vertex archetype{};
+#pragma region Semantic mask color
+  auto index = m_order + 1;
+  m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f,
+                            ((index / 9) % 3) * 0.5f, 1.0f);
+#pragma endregion
+  if (m_startingPoint == -1)
+    m_vertexColor = glm::vec4(0, 0, 0, 1);
   archetype.m_color = m_vertexColor;
   const float xStep = 1.0f / m_step / 2.0f;
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
@@ -352,7 +356,6 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       m_nodes.emplace_back(stemSpline->EvaluatePoint(m_startingPoint), 90.0f,
                            width, -stemSpline->EvaluateAxis(m_startingPoint),
                            false, 0.0f);
-      stemNodeCount = m_nodes.size();
       glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
       glm::vec3 direction = m_initialDirection;
       float w = m_leafMaxWidth;
@@ -373,7 +376,8 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (int i = 0; i < m_unitAmount; i++) {
         m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
                                  static_cast<float>(i),
-                             180.0f, m_stemWidth + 0.005, -m_initialDirection, false, 0.0f);
+                             180.0f, m_stemWidth + 0.005, -m_initialDirection,
+                             false, 0.0f);
       }
       stemNodeCount = m_nodes.size();
     }
