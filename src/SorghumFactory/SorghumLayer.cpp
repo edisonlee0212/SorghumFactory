@@ -190,8 +190,8 @@ void SorghumLayer::OnInspect() {
                          "%.5f");
       }
       ImGui::DragInt("Seed", &m_seed);
-      ImGui::DragInt("Sample amount", &m_sampleAmount);
       ImGui::DragFloat("Push distance along normal", &m_pushDistance, 0.0001f, -1.0f, 1.0f, "%.5f");
+      m_rayProperties.OnInspect();
       if (ImGui::Button("Generate mesh")) {
         GenerateMeshForAllSorghums();
       }
@@ -558,7 +558,7 @@ void SorghumLayer::CalculateIllumination() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents(m_seed, m_pushDistance, m_sampleAmount);
+      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed, m_pushDistance);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
@@ -584,7 +584,7 @@ void SorghumLayer::Update() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents(m_seed, m_pushDistance, m_sampleAmount);
+      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed, m_pushDistance);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());

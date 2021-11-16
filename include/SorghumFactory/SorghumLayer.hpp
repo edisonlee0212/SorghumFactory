@@ -20,11 +20,12 @@ class SORGHUM_FACTORY_API SorghumLayer : public ILayer {
                               std::ofstream &of, unsigned &startIndex);
 
 public:
+#ifdef RAYTRACERFACILITY
 #pragma region Illumination
   int m_seed = 0;
   float m_pushDistance = 0.001f;
-  int m_sampleAmount = 300;
-#ifdef RAYTRACERFACILITY
+  RayTracerFacility::RayProperties m_rayProperties;
+
   bool m_enableMLVQ = false;
   int m_MLVQMaterialIndex = 1;
   std::vector<glm::mat4> m_probeTransforms;
@@ -39,8 +40,9 @@ public:
   void RenderLightProbes();
   void CalculateIlluminationFrameByFrame();
   void CalculateIllumination();
-#endif
+
 #pragma endregion
+#endif
   EntityArchetype m_leafArchetype;
   EntityQuery m_leafQuery;
   EntityArchetype m_sorghumArchetype;

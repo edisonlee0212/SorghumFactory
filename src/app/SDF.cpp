@@ -44,13 +44,6 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-  ClassRegistry::RegisterPrivateComponent<TriangleIlluminationEstimator>(
-      "TriangleIlluminationEstimator");
-
-
-#ifdef RAYTRACERFACILITY
-  ClassRegistry::RegisterPrivateComponent<MLVQRenderer>("MLVQRenderer");
-#endif
 
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
       "SorghumProceduralDescriptor", ".spd");
