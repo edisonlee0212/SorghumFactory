@@ -4,12 +4,26 @@
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
+#include "DepthCamera.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
 using namespace SorghumFactory;
 using namespace UniEngine;
 void SorghumLayer::OnCreate() {
+  ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
+  ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
+
+  ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
+
+  ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
+  ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
+
+  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
+      "SorghumProceduralDescriptor", ".spd");
+  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
+
+
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());

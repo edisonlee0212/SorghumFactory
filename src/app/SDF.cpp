@@ -33,21 +33,11 @@ using namespace RayTracerFacility;
 void EngineSetup();
 
 int main() {
-  ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
-  ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
-
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
   ClassRegistry::RegisterAsset<SDFDataCapture>("SDFDataCapture",
                                                ".sdfdatacapture");
-  ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
-  ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
-  ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-
-  ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
-      "SorghumProceduralDescriptor", ".spd");
-  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
 
   const bool enableRayTracing = true;
   EngineSetup();
