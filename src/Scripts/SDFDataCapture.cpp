@@ -6,9 +6,18 @@
 #include "DepthCamera.hpp"
 #include <SorghumData.hpp>
 #include <SorghumProceduralDescriptor.hpp>
+#ifdef RAYTRACERFACILITY
+#include "RayTracerCamera.hpp"
+#include "RayTracerManager.hpp"
+using namespace RayTracerFacility;
+#endif
 using namespace Scripts;
 void SDFDataCapture::OnInspect() {
-  EditorManager::DragAndDropButton(m_cameraEntity, "Camera Entity");
+#ifdef RAYTRACERFACILITY
+  EditorManager::DragAndDropButton<RayTracerCamera>(m_rayTracerCamera, "Ray Tracer Camera");
+#else
+  EditorManager::DragAndDropButton<Camera>(m_rayTracerCamera, "Camera");
+#endif
   EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
       m_parameters, "Sorghum Descriptors");
   ImGui::DragInt("Instance Count", &m_generationAmount, 1, 0);
@@ -32,12 +41,16 @@ void SDFDataCapture::OnInspect() {
     ImGui::ColorEdit3("Camera Clear Color", &m_backgroundColor.x);
     ImGui::TreePop();
   }
-  auto cameraEntity = m_cameraEntity.Get();
+#ifdef RAYTRACERFACILITY
+  auto rayTracerCamera = m_rayTracerCamera.Get<RayTracerCamera>();
+#else
+  auto rayTracerCamera = m_rayTracerCamera.Get<Camera>();
+#endif
   if (!Application::IsPlaying()) {
     ImGui::Text("Application not Playing!");
   } else if (!m_parameters.Get<SorghumProceduralDescriptor>()) {
     ImGui::Text("SPD Missing");
-  } else if (cameraEntity.IsNull()) {
+  } else if (!rayTracerCamera) {
     ImGui::Text("Camera Missing");
   } else if (m_remainingInstanceAmount != 0) {
     ImGui::Text("Busy...");
@@ -79,7 +92,12 @@ void SDFDataCapture::OnInspect() {
 }
 
 void SDFDataCapture::OnIdle(AutoSorghumGenerationPipeline &pipeline) {
-  if (m_cameraEntity.Get().IsNull()) {
+#ifdef RAYTRACERFACILITY
+  auto rayTracerCamera = m_rayTracerCamera.Get<RayTracerCamera>();
+#else
+  auto rayTracerCamera = m_rayTracerCamera.Get<Camera>();
+#endif
+  if (!rayTracerCamera) {
     m_pitchAngle = m_pitchAngleStart;
     m_turnAngle = -1;
     m_generationAmount = 0;
@@ -117,7 +135,12 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
     }
     m_skipCurrentFrame = false;
   } else {
-    auto cameraEntity = m_cameraEntity.Get();
+#ifdef RAYTRACERFACILITY
+    auto rayTracerCamera = m_rayTracerCamera.Get<RayTracerCamera>();
+#else
+    auto rayTracerCamera = m_rayTracerCamera.Get<Camera>();
+#endif
+    auto rayTracerCameraEntity = rayTracerCamera->GetOwner();
     auto prefix =
         m_parameters.Get<SorghumProceduralDescriptor>()
             ->GetPath()
@@ -128,20 +151,32 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
     switch (m_captureStatus) {
     case MultipleAngleCaptureStatus::Info: {
       m_cameraModels.push_back(
-          cameraEntity.GetDataComponent<GlobalTransform>().m_value);
+          rayTracerCameraEntity.GetDataComponent<GlobalTransform>().m_value);
       m_sorghumModels.push_back(
           m_currentGrowingSorghum.GetDataComponent<GlobalTransform>().m_value);
       m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
       m_views.push_back(Camera::m_cameraInfoBlock.m_view);
       m_names.push_back(prefix);
       if (m_captureImage) {
-        auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
+#ifdef RAYTRACERFACILITY
+        Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
+        Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+        RayProperties rayProperties;
+        rayProperties.m_samples = 1000;
+        rayTracerCamera->SetOutputType(OutputType::Color);
+        rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
+        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->m_colorTexture->SetPathAndSave(m_currentExportFolder / "Image" /
+                                             (prefix + "_image.png"));
+#else
+        auto camera = rayTracerCameraEntity.GetOrSetPrivateComponent<Camera>().lock();
         camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Image" /
                                              (prefix + "_image.png"));
+
+#endif
       }
       if (m_captureDepth) {
-        auto depthCamera =
-            cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
+        auto depthCamera = m_depthCamera.Get<DepthCamera>();
         depthCamera->m_colorTexture->SetPathAndSave(
             m_currentExportFolder / "Depth" / (prefix + "_depth.png"));
       }
@@ -156,9 +191,22 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
       }
     } break;
     case MultipleAngleCaptureStatus::Mask: {
-      auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
+#ifdef RAYTRACERFACILITY
+      Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
+      Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+      RayProperties rayProperties;
+      rayProperties.m_samples = 1;
+      rayTracerCamera->SetDenoiserStrength(0.0f);
+      rayTracerCamera->SetOutputType(OutputType::Albedo);
+      rayTracerCamera->Render();
+      rayTracerCamera->m_colorTexture->SetPathAndSave(m_currentExportFolder / "Mask" /
+                                           (prefix + "_mask.png"));
+#else
+      auto camera = rayTracerCameraEntity.GetOrSetPrivateComponent<Camera>().lock();
       camera->GetTexture()->SetPathAndSave(m_currentExportFolder / "Mask" /
                                            (prefix + "_mask.png"));
+
+#endif
       m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock()
           ->GenerateGeometry(false);
@@ -218,7 +266,12 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
   }
 }
 bool SDFDataCapture::SetUpCamera() {
-  auto cameraEntity = m_cameraEntity.Get();
+#ifdef RAYTRACERFACILITY
+  auto rayTracerCamera = m_rayTracerCamera.Get<RayTracerCamera>();
+#else
+  auto rayTracerCamera = m_rayTracerCamera.Get<Camera>();
+#endif
+  auto cameraEntity = rayTracerCamera->GetOwner();
   if (cameraEntity.IsNull()) {
     m_pitchAngle = m_pitchAngleStart;
     m_turnAngle = m_remainingInstanceAmount = 0;
@@ -245,16 +298,19 @@ bool SDFDataCapture::SetUpCamera() {
   cameraGlobalTransform.SetPosition(m_cameraPosition);
   cameraGlobalTransform.SetRotation(m_cameraRotation);
   cameraEntity.SetDataComponent(cameraGlobalTransform);
-
-  auto camera = cameraEntity.GetOrSetPrivateComponent<Camera>().lock();
-  camera->m_fov = m_fov;
-  camera->m_allowAutoResize = false;
-  camera->m_farDistance = m_cameraMax;
-  camera->m_nearDistance = m_cameraMin;
-  camera->ResizeResolution(m_resolution.x, m_resolution.y);
-  camera->m_clearColor = m_backgroundColor;
-  camera->m_useClearColor = m_useClearColor;
-
+#ifdef RAYTRACERFACILITY
+  rayTracerCamera->SetFov(m_fov);
+  rayTracerCamera->m_allowAutoResize = false;
+  rayTracerCamera->m_frameSize = m_resolution;
+#else
+  rayTracerCamera->m_fov = m_fov;
+  rayTracerCamera->m_allowAutoResize = false;
+  rayTracerCamera->m_farDistance = m_cameraMax;
+  rayTracerCamera->m_nearDistance = m_cameraMin;
+  rayTracerCamera->ResizeResolution(m_resolution.x, m_resolution.y);
+  rayTracerCamera->m_clearColor = m_backgroundColor;
+  rayTracerCamera->m_useClearColor = m_useClearColor;
+#endif
   auto depthCamera =
       cameraEntity.GetOrSetPrivateComponent<DepthCamera>().lock();
   depthCamera->m_useCameraResolution = true;

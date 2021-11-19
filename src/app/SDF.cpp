@@ -6,6 +6,8 @@
 #include <CUDAModule.hpp>
 #include <MLVQRenderer.hpp>
 #include <RayTracerManager.hpp>
+#include "RayTracerCamera.hpp"
+#include <TriangleIlluminationEstimator.hpp>
 #endif
 #include <ClassRegistry.hpp>
 #include <EditorManager.hpp>
@@ -15,15 +17,15 @@
 #include <ProjectManager.hpp>
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
-#include <TriangleIlluminationEstimator.hpp>
+
 #include <Utilities.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <DepthCamera.hpp>
-#include <ProceduralSorghumSegmentationMask.hpp>
 #include <SDFDataCapture.hpp>
 #include <SorghumField.hpp>
 #include <SorghumProceduralDescriptor.hpp>
+#include "DepthCamera.hpp"
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -102,6 +104,13 @@ void EngineSetup() {
             .lock();
     auto capture = AssetManager::CreateAsset<SDFDataCapture>();
     pipeline->m_pipelineBehaviour = capture;
-    capture->m_cameraEntity = mainCamera->GetOwner();
+    auto depthCamera = mainCamera->GetOwner().GetOrSetPrivateComponent<DepthCamera>().lock();
+#ifdef RAYTRACERFACILITY
+    auto rayTracerCamera = mainCamera->GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
+    capture->m_rayTracerCamera = rayTracerCamera;
+#else
+    capture->m_rayTracerCamera = mainCamera;
+#endif
+    capture->m_depthCamera = depthCamera;
   });
 }

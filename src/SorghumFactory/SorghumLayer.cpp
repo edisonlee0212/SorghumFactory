@@ -1,9 +1,10 @@
 #ifdef RAYTRACERFACILITY
 #include <MLVQRenderer.hpp>
+#include <TriangleIlluminationEstimator.hpp>
 #endif
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
-#include <TriangleIlluminationEstimator.hpp>
+
 #include "DepthCamera.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
@@ -72,8 +73,9 @@ Entity SorghumLayer::CreateSorghum() {
   entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   entity.SetName("Sorghum");
+#ifdef RAYTRACERFACILITY
   entity.GetOrSetPrivateComponent<TriangleIlluminationEstimator>();
-
+#endif
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
   // mmc->m_material = m_segmentedLeafMaterials[leafIndex];
   {

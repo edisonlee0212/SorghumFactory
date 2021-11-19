@@ -34,8 +34,11 @@ public:
   float m_turnAngleEnd = 360;
   float m_distance = 20;
   float m_fov = 60;
-  glm::ivec2 m_resolution = glm::ivec2(256, 256);
-  EntityRef m_cameraEntity;
+
+  float m_denoiserStrength = 0.f;
+  glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
+  PrivateComponentRef m_rayTracerCamera;
+  PrivateComponentRef m_depthCamera;
   int m_generationAmount = 5;
 
   bool m_useClearColor = true;

@@ -17,11 +17,9 @@
 #include <ObjectRotator.hpp>
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
-#include <TriangleIlluminationEstimator.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <DepthCamera.hpp>
-#include <ProceduralSorghumSegmentationMask.hpp>
 #include <SorghumField.hpp>
 #include <SorghumProceduralDescriptor.hpp>
 #include <SDFDataCapture.hpp>
