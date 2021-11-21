@@ -3,24 +3,15 @@
 //
 #include <Application.hpp>
 #ifdef RAYTRACERFACILITY
-#include <CUDAModule.hpp>
-#include <MLVQRenderer.hpp>
 #include <RayTracerManager.hpp>
 #endif
-#include <EditorManager.hpp>
-#include <PhysicsLayer.hpp>
-#include <PostProcessing.hpp>
-#include <ProjectManager.hpp>
-#include <Utilities.hpp>
 
+#include <PhysicsLayer.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
-#include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
-#include <DepthCamera.hpp>
-#include <SorghumField.hpp>
 #include <SorghumProceduralDescriptor.hpp>
 #include <SDFDataCapture.hpp>
 using namespace Scripts;
@@ -28,7 +19,6 @@ using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
-void EngineSetup();
 
 int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(

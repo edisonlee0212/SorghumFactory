@@ -4,7 +4,7 @@
 using namespace UniEngine;
 namespace SorghumFactory {
 struct SORGHUM_FACTORY_API SorghumPinnacleDescriptor {
-  bool m_hasPinnacle;
+  bool m_hasPinnacle = false;
   glm::vec3 m_pinnacleSize = glm::vec3(0.2, 0.75, 0.2);
   int m_seedAmount = 1200;
   float m_seedRadius = 0.02;
@@ -15,7 +15,7 @@ struct SORGHUM_FACTORY_API SorghumPinnacleDescriptor {
 };
 struct SORGHUM_FACTORY_API SorghumStemDescriptor {
   glm::vec3 m_direction = glm::vec3(0, 1, 0);
-  float m_length = 8;
+  float m_length = 3.5;
   float m_widthMax = 0.06f;
   UniEngine::Curve m_widthDistribution = UniEngine::Curve(1.0, 0.4, {0, 0}, {1, 1});
 

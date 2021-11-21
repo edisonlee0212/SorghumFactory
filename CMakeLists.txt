@@ -128,6 +128,10 @@ if (BUILD_RAY_TRACER_FACILITY)
             RayTracerFacility
             SorghumFactory
             )
+    target_compile_definitions(Scripts
+            PRIVATE
+            RAYTRACERFACILITY
+            )
 else ()
     target_link_libraries(Scripts
             uniengine

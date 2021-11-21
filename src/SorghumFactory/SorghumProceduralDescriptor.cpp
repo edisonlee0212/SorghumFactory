@@ -15,7 +15,7 @@ void SorghumProceduralDescriptor::OnInspect() {
     ImGui::TreePop();
   }
 
-  if(ImGui::TreeNode("Leaf")) {
+  if (ImGui::TreeNode("Leaf")) {
     if (ImGui::Button("Apply L1")) {
       L1ToBase();
     }
@@ -174,10 +174,10 @@ void SorghumProceduralDescriptor::Serialize(YAML::Emitter &out) {
   out << YAML::EndMap;
 
   out << YAML::Key << "m_l1LeafCount" << YAML::Value << m_l1LeafCount;
-  out << YAML::Key << "m_l1LastLeafEndingPoint" << YAML::Value
+  out << YAML::Key << "m_l1FirstLeafStartingPoint" << YAML::Value
       << m_l1FirstLeafStartingPoint;
   out << YAML::Key << "m_l1LastLeafEndingPoint" << YAML::Value
-      << m_l1FirstLeafStartingPoint;
+      << m_l1LastLeafEndingPoint;
 
   out << YAML::Key << "m_l1LeafLengthMax" << YAML::Value << m_l1LeafLengthMax;
   out << YAML::Key << "m_l1LeafLengthDistribution" << YAML::Value
@@ -272,7 +272,8 @@ void SorghumProceduralDescriptor::Deserialize(const YAML::Node &in) {
       in["m_l1LeafLengthDecreaseStartingPointDistribution"]);
 
   m_l1LeafCount = in["m_l1LeafCount"].as<int>();
-  m_l1FirstLeafStartingPoint = in["m_l1FirstLeafStartingPoint"].as<float>();
+  if (in["m_l1FirstLeafStartingPoint"])
+    m_l1FirstLeafStartingPoint = in["m_l1FirstLeafStartingPoint"].as<float>();
   if (in["m_l1LastLeafEndingPoint"])
     m_l1LastLeafEndingPoint = in["m_l1LastLeafEndingPoint"].as<float>();
 

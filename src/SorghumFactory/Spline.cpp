@@ -384,7 +384,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (int i = 0; i < m_unitAmount; i++) {
         m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
                                  static_cast<float>(i),
-                             180.0f, m_stemWidthMax * m_stemWidthDistribution.GetValue(i / m_unitAmount) + 0.005, -m_initialDirection,
+                             180.0f, m_stemWidthMax * m_stemWidthDistribution.GetValue((float)i / m_unitAmount) + 0.005, -m_initialDirection,
                              false, 0.0f);
       }
       stemNodeCount = m_nodes.size();
