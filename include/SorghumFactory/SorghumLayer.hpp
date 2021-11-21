@@ -2,16 +2,18 @@
 #ifdef RAYTRACERFACILITY
 #include <CUDAModule.hpp>
 #endif
+#include "ILayer.hpp"
 #include "SorghumField.hpp"
-#include <Curve.hpp>
+#include <ICurve.hpp>
 #include <LeafSegment.hpp>
 #include <Spline.hpp>
-#include "ILayer.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
   int m_index = 0;
+};
+struct SORGHUM_FACTORY_API PinnacleTag : IDataComponent {
 };
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 class SorghumProceduralDescriptor;
@@ -47,8 +49,10 @@ public:
   EntityQuery m_leafQuery;
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
+  EntityArchetype m_pinnacleArchetype;
+  EntityQuery m_pinnacleQuery;
 
-  AssetRef m_leafNodeMaterial;
+  AssetRef m_pinnacleMaterial;
   AssetRef m_leafMaterial;
   AssetRef m_leafAlbedoTexture;
   AssetRef m_leafNormalTexture;
@@ -58,6 +62,7 @@ public:
   Entity CreateSorghum();
   Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
+  Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
   Entity ImportPlant(const std::filesystem::path &path, const std::string &name);
   void OnInspect() override;

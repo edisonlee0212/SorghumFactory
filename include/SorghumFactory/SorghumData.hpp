@@ -10,6 +10,7 @@ public:
   bool m_meshGenerated = false;
   int m_segmentAmount = 2;
   int m_step = 4;
+  SorghumPinnacleDescriptor m_pinnacleDescriptor;
 
   AssetRef m_parameters;
   void OnCreate() override;
@@ -19,9 +20,9 @@ public:
                    const bool &includeFoliage = true) const;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-
+  void PreparePinnacleMesh(const glm::vec3 &center, std::vector<Vertex>& vertices, std::vector<glm::uvec3>& triangles);
   void ApplyParameters();
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void GenerateGeometry(bool segmentedMask);
+  void GenerateGeometry(bool segmentedMask, bool includeStem = true);
 };
 } // namespace PlantFactory

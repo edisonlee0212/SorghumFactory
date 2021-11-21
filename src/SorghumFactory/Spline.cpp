@@ -26,6 +26,7 @@ void Spline::OnInspect() {
   case SplineType::Procedural: {
     ImGui::Text(("Order: " + std::to_string(m_order)).c_str());
     ImGui::Text(("Unit length: " + std::to_string(m_unitLength)).c_str());
+    ImGui::Text(("Stem width: " + std::to_string(m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint))).c_str());
     ImGui::Text(("Unit amount: " + std::to_string(m_unitAmount)).c_str());
     ImGui::Text(("Bending: " + std::to_string(m_gravitropism)).c_str());
     ImGui::Text(
@@ -34,7 +35,6 @@ void Spline::OnInspect() {
                  std::to_string(m_initialDirection.y) + ", " +
                  std::to_string(m_initialDirection.z) + "]")
                     .c_str());
-    ImGui::Text(("Stem width: " + std::to_string(m_stemWidth)).c_str());
     ImGui::Text(("Leaf width: " + std::to_string(m_leafMaxWidth)).c_str());
     ImGui::Text(
         ("Width decrease start: " + std::to_string(m_leafWidthDecreaseStart))
@@ -78,7 +78,12 @@ void Spline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_gravitropismFactor" << YAML::Value
       << m_gravitropismFactor;
   out << YAML::Key << "m_initialDirection" << YAML::Value << m_initialDirection;
-  out << YAML::Key << "m_stemWidth" << YAML::Value << m_stemWidth;
+
+  out << YAML::Key << "m_stemWidthMax" << YAML::Value << m_stemWidthMax;
+  out << YAML::Key << "m_stemWidthDistribution" << YAML::Value << YAML::BeginMap;
+  m_stemWidthDistribution.Serialize(out);
+  out << YAML::EndMap;
+
   out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
   out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value
       << m_leafWidthDecreaseStart;
@@ -119,7 +124,12 @@ void Spline::Deserialize(const YAML::Node &in) {
   m_gravitropism = in["m_gravitropism"].as<float>();
   m_gravitropismFactor = in["m_gravitropismFactor"].as<float>();
   m_initialDirection = in["m_initialDirection"].as<glm::vec3>();
-  m_stemWidth = in["m_stemWidth"].as<float>();
+
+  if (in["m_stemWidthMax"])
+    m_stemWidthMax = in["m_stemWidthMax"].as<float>();
+  if (in["m_stemWidthDistribution"])
+    m_stemWidthDistribution.Deserialize(in["m_stemWidthDistribution"]);
+
   m_leafMaxWidth = in["m_leafMaxWidth"].as<float>();
   m_leafWidthDecreaseStart = in["m_leafWidthDecreaseStart"].as<float>();
   if (in["m_curves"]) {
@@ -213,9 +223,7 @@ glm::vec3 Spline::EvaluateAxis(float point) {
 }
 
 void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
-
   auto stemNodeCount = FormNodes(stemSpline);
-
   m_vertices.clear();
   m_indices.clear();
   m_segments.clear();
@@ -302,7 +310,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   switch (m_type) {
   case SplineType::BezierCurve: {
     if (m_startingPoint != -1) {
-      float width = m_stemWidth;
+      float width = m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint);
       for (float i = glm::max(0.0f, m_startingPoint - 0.3f);
            i < m_startingPoint - 0.05f; i += 0.05f) {
         m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
@@ -338,7 +346,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
   } break;
   case SplineType::Procedural: {
     if (m_startingPoint != -1) {
-      float width = m_stemWidth;
+      float width = m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint);
       float backDistance = 0.1f;
       if (m_startingPoint < 0.2f)
         backDistance = m_startingPoint / 2.0f;
@@ -376,7 +384,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       for (int i = 0; i < m_unitAmount; i++) {
         m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
                                  static_cast<float>(i),
-                             180.0f, m_stemWidth + 0.005, -m_initialDirection,
+                             180.0f, m_stemWidthMax * m_stemWidthDistribution.GetValue(i / m_unitAmount) + 0.005, -m_initialDirection,
                              false, 0.0f);
       }
       stemNodeCount = m_nodes.size();

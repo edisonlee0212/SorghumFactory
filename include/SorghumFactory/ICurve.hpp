@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
-class SORGHUM_FACTORY_API Curve {
+class SORGHUM_FACTORY_API ICurve {
 public:
   virtual glm::vec3 GetPoint(float t) const = 0;
   virtual glm::vec3 GetAxis(float t) const = 0;
@@ -10,7 +10,7 @@ public:
                        std::vector<glm::vec3> &points) const;
 };
 
-class SORGHUM_FACTORY_API BezierCurve : public Curve {
+class SORGHUM_FACTORY_API BezierCurve : public ICurve {
 public:
   BezierCurve(glm::vec3 cp0, glm::vec3 cp1, glm::vec3 cp2, glm::vec3 cp3);
   [[nodiscard]] glm::vec3 GetPoint(float t) const override;

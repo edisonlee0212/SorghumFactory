@@ -12,6 +12,7 @@ using namespace RayTracerFacility;
 using namespace SorghumFactory;
 using namespace UniEngine;
 void SorghumLayer::OnCreate() {
+  ClassRegistry::RegisterDataComponent<PinnacleTag>("PinnacleTag");
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
 
@@ -29,16 +30,15 @@ void SorghumLayer::OnCreate() {
   m_leafQuery = EntityManager::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
 
+  m_pinnacleArchetype = EntityManager::CreateEntityArchetype("Pinnacle", PinnacleTag());
+  m_pinnacleQuery = EntityManager::CreateEntityQuery();
+  m_pinnacleQuery.SetAllFilters(PinnacleTag());
+
   m_sorghumArchetype =
       EntityManager::CreateEntityArchetype("Sorghum", SorghumTag());
   m_sorghumQuery = EntityManager::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
-  if (!m_leafNodeMaterial.Get<Material>()) {
-    m_leafNodeMaterial = AssetManager::LoadMaterial(
-        DefaultResources::GLPrograms::StandardProgram);
-    m_leafNodeMaterial.Get<Material>()->m_albedoColor = glm::vec3(0, 1, 0);
-  }
   if (!m_leafMaterial.Get<Material>()) {
     auto material = AssetManager::LoadMaterial(
         DefaultResources::GLPrograms::StandardProgram);
@@ -50,6 +50,19 @@ void SorghumLayer::OnCreate() {
     material->m_roughness = 1.0f;
     material->m_metallic = 0.0f;
   }
+
+  if (!m_pinnacleMaterial.Get<Material>()) {
+    auto material = AssetManager::LoadMaterial(
+        DefaultResources::GLPrograms::StandardProgram);
+    m_pinnacleMaterial = material;
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    material->m_cullingMode = MaterialCullingMode::Off;
+    material->m_albedoColor =
+        glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
+    material->m_roughness = 1.0f;
+    material->m_metallic = 0.0f;
+  }
+
   for (auto &i : m_segmentedLeafMaterials) {
     if (!i.Get<Material>()) {
       auto material = AssetManager::LoadMaterial(
@@ -103,6 +116,21 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
   LeafTag tag;
   tag.m_index = leafIndex;
+  entity.SetDataComponent(tag);
+  entity.SetDataComponent(transform);
+  auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
+  return entity;
+}
+Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
+  const Entity entity = EntityManager::CreateEntity(
+      EntityManager::GetCurrentScene(), m_pinnacleArchetype);
+  entity.SetName("Pinnacle");
+  entity.SetParent(plantEntity);
+  Transform transform;
+  transform.SetScale(glm::vec3(1.0f));
+  auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
+  PinnacleTag tag;
   entity.SetDataComponent(tag);
   entity.SetDataComponent(transform);
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();

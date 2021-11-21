@@ -1,5 +1,5 @@
 #pragma once
-#include <Curve.hpp>
+#include <ICurve.hpp>
 #include <LeafSegment.hpp>
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
@@ -37,7 +37,10 @@ public:
   float m_gravitropism = 2;
   float m_gravitropismFactor = 0.5;
   glm::vec3 m_initialDirection = glm::vec3(0, 1, 0);
-  float m_stemWidth = 0.1f;
+
+  float m_stemWidthMax = 0.06f;
+  UniEngine::Curve m_stemWidthDistribution;
+
   float m_leafMaxWidth = 0.2f;
   float m_leafWidthDecreaseStart = 0.5;
   //Spline representation from Mathieu's skeleton
@@ -64,4 +67,5 @@ public:
   int FormNodes(const std::shared_ptr<Spline>& stemSpline);
   void GenerateGeometry(const std::shared_ptr<Spline>& stemSpline);
 };
+
 } // namespace SorghumFactory
