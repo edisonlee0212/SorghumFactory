@@ -4,7 +4,6 @@
 #include <rapidxml_utils.hpp>
 using namespace SorghumFactory;
 void SorghumProceduralDescriptor::OnInspect() {
-  ImGui::DragInt("Cascade level index", &m_cascadeIndex, 0, 1);
 
   if (ImGui::TreeNodeEx("Stem and pinnacle", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (m_stemDescriptor.OnInspect())
@@ -15,11 +14,8 @@ void SorghumProceduralDescriptor::OnInspect() {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNode("Leaf")) {
-    if (ImGui::Button("Apply L1")) {
-      L1ToBase();
-    }
-    if (ImGui::TreeNodeEx("Level 1")) {
+  if (ImGui::TreeNodeEx("Leaf", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::TreeNodeEx("Level 1", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::DragInt("Leaf count", &m_l1LeafCount))
         m_saved = false;
       if (ImGui::TreeNode("Leaf waviness")) {
@@ -124,6 +120,10 @@ void SorghumProceduralDescriptor::OnInspect() {
       ImGui::TreePop();
     }
     if (ImGui::TreeNodeEx("Leaf Base")) {
+      ImGui::DragInt("Cascade level index", &m_cascadeIndex, 0, 1);
+      if (ImGui::Button("Apply L1")) {
+        L1ToBase();
+      }
       if (ImGui::TreeNodeEx("Leaves", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (int i = 0; i < m_leafDescriptors.size(); i++) {
           if (ImGui::TreeNodeEx(("No. " + std::to_string(i)).c_str())) {
