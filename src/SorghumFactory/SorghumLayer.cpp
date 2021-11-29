@@ -237,9 +237,6 @@ void SorghumLayer::OnInspect() {
       ImGui::DragInt("Seed", &m_seed);
       ImGui::DragFloat("Push distance along normal", &m_pushDistance, 0.0001f, -1.0f, 1.0f, "%.5f");
       m_rayProperties.OnInspect();
-      if (ImGui::Button("Generate mesh")) {
-        GenerateMeshForAllSorghums();
-      }
 
       if (ImGui::Button("Calculate illumination")) {
         CalculateIlluminationFrameByFrame();
@@ -250,16 +247,16 @@ void SorghumLayer::OnInspect() {
       ImGui::TreePop();
     }
 #endif
-
+    ImGui::Separator();
+    if (ImGui::Button("Generate mesh")) {
+      GenerateMeshForAllSorghums();
+    }
     if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
       m_segmentAmount = glm::max(2, m_segmentAmount);
     }
     if (ImGui::DragInt("Step amount", &m_step)) {
       m_step = glm::max(2, m_step);
     }
-
-    ImGui::Separator();
-
     if(EditorManager::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                                    "Replace Leaf Albedo Texture")){
       auto tex = m_leafAlbedoTexture.Get<Texture2D>();
