@@ -48,8 +48,6 @@ public:
   std::vector<BezierCurve> m_curves;
 
   //Geometry generation
-  int m_segmentAmount = 2;
-  int m_step = 2;
   std::vector<SplineNode> m_nodes;
   std::vector<LeafSegment> m_segments;
   std::vector<Vertex> m_vertices;

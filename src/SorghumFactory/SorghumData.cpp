@@ -26,12 +26,6 @@ void SorghumData::OnInspect() {
   }
   EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters,
                                                                 "Descriptor");
-  if (ImGui::DragInt("Vertical subdivision", &m_segmentAmount)) {
-    m_segmentAmount = glm::max(2, m_segmentAmount);
-  }
-  if (ImGui::DragInt("Horizontal subdivision", &m_step)) {
-    m_step = glm::max(2, m_step);
-  }
   if (ImGui::Button("Apply")) {
     ApplyParameters();
     GenerateGeometrySeperated(false);
@@ -83,8 +77,6 @@ void SorghumData::ApplyParameters() {
   stemSpline->m_unitLength = descriptor->m_stemDescriptor.m_length / unitAmount;
   stemSpline->m_gravitropism = 0.0f;
   stemSpline->m_gravitropismFactor = 0.0f;
-  stemSpline->m_segmentAmount = m_segmentAmount;
-  stemSpline->m_step = m_step;
   stemSpline->m_type = SplineType::Procedural;
   stemSpline->m_order = -1;
   stemSpline->m_startingPoint = -1;
@@ -114,8 +106,6 @@ void SorghumData::ApplyParameters() {
     spline->m_gravitropismFactor = leafDescriptor.m_gravitropismFactor;
     spline->m_type = SplineType::Procedural;
     spline->m_order = i;
-    spline->m_segmentAmount = m_segmentAmount;
-    spline->m_step = m_step;
     spline->m_startingPoint = leafDescriptor.m_leafStartingPoint;
     spline->m_left = glm::rotate(glm::vec3(1, 0, 0),
                                  glm::radians(leafDescriptor.m_rollAngle),

@@ -251,6 +251,13 @@ void SorghumLayer::OnInspect() {
     }
 #endif
 
+    if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
+      m_segmentAmount = glm::max(2, m_segmentAmount);
+    }
+    if (ImGui::DragInt("Step amount", &m_step)) {
+      m_step = glm::max(2, m_step);
+    }
+
     ImGui::Separator();
 
     if(EditorManager::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,

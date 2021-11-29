@@ -58,6 +58,9 @@ public:
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
 
+  int m_segmentAmount = 2;
+  int m_step = 2;
+
   void OnCreate() override;
   Entity CreateSorghum();
   Entity CreateSorghum(const std::shared_ptr<SorghumProceduralDescriptor>& descriptor);

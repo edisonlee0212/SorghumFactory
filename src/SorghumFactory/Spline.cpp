@@ -1,14 +1,10 @@
 #include "Spline.hpp"
+#include "SorghumLayer.hpp"
 using namespace SorghumFactory;
 
 void Spline::OnInspect() {
 
-  if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
-    m_segmentAmount = glm::max(2, m_segmentAmount);
-  }
-  if (ImGui::DragInt("Step amount", &m_step)) {
-    m_step = glm::max(2, m_step);
-  }
+
 
   switch (m_type) {
   case SplineType::BezierCurve: {
@@ -87,8 +83,6 @@ void Spline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
   out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value
       << m_leafWidthDecreaseStart;
-  out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
-  out << YAML::Key << "m_step" << YAML::Value << m_step;
 
   out << YAML::Key << "m_curves" << YAML::BeginSeq;
   for (const auto &i : m_curves) {
@@ -140,8 +134,6 @@ void Spline::Deserialize(const YAML::Node &in) {
                       i["m_p2"].as<glm::vec3>(), i["m_p3"].as<glm::vec3>()));
     }
   }
-  m_segmentAmount = in["m_segmentAmount"].as<float>();
-  m_step = in["m_step"].as<float>();
 
   if (in["m_nodes"]) {
     YAML::Binary nodes = in["m_nodes"].as<YAML::Binary>();
@@ -223,6 +215,9 @@ glm::vec3 Spline::EvaluateAxis(float point) {
 }
 
 void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  if (!sorghumLayer) return;
+
   auto stemNodeCount = FormNodes(stemSpline);
   m_vertices.clear();
   m_triangles.clear();
@@ -244,13 +239,13 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
     for (float div =
-             (i == 1 ? 0.0f : 1.0f / static_cast<float>(m_segmentAmount));
-         div <= 1.0f; div += 1.0f / static_cast<float>(m_segmentAmount)) {
+             (i == 1 ? 0.0f : 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount));
+         div <= 1.0f; div += 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += m_wavinessPeriod / static_cast<float>(m_segmentAmount);
-        rightPeriod += m_wavinessPeriod / static_cast<float>(m_segmentAmount);
+        leftPeriod += m_wavinessPeriod / static_cast<float>(sorghumLayer->m_segmentAmount);
+        rightPeriod += m_wavinessPeriod / static_cast<float>(sorghumLayer->m_segmentAmount);
       }
       m_segments.emplace_back(
           curve.GetPoint(div), up, front,
@@ -273,16 +268,16 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
   if (m_startingPoint == -1)
     m_vertexColor = glm::vec4(0, 0, 0, 1);
   archetype.m_color = m_vertexColor;
-  const float xStep = 1.0f / m_step / 2.0f;
+  const float xStep = 1.0f / sorghumLayer->m_step / 2.0f;
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
   const float yLeafStep =
       0.5f / (m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
   for (int i = 0; i < m_segments.size(); i++) {
     auto &segment = m_segments.at(i);
-    const float angleStep = segment.m_theta / m_step;
-    const int vertsCount = m_step * 2 + 1;
+    const float angleStep = segment.m_theta / sorghumLayer->m_step;
+    const int vertsCount = sorghumLayer->m_step * 2 + 1;
     for (int j = 0; j < vertsCount; j++) {
-      const auto position = segment.GetPoint((j - m_step) * angleStep);
+      const auto position = segment.GetPoint((j - sorghumLayer->m_step) * angleStep);
       archetype.m_position = glm::vec3(position.x, position.y, position.z);
       float yPos = (i < stemSegmentCount)
                        ? yStemStep * i
