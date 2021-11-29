@@ -225,7 +225,7 @@ glm::vec3 Spline::EvaluateAxis(float point) {
 void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
   auto stemNodeCount = FormNodes(stemSpline);
   m_vertices.clear();
-  m_indices.clear();
+  m_triangles.clear();
   m_segments.clear();
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
@@ -293,13 +293,9 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
     if (i != 0) {
       for (int j = 0; j < vertsCount - 1; j++) {
         // Down triangle
-        m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
-        m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
-        m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j);
+        m_triangles.emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j, vertexIndex + (i - 1) * vertsCount + j + 1, vertexIndex + (i - 1) * vertsCount + j);
         // Up triangle
-        m_indices.push_back(vertexIndex + (i - 1) * vertsCount + j + 1);
-        m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j);
-        m_indices.push_back(vertexIndex + ((i - 1) + 1) * vertsCount + j + 1);
+        m_triangles.emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1, vertexIndex + ((i - 1) + 1) * vertsCount + j, vertexIndex + ((i - 1) + 1) * vertsCount + j + 1);
       }
     }
   }

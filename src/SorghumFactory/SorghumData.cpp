@@ -34,7 +34,7 @@ void SorghumData::OnInspect() {
   }
   if (ImGui::Button("Apply")) {
     ApplyParameters();
-    GenerateGeometry(false);
+    GenerateGeometrySeperated(false);
   }
 }
 
@@ -93,7 +93,8 @@ void SorghumData::ApplyParameters() {
                   glm::vec3(0, 1, 0));
   stemSpline->m_initialDirection = glm::vec3(0, 1, 0);
   stemSpline->m_stemWidthMax = descriptor->m_stemDescriptor.m_widthMax;
-  stemSpline->m_stemWidthDistribution = descriptor->m_stemDescriptor.m_widthDistribution;
+  stemSpline->m_stemWidthDistribution =
+      descriptor->m_stemDescriptor.m_widthDistribution;
 
   stemSpline->FormNodes(stemSpline);
   auto children = GetOwner().GetChildren();
@@ -123,7 +124,8 @@ void SorghumData::ApplyParameters() {
         glm::vec3(0, 1, 0), glm::radians(leafDescriptor.m_branchingAngle),
         spline->m_left);
     spline->m_stemWidthMax = descriptor->m_stemDescriptor.m_widthMax;
-    spline->m_stemWidthDistribution = descriptor->m_stemDescriptor.m_widthDistribution;
+    spline->m_stemWidthDistribution =
+        descriptor->m_stemDescriptor.m_widthDistribution;
     spline->m_leafMaxWidth = leafDescriptor.m_leafMaxWidth;
     spline->m_leafWidthDecreaseStart = leafDescriptor.m_leafWidthDecreaseStart;
 
@@ -136,13 +138,13 @@ void SorghumData::ApplyParameters() {
   }
 
   if (m_pinnacleDescriptor.m_hasPinnacle) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghumPinnacle(
-        GetOwner());
+    Application::GetLayer<SorghumLayer>()->CreateSorghumPinnacle(GetOwner());
   }
 
   m_meshGenerated = false;
 }
-void SorghumData::GenerateGeometry(bool segmentedMask, bool includeStem) {
+void SorghumData::GenerateGeometrySeperated(bool segmentedMask,
+                                            bool includeStem) {
   auto owner = GetOwner();
   auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormNodes(stemSpline);
@@ -151,7 +153,7 @@ void SorghumData::GenerateGeometry(bool segmentedMask, bool includeStem) {
     stemSpline->GenerateGeometry(stemSpline);
     auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, stemSpline->m_vertices,
-                                                  stemSpline->m_indices);
+                                                  stemSpline->m_triangles);
     if (segmentedMask) {
       auto material = AssetManager::LoadMaterial(
           DefaultResources::GLPrograms::StandardProgram);
@@ -181,7 +183,7 @@ void SorghumData::GenerateGeometry(bool segmentedMask, bool includeStem) {
       leafSpline->GenerateGeometry(stemSpline);
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
       meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, leafSpline->m_vertices,
-                                                    leafSpline->m_indices);
+                                                    leafSpline->m_triangles);
       if (segmentedMask) {
         auto material = AssetManager::LoadMaterial(
             DefaultResources::GLPrograms::StandardProgram);
@@ -215,7 +217,8 @@ void SorghumData::GenerateGeometry(bool segmentedMask, bool includeStem) {
         meshRenderer->m_material = material;
         material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
         material->m_cullingMode = MaterialCullingMode::Off;
-        material->m_albedoColor = glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
+        material->m_albedoColor =
+            glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
         material->m_roughness = 1.0f;
         material->m_metallic = 0.0f;
       } else {
@@ -228,7 +231,8 @@ void SorghumData::GenerateGeometry(bool segmentedMask, bool includeStem) {
 void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_parameters);
 }
-void SorghumData::PreparePinnacleMesh(const glm::vec3 &center, std::vector<UniEngine::Vertex> &vertices,
+void SorghumData::PreparePinnacleMesh(const glm::vec3 &center,
+                                      std::vector<UniEngine::Vertex> &vertices,
                                       std::vector<glm::uvec3> &triangles) {
   vertices.clear();
   triangles.clear();
@@ -239,11 +243,12 @@ void SorghumData::PreparePinnacleMesh(const glm::vec3 &center, std::vector<UniEn
   UniEngine::Vertex archetype = {};
   SphericalVolume volume;
   volume.m_radius = m_pinnacleDescriptor.m_pinnacleSize;
-  for (int seedIndex = 0; seedIndex < m_pinnacleDescriptor.m_seedAmount; seedIndex++) {
+  for (int seedIndex = 0; seedIndex < m_pinnacleDescriptor.m_seedAmount;
+       seedIndex++) {
     glm::vec3 positionOffset = volume.GetRandomPoint();
     for (const auto position : icosahedronVertices) {
-      archetype.m_position =
-          position * m_pinnacleDescriptor.m_seedRadius + positionOffset + center;
+      archetype.m_position = position * m_pinnacleDescriptor.m_seedRadius +
+                             positionOffset + center;
       vertices.push_back(archetype);
     }
     for (const auto triangle : icosahedronTriangles) {
@@ -252,4 +257,68 @@ void SorghumData::PreparePinnacleMesh(const glm::vec3 &center, std::vector<UniEn
     }
     offset += icosahedronVertices.size();
   }
+}
+
+void SorghumData::GenerateGeometry(bool includeStem) {
+  auto owner = GetOwner();
+  auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
+  std::vector<UniEngine::Vertex> vertices;
+  std::vector<glm::uvec3> triangles;
+  unsigned vertexCount = 0;
+  stemSpline->FormNodes(stemSpline);
+  if (includeStem) {
+    stemSpline->GenerateGeometry(stemSpline);
+    vertices.insert(vertices.end(), stemSpline->m_vertices.begin(),
+                    stemSpline->m_vertices.end());
+    for (const auto &triangle : stemSpline->m_triangles) {
+      triangles.emplace_back(triangle.x + vertexCount, triangle.y + vertexCount,
+                             triangle.z + vertexCount);
+    }
+    vertexCount = vertices.size();
+  }
+#ifdef RAYTRACERFACILITY
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  if (sorghumLayer->m_enableMLVQ) {
+    auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+    rtt->Sync();
+    rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+  }
+#endif
+  GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
+                              Entity child) {
+    if (child.HasDataComponent<LeafTag>()) {
+      auto leafSpline = child.GetOrSetPrivateComponent<Spline>().lock();
+      leafSpline->GenerateGeometry(stemSpline);
+
+      vertices.insert(vertices.end(), leafSpline->m_vertices.begin(),
+                      leafSpline->m_vertices.end());
+      for (const auto &triangle : leafSpline->m_triangles) {
+        triangles.emplace_back(triangle.x + vertexCount, triangle.y + vertexCount,
+                               triangle.z + vertexCount);
+      }
+      vertexCount = vertices.size();
+
+#ifdef RAYTRACERFACILITY
+      if (sorghumLayer->m_enableMLVQ) {
+        auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+        rtt->Sync();
+        rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+      }
+#endif
+    } else if (child.HasDataComponent<PinnacleTag>()) {
+      auto center = stemSpline->EvaluatePoint(1.0f);
+      auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+      std::vector<UniEngine::Vertex> pvertices;
+      std::vector<glm::uvec3> ptriangles;
+      PreparePinnacleMesh(center, pvertices, ptriangles);
+      meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, pvertices, ptriangles);
+      meshRenderer->m_material =
+          Application::GetLayer<SorghumLayer>()->m_pinnacleMaterial;
+    }
+  });
+
+  auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  meshRenderer->m_material =
+      Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+  meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices, triangles);
 }

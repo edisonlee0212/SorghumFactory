@@ -88,7 +88,8 @@ void SorghumField::InstantiateField(bool semanticMask) {
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_parameters = newSorghum.first;
       sorghumData->ApplyParameters();
-      sorghumData->GenerateGeometry(semanticMask);
+      if(semanticMask) sorghumData->GenerateGeometrySeperated(semanticMask);
+      else sorghumData->GenerateGeometry(false);
       sorghumEntity.SetParent(field);
     }
   } else {
@@ -145,4 +146,67 @@ void RectangularSorghumField::Deserialize(const YAML::Node &in) {
 void RectangularSorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
   SorghumField::CollectAssetRef(list);
   list.push_back(m_spd);
+}
+
+void PositionsField::GenerateMatrices() {
+  if(!m_spd.Get<SorghumProceduralDescriptor>()) return;
+  m_newSorghums.clear();
+  for(int i = 0; i < m_size; i++){
+    if(i < m_positions.size()){
+      auto position = glm::vec3(m_positions[i].x, 0, m_positions[i].y) * m_factor;
+      auto rotation = glm::quat(glm::radians(
+          glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
+      m_newSorghums.emplace_back(m_spd, glm::translate(position) *
+                                            glm::mat4_cast(rotation) *
+                                            glm::scale(glm::vec3(1.0f)));
+    }
+  }
+}
+void PositionsField::OnInspect() {
+  SorghumField::OnInspect();
+  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
+      m_spd, "SPD");
+  ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f,
+                    20.0f);
+  ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
+                    180.0f);
+  ImGui::DragInt("Instantiate size", &m_size, 1, 0, m_positions.size());
+  ImGui::Text("Available count: %d", m_positions.size());
+  FileUtils::OpenFile(
+      "Load Positions", "Position list", {".txt"},
+      [this](const std::filesystem::path &path) { ImportFromFile(path); }, false);
+
+}
+void PositionsField::Serialize(YAML::Emitter &out) {
+  m_spd.Save("SPD", out);
+  out << YAML::Key << "m_rotationVariance" << YAML::Value << m_rotationVariance;
+  out << YAML::Key << "m_size" << YAML::Value << m_size;
+  out << YAML::Key << "m_factor" << YAML::Value << m_factor;
+  SaveListAsBinary<glm::vec2>("m_positions", m_positions, out);
+  SorghumField::Serialize(out);
+}
+void PositionsField::Deserialize(const YAML::Node &in) {
+  m_spd.Load("SPD", in);
+  m_rotationVariance = in["m_rotationVariance"].as<glm::vec3>();
+  m_size = in["m_size"].as<int>();
+  m_factor = in["m_factor"].as<float>();
+  LoadListFromBinary<glm::vec2>("m_positions", m_positions, in);
+  SorghumField::Deserialize(in);
+}
+void PositionsField::CollectAssetRef(std::vector<AssetRef> &list) {
+  SorghumField::CollectAssetRef(list);
+  list.push_back(m_spd);
+}
+void PositionsField::ImportFromFile(const std::filesystem::path& path) {
+  std::ifstream ifs;
+  ifs.open(path.c_str());
+  UNIENGINE_LOG("Loading from " + path.string());
+  if (ifs.is_open()) {
+    int amount;
+    ifs >> amount;
+    m_positions.resize(amount);
+    for (auto &position: m_positions) {
+      ifs >> position.x >> position.y;
+    }
+  }
 }

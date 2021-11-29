@@ -53,7 +53,7 @@ public:
   std::vector<SplineNode> m_nodes;
   std::vector<LeafSegment> m_segments;
   std::vector<Vertex> m_vertices;
-  std::vector<unsigned> m_indices;
+  std::vector<glm::uvec3> m_triangles;
   glm::vec4 m_vertexColor = glm::vec4(0, 1, 0, 1);
   //Import from Mathieu's procedural skeleton
   void Import(std::ifstream &stream);

@@ -41,6 +41,22 @@ public:
   void CollectAssetRef(std::vector<AssetRef> &list) override;
 };
 
+class SORGHUM_FACTORY_API PositionsField : public SorghumField {
+  friend class SorghumLayer;
+  AssetRef m_spd;
+  int m_size = 200;
+  float m_factor = 5.0f;
+  std::vector<glm::vec2> m_positions;
+  glm::vec3 m_rotationVariance = glm::vec3(0.0f);
+public:
+  void GenerateMatrices() override;
+  void ImportFromFile(const std::filesystem::path& path);
+  void OnInspect() override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+};
+
 template <typename T>
 inline void SaveListAsBinary(const std::string &name,
                              const std::vector<T> &target, YAML::Emitter &out) {

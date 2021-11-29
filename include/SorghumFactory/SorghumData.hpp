@@ -23,6 +23,7 @@ public:
   void PreparePinnacleMesh(const glm::vec3 &center, std::vector<Vertex>& vertices, std::vector<glm::uvec3>& triangles);
   void ApplyParameters();
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void GenerateGeometry(bool segmentedMask, bool includeStem = true);
+  void GenerateGeometrySeperated(bool segmentedMask, bool includeStem = true);
+  void GenerateGeometry(bool includeStem = true);
 };
 } // namespace PlantFactory

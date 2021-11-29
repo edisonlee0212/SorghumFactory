@@ -184,7 +184,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
         m_captureStatus = MultipleAngleCaptureStatus::Mask;
         m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
             .lock()
-            ->GenerateGeometry(true);
+            ->GenerateGeometrySeperated(true);
         m_skipCurrentFrame = true;
       } else {
         m_captureStatus = MultipleAngleCaptureStatus::Angles;
@@ -209,7 +209,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
 #endif
       m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock()
-          ->GenerateGeometry(false);
+          ->GenerateGeometrySeperated(false);
       m_captureStatus = MultipleAngleCaptureStatus::Angles;
     } break;
     case MultipleAngleCaptureStatus::Angles: {

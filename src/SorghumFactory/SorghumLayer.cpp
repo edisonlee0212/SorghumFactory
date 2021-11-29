@@ -25,6 +25,7 @@ void SorghumLayer::OnCreate() {
       "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   ClassRegistry::RegisterAsset<RectangularSorghumField>("RectangularSorghumField", ".rectsorghumfield");
+  ClassRegistry::RegisterAsset<PositionsField>("PositionsField", ".possorghumfield");
 
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = EntityManager::CreateEntityQuery();
@@ -165,7 +166,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
       auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
       meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
-                                                    spline->m_indices);
+                                                    spline->m_triangles);
     });
     if (plant.HasPrivateComponent<SorghumData>())
       plant.GetOrSetPrivateComponent<SorghumData>().lock()->m_meshGenerated =
@@ -634,6 +635,6 @@ Entity SorghumLayer::CreateSorghum(
   auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
   sorghumData->m_parameters = descriptor;
   sorghumData->ApplyParameters();
-  sorghumData->GenerateGeometry(false);
+  sorghumData->GenerateGeometrySeperated(false);
   return sorghum;
 }
