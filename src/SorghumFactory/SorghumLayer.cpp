@@ -24,7 +24,7 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
       "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
-
+  ClassRegistry::RegisterAsset<RectangularSorghumField>("RectangularSorghumField", ".rectsorghumfield");
 
   m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = EntityManager::CreateEntityQuery();
@@ -284,38 +284,6 @@ void SorghumLayer::OnInspect() {
 
     ImGui::Separator();
 
-    static AssetRef newFieldAsset;
-    EditorManager::DragAndDropButton<SorghumField>(newFieldAsset,
-                                                   "To sorghum field");
-    if (newFieldAsset.Get<SorghumField>()) {
-      auto newField = newFieldAsset.Get<SorghumField>();
-      auto field = EntityManager::CreateEntity(EntityManager::GetCurrentScene(),
-                                               "Field");
-      // Create sorghums here.
-      for (auto i = 0; i < newField->m_newSorghumAmount; i++) {
-        Entity sorghum = CreateSorghum();
-        auto sorghumTransform = sorghum.GetDataComponent<Transform>();
-        sorghumTransform.SetPosition(newField->m_newSorghumPositions[i]);
-        sorghumTransform.SetEulerRotation(
-            glm::radians(newField->m_newSorghumRotations[i]));
-        sorghum.SetDataComponent(sorghumTransform);
-        auto sorghumData =
-            sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-        sorghumData->m_parameters = newField->m_newSorghumParameters[i];
-        sorghumData->ApplyParameters();
-        sorghumData->GenerateGeometry(false);
-        sorghum.SetParent(field);
-      }
-      newFieldAsset.Clear();
-    }
-    static AssetRef newSorghumDescriptorAsset;
-    EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
-        newSorghumDescriptorAsset, "To sorghum");
-    if (newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>()) {
-      Entity sorghum = CreateSorghum(
-          newSorghumDescriptorAsset.Get<SorghumProceduralDescriptor>());
-      newSorghumDescriptorAsset.Clear();
-    }
     FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
                         [this](const std::filesystem::path &path) {
                           ImportPlant(path, "Sorghum");

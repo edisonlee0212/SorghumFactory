@@ -3,49 +3,60 @@
 
 using namespace UniEngine;
 namespace SorghumFactory {
-class SORGHUM_FACTORY_API SorghumFieldPattern {
-public:
-  virtual void
-  GenerateField(std::vector<std::vector<glm::mat4>> &matricesList){};
-};
 
-class SORGHUM_FACTORY_API RectangularSorghumFieldPattern : public SorghumFieldPattern {
+class SORGHUM_FACTORY_API RectangularSorghumFieldPattern {
 public:
   glm::ivec2 m_size = glm::ivec2(4, 4);
   glm::vec2 m_distances = glm::vec2(2, 2);
   glm::vec3 m_rotationVariation = glm::vec3(0, 0, 0);
-  void
-  GenerateField(std::vector<std::vector<glm::mat4>> &matricesList) override;
+  void GenerateField(std::vector<std::vector<glm::mat4>> &matricesList);
 };
-
 
 class SORGHUM_FACTORY_API SorghumField : public IAsset {
   friend class SorghumLayer;
-  std::vector<AssetRef> m_newSorghumParameters;
-  std::vector<glm::vec3> m_newSorghumPositions;
-  std::vector<glm::vec3> m_newSorghumRotations;
-  int m_newSorghumAmount = 1;
 public:
+  std::vector<std::pair<AssetRef, glm::mat4>> m_newSorghums;
+  virtual void GenerateMatrices() {};
+  void InstantiateField(bool semanticMask);
+
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
 };
+
+class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
+  friend class SorghumLayer;
+  AssetRef m_spd;
+  glm::vec2 m_distance = glm::vec2(3.0f);
+  glm::vec2 m_distanceVariance = glm::vec2(0.5f);
+  glm::vec3 m_rotationVariance = glm::vec3(0.0f);
+  glm::ivec2 m_size = glm::ivec2(10, 10);
+public:
+  void GenerateMatrices() override;
+
+  void OnInspect() override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+};
+
 template <typename T>
-inline void SaveListAsBinary(const std::string& name, const std::vector<T>& target, YAML::Emitter &out){
-  if (!target.empty())
-  {
+inline void SaveListAsBinary(const std::string &name,
+                             const std::vector<T> &target, YAML::Emitter &out) {
+  if (!target.empty()) {
     out << YAML::Key << name << YAML::Value
-        << YAML::Binary((const unsigned char *)target.data(), target.size() * sizeof(T));
+        << YAML::Binary((const unsigned char *)target.data(),
+                        target.size() * sizeof(T));
   }
 }
 template <typename T>
-inline void LoadListFromBinary(const std::string& name, std::vector<T>& target, const YAML::Node &in){
-  if (in[name])
-  {
+inline void LoadListFromBinary(const std::string &name, std::vector<T> &target,
+                               const YAML::Node &in) {
+  if (in[name]) {
     auto binaryList = in[name].as<YAML::Binary>();
     target.resize(binaryList.size() / sizeof(T));
     std::memcpy(target.data(), binaryList.data(), binaryList.size());
   }
 }
-}
+} // namespace SorghumFactory

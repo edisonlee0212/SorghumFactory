@@ -78,4 +78,5 @@ public:
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
 };
+
 } // namespace SorghumFactory
