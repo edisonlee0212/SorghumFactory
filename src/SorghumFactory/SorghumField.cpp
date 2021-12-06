@@ -89,7 +89,7 @@ void SorghumField::InstantiateField(bool semanticMask) {
       sorghumData->m_parameters = newSorghum.first;
       sorghumData->ApplyParameters();
       if(semanticMask) sorghumData->GenerateGeometrySeperated(semanticMask);
-      else sorghumData->GenerateGeometry(false);
+      else sorghumData->GenerateGeometry(true);
       sorghumEntity.SetParent(field);
     }
   } else {
