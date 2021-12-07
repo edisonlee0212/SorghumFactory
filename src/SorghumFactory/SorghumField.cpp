@@ -7,6 +7,7 @@
 #include "SorghumLayer.hpp"
 #include "SorghumProceduralDescriptor.hpp"
 #include <SorghumField.hpp>
+#include "TransformLayer.hpp"
 using namespace SorghumFactory;
 void RectangularSorghumFieldPattern::GenerateField(
     std::vector<std::vector<glm::mat4>> &matricesList) {
@@ -92,6 +93,9 @@ void SorghumField::InstantiateField(bool semanticMask) {
       else sorghumData->GenerateGeometry(true);
       sorghumEntity.SetParent(field);
     }
+
+    Application::GetLayer<TransformLayer>()->CalculateTransformGraphForDescendents(EntityManager::GetCurrentScene(), field);
+    field.SetStatic(true);
   } else {
     UNIENGINE_ERROR("No sorghum layer!");
   }
