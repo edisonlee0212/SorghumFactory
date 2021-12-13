@@ -15,6 +15,8 @@ public:
 class SORGHUM_FACTORY_API SorghumField : public IAsset {
   friend class SorghumLayer;
 public:
+  int m_sizeLimit = 2000;
+  float m_sorghumSize = 1.0f;
   std::vector<std::pair<AssetRef, glm::mat4>> m_newSorghums;
   virtual void GenerateMatrices() {};
   void InstantiateField(bool semanticMask);
@@ -44,10 +46,11 @@ public:
 class SORGHUM_FACTORY_API PositionsField : public SorghumField {
   friend class SorghumLayer;
   AssetRef m_spd;
-  int m_size = 200;
-  float m_factor = 5.0f;
+  float m_factor = 1.0f;
   std::vector<glm::vec2> m_positions;
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
+  glm::vec2 m_sampleMin = glm::vec2(-1000, -1000);
+  glm::vec2 m_sampleMax = glm::vec2(1000, 1000);
 public:
   void GenerateMatrices() override;
   void ImportFromFile(const std::filesystem::path& path);

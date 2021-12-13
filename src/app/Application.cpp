@@ -3,17 +3,17 @@
 //
 #include <Application.hpp>
 #ifdef RAYTRACERFACILITY
-#include <RayTracerManager.hpp>
+#include <RayTracerLayer.hpp>
 #endif
 
-#include <PhysicsLayer.hpp>
 #include <ClassRegistry.hpp>
 #include <ObjectRotator.hpp>
+#include <PhysicsLayer.hpp>
 #include <SorghumLayer.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
-#include <SorghumProceduralDescriptor.hpp>
 #include <SDFDataCapture.hpp>
+#include <SorghumProceduralDescriptor.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -27,12 +27,10 @@ int main() {
                                                ".sdfdatacapture");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
 
-  const bool enableRayTracing = true;
   ApplicationConfigs applicationConfigs;
   Application::Create(applicationConfigs);
 #ifdef RAYTRACERFACILITY
-  if (enableRayTracing)
-    Application::PushLayer<RayTracerManager>();
+  Application::PushLayer<RayTracerLayer>();
 #endif
   Application::PushLayer<SorghumLayer>();
 #pragma region Engine Loop
@@ -41,4 +39,3 @@ int main() {
 
   Application::End();
 }
-

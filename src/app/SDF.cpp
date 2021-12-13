@@ -3,8 +3,8 @@
 //
 #include <Application.hpp>
 #ifdef RAYTRACERFACILITY
-#include <RayTracerManager.hpp>
 #include "RayTracerCamera.hpp"
+#include <RayTracerLayer.hpp>
 #endif
 #include <ClassRegistry.hpp>
 #include <EditorManager.hpp>
@@ -32,15 +32,13 @@ int main() {
                                                ".sdfdatacapture");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
 
-  const bool enableRayTracing = true;
   EngineSetup();
 
   ApplicationConfigs applicationConfigs;
   applicationConfigs.m_projectPath = "temp/SDF/SDF.ueproj";
   Application::Create(applicationConfigs);
 #ifdef RAYTRACERFACILITY
-  if (enableRayTracing)
-    Application::PushLayer<RayTracerManager>();
+  Application::PushLayer<RayTracerLayer>();
 #endif
   Application::PushLayer<SorghumLayer>();
 #pragma region Engine Loop
@@ -52,7 +50,6 @@ int main() {
 void EngineSetup() {
   ProjectManager::SetScenePostLoadActions([=]() {
 #pragma region Engine Setup
-
     Transform transform;
     transform.SetEulerRotation(glm::radians(glm::vec3(150, 30, 0)));
 
@@ -97,13 +94,17 @@ void EngineSetup() {
     pipeline->m_pipelineBehaviour = capture;
 
 #ifdef RAYTRACERFACILITY
-    auto rayTracerCamera = mainCamera->GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
+    auto rayTracerCamera = mainCamera->GetOwner()
+                               .GetOrSetPrivateComponent<RayTracerCamera>()
+                               .lock();
     capture->m_rayTracerCamera = rayTracerCamera;
-    Application::GetLayer<RayTracerManager>()->m_rayTracerCamera = rayTracerCamera;
+    Application::GetLayer<RayTracerLayer>()->m_rayTracerCamera =
+        rayTracerCamera;
 #else
     capture->m_rayTracerCamera = mainCamera;
 #endif
-    auto depthCamera = mainCamera->GetOwner().GetOrSetPrivateComponent<DepthCamera>().lock();
+    auto depthCamera =
+        mainCamera->GetOwner().GetOrSetPrivateComponent<DepthCamera>().lock();
     capture->m_depthCamera = depthCamera;
   });
 }

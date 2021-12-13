@@ -8,7 +8,7 @@
 #include <SorghumProceduralDescriptor.hpp>
 #ifdef RAYTRACERFACILITY
 #include "RayTracerCamera.hpp"
-#include "RayTracerManager.hpp"
+#include "RayTracerLayer.hpp"
 using namespace RayTracerFacility;
 #endif
 using namespace Scripts;
@@ -159,8 +159,8 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
       m_names.push_back(prefix);
       if (m_captureImage) {
 #ifdef RAYTRACERFACILITY
-        Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
-        Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+        Application::GetLayer<RayTracerLayer>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
+        Application::GetLayer<RayTracerLayer>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
         RayProperties rayProperties;
         rayProperties.m_samples = 1000;
         rayTracerCamera->SetOutputType(OutputType::Color);
@@ -192,8 +192,8 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
     } break;
     case MultipleAngleCaptureStatus::Mask: {
 #ifdef RAYTRACERFACILITY
-      Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
-      Application::GetLayer<RayTracerManager>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+      Application::GetLayer<RayTracerLayer>()->m_environmentProperties.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
+      Application::GetLayer<RayTracerLayer>()->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
       RayProperties rayProperties;
       rayProperties.m_samples = 1;
       rayTracerCamera->SetDenoiserStrength(0.0f);
