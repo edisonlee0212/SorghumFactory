@@ -174,7 +174,7 @@ void PositionsField::GenerateMatrices() {
     return;
   m_newSorghums.clear();
   for (auto & position : m_positions) {
-    if(position.x < m_sampleMin.x || position.y < m_sampleMin.y || position.x > m_sampleMax.x || position.y > m_sampleMax.y) continue;
+    if(position.x < m_sampleX.x || position.y < m_sampleY.x || position.x > m_sampleX.y || position.y > m_sampleY.y) continue;
     auto pos = glm::vec3(position.x, 0, position.y) * m_factor;
     auto rotation = glm::quat(glm::radians(
         glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
@@ -190,13 +190,17 @@ void PositionsField::OnInspect() {
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
                     180.0f);
-  if (ImGui::DragFloat2("Min", &m_sampleMin.x, 0.1f)) {
-    m_sampleMin.x = glm::min(m_sampleMin.x, m_sampleMax.x);
-    m_sampleMin.y = glm::min(m_sampleMin.y, m_sampleMax.y);
+
+  ImGui::Text("Field width: [%.3f, %.3f]", m_xRange.x, m_xRange.y);
+  ImGui::Text("Field length: [%.3f, %.3f]", m_yRange.x, m_yRange.y);
+
+  if (ImGui::DragFloat2("Width range", &m_sampleX.x, 0.1f)) {
+    m_sampleX.x = glm::min(m_sampleX.x, m_sampleX.y);
+    m_sampleX.y = glm::max(m_sampleX.x, m_sampleX.y);
   }
-  if (ImGui::DragFloat2("Max", &m_sampleMax.x, 0.1f)) {
-    m_sampleMax.x = glm::max(m_sampleMin.x, m_sampleMax.x);
-    m_sampleMax.y = glm::max(m_sampleMin.y, m_sampleMax.y);
+  if (ImGui::DragFloat2("Length Range", &m_sampleY.x, 0.1f)) {
+    m_sampleY.x = glm::min(m_sampleY.x, m_sampleY.y);
+    m_sampleY.y = glm::max(m_sampleY.x, m_sampleY.y);
   }
   FileUtils::OpenFile(
       "Load Positions", "Position list", {".txt"},
@@ -206,8 +210,10 @@ void PositionsField::OnInspect() {
 void PositionsField::Serialize(YAML::Emitter &out) {
   m_spd.Save("SPD", out);
   out << YAML::Key << "m_rotationVariance" << YAML::Value << m_rotationVariance;
-  out << YAML::Key << "m_sampleMin" << YAML::Value << m_sampleMin;
-  out << YAML::Key << "m_sampleMax" << YAML::Value << m_sampleMax;
+  out << YAML::Key << "m_sampleX" << YAML::Value << m_sampleX;
+  out << YAML::Key << "m_sampleY" << YAML::Value << m_sampleY;
+  out << YAML::Key << "m_xRange" << YAML::Value << m_xRange;
+  out << YAML::Key << "m_yRange" << YAML::Value << m_yRange;
   out << YAML::Key << "m_factor" << YAML::Value << m_factor;
   SaveListAsBinary<glm::vec2>("m_positions", m_positions, out);
   SorghumField::Serialize(out);
@@ -215,8 +221,10 @@ void PositionsField::Serialize(YAML::Emitter &out) {
 void PositionsField::Deserialize(const YAML::Node &in) {
   m_spd.Load("SPD", in);
   m_rotationVariance = in["m_rotationVariance"].as<glm::vec3>();
-  if(in["m_sampleMin"]) m_sampleMin = in["m_sampleMin"].as<glm::vec2>();
-  if(in["m_sampleMax"]) m_sampleMax = in["m_sampleMax"].as<glm::vec2>();
+  if(in["m_sampleX"]) m_sampleX = in["m_sampleX"].as<glm::vec2>();
+  if(in["m_sampleY"]) m_sampleY = in["m_sampleY"].as<glm::vec2>();
+  if(in["m_xRange"]) m_xRange = in["m_xRange"].as<glm::vec2>();
+  if(in["m_yRange"]) m_yRange = in["m_yRange"].as<glm::vec2>();
   m_factor = in["m_factor"].as<float>();
   LoadListFromBinary<glm::vec2>("m_positions", m_positions, in);
   SorghumField::Deserialize(in);
@@ -233,8 +241,14 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
     int amount;
     ifs >> amount;
     m_positions.resize(amount);
+    m_xRange = glm::vec2(99999, -99999);
+    m_yRange = glm::vec2(99999, -99999);
     for (auto &position : m_positions) {
       ifs >> position.x >> position.y;
+      m_xRange.x = glm::min(position.x, m_xRange.x);
+      m_xRange.y = glm::max(position.x, m_xRange.y);
+      m_yRange.x = glm::min(position.y, m_yRange.x);
+      m_yRange.y = glm::max(position.y, m_yRange.y);
     }
   }
 }
