@@ -148,7 +148,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
     stemSpline->FormNodes(stemSpline);
   }
   EntityManager::ForEach<GlobalTransform>(
-      EntityManager::GetCurrentScene(), JobManager::PrimaryWorkers(),
+      EntityManager::GetCurrentScene(), JobManager::Workers(),
       m_leafQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
