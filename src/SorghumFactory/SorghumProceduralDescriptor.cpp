@@ -363,7 +363,17 @@ SorghumProceduralDescriptor::SorghumProceduralDescriptor() {
   m_l1GravitropismFactorVarianceDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});
 
-  m_l1LeafWidthDistribution = UniEngine::Curve(1.0, 0.8, {0, 0}, {1, 1});
+  m_l1LeafWidthDistribution = UniEngine::Curve(0.7, 0.7, {0, 0}, {1, 1});
+  m_l1LeafWidthDistribution.UnsafeGetValues().clear();
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(-0.1, 0.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(0.0, 0.65f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(0.1, 0.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(-0.1, 0.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(0.5, 1.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(0.1, 0.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(-0.1, 0.0f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(1.0, 0.7f);
+  m_l1LeafWidthDistribution.UnsafeGetValues().emplace_back(0.1, 0.0f);
 
   m_l1LeafLengthDecreaseStartingPointDistribution =
       UniEngine::Curve(0.5, 0.5, {0, 0}, {1, 1});

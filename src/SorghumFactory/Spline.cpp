@@ -310,7 +310,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
 
       float w = m_leafMaxWidth;
       float lengthDecrease =
-          (m_leafMaxWidth - 0.02f) /
+          (m_leafMaxWidth - 0.002f) /
           (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
       for (int i = 0; i < m_unitAmount; i++) {
         if (i > m_leafWidthDecreaseStart * m_unitAmount)
@@ -359,7 +359,7 @@ int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
       glm::vec3 direction = m_initialDirection;
       float w = m_leafMaxWidth;
       float lengthDecrease =
-          (m_leafMaxWidth - 0.02f) /
+          (m_leafMaxWidth - 0.002f) /
           (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
       for (int i = 0; i < m_unitAmount; i++) {
         position += direction * m_unitLength;

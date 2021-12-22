@@ -15,8 +15,8 @@ struct SORGHUM_FACTORY_API SorghumPinnacleDescriptor {
 };
 struct SORGHUM_FACTORY_API SorghumStemDescriptor {
   glm::vec3 m_direction = glm::vec3(0, 1, 0);
-  float m_length = 3.5;
-  float m_widthMax = 0.06f;
+  float m_length = 0.875;
+  float m_widthMax = 0.015f;
   UniEngine::Curve m_widthDistribution = UniEngine::Curve(1.0, 0.4, {0, 0}, {1, 1});
 
   bool OnInspect();
@@ -59,22 +59,22 @@ public:
 
   int m_cascadeIndex = 1;
 #pragma region L1(No variance, better control of single leaf)
-  float m_l1maxLeafWaviness = 1.0f;
+  float m_l1maxLeafWaviness = 10.0f;
   UniEngine::Curve m_l1LeafWavinessDistribution;
 
-  float m_l1maxLeafWavinessPeriod = 2.5f;
+  float m_l1maxLeafWavinessPeriod = 1.5f;
   UniEngine::Curve m_l1LeafWavinessPeriodDistribution;
 
-  float m_l1LeafWidthMax = 0.2f;
+  float m_l1LeafWidthMax = 0.05f;
   UniEngine::Curve m_l1LeafWidthDistribution;
 
   UniEngine::Curve m_l1LeafLengthDecreaseStartingPointDistribution;
 
   int m_l1LeafCount = 8;
-  float m_l1FirstLeafStartingPoint = 0.3f;
+  float m_l1FirstLeafStartingPoint = 0.2f;
   float m_l1LastLeafEndingPoint = 1.0f;
 
-  float m_l1LeafLengthMax = 10.0f;
+  float m_l1LeafLengthMax = 2.55;
   UniEngine::Curve m_l1LeafLengthDistribution;
 
   float m_l1LeafLengthVarianceMax = 0.0f;

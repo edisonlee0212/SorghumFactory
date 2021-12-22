@@ -191,14 +191,14 @@ void PositionsField::OnInspect() {
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
                     180.0f);
 
-  ImGui::Text("Field width: [%.3f, %.3f]", m_xRange.x, m_xRange.y);
-  ImGui::Text("Field length: [%.3f, %.3f]", m_yRange.x, m_yRange.y);
+  ImGui::Text("X range: [%.3f, %.3f]", m_xRange.x, m_xRange.y);
+  ImGui::Text("Y Range: [%.3f, %.3f]", m_yRange.x, m_yRange.y);
 
-  if (ImGui::DragFloat2("Width range", &m_sampleX.x, 0.1f)) {
+  if (ImGui::DragScalarN("Width range", ImGuiDataType_Double, &m_sampleX.x, 2, 0.1f)) {
     m_sampleX.x = glm::min(m_sampleX.x, m_sampleX.y);
     m_sampleX.y = glm::max(m_sampleX.x, m_sampleX.y);
   }
-  if (ImGui::DragFloat2("Length Range", &m_sampleY.x, 0.1f)) {
+  if (ImGui::DragScalarN("Length Range", ImGuiDataType_Double, &m_sampleY.x, 2, 0.1f)) {
     m_sampleY.x = glm::min(m_sampleY.x, m_sampleY.y);
     m_sampleY.y = glm::max(m_sampleY.x, m_sampleY.y);
   }
@@ -215,18 +215,18 @@ void PositionsField::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_xRange" << YAML::Value << m_xRange;
   out << YAML::Key << "m_yRange" << YAML::Value << m_yRange;
   out << YAML::Key << "m_factor" << YAML::Value << m_factor;
-  SaveListAsBinary<glm::vec2>("m_positions", m_positions, out);
+  SaveListAsBinary<glm::dvec2>("m_positions", m_positions, out);
   SorghumField::Serialize(out);
 }
 void PositionsField::Deserialize(const YAML::Node &in) {
   m_spd.Load("SPD", in);
   m_rotationVariance = in["m_rotationVariance"].as<glm::vec3>();
-  if(in["m_sampleX"]) m_sampleX = in["m_sampleX"].as<glm::vec2>();
-  if(in["m_sampleY"]) m_sampleY = in["m_sampleY"].as<glm::vec2>();
-  if(in["m_xRange"]) m_xRange = in["m_xRange"].as<glm::vec2>();
-  if(in["m_yRange"]) m_yRange = in["m_yRange"].as<glm::vec2>();
+  if(in["m_sampleX"]) m_sampleX = in["m_sampleX"].as<glm::dvec2>();
+  if(in["m_sampleY"]) m_sampleY = in["m_sampleY"].as<glm::dvec2>();
+  if(in["m_xRange"]) m_xRange = in["m_xRange"].as<glm::dvec2>();
+  if(in["m_yRange"]) m_yRange = in["m_yRange"].as<glm::dvec2>();
   m_factor = in["m_factor"].as<float>();
-  LoadListFromBinary<glm::vec2>("m_positions", m_positions, in);
+  LoadListFromBinary<glm::dvec2>("m_positions", m_positions, in);
   SorghumField::Deserialize(in);
 }
 void PositionsField::CollectAssetRef(std::vector<AssetRef> &list) {
@@ -241,8 +241,8 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
     int amount;
     ifs >> amount;
     m_positions.resize(amount);
-    m_xRange = glm::vec2(99999, -99999);
-    m_yRange = glm::vec2(99999, -99999);
+    m_xRange = glm::vec2(99999999, -99999999);
+    m_yRange = glm::vec2(99999999, -99999999);
     for (auto &position : m_positions) {
       ifs >> position.x >> position.y;
       m_xRange.x = glm::min(position.x, m_xRange.x);

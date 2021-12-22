@@ -98,8 +98,7 @@ void EngineSetup() {
                                .GetOrSetPrivateComponent<RayTracerCamera>()
                                .lock();
     capture->m_rayTracerCamera = rayTracerCamera;
-    Application::GetLayer<RayTracerLayer>()->m_rayTracerCamera =
-        rayTracerCamera;
+    rayTracerCamera->SetMainCamera(true);
 #else
     capture->m_rayTracerCamera = mainCamera;
 #endif

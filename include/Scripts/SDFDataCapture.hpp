@@ -25,14 +25,14 @@ public:
   bool m_captureMesh = true;
   std::filesystem::path m_currentExportFolder = "export/";
 
-  glm::vec3 m_focusPoint = glm::vec3(0, 3, 0);
+  glm::vec3 m_focusPoint = glm::vec3(0, 1, 0);
   float m_pitchAngleStart = 0;
   float m_pitchAngleStep = 20;
   float m_pitchAngleEnd = 60;
   float m_turnAngleStart = 0;
   float m_turnAngleStep = 120;
   float m_turnAngleEnd = 360;
-  float m_distance = 20;
+  float m_distance = 5;
   float m_fov = 60;
 
   float m_denoiserStrength = 0.f;

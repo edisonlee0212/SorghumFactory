@@ -47,13 +47,14 @@ class SORGHUM_FACTORY_API PositionsField : public SorghumField {
   friend class SorghumLayer;
   AssetRef m_spd;
   float m_factor = 1.0f;
-  std::vector<glm::vec2> m_positions;
+  std::vector<glm::dvec2> m_positions;
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
-  glm::vec2 m_sampleX = glm::vec2(-5, 5);
-  glm::vec2 m_sampleY = glm::vec2(-5, 5);
 
-  glm::vec2 m_xRange = glm::vec2(0, 0);
-  glm::vec2 m_yRange = glm::vec2(0, 0);
+  glm::dvec2 m_sampleX = glm::dvec2(408991.680858, 409017.660858);
+  glm::dvec2 m_sampleY = glm::dvec2(3660208.248188, 3660210.758188);
+
+  glm::dvec2 m_xRange = glm::vec2(0, 0);
+  glm::dvec2 m_yRange = glm::vec2(0, 0);
 public:
   void GenerateMatrices() override;
   void ImportFromFile(const std::filesystem::path& path);
