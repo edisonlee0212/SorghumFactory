@@ -175,7 +175,7 @@ void PositionsField::GenerateMatrices() {
   m_newSorghums.clear();
   for (auto & position : m_positions) {
     if(position.x < m_sampleX.x || position.y < m_sampleY.x || position.x > m_sampleX.y || position.y > m_sampleY.y) continue;
-    auto pos = glm::vec3(position.x, 0, position.y) * m_factor;
+    auto pos = glm::vec3(position.x - m_sampleX.x, 0, position.y - m_sampleY.x) * m_factor;
     auto rotation = glm::quat(glm::radians(
         glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
     m_newSorghums.emplace_back(m_spd, glm::translate(pos) *
