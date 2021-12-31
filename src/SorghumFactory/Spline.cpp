@@ -53,7 +53,7 @@ void Spline::OnInspect() {
       matrices[i] =
           glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
     }
-    RenderManager::DrawGizmoMeshInstanced(
+    Graphics::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
         GetOwner().GetDataComponent<GlobalTransform>().m_value, nodeSize);
   }

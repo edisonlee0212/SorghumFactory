@@ -14,11 +14,11 @@ using namespace RayTracerFacility;
 using namespace Scripts;
 void SDFDataCapture::OnInspect() {
 #ifdef RAYTRACERFACILITY
-  EditorManager::DragAndDropButton<RayTracerCamera>(m_rayTracerCamera, "Ray Tracer Camera");
+  Editor::DragAndDropButton<RayTracerCamera>(m_rayTracerCamera, "Ray Tracer Camera");
 #else
   EditorManager::DragAndDropButton<Camera>(m_rayTracerCamera, "Camera");
 #endif
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(
+  Editor::DragAndDropButton<SorghumProceduralDescriptor>(
       m_parameters, "Sorghum Descriptors");
   ImGui::DragInt("Instance Count", &m_generationAmount, 1, 0);
   if (ImGui::TreeNode("Data selection")) {
@@ -258,7 +258,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
           pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
         }
 
-        EntityManager::DeleteEntity(EntityManager::GetCurrentScene(),
+        Entities::DeleteEntity(Entities::GetCurrentScene(),
                                     m_currentGrowingSorghum);
       }
     } break;
@@ -278,11 +278,11 @@ bool SDFDataCapture::SetUpCamera() {
     UNIENGINE_ERROR("Camera entity missing!");
     return false;
   }
-  EntityManager::GetCurrentScene()->m_environmentSettings.m_environmentType =
+  Entities::GetCurrentScene()->m_environmentSettings.m_environmentType =
       UniEngine::EnvironmentType::Color;
-  EntityManager::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
+  Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
       glm::vec3(1.0f);
-  EntityManager::GetCurrentScene()
+  Entities::GetCurrentScene()
       ->m_environmentSettings.m_ambientLightIntensity = 1.0f;
   auto height = m_distance * glm::sin(glm::radians((float)m_pitchAngle));
   auto groundDistance =

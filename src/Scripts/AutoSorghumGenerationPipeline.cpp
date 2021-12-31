@@ -3,7 +3,7 @@
 //
 
 #include "AutoSorghumGenerationPipeline.hpp"
-#include "EditorManager.hpp"
+#include "Editor.hpp"
 using namespace Scripts;
 
 void AutoSorghumGenerationPipeline::Update() {
@@ -37,7 +37,7 @@ void AutoSorghumGenerationPipeline::DropBehaviourButton() {
         ImGui::Button((behaviour->m_name).c_str());
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
         {
-            EditorManager::GetInstance().m_inspectingAsset = behaviour;
+            Editor::GetInstance().m_inspectingAsset = behaviour;
         }
         const std::string tag = "##" + behaviour->GetTypeName() + (behaviour ? std::to_string(behaviour->GetHandle()) : "");
         if (ImGui::BeginPopupContextItem(tag.c_str()))

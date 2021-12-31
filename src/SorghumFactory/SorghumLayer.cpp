@@ -27,17 +27,17 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<RectangularSorghumField>("RectangularSorghumField", ".rectsorghumfield");
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField", ".possorghumfield");
 
-  m_leafArchetype = EntityManager::CreateEntityArchetype("Leaf", LeafTag());
-  m_leafQuery = EntityManager::CreateEntityQuery();
+  m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
+  m_leafQuery = Entities::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
 
-  m_pinnacleArchetype = EntityManager::CreateEntityArchetype("Pinnacle", PinnacleTag());
-  m_pinnacleQuery = EntityManager::CreateEntityQuery();
+  m_pinnacleArchetype = Entities::CreateEntityArchetype("Pinnacle", PinnacleTag());
+  m_pinnacleQuery = Entities::CreateEntityQuery();
   m_pinnacleQuery.SetAllFilters(PinnacleTag());
 
   m_sorghumArchetype =
-      EntityManager::CreateEntityArchetype("Sorghum", SorghumTag());
-  m_sorghumQuery = EntityManager::CreateEntityQuery();
+      Entities::CreateEntityArchetype("Sorghum", SorghumTag());
+  m_sorghumQuery = Entities::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
   if (!m_leafMaterial.Get<Material>()) {
@@ -82,8 +82,8 @@ void SorghumLayer::OnCreate() {
 Entity SorghumLayer::CreateSorghum() {
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  const Entity entity = EntityManager::CreateEntity(
-      EntityManager::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
+  const Entity entity = Entities::CreateEntity(
+      Entities::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
   entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   entity.SetName("Sorghum");
@@ -108,8 +108,8 @@ Entity SorghumLayer::CreateSorghum() {
 
 Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
                                        int leafIndex) {
-  const Entity entity = EntityManager::CreateEntity(
-      EntityManager::GetCurrentScene(), m_leafArchetype);
+  const Entity entity = Entities::CreateEntity(
+      Entities::GetCurrentScene(), m_leafArchetype);
   entity.SetName("Leaf");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -124,8 +124,8 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   return entity;
 }
 Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
-  const Entity entity = EntityManager::CreateEntity(
-      EntityManager::GetCurrentScene(), m_pinnacleArchetype);
+  const Entity entity = Entities::CreateEntity(
+      Entities::GetCurrentScene(), m_pinnacleArchetype);
   entity.SetName("Pinnacle");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -141,14 +141,14 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
 
 void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   std::vector<Entity> plants;
-  m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
+  m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     auto stemSpline = plant.GetOrSetPrivateComponent<Spline>().lock();
     // Form the stem spline. Feed with unused shared_ptr to itself.
     stemSpline->FormNodes(stemSpline);
   }
-  EntityManager::ForEach<GlobalTransform>(
-      EntityManager::GetCurrentScene(), JobManager::Workers(),
+  Entities::ForEach<GlobalTransform>(
+      Entities::GetCurrentScene(), Jobs::Workers(),
       m_leafQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
@@ -158,7 +158,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
           spline->GenerateGeometry(stemSpline);
       });
 
-  m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), plants);
+  m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     plant.ForEachChild([](const std::shared_ptr<Scene> &scene, Entity child) {
       if (!child.HasPrivateComponent<Spline>())
@@ -257,13 +257,13 @@ void SorghumLayer::OnInspect() {
     if (ImGui::DragInt("Step amount", &m_step)) {
       m_step = glm::max(2, m_step);
     }
-    if(EditorManager::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
+    if(Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                                    "Replace Leaf Albedo Texture")){
       auto tex = m_leafAlbedoTexture.Get<Texture2D>();
       if(tex){
         m_leafMaterial.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
         std::vector<Entity> sorghumEntities;
-        m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghumEntities, false);
+        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), sorghumEntities, false);
         for(const auto& i : sorghumEntities){
           if(i.HasPrivateComponent<MeshRenderer>()){
             i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
@@ -272,13 +272,13 @@ void SorghumLayer::OnInspect() {
       }
     }
 
-    if(EditorManager::DragAndDropButton<Texture2D>(m_leafNormalTexture,
+    if(Editor::DragAndDropButton<Texture2D>(m_leafNormalTexture,
                                                     "Replace Leaf Normal Texture")){
       auto tex = m_leafNormalTexture.Get<Texture2D>();
       if(tex){
         m_leafMaterial.Get<Material>()->m_normalTexture = m_leafNormalTexture;
         std::vector<Entity> sorghumEntities;
-        m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghumEntities, false);
+        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), sorghumEntities, false);
         for(const auto& i : sorghumEntities){
           if(i.HasPrivateComponent<MeshRenderer>()){
             i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_normalTexture = m_leafNormalTexture;
@@ -328,7 +328,7 @@ void SorghumLayer::OnInspect() {
 
         CreateGrid(field, candidates);
         for (auto &i : candidates)
-          EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), i);
+          Entities::DeleteEntity(Entities::GetCurrentScene(), i);
         ImGui::CloseCurrentPopup();
       }
       ImGui::SetItemDefaultFocus();
@@ -511,7 +511,7 @@ void SorghumLayer::ExportAllSorghumsModel(const std::string &filename) {
 
     unsigned startIndex = 1;
     std::vector<Entity> sorghums;
-    m_sorghumQuery.ToEntityArray(EntityManager::GetCurrentScene(), sorghums);
+    m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), sorghums);
     for (const auto &plant : sorghums) {
       ExportSorghum(plant, of, startIndex);
     }
@@ -526,7 +526,7 @@ void SorghumLayer::RenderLightProbes() {
   if (m_probeTransforms.empty() || m_probeColors.empty() ||
       m_probeTransforms.size() != m_probeColors.size())
     return;
-  RenderManager::DrawGizmoMeshInstancedColored(
+  Graphics::DrawGizmoMeshInstancedColored(
       DefaultResources::Primitives::Cube, m_probeColors, m_probeTransforms,
       glm::mat4(1.0f), m_lightProbeSize);
 }
@@ -542,8 +542,8 @@ void SorghumLayer::CollectEntities(std::vector<Entity> &entities,
 }
 #ifdef RAYTRACERFACILITY
 void SorghumLayer::CalculateIlluminationFrameByFrame() {
-  const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
-      TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
+  const auto *owners = Entities::UnsafeGetPrivateComponentOwnersList<
+      TriangleIlluminationEstimator>(Entities::GetCurrentScene());
   if (!owners)
     return;
   m_processingEntities.clear();
@@ -555,8 +555,8 @@ void SorghumLayer::CalculateIlluminationFrameByFrame() {
   m_processing = true;
 }
 void SorghumLayer::CalculateIllumination() {
-  const auto *owners = EntityManager::UnsafeGetPrivateComponentOwnersList<
-      TriangleIlluminationEstimator>(EntityManager::GetCurrentScene());
+  const auto *owners = Entities::UnsafeGetPrivateComponentOwnersList<
+      TriangleIlluminationEstimator>(Entities::GetCurrentScene());
   if (!owners)
     return;
   m_processingEntities.clear();
@@ -617,7 +617,7 @@ void SorghumLayer::Update() {
 void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
                               const std::vector<Entity> &candidates) {
   const Entity entity =
-      EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
+      Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
   std::vector<std::vector<glm::mat4>> matricesList;
   matricesList.resize(candidates.size());
   for (auto &i : matricesList) {

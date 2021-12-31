@@ -86,7 +86,7 @@ void SorghumField::InstantiateField(bool semanticMask) {
   if (sorghumLayer) {
     auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
     auto field =
-        EntityManager::CreateEntity(EntityManager::GetCurrentScene(), "Field");
+        Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
     // Create sorghums here.
     int size = 0;
     for (auto &newSorghum : fieldAsset->m_newSorghums) {
@@ -111,7 +111,7 @@ void SorghumField::InstantiateField(bool semanticMask) {
 
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(
-            EntityManager::GetCurrentScene(), field);
+            Entities::GetCurrentScene(), field);
     field.SetStatic(true);
   } else {
     UNIENGINE_ERROR("No sorghum layer!");
@@ -138,7 +138,7 @@ void RectangularSorghumField::GenerateMatrices() {
 }
 void RectangularSorghumField::OnInspect() {
   SorghumField::OnInspect();
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
+  Editor::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
   ImGui::DragFloat4("Distance mean/var", &m_distance.x, 0.01f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
                     180.0f);
@@ -185,7 +185,7 @@ void PositionsField::GenerateMatrices() {
 }
 void PositionsField::OnInspect() {
   SorghumField::OnInspect();
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
+  Editor::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
   ImGui::Text("Available count: %d", m_positions.size());
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,

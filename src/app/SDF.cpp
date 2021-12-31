@@ -7,7 +7,7 @@
 #include <RayTracerLayer.hpp>
 #endif
 #include <ClassRegistry.hpp>
-#include <EditorManager.hpp>
+#include <Editor.hpp>
 #include <ObjectRotator.hpp>
 #include <PhysicsLayer.hpp>
 #include <PostProcessing.hpp>
@@ -59,7 +59,7 @@ void EngineSetup() {
     transform.SetPosition(glm::vec3(0, 2, 35));
     transform.SetEulerRotation(glm::radians(glm::vec3(15, 0, 0)));
     auto mainCamera =
-        EntityManager::GetCurrentScene()->m_mainCamera.Get<UniEngine::Camera>();
+        Entities::GetCurrentScene()->m_mainCamera.Get<UniEngine::Camera>();
     if (mainCamera) {
       auto postProcessing = mainCamera->GetOwner()
                                 .GetOrSetPrivateComponent<PostProcessing>()
@@ -73,7 +73,7 @@ void EngineSetup() {
 #pragma endregion
 #pragma endregion
     /*
-    const Entity lightEntity = EntityManager::CreateEntity("Light source");
+    const Entity lightEntity = Entities::CreateEntity("Light source");
     auto pointLight = lightEntity.GetOrSetPrivateComponent<PointLight>().lock();
     pointLight->m_diffuseBrightness = 6;
     pointLight->m_lightSize = 0.25f;
@@ -85,8 +85,8 @@ void EngineSetup() {
     lightEntity.SetDataComponent(transform);
     */
 
-    auto sdfEntity = EntityManager::CreateEntity(
-        EntityManager::GetCurrentScene(), "SDFPipeline");
+    auto sdfEntity = Entities::CreateEntity(
+        Entities::GetCurrentScene(), "SDFPipeline");
     auto pipeline =
         sdfEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
             .lock();

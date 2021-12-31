@@ -24,7 +24,7 @@ void SorghumData::OnInspect() {
 
     ImGui::TreePop();
   }
-  EditorManager::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters,
+  Editor::DragAndDropButton<SorghumProceduralDescriptor>(m_parameters,
                                                                 "Descriptor");
   if (ImGui::Button("Apply")) {
     ApplyParameters();
@@ -124,7 +124,7 @@ void SorghumData::ApplyParameters() {
   }
 
   for (int i = descriptor->m_leafDescriptors.size(); i < children.size(); i++) {
-    EntityManager::DeleteEntity(EntityManager::GetCurrentScene(), children[i]);
+    Entities::DeleteEntity(Entities::GetCurrentScene(), children[i]);
   }
 
   if (m_pinnacleDescriptor.m_hasPinnacle) {
