@@ -14,6 +14,7 @@
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <SDFDataCapture.hpp>
 #include <SorghumProceduralDescriptor.hpp>
+#include "PointCloudCapture.hpp"
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -24,7 +25,9 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
   ClassRegistry::RegisterAsset<SDFDataCapture>("SDFDataCapture",
-                                               ".sdfdatacapture");
+                                               ".sDFDataCapture");
+  ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
+                                               ".pointCloudCapture");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
 
   ApplicationConfigs applicationConfigs;

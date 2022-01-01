@@ -75,12 +75,12 @@ void SorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
     list.push_back(i.first);
   }
 }
-void SorghumField::InstantiateField(bool semanticMask) {
+Entity SorghumField::InstantiateField(bool semanticMask) {
   if (m_newSorghums.empty())
     GenerateMatrices();
   if (m_newSorghums.empty()) {
     UNIENGINE_ERROR("No matrices generated!");
-    return;
+    return {};
   }
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (sorghumLayer) {
@@ -113,8 +113,10 @@ void SorghumField::InstantiateField(bool semanticMask) {
         ->CalculateTransformGraphForDescendents(
             Entities::GetCurrentScene(), field);
     field.SetStatic(true);
+    return field;
   } else {
     UNIENGINE_ERROR("No sorghum layer!");
+    return {};
   }
 }
 
@@ -206,6 +208,14 @@ void PositionsField::OnInspect() {
       "Load Positions", "Position list", {".txt"},
       [this](const std::filesystem::path &path) { ImportFromFile(path); },
       false);
+
+  static int index = 200;
+  static float radius = 2.5f;
+  ImGui::DragInt("Index", &index);
+  ImGui::DragFloat("Radius", &radius);
+  if(ImGui::Button("Instantiate around radius")){
+    InstantiateAroundIndex(index, radius);
+  }
 }
 void PositionsField::Serialize(YAML::Emitter &out) {
   m_spd.Save("SPD", out);
@@ -250,5 +260,54 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
       m_yRange.x = glm::min(position.y, m_yRange.x);
       m_yRange.y = glm::max(position.y, m_yRange.y);
     }
+  }
+}
+std::pair<Entity, Entity> PositionsField::InstantiateAroundIndex(unsigned i, float radius, bool semanticMask) {
+  if(m_positions.size() <= i) return {};
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  if (sorghumLayer) {
+    glm::dvec2 center = m_positions[i];
+    auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
+    auto field =
+        Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
+    // Create sorghums here.
+    int size = 0;
+    Entity centerSorghum;
+    for (const auto& position : m_positions) {
+      if(glm::distance(center, position) > radius) continue;
+      Entity sorghumEntity = sorghumLayer->CreateSorghum();
+      if(glm::distance(center, position) == 0) centerSorghum = sorghumEntity;
+      auto sorghumTransform = sorghumEntity.GetDataComponent<Transform>();
+
+      auto pos = glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
+      auto rotation = glm::quat(glm::radians(
+          glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
+      sorghumTransform.m_value = glm::translate(pos) *
+                                 glm::mat4_cast(rotation) *
+                                 glm::scale(glm::vec3(m_sorghumSize));
+
+      sorghumEntity.SetDataComponent(sorghumTransform);
+      auto sorghumData =
+          sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
+      sorghumData->m_parameters = m_spd;
+      sorghumData->ApplyParameters();
+      if (semanticMask)
+        sorghumData->GenerateGeometrySeperated(semanticMask);
+      else
+        sorghumData->GenerateGeometry(true);
+      sorghumEntity.SetParent(field);
+      size++;
+      if (size >= m_sizeLimit)
+        break;
+    }
+
+    Application::GetLayer<TransformLayer>()
+        ->CalculateTransformGraphForDescendents(
+            Entities::GetCurrentScene(), field);
+    field.SetStatic(true);
+    return {centerSorghum, field};
+  } else {
+    UNIENGINE_ERROR("No sorghum layer!");
+    return {};
   }
 }

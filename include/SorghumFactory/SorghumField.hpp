@@ -14,18 +14,18 @@ public:
 
 class SORGHUM_FACTORY_API SorghumField : public IAsset {
   friend class SorghumLayer;
+
 public:
   int m_sizeLimit = 2000;
   float m_sorghumSize = 1.0f;
   std::vector<std::pair<AssetRef, glm::mat4>> m_newSorghums;
-  virtual void GenerateMatrices() {};
-  void InstantiateField(bool semanticMask);
+  virtual void GenerateMatrices(){};
+  Entity InstantiateField(bool semanticMask);
 
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-
 };
 
 class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
@@ -35,6 +35,7 @@ class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
   glm::vec2 m_distanceVariance = glm::vec2(0.5f);
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
   glm::ivec2 m_size = glm::ivec2(10, 10);
+
 public:
   void GenerateMatrices() override;
 
@@ -46,6 +47,7 @@ public:
 
 class SORGHUM_FACTORY_API PositionsField : public SorghumField {
   friend class SorghumLayer;
+public:
   AssetRef m_spd;
   float m_factor = 1.0f;
   std::vector<glm::dvec2> m_positions;
@@ -56,9 +58,10 @@ class SORGHUM_FACTORY_API PositionsField : public SorghumField {
 
   glm::dvec2 m_xRange = glm::vec2(0, 0);
   glm::dvec2 m_yRange = glm::vec2(0, 0);
-public:
   void GenerateMatrices() override;
-  void ImportFromFile(const std::filesystem::path& path);
+  std::pair<Entity, Entity> InstantiateAroundIndex(unsigned i, float radius,
+                                                   bool semanticMask = false);
+  void ImportFromFile(const std::filesystem::path &path);
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
