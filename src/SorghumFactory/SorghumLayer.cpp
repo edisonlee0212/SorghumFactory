@@ -1,4 +1,5 @@
 #ifdef RAYTRACERFACILITY
+#include "RayTracerLayer.hpp"
 #include <MLVQRenderer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #endif
@@ -24,19 +25,21 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
       "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
-  ClassRegistry::RegisterAsset<RectangularSorghumField>("RectangularSorghumField", ".rectsorghumfield");
-  ClassRegistry::RegisterAsset<PositionsField>("PositionsField", ".possorghumfield");
+  ClassRegistry::RegisterAsset<RectangularSorghumField>(
+      "RectangularSorghumField", ".rectsorghumfield");
+  ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
+                                               ".possorghumfield");
 
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
 
-  m_pinnacleArchetype = Entities::CreateEntityArchetype("Pinnacle", PinnacleTag());
+  m_pinnacleArchetype =
+      Entities::CreateEntityArchetype("Pinnacle", PinnacleTag());
   m_pinnacleQuery = Entities::CreateEntityQuery();
   m_pinnacleQuery.SetAllFilters(PinnacleTag());
 
-  m_sorghumArchetype =
-      Entities::CreateEntityArchetype("Sorghum", SorghumTag());
+  m_sorghumArchetype = Entities::CreateEntityArchetype("Sorghum", SorghumTag());
   m_sorghumQuery = Entities::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
@@ -58,8 +61,7 @@ void SorghumLayer::OnCreate() {
     m_pinnacleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_cullingMode = MaterialCullingMode::Off;
-    material->m_albedoColor =
-        glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
+    material->m_albedoColor = glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
     material->m_roughness = 1.0f;
     material->m_metallic = 0.0f;
   }
@@ -82,8 +84,8 @@ void SorghumLayer::OnCreate() {
 Entity SorghumLayer::CreateSorghum() {
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  const Entity entity = Entities::CreateEntity(
-      Entities::GetCurrentScene(), m_sorghumArchetype, "Sorghum");
+  const Entity entity = Entities::CreateEntity(Entities::GetCurrentScene(),
+                                               m_sorghumArchetype, "Sorghum");
   entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   entity.SetName("Sorghum");
@@ -108,8 +110,8 @@ Entity SorghumLayer::CreateSorghum() {
 
 Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
                                        int leafIndex) {
-  const Entity entity = Entities::CreateEntity(
-      Entities::GetCurrentScene(), m_leafArchetype);
+  const Entity entity =
+      Entities::CreateEntity(Entities::GetCurrentScene(), m_leafArchetype);
   entity.SetName("Leaf");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -124,8 +126,8 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   return entity;
 }
 Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
-  const Entity entity = Entities::CreateEntity(
-      Entities::GetCurrentScene(), m_pinnacleArchetype);
+  const Entity entity =
+      Entities::CreateEntity(Entities::GetCurrentScene(), m_pinnacleArchetype);
   entity.SetName("Pinnacle");
   entity.SetParent(plantEntity);
   Transform transform;
@@ -148,8 +150,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
     stemSpline->FormNodes(stemSpline);
   }
   Entities::ForEach<GlobalTransform>(
-      Entities::GetCurrentScene(), Jobs::Workers(),
-      m_leafQuery,
+      Entities::GetCurrentScene(), Jobs::Workers(), m_leafQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
         auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
         auto stemSpline =
@@ -228,14 +229,15 @@ Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
 void SorghumLayer::OnInspect() {
   if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
-    if(ImGui::TreeNodeEx("Illumination Estimation")) {
+    if (ImGui::TreeNodeEx("Illumination Estimation")) {
       ImGui::Checkbox("Display light probes", &m_displayLightProbes);
       if (m_displayLightProbes) {
         ImGui::DragFloat("Size", &m_lightProbeSize, 0.0001f, 0.0001f, 0.2f,
                          "%.5f");
       }
       ImGui::DragInt("Seed", &m_seed);
-      ImGui::DragFloat("Push distance along normal", &m_pushDistance, 0.0001f, -1.0f, 1.0f, "%.5f");
+      ImGui::DragFloat("Push distance along normal", &m_pushDistance, 0.0001f,
+                       -1.0f, 1.0f, "%.5f");
       m_rayProperties.OnInspect();
 
       if (ImGui::Button("Calculate illumination")) {
@@ -257,31 +259,39 @@ void SorghumLayer::OnInspect() {
     if (ImGui::DragInt("Step amount", &m_step)) {
       m_step = glm::max(2, m_step);
     }
-    if(Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
-                                                   "Replace Leaf Albedo Texture")){
+    if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
+                                             "Replace Leaf Albedo Texture")) {
       auto tex = m_leafAlbedoTexture.Get<Texture2D>();
-      if(tex){
+      if (tex) {
         m_leafMaterial.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
         std::vector<Entity> sorghumEntities;
-        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), sorghumEntities, false);
-        for(const auto& i : sorghumEntities){
-          if(i.HasPrivateComponent<MeshRenderer>()){
-            i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
+        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(),
+                                     sorghumEntities, false);
+        for (const auto &i : sorghumEntities) {
+          if (i.HasPrivateComponent<MeshRenderer>()) {
+            i.GetOrSetPrivateComponent<MeshRenderer>()
+                .lock()
+                ->m_material.Get<Material>()
+                ->m_albedoTexture = m_leafAlbedoTexture;
           }
         }
       }
     }
 
-    if(Editor::DragAndDropButton<Texture2D>(m_leafNormalTexture,
-                                                    "Replace Leaf Normal Texture")){
+    if (Editor::DragAndDropButton<Texture2D>(m_leafNormalTexture,
+                                             "Replace Leaf Normal Texture")) {
       auto tex = m_leafNormalTexture.Get<Texture2D>();
-      if(tex){
+      if (tex) {
         m_leafMaterial.Get<Material>()->m_normalTexture = m_leafNormalTexture;
         std::vector<Entity> sorghumEntities;
-        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), sorghumEntities, false);
-        for(const auto& i : sorghumEntities){
-          if(i.HasPrivateComponent<MeshRenderer>()){
-            i.GetOrSetPrivateComponent<MeshRenderer>().lock()->m_material.Get<Material>()->m_normalTexture = m_leafNormalTexture;
+        m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(),
+                                     sorghumEntities, false);
+        for (const auto &i : sorghumEntities) {
+          if (i.HasPrivateComponent<MeshRenderer>()) {
+            i.GetOrSetPrivateComponent<MeshRenderer>()
+                .lock()
+                ->m_material.Get<Material>()
+                ->m_normalTexture = m_leafNormalTexture;
           }
         }
       }
@@ -526,9 +536,9 @@ void SorghumLayer::RenderLightProbes() {
   if (m_probeTransforms.empty() || m_probeColors.empty() ||
       m_probeTransforms.size() != m_probeColors.size())
     return;
-  Graphics::DrawGizmoMeshInstancedColored(
-      DefaultResources::Primitives::Cube, m_probeColors, m_probeTransforms,
-      glm::mat4(1.0f), m_lightProbeSize);
+  Graphics::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube,
+                                          m_probeColors, m_probeTransforms,
+                                          glm::mat4(1.0f), m_lightProbeSize);
 }
 #endif
 void SorghumLayer::CollectEntities(std::vector<Entity> &entities,
@@ -575,7 +585,8 @@ void SorghumLayer::CalculateIllumination() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed, m_pushDistance);
+      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed,
+                                                     m_pushDistance);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
@@ -601,7 +612,8 @@ void SorghumLayer::Update() {
           m_processingEntities[m_processingIndex]
               .GetOrSetPrivateComponent<TriangleIlluminationEstimator>()
               .lock();
-      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed, m_pushDistance);
+      estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed,
+                                                     m_pushDistance);
       m_probeTransforms.insert(m_probeTransforms.end(),
                                estimator->m_probeTransforms.begin(),
                                estimator->m_probeTransforms.end());
@@ -641,4 +653,107 @@ Entity SorghumLayer::CreateSorghum(
   sorghumData->ApplyParameters();
   sorghumData->GenerateGeometrySeperated(false);
   return sorghum;
+}
+
+std::shared_ptr<PointCloud>
+SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
+                             glm::vec2 boundingBoxHeightRange,
+                             glm::vec2 pointDistance, float scannerAngle) {
+  std::shared_ptr<PointCloud> pointCloud =
+      AssetManager::CreateAsset<PointCloud>();
+#ifdef RAYTRACERFACILITY
+  auto boundingBoxHeight = boundingBoxHeightRange.y - boundingBoxHeightRange.x;
+  auto planeSize =
+      glm::vec2(boundingBoxRadius * 2.0f +
+                    boundingBoxHeight / glm::cos(glm::radians(scannerAngle)),
+                boundingBoxRadius * 2.0f);
+  auto boundingBoxCenter =
+      (boundingBoxHeightRange.y + boundingBoxHeightRange.x) / 2.0f;
+
+  std::vector<uint64_t> entityHandles;
+  std::vector<glm::vec3> points;
+  std::vector<glm::vec3> colors;
+
+  const auto column = unsigned(planeSize.x / pointDistance.x);
+  const int columnStart = -(int)(column / 2);
+  const auto row = unsigned(planeSize.y / pointDistance.y);
+  const int rowStart = -(int)(row / 2);
+  const auto size = column * row;
+  auto gt = sorghum.GetDataComponent<GlobalTransform>();
+
+  glm::vec3 front = glm::vec3(0, -1, 0);
+  glm::vec3 up = glm::vec3(0, 0, -1);
+  glm::vec3 left = glm::vec3(1, 0, 0);
+  glm::vec3 actualVector =
+      glm::normalize(glm::rotate(front, glm::radians(scannerAngle), up));
+  glm::vec3 center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
+                     actualVector * (boundingBoxHeightRange.y / 2.0f /
+                                     glm::cos(glm::radians(scannerAngle)));
+
+  std::vector<PointCloudSample> pcSamples;
+  pcSamples.resize(size * 2);
+  std::vector<std::shared_future<void>> results;
+  Jobs::ParallelFor(
+      size,
+      [&](unsigned i) {
+        const int columnIndex = (int)i / row;
+        const int rowIndex = (int)i % row;
+        const auto position =
+            center +
+            left * (float)(columnStart + columnIndex) * pointDistance.x +
+            up * (float)(rowStart + rowIndex) * pointDistance.y;
+        pcSamples[i].m_start = position;
+        pcSamples[i].m_direction = actualVector;
+      },
+      results);
+  for (const auto &i : results)
+    i.wait();
+  auto plantPosition = gt.GetPosition();
+  actualVector =
+      glm::normalize(glm::rotate(front, glm::radians(-scannerAngle), up));
+  center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
+           actualVector * (boundingBoxHeight / 2.0f /
+                           glm::cos(glm::radians(scannerAngle)));
+
+  std::vector<std::shared_future<void>> results2;
+  Jobs::ParallelFor(
+      size,
+      [&](unsigned i) {
+        const int columnIndex = (int)i / row;
+        const int rowIndex = (int)i % row;
+        const auto position =
+            center +
+            left * (float)(columnStart + columnIndex) * pointDistance.x +
+            up * (float)(rowStart + rowIndex) * pointDistance.y;
+        pcSamples[i + size].m_start = position;
+        pcSamples[i + size].m_direction = actualVector;
+      },
+      results2);
+  for (const auto &i : results2)
+    i.wait();
+
+  CudaModule::SamplePointCloud(
+      Application::GetLayer<RayTracerLayer>()->m_environmentProperties,
+      pcSamples);
+  for (const auto &sample : pcSamples) {
+    if (!sample.m_hit) {
+      continue;
+    }
+    auto position = sample.m_end;
+    if (glm::abs(position.x - plantPosition.x) > boundingBoxRadius ||
+        position.y - plantPosition.y < boundingBoxHeightRange.x ||
+        position.y - plantPosition.y > boundingBoxHeightRange.y) {
+      continue;
+    }
+    points.push_back(sample.m_end);
+    colors.push_back(sample.m_albedo);
+    entityHandles.push_back(sample.m_handle);
+  }
+  for (int i = 0; i < points.size(); i++) {
+    pointCloud->m_points.emplace_back(points[i]);
+  }
+#else
+  UNIENGINE_ERROR("Ray tracer disabled!");
+#endif
+  return pointCloud;
 }

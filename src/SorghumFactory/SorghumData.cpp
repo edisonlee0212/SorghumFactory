@@ -30,6 +30,11 @@ void SorghumData::OnInspect() {
     ApplyParameters();
     GenerateGeometrySeperated(false);
   }
+
+  if(ImGui::Button("Scan point cloud")){
+    auto pointCloud = Application::GetLayer<SorghumLayer>()->ScanPointCloud(GetOwner());
+    AssetManager::Share(pointCloud);
+  }
 }
 
 void SorghumData::ExportModel(const std::string &filename,

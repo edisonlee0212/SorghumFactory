@@ -25,6 +25,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
+
 };
 
 class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {

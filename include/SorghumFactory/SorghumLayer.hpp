@@ -7,6 +7,7 @@
 #include <ICurve.hpp>
 #include <LeafSegment.hpp>
 #include <Spline.hpp>
+#include "PointCloud.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
@@ -80,6 +81,7 @@ public:
 
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
+  std::shared_ptr<PointCloud> ScanPointCloud(const Entity& sorghum, float boundingBoxRadius = 1.0f, glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2), glm::vec2 pointDistance = glm::vec2(0.01f), float scannerAngle = 30.0f);
 };
 
 } // namespace SorghumFactory
