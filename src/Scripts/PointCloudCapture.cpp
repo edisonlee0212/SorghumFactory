@@ -33,11 +33,12 @@ void Scripts::PointCloudCapture::OnGrowth(
 }
 void Scripts::PointCloudCapture::OnAfterGrowth(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
-  auto pointCloud = Application::GetLayer<SorghumLayer>()->ScanPointCloud(
-      m_currentSorghum, 1.0f, {0, 2});
-
-  pointCloud->Save(std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "PointCloud" /
-                   (std::to_string(m_currentIndex) + std::string(".ply"))));
+  Application::GetLayer<SorghumLayer>()->ScanPointCloudLabeled(
+      std::filesystem::absolute(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "PointCloud" /
+          (std::to_string(m_currentIndex) + std::string(".ply"))),
+      m_currentSorghum, m_boundingBoxRadius, m_boundingBoxHeightRange, m_pointDistance, m_angle);
 
   Entities::DeleteEntity(Entities::GetCurrentScene(), m_currentSorghumField);
   m_currentSorghum = m_currentSorghumField = Entity();
@@ -52,10 +53,12 @@ void Scripts::PointCloudCapture::OnAfterGrowth(
 }
 void Scripts::PointCloudCapture::OnInspect() {
   Editor::DragAndDropButton<PositionsField>(m_positionsField, "Position Field");
-
   ImGui::DragInt("Start Index", &m_startIndex, 1, 0, m_endIndex);
   ImGui::DragInt("End Index", &m_endIndex, 1, m_startIndex, 99999);
-
+  ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);
+  ImGui::DragFloat("Scanner angle", &m_angle, 0.5f);
+  ImGui::DragFloat("Bounding box radius", &m_boundingBoxRadius, 0.01f);
+  ImGui::DragFloat2("Bounding box height range", &m_boundingBoxHeightRange.x, 0.01f);
   if (!Application::IsPlaying()) {
     ImGui::Text("Application not Playing!");
   } else if (!m_positionsField.Get<PositionsField>()) {
@@ -64,7 +67,9 @@ void Scripts::PointCloudCapture::OnInspect() {
     ImGui::Text("Busy...");
   } else {
     if (ImGui::Button("Start")) {
-      std::filesystem::create_directories(std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder / "PointCloud"));
+      std::filesystem::create_directories(std::filesystem::absolute(
+          ProjectManager::GetProjectPath().parent_path() /
+          m_currentExportFolder / "PointCloud"));
       m_currentIndex = 0;
     }
   }

@@ -9,6 +9,10 @@ class PointCloudCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_currentSorghum;
   Entity m_currentSorghumField;
 public:
+  glm::vec2 m_pointDistance = glm::vec2(0.002f);
+  float m_angle = 31.5f;
+  float m_boundingBoxRadius = 1.0f;
+  glm::vec2 m_boundingBoxHeightRange = {0, 2};
   void Reset();
   AssetRef m_positionsField;
   int m_startIndex = 0;

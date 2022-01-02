@@ -1,3 +1,4 @@
+#include <Tinyply.hpp>
 #ifdef RAYTRACERFACILITY
 #include "RayTracerLayer.hpp"
 #include <MLVQRenderer.hpp>
@@ -12,6 +13,7 @@ using namespace RayTracerFacility;
 #endif
 using namespace SorghumFactory;
 using namespace UniEngine;
+using namespace tinyply;
 void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterDataComponent<PinnacleTag>("PinnacleTag");
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
@@ -756,4 +758,162 @@ SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
   UNIENGINE_ERROR("Ray tracer disabled!");
 #endif
   return pointCloud;
+}
+void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
+                                         const Entity &sorghum,
+                                         float boundingBoxRadius,
+                                         glm::vec2 boundingBoxHeightRange,
+                                         glm::vec2 pointDistance,
+                                         float scannerAngle) {
+#ifdef RAYTRACERFACILITY
+  auto boundingBoxHeight = boundingBoxHeightRange.y - boundingBoxHeightRange.x;
+  auto planeSize =
+      glm::vec2(boundingBoxRadius * 2.0f +
+                    boundingBoxHeight / glm::cos(glm::radians(scannerAngle)),
+                boundingBoxRadius * 2.0f);
+  auto boundingBoxCenter =
+      (boundingBoxHeightRange.y + boundingBoxHeightRange.x) / 2.0f;
+
+  std::vector<int> leafIndex;
+  std::vector<uint64_t> entityHandles;
+  std::vector<glm::vec3> points;
+  std::vector<glm::vec3> colors;
+
+  const auto column = unsigned(planeSize.x / pointDistance.x);
+  const int columnStart = -(int)(column / 2);
+  const auto row = unsigned(planeSize.y / pointDistance.y);
+  const int rowStart = -(int)(row / 2);
+  const auto size = column * row;
+  auto gt = sorghum.GetDataComponent<GlobalTransform>();
+
+  glm::vec3 front = glm::vec3(0, -1, 0);
+  glm::vec3 up = glm::vec3(0, 0, -1);
+  glm::vec3 left = glm::vec3(1, 0, 0);
+  glm::vec3 actualVector =
+      glm::normalize(glm::rotate(front, glm::radians(scannerAngle), up));
+  glm::vec3 center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
+                     actualVector * (boundingBoxHeightRange.y / 2.0f /
+                                     glm::cos(glm::radians(scannerAngle)));
+
+  std::vector<PointCloudSample> pcSamples;
+  pcSamples.resize(size * 2);
+  std::vector<std::shared_future<void>> results;
+  Jobs::ParallelFor(
+      size,
+      [&](unsigned i) {
+        const int columnIndex = (int)i / row;
+        const int rowIndex = (int)i % row;
+        const auto position =
+            center +
+            left * (float)(columnStart + columnIndex) * pointDistance.x +
+            up * (float)(rowStart + rowIndex) * pointDistance.y;
+        pcSamples[i].m_start = position;
+        pcSamples[i].m_direction = actualVector;
+      },
+      results);
+  for (const auto &i : results)
+    i.wait();
+  auto plantPosition = gt.GetPosition();
+  actualVector =
+      glm::normalize(glm::rotate(front, glm::radians(-scannerAngle), up));
+  center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
+           actualVector * (boundingBoxHeight / 2.0f /
+                           glm::cos(glm::radians(scannerAngle)));
+
+  std::vector<std::shared_future<void>> results2;
+  Jobs::ParallelFor(
+      size,
+      [&](unsigned i) {
+        const int columnIndex = (int)i / row;
+        const int rowIndex = (int)i % row;
+        const auto position =
+            center +
+            left * (float)(columnStart + columnIndex) * pointDistance.x +
+            up * (float)(rowStart + rowIndex) * pointDistance.y;
+        pcSamples[i + size].m_start = position;
+        pcSamples[i + size].m_direction = actualVector;
+      },
+      results2);
+  for (const auto &i : results2)
+    i.wait();
+
+  CudaModule::SamplePointCloud(
+      Application::GetLayer<RayTracerLayer>()->m_environmentProperties,
+      pcSamples);
+  for (const auto &sample : pcSamples) {
+    if (!sample.m_hit) {
+      continue;
+    }
+    auto position = sample.m_end;
+    if (glm::abs(position.x - plantPosition.x) > boundingBoxRadius ||
+        position.y - plantPosition.y < boundingBoxHeightRange.x ||
+        position.y - plantPosition.y > boundingBoxHeightRange.y) {
+      continue;
+    }
+    points.push_back(sample.m_end);
+    colors.push_back(sample.m_albedo);
+    entityHandles.push_back(sample.m_handle);
+  }
+
+  std::vector<std::pair<Handle, int>> plantHandles = {};
+  plantHandles.emplace_back(
+      sorghum.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle(), 0);
+  sorghum.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
+    auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>();
+    auto spline = child.GetOrSetPrivateComponent<Spline>();
+    if (meshRenderer.expired() || spline.expired())
+      return;
+    auto handle = meshRenderer.lock()->GetHandle();
+    auto index = spline.lock()->m_order + 1;
+    plantHandles.emplace_back(handle, index);
+  });
+
+  leafIndex.resize(points.size());
+
+  std::vector<std::shared_future<void>> results3;
+  Jobs::ParallelFor(
+      points.size(),
+      [&](unsigned i) {
+        for (const auto &pair : plantHandles) {
+          if (pair.first.GetValue() == entityHandles[i]) {
+            leafIndex[i] = pair.second;
+            return;
+          }
+        }
+        leafIndex[i] = -1;
+        colors[i] = glm::vec3(0.25f);
+      },
+      results3);
+  for (const auto &i : results3)
+    i.wait();
+
+  std::filebuf fb_binary;
+  fb_binary.open(savePath.string(), std::ios::out | std::ios::binary);
+  std::ostream outstream_binary(&fb_binary);
+  if (outstream_binary.fail())
+    throw std::runtime_error("failed to open " + savePath.string());
+  /*
+  std::filebuf fb_ascii;
+  fb_ascii.open(filename + "-ascii.ply", std::ios::out);
+  std::ostream outstream_ascii(&fb_ascii);
+  if (outstream_ascii.fail()) throw std::runtime_error("failed to open " +
+  filename);
+  */
+  PlyFile cube_file;
+
+  cube_file.add_properties_to_element(
+      "vertex", {"x", "z", "y"}, Type::FLOAT32, points.size(),
+      reinterpret_cast<uint8_t *>(points.data()), Type::INVALID, 0);
+  cube_file.add_properties_to_element(
+      "color", {"red", "green", "blue"}, Type::FLOAT32, colors.size(),
+      reinterpret_cast<uint8_t *>(colors.data()), Type::INVALID, 0);
+  cube_file.add_properties_to_element(
+      "index", {"value"}, Type::INT32, leafIndex.size(),
+      reinterpret_cast<uint8_t *>(leafIndex.data()), Type::INVALID, 0);
+
+  // Write a binary file
+  cube_file.write(outstream_binary, true);
+#else
+  UNIENGINE_ERROR("Ray tracer disabled!");
+#endif
 }

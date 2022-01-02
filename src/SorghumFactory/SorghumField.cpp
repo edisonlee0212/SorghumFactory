@@ -85,8 +85,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (sorghumLayer) {
     auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
-    auto field =
-        Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
+    auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
     // Create sorghums here.
     int size = 0;
     for (auto &newSorghum : fieldAsset->m_newSorghums) {
@@ -110,8 +109,8 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
     }
 
     Application::GetLayer<TransformLayer>()
-        ->CalculateTransformGraphForDescendents(
-            Entities::GetCurrentScene(), field);
+        ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
+                                                field);
     field.SetStatic(true);
     return field;
   } else {
@@ -175,9 +174,13 @@ void PositionsField::GenerateMatrices() {
   if (!m_spd.Get<SorghumProceduralDescriptor>())
     return;
   m_newSorghums.clear();
-  for (auto & position : m_positions) {
-    if(position.x < m_sampleX.x || position.y < m_sampleY.x || position.x > m_sampleX.y || position.y > m_sampleY.y) continue;
-    auto pos = glm::vec3(position.x - m_sampleX.x, 0, position.y - m_sampleY.x) * m_factor;
+  for (auto &position : m_positions) {
+    if (position.x < m_sampleX.x || position.y < m_sampleY.x ||
+        position.x > m_sampleX.y || position.y > m_sampleY.y)
+      continue;
+    auto pos =
+        glm::vec3(position.x - m_sampleX.x, 0, position.y - m_sampleY.x) *
+        m_factor;
     auto rotation = glm::quat(glm::radians(
         glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
     m_newSorghums.emplace_back(m_spd, glm::translate(pos) *
@@ -196,11 +199,13 @@ void PositionsField::OnInspect() {
   ImGui::Text("X range: [%.3f, %.3f]", m_xRange.x, m_xRange.y);
   ImGui::Text("Y Range: [%.3f, %.3f]", m_yRange.x, m_yRange.y);
 
-  if (ImGui::DragScalarN("Width range", ImGuiDataType_Double, &m_sampleX.x, 2, 0.1f)) {
+  if (ImGui::DragScalarN("Width range", ImGuiDataType_Double, &m_sampleX.x, 2,
+                         0.1f)) {
     m_sampleX.x = glm::min(m_sampleX.x, m_sampleX.y);
     m_sampleX.y = glm::max(m_sampleX.x, m_sampleX.y);
   }
-  if (ImGui::DragScalarN("Length Range", ImGuiDataType_Double, &m_sampleY.x, 2, 0.1f)) {
+  if (ImGui::DragScalarN("Length Range", ImGuiDataType_Double, &m_sampleY.x, 2,
+                         0.1f)) {
     m_sampleY.x = glm::min(m_sampleY.x, m_sampleY.y);
     m_sampleY.y = glm::max(m_sampleY.x, m_sampleY.y);
   }
@@ -213,7 +218,7 @@ void PositionsField::OnInspect() {
   static float radius = 2.5f;
   ImGui::DragInt("Index", &index);
   ImGui::DragFloat("Radius", &radius);
-  if(ImGui::Button("Instantiate around radius")){
+  if (ImGui::Button("Instantiate around radius")) {
     InstantiateAroundIndex(index, radius);
   }
 }
@@ -231,10 +236,14 @@ void PositionsField::Serialize(YAML::Emitter &out) {
 void PositionsField::Deserialize(const YAML::Node &in) {
   m_spd.Load("SPD", in);
   m_rotationVariance = in["m_rotationVariance"].as<glm::vec3>();
-  if(in["m_sampleX"]) m_sampleX = in["m_sampleX"].as<glm::dvec2>();
-  if(in["m_sampleY"]) m_sampleY = in["m_sampleY"].as<glm::dvec2>();
-  if(in["m_xRange"]) m_xRange = in["m_xRange"].as<glm::dvec2>();
-  if(in["m_yRange"]) m_yRange = in["m_yRange"].as<glm::dvec2>();
+  if (in["m_sampleX"])
+    m_sampleX = in["m_sampleX"].as<glm::dvec2>();
+  if (in["m_sampleY"])
+    m_sampleY = in["m_sampleY"].as<glm::dvec2>();
+  if (in["m_xRange"])
+    m_xRange = in["m_xRange"].as<glm::dvec2>();
+  if (in["m_yRange"])
+    m_yRange = in["m_yRange"].as<glm::dvec2>();
   m_factor = in["m_factor"].as<float>();
   LoadListFromBinary<glm::dvec2>("m_positions", m_positions, in);
   SorghumField::Deserialize(in);
@@ -262,24 +271,29 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
     }
   }
 }
-std::pair<Entity, Entity> PositionsField::InstantiateAroundIndex(unsigned i, float radius, bool semanticMask) {
-  if(m_positions.size() <= i) return {};
+std::pair<Entity, Entity>
+PositionsField::InstantiateAroundIndex(unsigned i, float radius,
+                                       bool semanticMask) {
+  if (m_positions.size() <= i)
+    return {};
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (sorghumLayer) {
     glm::dvec2 center = m_positions[i];
     auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
-    auto field =
-        Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
+    auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
     // Create sorghums here.
     int size = 0;
     Entity centerSorghum;
-    for (const auto& position : m_positions) {
-      if(glm::distance(center, position) > radius) continue;
+    for (const auto &position : m_positions) {
+      if (glm::distance(center, position) > radius)
+        continue;
       Entity sorghumEntity = sorghumLayer->CreateSorghum();
-      if(glm::distance(center, position) == 0) centerSorghum = sorghumEntity;
+      if (glm::distance(center, position) == 0)
+        centerSorghum = sorghumEntity;
       auto sorghumTransform = sorghumEntity.GetDataComponent<Transform>();
 
-      auto pos = glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
+      auto pos =
+          glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
       auto rotation = glm::quat(glm::radians(
           glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
       sorghumTransform.m_value = glm::translate(pos) *
@@ -291,10 +305,7 @@ std::pair<Entity, Entity> PositionsField::InstantiateAroundIndex(unsigned i, flo
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_parameters = m_spd;
       sorghumData->ApplyParameters();
-      if (semanticMask)
-        sorghumData->GenerateGeometrySeperated(semanticMask);
-      else
-        sorghumData->GenerateGeometry(true);
+      sorghumData->GenerateGeometrySeperated(semanticMask, true);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)
@@ -302,8 +313,8 @@ std::pair<Entity, Entity> PositionsField::InstantiateAroundIndex(unsigned i, flo
     }
 
     Application::GetLayer<TransformLayer>()
-        ->CalculateTransformGraphForDescendents(
-            Entities::GetCurrentScene(), field);
+        ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
+                                                field);
     field.SetStatic(true);
     return {centerSorghum, field};
   } else {

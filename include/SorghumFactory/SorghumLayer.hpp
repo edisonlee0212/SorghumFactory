@@ -81,7 +81,10 @@ public:
 
   static void CollectEntities(std::vector<Entity> &entities,
                               const Entity &walker);
-  std::shared_ptr<PointCloud> ScanPointCloud(const Entity& sorghum, float boundingBoxRadius = 1.0f, glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2), glm::vec2 pointDistance = glm::vec2(0.01f), float scannerAngle = 30.0f);
+
+  std::shared_ptr<PointCloud> ScanPointCloud(const Entity& sorghum, float boundingBoxRadius = 1.0f, glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2), glm::vec2 pointDistance = glm::vec2(0.005f), float scannerAngle = 30.0f);
+  void ScanPointCloudLabeled(const std::filesystem::path& savePath, const Entity& sorghum, float boundingBoxRadius = 1.0f, glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2), glm::vec2 pointDistance = glm::vec2(0.005f), float scannerAngle = 30.0f);
+
 };
 
 } // namespace SorghumFactory
