@@ -759,29 +759,29 @@ SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
 #endif
   return pointCloud;
 }
-void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
-                                         const Entity &sorghum,
-                                         float boundingBoxRadius,
-                                         glm::vec2 boundingBoxHeightRange,
-                                         glm::vec2 pointDistance,
-                                         float scannerAngle) {
+void SorghumLayer::ScanPointCloudLabeled(
+    const Entity &sorghum, const std::filesystem::path &savePath,
+    const PointCloudSampleSettings &settings) {
 #ifdef RAYTRACERFACILITY
-  auto boundingBoxHeight = boundingBoxHeightRange.y - boundingBoxHeightRange.x;
-  auto planeSize =
-      glm::vec2(boundingBoxRadius * 2.0f +
-                    boundingBoxHeight / glm::cos(glm::radians(scannerAngle)),
-                boundingBoxRadius * 2.0f);
-  auto boundingBoxCenter =
-      (boundingBoxHeightRange.y + boundingBoxHeightRange.x) / 2.0f;
+  auto boundingBoxHeight =
+      settings.m_boundingBoxHeightRange.y - settings.m_boundingBoxHeightRange.x;
+  auto planeSize = glm::vec2(
+      settings.m_boundingBoxRadius * 2.0f +
+          boundingBoxHeight / glm::cos(glm::radians(settings.m_scannerAngle)),
+      settings.m_boundingBoxRadius * 2.0f);
+  auto boundingBoxCenter = (settings.m_boundingBoxHeightRange.y +
+                            settings.m_boundingBoxHeightRange.x) /
+                           2.0f;
 
   std::vector<int> leafIndex;
+  std::vector<int> leafPartIndex;
   std::vector<uint64_t> entityHandles;
   std::vector<glm::vec3> points;
   std::vector<glm::vec3> colors;
 
-  const auto column = unsigned(planeSize.x / pointDistance.x);
+  const auto column = unsigned(planeSize.x / settings.m_pointDistance.x);
   const int columnStart = -(int)(column / 2);
-  const auto row = unsigned(planeSize.y / pointDistance.y);
+  const auto row = unsigned(planeSize.y / settings.m_pointDistance.y);
   const int rowStart = -(int)(row / 2);
   const auto size = column * row;
   auto gt = sorghum.GetDataComponent<GlobalTransform>();
@@ -789,11 +789,12 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
   glm::vec3 front = glm::vec3(0, -1, 0);
   glm::vec3 up = glm::vec3(0, 0, -1);
   glm::vec3 left = glm::vec3(1, 0, 0);
-  glm::vec3 actualVector =
-      glm::normalize(glm::rotate(front, glm::radians(scannerAngle), up));
-  glm::vec3 center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
-                     actualVector * (boundingBoxHeightRange.y / 2.0f /
-                                     glm::cos(glm::radians(scannerAngle)));
+  glm::vec3 actualVector = glm::normalize(
+      glm::rotate(front, glm::radians(settings.m_scannerAngle), up));
+  glm::vec3 center =
+      gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
+      actualVector * (settings.m_boundingBoxHeightRange.y / 2.0f /
+                      glm::cos(glm::radians(settings.m_scannerAngle)));
 
   std::vector<PointCloudSample> pcSamples;
   pcSamples.resize(size * 2);
@@ -805,8 +806,9 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
         const int rowIndex = (int)i % row;
         const auto position =
             center +
-            left * (float)(columnStart + columnIndex) * pointDistance.x +
-            up * (float)(rowStart + rowIndex) * pointDistance.y;
+            left * (float)(columnStart + columnIndex) *
+                settings.m_pointDistance.x +
+            up * (float)(rowStart + rowIndex) * settings.m_pointDistance.y;
         pcSamples[i].m_start = position;
         pcSamples[i].m_direction = actualVector;
       },
@@ -814,11 +816,11 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
   for (const auto &i : results)
     i.wait();
   auto plantPosition = gt.GetPosition();
-  actualVector =
-      glm::normalize(glm::rotate(front, glm::radians(-scannerAngle), up));
+  actualVector = glm::normalize(
+      glm::rotate(front, glm::radians(-settings.m_scannerAngle), up));
   center = gt.GetPosition() + glm::vec3(0, boundingBoxCenter, 0) -
            actualVector * (boundingBoxHeight / 2.0f /
-                           glm::cos(glm::radians(scannerAngle)));
+                           glm::cos(glm::radians(settings.m_scannerAngle)));
 
   std::vector<std::shared_future<void>> results2;
   Jobs::ParallelFor(
@@ -828,32 +830,15 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
         const int rowIndex = (int)i % row;
         const auto position =
             center +
-            left * (float)(columnStart + columnIndex) * pointDistance.x +
-            up * (float)(rowStart + rowIndex) * pointDistance.y;
+            left * (float)(columnStart + columnIndex) *
+                settings.m_pointDistance.x +
+            up * (float)(rowStart + rowIndex) * settings.m_pointDistance.y;
         pcSamples[i + size].m_start = position;
         pcSamples[i + size].m_direction = actualVector;
       },
       results2);
   for (const auto &i : results2)
     i.wait();
-
-  CudaModule::SamplePointCloud(
-      Application::GetLayer<RayTracerLayer>()->m_environmentProperties,
-      pcSamples);
-  for (const auto &sample : pcSamples) {
-    if (!sample.m_hit) {
-      continue;
-    }
-    auto position = sample.m_end;
-    if (glm::abs(position.x - plantPosition.x) > boundingBoxRadius ||
-        position.y - plantPosition.y < boundingBoxHeightRange.x ||
-        position.y - plantPosition.y > boundingBoxHeightRange.y) {
-      continue;
-    }
-    points.push_back(sample.m_end);
-    colors.push_back(sample.m_albedo);
-    entityHandles.push_back(sample.m_handle);
-  }
 
   std::vector<std::pair<Handle, int>> plantHandles = {};
   plantHandles.emplace_back(
@@ -868,7 +853,89 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
     plantHandles.emplace_back(handle, index);
   });
 
+  CudaModule::SamplePointCloud(
+      Application::GetLayer<RayTracerLayer>()->m_environmentProperties,
+      pcSamples);
+  if (settings.m_adjustBoundingBox) {
+    std::mutex minX, minZ, maxX, maxZ;
+    float minXVal, minZVal, maxXVal, maxZVal;
+    minXVal = minZVal = 999999;
+    maxXVal = maxZVal = -999999;
+    std::vector<std::shared_future<void>> scanResults;
+    Jobs::ParallelFor(
+        pcSamples.size(),
+        [&](unsigned i) {
+          auto &sample = pcSamples[i];
+          if (!sample.m_hit) {
+            return;
+          }
+          for (const auto &pair : plantHandles) {
+            if (pair.first.GetValue() == sample.m_handle) {
+              if (sample.m_end.x < minXVal) {
+                std::lock_guard<std::mutex> lock(minX);
+                minXVal = sample.m_end.x;
+              } else if (sample.m_end.x > maxXVal) {
+                std::lock_guard<std::mutex> lock(maxX);
+                maxXVal = sample.m_end.x;
+              }
+              if (sample.m_end.z < minZVal) {
+                std::lock_guard<std::mutex> lock(minZ);
+                minZVal = sample.m_end.z;
+              } else if (sample.m_end.z > maxZVal) {
+                std::lock_guard<std::mutex> lock(maxZ);
+                maxZVal = sample.m_end.z;
+              }
+              return;
+            }
+          }
+        },
+        scanResults);
+    for (const auto &i : scanResults)
+      i.wait();
+    float xCenter = (minXVal + maxXVal) / 2.0f;
+    float zCenter = (minZVal + maxZVal) / 2.0f;
+    minXVal = xCenter + settings.m_adjustmentFactor * (minXVal - xCenter);
+    maxXVal = xCenter + settings.m_adjustmentFactor * (maxXVal - xCenter);
+    minZVal = zCenter + settings.m_adjustmentFactor * (minZVal - zCenter);
+    maxZVal = zCenter + settings.m_adjustmentFactor * (maxZVal - zCenter);
+
+    for (const auto &sample : pcSamples) {
+      if (!sample.m_hit) {
+        continue;
+      }
+      auto position = sample.m_end;
+      if (position.x < minXVal || position.x > maxXVal ||
+          position.z < minZVal || position.z > maxZVal ||
+          position.y - plantPosition.y < settings.m_boundingBoxHeightRange.x ||
+          position.y - plantPosition.y > settings.m_boundingBoxHeightRange.y) {
+        continue;
+      }
+      points.push_back(sample.m_end);
+      colors.push_back(sample.m_albedo);
+      entityHandles.push_back(sample.m_handle);
+    }
+  } else {
+    for (const auto &sample : pcSamples) {
+      if (!sample.m_hit) {
+        continue;
+      }
+      auto position = sample.m_end;
+      if (glm::abs(position.x - plantPosition.x) >
+              settings.m_boundingBoxRadius ||
+          glm::abs(position.z - plantPosition.z) >
+              settings.m_boundingBoxRadius ||
+          position.y - plantPosition.y < settings.m_boundingBoxHeightRange.x ||
+          position.y - plantPosition.y > settings.m_boundingBoxHeightRange.y) {
+        continue;
+      }
+      points.push_back(sample.m_end);
+      colors.push_back(sample.m_albedo);
+      entityHandles.push_back(sample.m_handle);
+    }
+  }
+
   leafIndex.resize(points.size());
+  leafPartIndex.resize(points.size());
 
   std::vector<std::shared_future<void>> results3;
   Jobs::ParallelFor(
@@ -877,10 +944,18 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
         for (const auto &pair : plantHandles) {
           if (pair.first.GetValue() == entityHandles[i]) {
             leafIndex[i] = pair.second;
+            if (colors[i].x != 0) {
+              leafPartIndex[i] = 1;
+            } else if (colors[i].y != 0) {
+              leafPartIndex[i] = 2;
+            } else {
+              leafPartIndex[i] = 3;
+            }
             return;
           }
         }
         leafIndex[i] = -1;
+        leafPartIndex[i] = 0;
         colors[i] = glm::vec3(0.25f);
       },
       results3);
@@ -908,12 +983,29 @@ void SorghumLayer::ScanPointCloudLabeled(const std::filesystem::path &savePath,
       "color", {"red", "green", "blue"}, Type::FLOAT32, colors.size(),
       reinterpret_cast<uint8_t *>(colors.data()), Type::INVALID, 0);
   cube_file.add_properties_to_element(
-      "index", {"value"}, Type::INT32, leafIndex.size(),
+      "leafIndex", {"value"}, Type::INT32, leafIndex.size(),
       reinterpret_cast<uint8_t *>(leafIndex.data()), Type::INVALID, 0);
-
+  cube_file.add_properties_to_element(
+      "leafPartIndex", {"value"}, Type::INT32, leafPartIndex.size(),
+      reinterpret_cast<uint8_t *>(leafPartIndex.data()), Type::INVALID, 0);
   // Write a binary file
   cube_file.write(outstream_binary, true);
 #else
   UNIENGINE_ERROR("Ray tracer disabled!");
 #endif
+}
+void PointCloudSampleSettings::OnInspect() {
+  ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);
+  ImGui::DragFloat("Scanner angle", &m_scannerAngle, 0.5f);
+
+  ImGui::DragFloat2("Bounding box height range", &m_boundingBoxHeightRange.x,
+                    0.01f);
+
+  ImGui::Checkbox("Auto adjust bounding box", &m_adjustBoundingBox);
+  if (m_adjustBoundingBox) {
+    ImGui::DragFloat("Adjustment factor", &m_adjustmentFactor, 0.01f, 0.0f,
+                     2.0f);
+  } else {
+    ImGui::DragFloat("Bounding box radius", &m_boundingBoxRadius, 0.01f);
+  }
 }

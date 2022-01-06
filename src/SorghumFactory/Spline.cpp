@@ -272,8 +272,17 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
   const float yLeafStep =
       0.5f / (m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
-  for (int i = 0; i < m_segments.size(); i++) {
+  auto segmentSize = m_segments.size();
+
+  for (int i = 0; i < segmentSize; i++) {
     auto &segment = m_segments.at(i);
+    if(i <= segmentSize / 3){
+      archetype.m_color = glm::vec4(1, 0, 0, 1);
+    }else if(i <= segmentSize * 2 / 3){
+      archetype.m_color = glm::vec4(0, 1, 0, 1);
+    }else{
+      archetype.m_color = glm::vec4(0, 0, 1, 1);
+    }
     const float angleStep = segment.m_theta / sorghumLayer->m_step;
     const int vertsCount = sorghumLayer->m_step * 2 + 1;
     for (int j = 0; j < vertsCount; j++) {
