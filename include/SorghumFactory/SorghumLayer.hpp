@@ -16,7 +16,7 @@ struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
 };
 struct SORGHUM_FACTORY_API PinnacleTag : IDataComponent {};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
-class SorghumProceduralDescriptor;
+class SorghumStateGenerator;
 
 struct PointCloudSampleSettings {
   glm::vec2 m_boundingBoxHeightRange = glm::vec2(0, 2);
@@ -76,7 +76,7 @@ public:
   void OnCreate() override;
   Entity CreateSorghum();
   Entity
-  CreateSorghum(const std::shared_ptr<ProceduralSorghumGrowthDescriptor> &descriptor);
+  CreateSorghum(const std::shared_ptr<ProceduralSorghumDescriptor> &descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);

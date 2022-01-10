@@ -1,7 +1,7 @@
 #pragma once
 #include <sorghum_factory_export.h>
-#include "ProceduralSorghumGrowthDescriptor.hpp"
-#include <SorghumProceduralDescriptor.hpp>
+#include "ProceduralSorghumDescriptor.hpp"
+#include <SorghumStateGenerator.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
@@ -22,7 +22,7 @@ public:
   void PreparePinnacleMesh(const glm::vec3 &center, std::vector<Vertex>& vertices, std::vector<glm::uvec3>& triangles);
   void ApplyParameters(float time);
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void GenerateGeometry(bool includeStem = false);
-  void ApplyGeometry(bool seperated = true, bool includeStem = false, bool segmentedMask = false);
+  void GenerateGeometry();
+  void ApplyGeometry(bool seperated = true, bool includeStem = true, bool segmentedMask = false);
 };
 } // namespace PlantFactory

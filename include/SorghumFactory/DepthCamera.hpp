@@ -1,7 +1,7 @@
 #pragma once
 #include <sorghum_factory_export.h>
 
-#include <SorghumProceduralDescriptor.hpp>
+#include <SorghumStateGenerator.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API DepthCamera : public IPrivateComponent, public RenderTarget{

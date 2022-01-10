@@ -13,7 +13,7 @@
 
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <SDFDataCapture.hpp>
-#include <SorghumProceduralDescriptor.hpp>
+#include <SorghumStateGenerator.hpp>
 #include "PointCloudCapture.hpp"
 using namespace Scripts;
 using namespace SorghumFactory;

@@ -2,7 +2,7 @@
 #include <ICurve.hpp>
 #include <LeafSegment.hpp>
 #include <sorghum_factory_export.h>
-#include "ProceduralSorghumGrowthDescriptor.hpp"
+#include "ProceduralSorghumDescriptor.hpp"
 using namespace UniEngine;
 namespace SorghumFactory {
 struct SORGHUM_FACTORY_API SplineNode {
@@ -18,7 +18,8 @@ struct SORGHUM_FACTORY_API SplineNode {
 };
 
 class SORGHUM_FACTORY_API Spline : public IPrivateComponent {
-  void GenerateGeometry(const ProceduralStemGrowthState& stemState, const ProceduralLeafGrowthState& leafState, int nodeAmount);
+  void GenerateLeafGeometry(const ProceduralStemState & stemState, const ProceduralLeafState & leafState, int nodeAmount);
+  void GenerateStemGeometry(const ProceduralStemState & stemState, int nodeAmount);
 public:
   //The "normal" direction of the leaf.
   glm::vec3 m_left;
@@ -40,8 +41,8 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void Copy(const std::shared_ptr<Spline> &target);
-  void FormStem(const ProceduralStemGrowthState& stemState, int nodeAmount);
-  void FormLeaf(const ProceduralStemGrowthState& stemState, const ProceduralLeafGrowthState& leafState, int nodeAmount);
+  void FormStem(const ProceduralStemState & stemState, int nodeAmount);
+  void FormLeaf(const ProceduralStemState & stemState, const ProceduralLeafState & leafState, int nodeAmount);
 
 };
 

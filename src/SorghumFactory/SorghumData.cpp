@@ -14,17 +14,16 @@ void SorghumData::OnCreate() {}
 void SorghumData::OnDestroy() {}
 
 void SorghumData::OnInspect() {
-  Editor::DragAndDropButton<ProceduralSorghumGrowthDescriptor>(m_parameters,
+  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(m_parameters,
                                                                "Descriptor");
-  auto descriptor = m_parameters.Get<ProceduralSorghumGrowthDescriptor>();
+  auto descriptor = m_parameters.Get<ProceduralSorghumDescriptor>();
   if (descriptor) {
     static float time = 1.0f;
     static bool autoApply = true;
     ImGui::Checkbox("Auto apply", &autoApply);
-    if(ImGui::DragFloat("Time", &time, 0.01f, 0.0f, descriptor->m_endTime) && autoApply){
-      time = glm::clamp(time, 0.0f, descriptor->m_endTime);
+    if(ImGui::SliderFloat("Time", &time, 0.0f, descriptor->m_endTime) && autoApply){
       ApplyParameters(time);
-      GenerateGeometry(false);
+      GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
     time = glm::clamp(time, 0.0f, descriptor->m_endTime);
@@ -33,18 +32,18 @@ void SorghumData::OnInspect() {
     }
     if (ImGui::Button("Apply state and build sorghum")) {
       ApplyParameters(time);
-      GenerateGeometry(false);
+      GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
     if (ImGui::Button("Generate geometry")) {
-      GenerateGeometry(false);
+      GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
     if(ImGui::Button("Apply +1/20")){
       time += descriptor->m_endTime / 20.0f;
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
       ApplyParameters(time);
-      GenerateGeometry(false);
+      GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
     ImGui::SameLine();
@@ -52,7 +51,7 @@ void SorghumData::OnInspect() {
       time -= descriptor->m_endTime / 20.0f;
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
       ApplyParameters(time);
-      GenerateGeometry(false);
+      GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
   }
@@ -118,7 +117,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_state.Deserialize(in["m_state"]);
 }
 void SorghumData::ApplyParameters(float time) {
-  auto descriptor = m_parameters.Get<ProceduralSorghumGrowthDescriptor>();
+  auto descriptor = m_parameters.Get<ProceduralSorghumDescriptor>();
   if (!descriptor)
     return;
   m_state = descriptor->Get(time);
@@ -174,7 +173,7 @@ void SorghumData::PreparePinnacleMesh(const glm::vec3 &center,
   }
 }
 
-void SorghumData::GenerateGeometry(bool includeStem) {
+void SorghumData::GenerateGeometry() {
   auto owner = GetOwner();
   auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormStem(m_state.m_stem, m_stemSubdivisionAmount);

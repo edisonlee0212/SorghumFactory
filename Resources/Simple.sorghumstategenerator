@@ -1,0 +1,301 @@
+m_name: Simple
+m_pinnacleDescriptor:
+  m_hasPinnacle: false
+  m_pinnacleSize: [0.200000003, 0.75, 0.200000003]
+  m_seedAmount: 1200
+  m_seedRadius: 0.0199999996
+m_cascadeIndex: 1
+m_l1maxLeafWaviness: 1.5
+m_l1LeafWavinessDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1maxLeafWavinessPeriod: 3
+m_l1LeafWavinessPeriodDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1LeafWidthMax: 0.0500000007
+m_l1LeafWidthDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 1]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.800000012]
+    - [0.100000001, 0]
+m_l1LeafLengthDecreaseStartingPointDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1LeafCount: 10
+m_l1FirstLeafStartingPoint: 0.100000001
+m_l1LastLeafEndingPoint: 1
+m_l1LeafLengthMax: 2.5
+m_l1LeafLengthDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.333000004]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.246999994]
+    - [0.100000001, 0]
+m_l1LeafLengthVarianceMax: 0
+m_l1LeafLengthVarianceDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1BranchingAngleMax: 50
+m_l1BranchingAngleDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.100000001]
+    - [0.100000001, 0]
+m_l1BranchingAngleVarianceMax: 0
+m_l1BranchingAngleVarianceDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1RollAngleVarianceMax: 10
+m_l1RollAngleVarianceDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.100000001]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 1]
+    - [0.100000001, 0]
+m_l1GravitropismMax: 4
+m_l1GravitropismDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0]
+    - [0.100000001, 0]
+m_l1GravitropismVarianceMax: 0
+m_l1GravitropismVarianceDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_l1GravitropismFactorMax: 1
+m_l1GravitropismFactorDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.899999976]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0]
+    - [0.100000001, 0]
+m_l1GravitropismFactorVarianceMax: 0
+m_l1GravitropismFactorVarianceDistribution:
+  m_tangent: true
+  m_min: [0, 0]
+  m_max: [1, 1]
+  m_values:
+    - [-0.100000001, 0]
+    - [0, 0.5]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.5]
+    - [0.100000001, 0]
+m_stemDescriptor:
+  m_direction: [0, 1, 0]
+  m_length: 0.875
+  m_widthMax: 0.0149999997
+  m_widthDistribution:
+    m_tangent: true
+    m_min: [0, 0]
+    m_max: [1, 1]
+    m_values:
+      - [-0.100000001, 0]
+      - [0, 1]
+      - [0.100000001, 0]
+      - [-0.100000001, 0]
+      - [1, 0.400000006]
+      - [0.100000001, 0]
+m_leafDescriptors:
+  - m_leafIndex: 0
+    m_leafStartingPoint: 0.100000001
+    m_leafLength: 0.832499981
+    m_branchingAngle: 25
+    m_rollAngle: -0.347164124
+    m_gravitropism: 2
+    m_gravitropismFactor: 0.899999976
+    m_stemWidth: 0.0599999987
+    m_leafMaxWidth: 0.0500000007
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 1
+    m_leafStartingPoint: 0.200000003
+    m_leafLength: 0.814630985
+    m_branchingAngle: 23.3377628
+    m_rollAngle: 181.214722
+    m_gravitropism: 1.83377647
+    m_gravitropismFactor: 0.825199366
+    m_stemWidth: 0.0599506162
+    m_leafMaxWidth: 0.049168881
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 2
+    m_leafStartingPoint: 0.300000012
+    m_leafLength: 0.790407538
+    m_branchingAngle: 21.0844212
+    m_rollAngle: 0.754874229
+    m_gravitropism: 1.60844207
+    m_gravitropismFactor: 0.723798871
+    m_stemWidth: 0.0596049428
+    m_leafMaxWidth: 0.0480422154
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 3
+    m_leafStartingPoint: 0.400000006
+    m_leafLength: 0.764620245
+    m_branchingAngle: 18.6856041
+    m_rollAngle: 192.594879
+    m_gravitropism: 1.36856043
+    m_gravitropismFactor: 0.615852177
+    m_stemWidth: 0.0586666577
+    m_leafMaxWidth: 0.046842806
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 4
+    m_leafStartingPoint: 0.5
+    m_leafLength: 0.738354266
+    m_branchingAngle: 16.2422562
+    m_rollAngle: -36.200985
+    m_gravitropism: 1.12422574
+    m_gravitropismFactor: 0.505901575
+    m_stemWidth: 0.0568395071
+    m_leafMaxWidth: 0.0456211269
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 5
+    m_leafStartingPoint: 0.600000024
+    m_leafLength: 0.711645722
+    m_branchingAngle: 13.7577419
+    m_rollAngle: 192.908997
+    m_gravitropism: 0.875774264
+    m_gravitropismFactor: 0.394098401
+    m_stemWidth: 0.0538271591
+    m_leafMaxWidth: 0.044378873
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 6
+    m_leafStartingPoint: 0.700000048
+    m_leafLength: 0.685379744
+    m_branchingAngle: 11.3143959
+    m_rollAngle: -59.6387825
+    m_gravitropism: 0.631439567
+    m_gravitropismFactor: 0.284147799
+    m_stemWidth: 0.0493333302
+    m_leafMaxWidth: 0.0431571975
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 7
+    m_leafStartingPoint: 0.800000012
+    m_leafLength: 0.65959245
+    m_branchingAngle: 8.91558075
+    m_rollAngle: 103.159805
+    m_gravitropism: 0.391558051
+    m_gravitropismFactor: 0.176201105
+    m_stemWidth: 0.0430617258
+    m_leafMaxWidth: 0.0419577919
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 8
+    m_leafStartingPoint: 0.900000036
+    m_leafLength: 0.635369062
+    m_branchingAngle: 6.66223526
+    m_rollAngle: 6.59531021
+    m_gravitropism: 0.166223481
+    m_gravitropismFactor: 0.0748005733
+    m_stemWidth: 0.0347160473
+    m_leafMaxWidth: 0.0408311188
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75
+  - m_leafIndex: 9
+    m_leafStartingPoint: 1
+    m_leafLength: 0.617500007
+    m_branchingAngle: 5
+    m_rollAngle: 398.906372
+    m_gravitropism: 0
+    m_gravitropismFactor: 0
+    m_stemWidth: 0.0240000002
+    m_leafMaxWidth: 0.0400000028
+    m_leafWidthDecreaseStart: 0.5
+    m_wavinessPeriod: 1.5
+    m_waviness: 0.75

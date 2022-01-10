@@ -5,7 +5,7 @@
 #include "SorghumField.hpp"
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
-#include "SorghumProceduralDescriptor.hpp"
+#include "SorghumStateGenerator.hpp"
 #include "TransformLayer.hpp"
 #include <SorghumField.hpp>
 using namespace SorghumFactory;
@@ -116,7 +116,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
 }
 
 void RectangularSorghumField::GenerateMatrices() {
-  if (!m_spd.Get<SorghumProceduralDescriptor>())
+  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>())
     return;
   m_newSorghums.clear();
   for (int xi = 0; xi < m_size.x; xi++) {
@@ -127,7 +127,7 @@ void RectangularSorghumField::GenerateMatrices() {
           glm::vec3(xi * m_distance.x, 0.0f, yi * m_distance.y);
       auto rotation = glm::quat(glm::radians(
           glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
-      m_newSorghums.emplace_back(m_spd, glm::translate(position) *
+      m_newSorghums.emplace_back(m_proceduralSorghumDescriptor, glm::translate(position) *
                                             glm::mat4_cast(rotation) *
                                             glm::scale(glm::vec3(1.0f)));
     }
@@ -135,14 +135,15 @@ void RectangularSorghumField::GenerateMatrices() {
 }
 void RectangularSorghumField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
+  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(
+      m_proceduralSorghumDescriptor, "Procedural Parameters");
   ImGui::DragFloat4("Distance mean/var", &m_distance.x, 0.01f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
                     180.0f);
   ImGui::DragInt2("Size", &m_size.x, 1, 0, 3);
 }
 void RectangularSorghumField::Serialize(YAML::Emitter &out) {
-  m_spd.Save("SPD", out);
+  m_proceduralSorghumDescriptor.Save("m_proceduralSorghumDescriptor", out);
 
   out << YAML::Key << "m_distance" << YAML::Value << m_distance;
   out << YAML::Key << "m_distanceVariance" << YAML::Value << m_distanceVariance;
@@ -152,7 +153,7 @@ void RectangularSorghumField::Serialize(YAML::Emitter &out) {
   SorghumField::Serialize(out);
 }
 void RectangularSorghumField::Deserialize(const YAML::Node &in) {
-  m_spd.Load("SPD", in);
+  m_proceduralSorghumDescriptor.Load("m_proceduralSorghumDescriptor", in);
 
   m_distance = in["m_distance"].as<glm::vec2>();
   m_distanceVariance = in["m_distanceVariance"].as<glm::vec2>();
@@ -163,11 +164,11 @@ void RectangularSorghumField::Deserialize(const YAML::Node &in) {
 }
 void RectangularSorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
   SorghumField::CollectAssetRef(list);
-  list.push_back(m_spd);
+  list.push_back(m_proceduralSorghumDescriptor);
 }
 
 void PositionsField::GenerateMatrices() {
-  if (!m_spd.Get<SorghumProceduralDescriptor>())
+  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>())
     return;
   m_newSorghums.clear();
   for (auto &position : m_positions) {
@@ -179,14 +180,15 @@ void PositionsField::GenerateMatrices() {
         m_factor;
     auto rotation = glm::quat(glm::radians(
         glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
-    m_newSorghums.emplace_back(m_spd, glm::translate(pos) *
+    m_newSorghums.emplace_back(m_proceduralSorghumDescriptor, glm::translate(pos) *
                                           glm::mat4_cast(rotation) *
                                           glm::scale(glm::vec3(1.0f)));
   }
 }
 void PositionsField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<ProceduralSorghumGrowthDescriptor>(m_spd, "SPD");
+  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(
+      m_proceduralSorghumDescriptor, "Procedural Parameter");
   ImGui::Text("Available count: %d", m_positions.size());
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
@@ -219,7 +221,7 @@ void PositionsField::OnInspect() {
   }
 }
 void PositionsField::Serialize(YAML::Emitter &out) {
-  m_spd.Save("SPD", out);
+  m_proceduralSorghumDescriptor.Save("m_proceduralSorghumDescriptor", out);
   out << YAML::Key << "m_rotationVariance" << YAML::Value << m_rotationVariance;
   out << YAML::Key << "m_sampleX" << YAML::Value << m_sampleX;
   out << YAML::Key << "m_sampleY" << YAML::Value << m_sampleY;
@@ -230,7 +232,7 @@ void PositionsField::Serialize(YAML::Emitter &out) {
   SorghumField::Serialize(out);
 }
 void PositionsField::Deserialize(const YAML::Node &in) {
-  m_spd.Load("SPD", in);
+  m_proceduralSorghumDescriptor.Load("m_proceduralSorghumDescriptor", in);
   m_rotationVariance = in["m_rotationVariance"].as<glm::vec3>();
   if (in["m_sampleX"])
     m_sampleX = in["m_sampleX"].as<glm::dvec2>();
@@ -246,7 +248,7 @@ void PositionsField::Deserialize(const YAML::Node &in) {
 }
 void PositionsField::CollectAssetRef(std::vector<AssetRef> &list) {
   SorghumField::CollectAssetRef(list);
-  list.push_back(m_spd);
+  list.push_back(m_proceduralSorghumDescriptor);
 }
 void PositionsField::ImportFromFile(const std::filesystem::path &path) {
   std::ifstream ifs;
@@ -299,8 +301,9 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       sorghumEntity.SetDataComponent(sorghumTransform);
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
-      sorghumData->m_parameters = m_spd;
-      sorghumData->ApplyParameters(1.0f);
+      sorghumData->m_parameters = m_proceduralSorghumDescriptor;
+      sorghumData->ApplyParameters(
+          m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>()->m_endTime);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)

@@ -126,7 +126,7 @@ glm::vec3 Spline::EvaluateAxisFromCurves(float point) const {
   return m_curves.at(curveIndex).GetAxis(curveU);
 }
 
-void Spline::GenerateGeometry(const ProceduralStemGrowthState& stemState, const ProceduralLeafGrowthState& leafState, int nodeAmount) {
+void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const ProceduralLeafState & leafState, int nodeAmount) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (!sorghumLayer)
     return;
@@ -226,8 +226,8 @@ void Spline::GenerateGeometry(const ProceduralStemGrowthState& stemState, const 
     }
   }
 }
-void Spline::FormLeaf(const ProceduralStemGrowthState &stemState,
-                           const ProceduralLeafGrowthState &leafState, int nodeAmount) {
+void Spline::FormLeaf(const ProceduralStemState &stemState,
+                           const ProceduralLeafState &leafState, int nodeAmount) {
   m_nodes.clear();
   float stemWidth =
       glm::mix(stemState.m_startWidth, stemState.m_endWidth, leafState.m_startingPoint);
@@ -256,22 +256,22 @@ void Spline::FormLeaf(const ProceduralStemGrowthState &stemState,
   float unitLength = leafState.m_length / nodeAmount;
   for (int i = 0; i < nodeAmount; i++) {
     position += direction * unitLength;
-    m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), leafState.m_maxWidth * leafState.m_widthAlongLeafCurve.GetValue((float)i / nodeAmount),
+    m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), leafState.m_maxWidth * leafState.m_widthAlongLeafCurve.GetValue((float)i / (nodeAmount - 1)),
                          -direction, true, 1.0f);
     direction = glm::rotate(
         direction, glm::radians(leafState.m_bending.x + i * leafState.m_bending.y),
         m_left);
   }
-  GenerateGeometry(stemState, leafState, nodeAmount);
+  GenerateLeafGeometry(stemState, leafState, nodeAmount);
 }
 void Spline::Copy(const std::shared_ptr<Spline> &target) { *this = *target; }
-void Spline::FormStem(const ProceduralStemGrowthState &stemState,
+void Spline::FormStem(const ProceduralStemState &stemState,
                            int nodeAmount) {
   m_nodes.clear();
   float unitLength = stemState.m_length / nodeAmount;
   for (int i = 0; i < nodeAmount; i++) {
     float stemWidth =
-        glm::mix(stemState.m_startWidth, stemState.m_endWidth, (float)i / nodeAmount);
+        glm::mix(stemState.m_startWidth, stemState.m_endWidth, (float)i / (nodeAmount - 1));
     m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
                              static_cast<float>(i),
                          180.0f,
@@ -282,6 +282,88 @@ void Spline::FormStem(const ProceduralStemGrowthState &stemState,
   m_left =
       glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
                   stemState.m_direction);
+  GenerateStemGeometry(stemState, nodeAmount);
+}
+void Spline::GenerateStemGeometry(const ProceduralStemState &stemState,
+                                  int nodeAmount) {
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  if (!sorghumLayer)
+    return;
+
+  m_vertices.clear();
+  m_triangles.clear();
+  m_segments.clear();
+
+  for (int i = 1; i < m_nodes.size(); i++) {
+    auto &prev = m_nodes.at(i - 1);
+    auto &curr = m_nodes.at(i);
+    float distance = glm::distance(prev.m_position, curr.m_position);
+    BezierCurve curve = BezierCurve(
+        prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
+        curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
+    for (float div = (i == 1 ? 0.0f
+                             : 1.0f / static_cast<float>(
+                                          sorghumLayer->m_segmentAmount));
+         div <= 1.0f;
+         div += 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount)) {
+      auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
+      auto up = glm::normalize(glm::cross(m_left, front));
+      m_segments.emplace_back(
+          curve.GetPoint(div), up, front,
+          prev.m_width * (1.0f - div) + curr.m_width * div,
+          prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
+          prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
+              curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
+          1.0f,
+          1.0f);
+    }
+  }
+  int stemSegmentCount = m_segments.size();
+  const int vertexIndex = m_vertices.size();
+  Vertex archetype{};
+  m_vertexColor = glm::vec4(0, 0, 0, 1);
+  archetype.m_color = m_vertexColor;
+  const float xStep = 1.0f / sorghumLayer->m_step / 2.0f;
+  const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
+  const float yLeafStep =
+      0.5f / (m_segments.size() - static_cast<float>(stemSegmentCount) + 1);
+  auto segmentSize = m_segments.size();
+
+  for (int i = 0; i < segmentSize; i++) {
+    auto &segment = m_segments.at(i);
+    if (i <= segmentSize / 3) {
+      archetype.m_color = glm::vec4(1, 0, 0, 1);
+    } else if (i <= segmentSize * 2 / 3) {
+      archetype.m_color = glm::vec4(0, 1, 0, 1);
+    } else {
+      archetype.m_color = glm::vec4(0, 0, 1, 1);
+    }
+    const float angleStep = segment.m_theta / sorghumLayer->m_step;
+    const int vertsCount = sorghumLayer->m_step * 2 + 1;
+    for (int j = 0; j < vertsCount; j++) {
+      const auto position =
+          segment.GetPoint((j - sorghumLayer->m_step) * angleStep);
+      archetype.m_position = glm::vec3(position.x, position.y, position.z);
+      float yPos = (i < stemSegmentCount)
+                       ? yStemStep * i
+                       : 0.5f + yLeafStep * (i - stemSegmentCount + 1);
+      archetype.m_texCoords = glm::vec2(j * xStep, yPos);
+      m_vertices.push_back(archetype);
+    }
+    if (i != 0) {
+      for (int j = 0; j < vertsCount - 1; j++) {
+        // Down triangle
+        m_triangles.emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                 vertexIndex + (i - 1) * vertsCount + j + 1,
+                                 vertexIndex + (i - 1) * vertsCount + j);
+        // Up triangle
+        m_triangles.emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1,
+                                 vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                 vertexIndex + ((i - 1) + 1) * vertsCount + j +
+                                     1);
+      }
+    }
+  }
 }
 SplineNode::SplineNode(glm::vec3 position, float angle, float width,
                        glm::vec3 axis, bool isLeaf, float surfacePush) {

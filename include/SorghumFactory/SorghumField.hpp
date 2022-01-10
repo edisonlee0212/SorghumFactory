@@ -30,7 +30,7 @@ public:
 
 class SORGHUM_FACTORY_API RectangularSorghumField : public SorghumField {
   friend class SorghumLayer;
-  AssetRef m_spd;
+  AssetRef m_proceduralSorghumDescriptor;
   glm::vec2 m_distance = glm::vec2(3.0f);
   glm::vec2 m_distanceVariance = glm::vec2(0.5f);
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
@@ -48,7 +48,7 @@ public:
 class SORGHUM_FACTORY_API PositionsField : public SorghumField {
   friend class SorghumLayer;
 public:
-  AssetRef m_spd;
+  AssetRef m_proceduralSorghumDescriptor;
   float m_factor = 1.0f;
   std::vector<glm::dvec2> m_positions;
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
