@@ -19,7 +19,14 @@ void SorghumData::OnInspect() {
   auto descriptor = m_parameters.Get<ProceduralSorghumGrowthDescriptor>();
   if (descriptor) {
     static float time = 1.0f;
-    ImGui::DragFloat("Time", &time, 0.01f, 0.0f, descriptor->m_endTime);
+    static bool autoApply = true;
+    ImGui::Checkbox("Auto apply", &autoApply);
+    if(ImGui::DragFloat("Time", &time, 0.01f, 0.0f, descriptor->m_endTime) && autoApply){
+      time = glm::clamp(time, 0.0f, descriptor->m_endTime);
+      ApplyParameters(time);
+      GenerateGeometry(false);
+      ApplyGeometry(true, true, false);
+    }
     time = glm::clamp(time, 0.0f, descriptor->m_endTime);
     if (ImGui::Button("Apply state only")) {
       ApplyParameters(time);
@@ -27,18 +34,18 @@ void SorghumData::OnInspect() {
     if (ImGui::Button("Apply state and build sorghum")) {
       ApplyParameters(time);
       GenerateGeometry(false);
-      ApplyGeometry(true, false, false);
+      ApplyGeometry(true, true, false);
     }
     if (ImGui::Button("Generate geometry")) {
       GenerateGeometry(false);
-      ApplyGeometry(true, false, false);
+      ApplyGeometry(true, true, false);
     }
     if(ImGui::Button("Apply +1/20")){
       time += descriptor->m_endTime / 20.0f;
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
       ApplyParameters(time);
       GenerateGeometry(false);
-      ApplyGeometry(true, false, false);
+      ApplyGeometry(true, true, false);
     }
     ImGui::SameLine();
     if(ImGui::Button("Apply -1/20")){
@@ -46,7 +53,7 @@ void SorghumData::OnInspect() {
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
       ApplyParameters(time);
       GenerateGeometry(false);
-      ApplyGeometry(true, false, false);
+      ApplyGeometry(true, true, false);
     }
   }
   m_state.OnInspect();
@@ -171,7 +178,6 @@ void SorghumData::GenerateGeometry(bool includeStem) {
   auto owner = GetOwner();
   auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
   stemSpline->FormStem(m_state.m_stem, m_stemSubdivisionAmount);
-
   int i = 0;
   GetOwner().ForEachChild(
       [&](const std::shared_ptr<Scene> &scene, Entity child) {
