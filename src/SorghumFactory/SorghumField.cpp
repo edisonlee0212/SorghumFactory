@@ -97,11 +97,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_parameters = newSorghum.first;
-      sorghumData->ApplyParameters();
-      if (semanticMask)
-        sorghumData->GenerateGeometrySeperated(semanticMask);
-      else
-        sorghumData->GenerateGeometry(true);
+      sorghumData->ApplyParameters(1.0f);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)
@@ -190,7 +186,7 @@ void PositionsField::GenerateMatrices() {
 }
 void PositionsField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<SorghumProceduralDescriptor>(m_spd, "SPD");
+  Editor::DragAndDropButton<ProceduralSorghumGrowthDescriptor>(m_spd, "SPD");
   ImGui::Text("Available count: %d", m_positions.size());
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
@@ -304,8 +300,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_parameters = m_spd;
-      sorghumData->ApplyParameters();
-      sorghumData->GenerateGeometrySeperated(semanticMask, true);
+      sorghumData->ApplyParameters(1.0f);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)
@@ -315,7 +310,10 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
                                                 field);
+    Application::GetLayer<SorghumLayer>()
+        ->GenerateMeshForAllSorghums();
     field.SetStatic(true);
+
     return {centerSorghum, field};
   } else {
     UNIENGINE_ERROR("No sorghum layer!");

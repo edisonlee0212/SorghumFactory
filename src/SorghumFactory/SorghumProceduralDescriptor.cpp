@@ -6,16 +6,6 @@
 #include "AssetManager.hpp"
 using namespace SorghumFactory;
 void SorghumProceduralDescriptor::OnInspect() {
-  if(ImGui::Button("Instantiate")){
-    auto sorghumLayer = Application::GetLayer<SorghumLayer>();
-    if(sorghumLayer){
-      Entity sorghum = sorghumLayer->CreateSorghum(AssetManager::Get<SorghumProceduralDescriptor>(GetHandle()));
-      sorghum.SetName(m_name);
-    }else{
-      UNIENGINE_ERROR("No sorghum layer!");
-    }
-  }
-
   if (ImGui::TreeNodeEx("Stem and pinnacle", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (m_stemDescriptor.OnInspect())
       m_saved = false;

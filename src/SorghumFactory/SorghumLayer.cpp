@@ -23,7 +23,7 @@ void SorghumLayer::OnCreate() {
 
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-
+  ClassRegistry::RegisterAsset<ProceduralSorghumGrowthDescriptor>("ProceduralSorghumGrowthDescriptor", ".psgd");
   ClassRegistry::RegisterAsset<SorghumProceduralDescriptor>(
       "SorghumProceduralDescriptor", ".spd");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
@@ -145,40 +145,26 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
 
 void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   std::vector<Entity> plants;
-  m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
-  for (auto &plant : plants) {
-    auto stemSpline = plant.GetOrSetPrivateComponent<Spline>().lock();
-    // Form the stem spline. Feed with unused shared_ptr to itself.
-    stemSpline->FormNodes(stemSpline);
-  }
   Entities::ForEach<GlobalTransform>(
-      Entities::GetCurrentScene(), Jobs::Workers(), m_leafQuery,
+      Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
       [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
-        auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
-        auto stemSpline =
-            entity.GetParent().GetOrSetPrivateComponent<Spline>().lock();
-        if (stemSpline)
-          spline->GenerateGeometry(stemSpline);
+        if (entity.HasPrivateComponent<SorghumData>()) {
+          auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>()
+                                 .lock();
+          sorghumData->GenerateGeometry();
+        }
       });
 
   m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
-    plant.ForEachChild([](const std::shared_ptr<Scene> &scene, Entity child) {
-      if (!child.HasPrivateComponent<Spline>())
-        return;
-      auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-      auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
-      meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, spline->m_vertices,
-                                                    spline->m_triangles);
-    });
     if (plant.HasPrivateComponent<SorghumData>())
-      plant.GetOrSetPrivateComponent<SorghumData>().lock()->m_meshGenerated =
-          true;
+      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry();
   }
 }
 
 Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
                                  const std::string &name) {
+  /*
   std::ifstream file(path, std::fstream::in);
   if (!file.is_open()) {
     UNIENGINE_LOG("Failed to open file!");
@@ -226,6 +212,8 @@ Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
                                         leafSpline->m_curves.back().m_p3);
   }
   return sorghum;
+   */
+  return Entity();
 }
 
 void SorghumLayer::OnInspect() {
@@ -644,7 +632,7 @@ void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
 }
 
 Entity SorghumLayer::CreateSorghum(
-    const std::shared_ptr<SorghumProceduralDescriptor> &descriptor) {
+    const std::shared_ptr<ProceduralSorghumGrowthDescriptor> &descriptor) {
   if (!descriptor) {
     UNIENGINE_ERROR("Descriptor empty!");
     return Entity();
@@ -652,8 +640,9 @@ Entity SorghumLayer::CreateSorghum(
   Entity sorghum = CreateSorghum();
   auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
   sorghumData->m_parameters = descriptor;
-  sorghumData->ApplyParameters();
-  sorghumData->GenerateGeometrySeperated(false);
+  sorghumData->ApplyParameters(descriptor->m_endTime);
+  sorghumData->GenerateGeometry(false);
+  sorghumData->ApplyGeometry();
   return sorghum;
 }
 
@@ -845,11 +834,10 @@ void SorghumLayer::ScanPointCloudLabeled(
       sorghum.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle(), 0);
   sorghum.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
     auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>();
-    auto spline = child.GetOrSetPrivateComponent<Spline>();
-    if (meshRenderer.expired() || spline.expired())
+    if (meshRenderer.expired() || child.HasDataComponent<LeafTag>())
       return;
     auto handle = meshRenderer.lock()->GetHandle();
-    auto index = spline.lock()->m_order + 1;
+    auto index = child.GetDataComponent<LeafTag>().m_index + 1;
     plantHandles.emplace_back(handle, index);
   });
 

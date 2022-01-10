@@ -1,43 +1,20 @@
 #include "Spline.hpp"
 #include "SorghumLayer.hpp"
+
 using namespace SorghumFactory;
 
 void Spline::OnInspect() {
-
-
-
-  switch (m_type) {
-  case SplineType::BezierCurve: {
-    if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
-      for (int i = 0; i < m_curves.size(); i++) {
-        ImGui::Text(("Curve" + std::to_string(i)).c_str());
-        ImGui::InputFloat3("CP0", &m_curves[i].m_p0.x);
-        ImGui::InputFloat3("CP1", &m_curves[i].m_p1.x);
-        ImGui::InputFloat3("CP2", &m_curves[i].m_p2.x);
-        ImGui::InputFloat3("CP3", &m_curves[i].m_p3.x);
-      }
-      ImGui::TreePop();
+  if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (int i = 0; i < m_curves.size(); i++) {
+      ImGui::Text(("Curve" + std::to_string(i)).c_str());
+      ImGui::InputFloat3("CP0", &m_curves[i].m_p0.x);
+      ImGui::InputFloat3("CP1", &m_curves[i].m_p1.x);
+      ImGui::InputFloat3("CP2", &m_curves[i].m_p2.x);
+      ImGui::InputFloat3("CP3", &m_curves[i].m_p3.x);
     }
-  } break;
-  case SplineType::Procedural: {
-    ImGui::Text(("Order: " + std::to_string(m_order)).c_str());
-    ImGui::Text(("Unit length: " + std::to_string(m_unitLength)).c_str());
-    ImGui::Text(("Stem width: " + std::to_string(m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint))).c_str());
-    ImGui::Text(("Unit amount: " + std::to_string(m_unitAmount)).c_str());
-    ImGui::Text(("Bending: " + std::to_string(m_gravitropism)).c_str());
-    ImGui::Text(
-        ("Bending increase: " + std::to_string(m_gravitropismFactor)).c_str());
-    ImGui::Text(("Direction: [" + std::to_string(m_initialDirection.x) + ", " +
-                 std::to_string(m_initialDirection.y) + ", " +
-                 std::to_string(m_initialDirection.z) + "]")
-                    .c_str());
-    ImGui::Text(("Leaf width: " + std::to_string(m_leafMaxWidth)).c_str());
-    ImGui::Text(
-        ("Width decrease start: " + std::to_string(m_leafWidthDecreaseStart))
-            .c_str());
-  } break;
+    ImGui::TreePop();
   }
-  static bool renderNodes = true;
+  static bool renderNodes = false;
   static float nodeSize = 0.1f;
   static glm::vec4 renderColor = glm::vec4(1.0f);
   ImGui::Checkbox("Render nodes", &renderNodes);
@@ -60,30 +37,7 @@ void Spline::OnInspect() {
 }
 
 void Spline::Serialize(YAML::Emitter &out) {
-  out << YAML::Key << "m_type" << YAML::Value << (unsigned)m_type;
   out << YAML::Key << "m_left" << YAML::Value << m_left;
-  out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
-
-  out << YAML::Key << "m_wavinessPeriod" << YAML::Value << m_wavinessPeriod;
-  out << YAML::Key << "m_waviness" << YAML::Value << m_waviness;
-
-  out << YAML::Key << "m_order" << YAML::Value << m_order;
-  out << YAML::Key << "m_unitLength" << YAML::Value << m_unitLength;
-  out << YAML::Key << "m_unitAmount" << YAML::Value << m_unitAmount;
-  out << YAML::Key << "m_gravitropism" << YAML::Value << m_gravitropism;
-  out << YAML::Key << "m_gravitropismFactor" << YAML::Value
-      << m_gravitropismFactor;
-  out << YAML::Key << "m_initialDirection" << YAML::Value << m_initialDirection;
-
-  out << YAML::Key << "m_stemWidthMax" << YAML::Value << m_stemWidthMax;
-  out << YAML::Key << "m_stemWidthDistribution" << YAML::Value << YAML::BeginMap;
-  m_stemWidthDistribution.Serialize(out);
-  out << YAML::EndMap;
-
-  out << YAML::Key << "m_leafMaxWidth" << YAML::Value << m_leafMaxWidth;
-  out << YAML::Key << "m_leafWidthDecreaseStart" << YAML::Value
-      << m_leafWidthDecreaseStart;
-
   out << YAML::Key << "m_curves" << YAML::BeginSeq;
   for (const auto &i : m_curves) {
     out << YAML::BeginMap;
@@ -102,30 +56,7 @@ void Spline::Serialize(YAML::Emitter &out) {
   }
 }
 void Spline::Deserialize(const YAML::Node &in) {
-
-  m_type = (SplineType)in["m_type"].as<unsigned>();
   m_left = in["m_left"].as<glm::vec3>();
-  m_startingPoint = in["m_startingPoint"].as<float>();
-
-  if (in["m_wavinessPeriod"])
-    m_wavinessPeriod = in["m_wavinessPeriod"].as<float>();
-  if (in["m_waviness"])
-    m_waviness = in["m_waviness"].as<float>();
-
-  m_order = in["m_order"].as<int>();
-  m_unitLength = in["m_unitLength"].as<float>();
-  m_unitAmount = in["m_unitAmount"].as<int>();
-  m_gravitropism = in["m_gravitropism"].as<float>();
-  m_gravitropismFactor = in["m_gravitropismFactor"].as<float>();
-  m_initialDirection = in["m_initialDirection"].as<glm::vec3>();
-
-  if (in["m_stemWidthMax"])
-    m_stemWidthMax = in["m_stemWidthMax"].as<float>();
-  if (in["m_stemWidthDistribution"])
-    m_stemWidthDistribution.Deserialize(in["m_stemWidthDistribution"]);
-
-  m_leafMaxWidth = in["m_leafMaxWidth"].as<float>();
-  m_leafWidthDecreaseStart = in["m_leafWidthDecreaseStart"].as<float>();
   if (in["m_curves"]) {
     m_curves.clear();
     for (const auto &i : in["m_curves"]) {
@@ -155,97 +86,82 @@ void Spline::Import(std::ifstream &stream) {
     }
     m_curves.emplace_back(cp[0], cp[1], cp[2], cp[3]);
   }
-  m_type = SplineType::BezierCurve;
 }
 
-glm::vec3 Spline::EvaluatePoint(float point) {
-  switch (m_type) {
-  case SplineType::BezierCurve: {
-    const float splineU =
-        glm::clamp(point, 0.0f, 1.0f) * float(m_curves.size());
+glm::vec3 Spline::EvaluatePointFromCurves(float point) const {
+  const float splineU = glm::clamp(point, 0.0f, 1.0f) * float(m_curves.size());
 
-    // Decompose the global u coordinate on the spline
-    float integerPart;
-    const float fractionalPart = modff(splineU, &integerPart);
+  // Decompose the global u coordinate on the spline
+  float integerPart;
+  const float fractionalPart = modff(splineU, &integerPart);
 
-    auto curveIndex = int(integerPart);
-    auto curveU = fractionalPart;
+  auto curveIndex = int(integerPart);
+  auto curveU = fractionalPart;
 
-    // If evaluating the very last point on the spline
-    if (curveIndex == m_curves.size() && curveU <= 0.0f) {
-      // Flip to the end of the last patch
-      curveIndex--;
-      curveU = 1.0f;
-    }
-    return m_curves.at(curveIndex).GetPoint(curveU);
+  // If evaluating the very last point on the spline
+  if (curveIndex == m_curves.size() && curveU <= 0.0f) {
+    // Flip to the end of the last patch
+    curveIndex--;
+    curveU = 1.0f;
   }
-  case SplineType::Procedural: {
-    float totalLength = m_unitLength * m_unitAmount;
-    return glm::normalize(m_initialDirection) * point * totalLength;
-  }
-  }
+  return m_curves.at(curveIndex).GetPoint(curveU);
 }
 
-glm::vec3 Spline::EvaluateAxis(float point) {
-  switch (m_type) {
-  case SplineType::BezierCurve: {
-    const float splineU =
-        glm::clamp(point, 0.0f, 1.0f) * float(m_curves.size());
+glm::vec3 Spline::EvaluateAxisFromCurves(float point) const {
+  const float splineU = glm::clamp(point, 0.0f, 1.0f) * float(m_curves.size());
 
-    // Decompose the global u coordinate on the spline
-    float integerPart;
-    const float fractionalPart = modff(splineU, &integerPart);
+  // Decompose the global u coordinate on the spline
+  float integerPart;
+  const float fractionalPart = modff(splineU, &integerPart);
 
-    auto curveIndex = int(integerPart);
-    auto curveU = fractionalPart;
+  auto curveIndex = int(integerPart);
+  auto curveU = fractionalPart;
 
-    // If evaluating the very last point on the spline
-    if (curveIndex == m_curves.size() && curveU <= 0.0f) {
-      // Flip to the end of the last patch
-      curveIndex--;
-      curveU = 1.0f;
-    }
-    return m_curves.at(curveIndex).GetAxis(curveU);
+  // If evaluating the very last point on the spline
+  if (curveIndex == m_curves.size() && curveU <= 0.0f) {
+    // Flip to the end of the last patch
+    curveIndex--;
+    curveU = 1.0f;
   }
-  case SplineType::Procedural: {
-    return m_initialDirection;
-  }
-  }
-  throw 0;
+  return m_curves.at(curveIndex).GetAxis(curveU);
 }
 
-void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
+void Spline::GenerateGeometry(const ProceduralStemGrowthState& stemState, const ProceduralLeafGrowthState& leafState, int nodeAmount) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
-  if (!sorghumLayer) return;
+  if (!sorghumLayer)
+    return;
 
-  auto stemNodeCount = FormNodes(stemSpline);
   m_vertices.clear();
   m_triangles.clear();
   m_segments.clear();
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
-  float leftFlatness = m_waviness;  // glm::linearRand(0.5f, 2.0f);
-  float rightFlatness = m_waviness; // glm::linearRand(0.5f, 2.0f);
+  float leftFlatness = leafState.m_maxWaviness;  // glm::linearRand(0.5f, 2.0f);
+  float rightFlatness = leafState.m_maxWaviness; // glm::linearRand(0.5f, 2.0f);
 
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {
     auto &prev = m_nodes.at(i - 1);
     auto &curr = m_nodes.at(i);
-    if (i == stemNodeCount) {
+    if (i == nodeAmount) {
       stemSegmentCount = m_segments.size();
     }
     float distance = glm::distance(prev.m_position, curr.m_position);
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
-    for (float div =
-             (i == 1 ? 0.0f : 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount));
-         div <= 1.0f; div += 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount)) {
+    for (float div = (i == 1 ? 0.0f
+                             : 1.0f / static_cast<float>(
+                                          sorghumLayer->m_segmentAmount));
+         div <= 1.0f;
+         div += 1.0f / static_cast<float>(sorghumLayer->m_segmentAmount)) {
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += m_wavinessPeriod / static_cast<float>(sorghumLayer->m_segmentAmount);
-        rightPeriod += m_wavinessPeriod / static_cast<float>(sorghumLayer->m_segmentAmount);
+        leftPeriod += leafState.m_wavinessPeriod /
+                      static_cast<float>(sorghumLayer->m_segmentAmount);
+        rightPeriod += leafState.m_wavinessPeriod /
+                       static_cast<float>(sorghumLayer->m_segmentAmount);
       }
       m_segments.emplace_back(
           curve.GetPoint(div), up, front,
@@ -261,11 +177,11 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
   const int vertexIndex = m_vertices.size();
   Vertex archetype{};
 #pragma region Semantic mask color
-  auto index = m_order + 1;
+  auto index = leafState.m_index + 1;
   m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f,
                             ((index / 9) % 3) * 0.5f, 1.0f);
 #pragma endregion
-  if (m_startingPoint == -1)
+  if (leafState.m_startingPoint == -1)
     m_vertexColor = glm::vec4(0, 0, 0, 1);
   archetype.m_color = m_vertexColor;
   const float xStep = 1.0f / sorghumLayer->m_step / 2.0f;
@@ -276,17 +192,18 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
 
   for (int i = 0; i < segmentSize; i++) {
     auto &segment = m_segments.at(i);
-    if(i <= segmentSize / 3){
+    if (i <= segmentSize / 3) {
       archetype.m_color = glm::vec4(1, 0, 0, 1);
-    }else if(i <= segmentSize * 2 / 3){
+    } else if (i <= segmentSize * 2 / 3) {
       archetype.m_color = glm::vec4(0, 1, 0, 1);
-    }else{
+    } else {
       archetype.m_color = glm::vec4(0, 0, 1, 1);
     }
     const float angleStep = segment.m_theta / sorghumLayer->m_step;
     const int vertsCount = sorghumLayer->m_step * 2 + 1;
     for (int j = 0; j < vertsCount; j++) {
-      const auto position = segment.GetPoint((j - sorghumLayer->m_step) * angleStep);
+      const auto position =
+          segment.GetPoint((j - sorghumLayer->m_step) * angleStep);
       archetype.m_position = glm::vec3(position.x, position.y, position.z);
       float yPos = (i < stemSegmentCount)
                        ? yStemStep * i
@@ -297,106 +214,75 @@ void Spline::GenerateGeometry(const std::shared_ptr<Spline> &stemSpline) {
     if (i != 0) {
       for (int j = 0; j < vertsCount - 1; j++) {
         // Down triangle
-        m_triangles.emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j, vertexIndex + (i - 1) * vertsCount + j + 1, vertexIndex + (i - 1) * vertsCount + j);
+        m_triangles.emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                 vertexIndex + (i - 1) * vertsCount + j + 1,
+                                 vertexIndex + (i - 1) * vertsCount + j);
         // Up triangle
-        m_triangles.emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1, vertexIndex + ((i - 1) + 1) * vertsCount + j, vertexIndex + ((i - 1) + 1) * vertsCount + j + 1);
+        m_triangles.emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1,
+                                 vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                 vertexIndex + ((i - 1) + 1) * vertsCount + j +
+                                     1);
       }
     }
   }
 }
-int Spline::FormNodes(const std::shared_ptr<Spline> &stemSpline) {
+void Spline::FormLeaf(const ProceduralStemGrowthState &stemState,
+                           const ProceduralLeafGrowthState &leafState, int nodeAmount) {
   m_nodes.clear();
-  int stemNodeCount = 0;
-  switch (m_type) {
-  case SplineType::BezierCurve: {
-    if (m_startingPoint != -1) {
-      float width = m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint);
-      for (float i = glm::max(0.0f, m_startingPoint - 0.3f);
-           i < m_startingPoint - 0.05f; i += 0.05f) {
-        m_nodes.emplace_back(stemSpline->EvaluatePoint(i), 180.0f, width,
-                             stemSpline->EvaluateAxis(i), false, 0.0f);
-      }
-
-      float w = m_leafMaxWidth;
-      float lengthDecrease =
-          (m_leafMaxWidth - 0.002f) /
-          (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
-      for (int i = 0; i < m_unitAmount; i++) {
-        if (i > m_leafWidthDecreaseStart * m_unitAmount)
-          w -= lengthDecrease;
-        float factor = (float)i / m_unitAmount;
-        m_nodes.emplace_back(EvaluatePoint(factor),
-                             factor <= 0.05f ? 60.0f : 10.0f, w,
-                             EvaluateAxis(factor), true, 1.0f);
-      }
-
-      for (float i = 0.05f; i <= 1.0f; i += 0.05f) {
-      }
-    } else {
-      for (float i = 0.0f; i <= 1.0f; i += 0.05f) {
-        m_nodes.emplace_back(EvaluatePoint(i), 180.0f, 0.04f, EvaluateAxis(i),
-                             false, 0.0f);
-      }
-      auto endPoint = EvaluatePoint(1.0f);
-      auto endAxis = EvaluateAxis(1.0f);
-      m_nodes.emplace_back(endPoint + endAxis * 0.05f, 10.0f, 0.001f, endAxis,
-                           false, 0.0f);
-      stemNodeCount = m_nodes.size();
-    }
-  } break;
-  case SplineType::Procedural: {
-    if (m_startingPoint != -1) {
-      float width = m_stemWidthMax * m_stemWidthDistribution.GetValue(m_startingPoint);
-      float backDistance = 0.1f;
-      if (m_startingPoint < 0.2f)
-        backDistance = m_startingPoint / 2.0f;
-      float startingPoint = m_startingPoint - 2.0f * backDistance;
-      if (m_order == 0) {
-        startingPoint = 0.0f;
-      }
-      m_nodes.emplace_back(stemSpline->EvaluatePoint(startingPoint), 180.0f,
-                           width, -stemSpline->EvaluateAxis(startingPoint),
-                           false, 0.0f);
-      m_nodes.emplace_back(
-          stemSpline->EvaluatePoint(m_startingPoint - backDistance), 180.0f,
-          width, -stemSpline->EvaluateAxis(m_startingPoint - backDistance),
-          false, 0.0f);
-      m_nodes.emplace_back(stemSpline->EvaluatePoint(m_startingPoint), 90.0f,
-                           width, -stemSpline->EvaluateAxis(m_startingPoint),
-                           false, 0.0f);
-      glm::vec3 position = stemSpline->EvaluatePoint(m_startingPoint);
-      glm::vec3 direction = m_initialDirection;
-      float w = m_leafMaxWidth;
-      float lengthDecrease =
-          (m_leafMaxWidth - 0.002f) /
-          (m_unitAmount - m_leafWidthDecreaseStart * m_unitAmount);
-      for (int i = 0; i < m_unitAmount; i++) {
-        position += direction * m_unitLength;
-        if (i > m_leafWidthDecreaseStart * m_unitAmount)
-          w -= lengthDecrease;
-        m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f),
-                             w, -direction, true, 1.0f);
-        direction = glm::rotate(
-            direction, glm::radians(m_gravitropism + i * m_gravitropismFactor),
-            m_left);
-      }
-    } else {
-      for (int i = 0; i < m_unitAmount; i++) {
-        m_nodes.emplace_back(glm::normalize(m_initialDirection) * m_unitLength *
-                                 static_cast<float>(i),
-                             180.0f, m_stemWidthMax * m_stemWidthDistribution.GetValue((float)i / m_unitAmount) + 0.005, -m_initialDirection,
-                             false, 0.0f);
-      }
-      stemNodeCount = m_nodes.size();
-    }
-  } break;
-  default:
-    UNIENGINE_ERROR("Unknown type!");
-    break;
+  float stemWidth =
+      glm::mix(stemState.m_startWidth, stemState.m_endWidth, leafState.m_startingPoint);
+  float backDistance = 0.1f;
+  if (leafState.m_startingPoint < 0.2f)
+    backDistance = leafState.m_startingPoint / 2.0f;
+  float actualStartingPoint = leafState.m_startingPoint - 2.0f * backDistance;
+  if (leafState.m_index == 0) {
+    actualStartingPoint = 0.0f;
   }
-  return stemNodeCount;
+  m_nodes.emplace_back(stemState.GetPoint(actualStartingPoint), 180.0f, stemWidth,
+                       -stemState.m_direction, false, 0.0f);
+  m_nodes.emplace_back(
+      stemState.GetPoint(leafState.m_startingPoint - backDistance), 180.0f, stemWidth,
+      -stemState.m_direction, false, 0.0f);
+  m_nodes.emplace_back(stemState.GetPoint(leafState.m_startingPoint), 90.0f, stemWidth,
+                       -stemState.m_direction, false, 0.0f);
+  glm::vec3 position = stemState.GetPoint(leafState.m_startingPoint);
+  m_left = glm::rotate(glm::vec3(1, 0, 0),
+                               glm::radians(leafState.m_rollAngle),
+                               glm::vec3(0, 1, 0));
+  auto initialDirection = glm::rotate(
+      glm::vec3(0, 1, 0), glm::radians(leafState.m_branchingAngle),
+      m_left);
+  glm::vec3 direction = initialDirection;
+  float unitLength = leafState.m_length / nodeAmount;
+  for (int i = 0; i < nodeAmount; i++) {
+    position += direction * unitLength;
+    m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), leafState.m_maxWidth * leafState.m_widthAlongLeafCurve.GetValue((float)i / nodeAmount),
+                         -direction, true, 1.0f);
+    direction = glm::rotate(
+        direction, glm::radians(leafState.m_bending.x + i * leafState.m_bending.y),
+        m_left);
+  }
+  GenerateGeometry(stemState, leafState, nodeAmount);
 }
 void Spline::Copy(const std::shared_ptr<Spline> &target) { *this = *target; }
+void Spline::FormStem(const ProceduralStemGrowthState &stemState,
+                           int nodeAmount) {
+  m_nodes.clear();
+  float unitLength = stemState.m_length / nodeAmount;
+  for (int i = 0; i < nodeAmount; i++) {
+    float stemWidth =
+        glm::mix(stemState.m_startWidth, stemState.m_endWidth, (float)i / nodeAmount);
+    m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
+                             static_cast<float>(i),
+                         180.0f,
+                         stemWidth +
+                             0.005,
+                         -stemState.m_direction, false, 0.0f);
+  }
+  m_left =
+      glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
+                  stemState.m_direction);
+}
 SplineNode::SplineNode(glm::vec3 position, float angle, float width,
                        glm::vec3 axis, bool isLeaf, float surfacePush) {
   m_position = position;
