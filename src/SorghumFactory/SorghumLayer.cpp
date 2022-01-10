@@ -834,7 +834,7 @@ void SorghumLayer::ScanPointCloudLabeled(
       sorghum.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle(), 0);
   sorghum.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
     auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>();
-    if (meshRenderer.expired() || child.HasDataComponent<LeafTag>())
+    if (meshRenderer.expired() || !child.HasDataComponent<LeafTag>())
       return;
     auto handle = meshRenderer.lock()->GetHandle();
     auto index = child.GetDataComponent<LeafTag>().m_index + 1;
