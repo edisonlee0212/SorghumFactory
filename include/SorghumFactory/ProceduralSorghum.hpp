@@ -101,6 +101,7 @@ class SorghumStateGenerator;
 class ProceduralSorghum : public IAsset {
 public:
   unsigned m_seed = 0;
+  unsigned m_version = 0;
   ProceduralSorghumState m_endState;
   ProceduralPinnacleDescriptor m_pinnacle;
   ProceduralStemDescriptor m_stem;

@@ -14,43 +14,18 @@ void SorghumData::OnCreate() {}
 void SorghumData::OnDestroy() {}
 
 void SorghumData::OnInspect() {
-  Editor::DragAndDropButton<ProceduralSorghum>(m_parameters,
-                                                               "Descriptor");
-  auto descriptor = m_parameters.Get<ProceduralSorghum>();
+  Editor::DragAndDropButton<ProceduralSorghum>(m_proceduralSorghum,
+                                               "Descriptor");
+  auto descriptor = m_proceduralSorghum.Get<ProceduralSorghum>();
   if (descriptor) {
-    static float time = 1.0f;
-    static bool autoApply = true;
-    ImGui::Checkbox("Auto apply", &autoApply);
-    if(ImGui::SliderFloat("Time", &time, 0.0f, descriptor->m_endTime) && autoApply){
-      Apply(time);
+    if (ImGui::SliderFloat("Time", &m_currentTime, 0.0f,
+                           descriptor->m_endTime)) {
+      Apply();
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
-    time = glm::clamp(time, 0.0f, descriptor->m_endTime);
-    if (ImGui::Button("Apply state only")) {
-      Apply(time);
-    }
-    if (ImGui::Button("Apply state and build sorghum")) {
-      Apply(time);
-      GenerateGeometry();
-      ApplyGeometry(true, true, false);
-    }
-    if (ImGui::Button("Generate geometry")) {
-      GenerateGeometry();
-      ApplyGeometry(true, true, false);
-    }
-    if(ImGui::Button("Apply +1/20")){
-      time += descriptor->m_endTime / 20.0f;
-      time = glm::clamp(time, 0.0f, descriptor->m_endTime);
-      Apply(time);
-      GenerateGeometry();
-      ApplyGeometry(true, true, false);
-    }
-    ImGui::SameLine();
-    if(ImGui::Button("Apply -1/20")){
-      time -= descriptor->m_endTime / 20.0f;
-      time = glm::clamp(time, 0.0f, descriptor->m_endTime);
-      Apply(time);
+    if (ImGui::Button("Apply")) {
+      Apply();
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
@@ -92,6 +67,8 @@ void SorghumData::ExportModel(const std::string &filename,
 
 void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
+  out << YAML::Key << "m_currentTime" << YAML::Value << m_currentTime;
+  out << YAML::Key << "m_recordedVersion" << YAML::Value << m_recordedVersion;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
 
   out << YAML::Key << "m_stemSubdivisionAmount" << YAML::Value
@@ -99,28 +76,33 @@ void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_leafSubdivisionAmount" << YAML::Value
       << m_leafSubdivisionAmount;
 
-  out << YAML::Key << "m_parameters" << YAML::BeginMap;
-  m_parameters.Serialize(out);
+  out << YAML::Key << "m_proceduralSorghum" << YAML::BeginMap;
+  m_proceduralSorghum.Serialize(out);
   m_state.Serialize(out);
   out << YAML::EndMap;
 }
 void SorghumData::Deserialize(const YAML::Node &in) {
   m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
   m_meshGenerated = in["m_meshGenerated"].as<bool>();
+  if (in["m_currentTime"])
+    m_currentTime = in["m_currentTime"].as<float>();
+  if (in["m_recordedVersion"])
+    m_recordedVersion = in["m_recordedVersion"].as<unsigned>();
   if (in["m_stemSubdivisionAmount"])
     m_stemSubdivisionAmount = in["m_stemSubdivisionAmount"].as<float>();
   if (in["m_leafSubdivisionAmount"])
     m_leafSubdivisionAmount = in["m_leafSubdivisionAmount"].as<float>();
-  m_parameters.Deserialize(in["m_parameters"]);
+  m_proceduralSorghum.Deserialize(in["m_proceduralSorghum"]);
   if (in["m_state"])
     m_state.Deserialize(in["m_state"]);
 }
-void SorghumData::Apply(float time) {
-  auto descriptor = m_parameters.Get<ProceduralSorghum>();
+void SorghumData::Apply() {
+  auto descriptor = m_proceduralSorghum.Get<ProceduralSorghum>();
   if (!descriptor)
     return;
-  m_state = descriptor->Get(time);
-
+  m_currentTime = glm::clamp(m_currentTime, 0.0f, descriptor->m_endTime);
+  m_state = descriptor->Get(m_currentTime);
+  m_recordedVersion = descriptor->m_version;
   // 1. Set owner's spline
   auto stemSpline = GetOwner().GetOrSetPrivateComponent<Spline>().lock();
   auto children = GetOwner().GetChildren();
@@ -128,7 +110,8 @@ void SorghumData::Apply(float time) {
     Entities::DeleteEntity(Entities::GetCurrentScene(), children[i]);
   }
   for (int i = 0; i < m_state.m_leaves.size(); i++) {
-    if(!m_state.m_leaves[i].m_active) continue;
+    if (!m_state.m_leaves[i].m_active)
+      continue;
     Entity child;
     child =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
@@ -141,7 +124,7 @@ void SorghumData::Apply(float time) {
 }
 
 void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
-  list.push_back(m_parameters);
+  list.push_back(m_proceduralSorghum);
 }
 void SorghumData::PreparePinnacleMesh(const glm::vec3 &center,
                                       std::vector<UniEngine::Vertex> &vertices,
@@ -182,7 +165,7 @@ void SorghumData::GenerateGeometry() {
       [&](const std::shared_ptr<Scene> &scene, Entity child) {
         if (child.HasDataComponent<LeafTag>()) {
           auto leafSpline = child.GetOrSetPrivateComponent<Spline>().lock();
-          while(!m_state.m_leaves[i].m_active){
+          while (!m_state.m_leaves[i].m_active) {
             i++;
           }
           leafSpline->FormLeaf(m_state.m_stem, m_state.m_leaves[i],
@@ -339,4 +322,16 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
     });
   }
   m_meshGenerated = true;
+}
+void SorghumData::LateUpdate() {
+  auto proceduralSorghum = m_proceduralSorghum.Get<ProceduralSorghum>();
+  if (proceduralSorghum && proceduralSorghum->m_version != m_recordedVersion) {
+    Apply();
+    GenerateGeometry();
+    ApplyGeometry(true, true, false);
+  }
+}
+void SorghumData::SetTime(float time) {
+  m_currentTime = time;
+  Apply();
 }

@@ -96,8 +96,8 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
       sorghumEntity.SetDataComponent(sorghumTransform);
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
-      sorghumData->m_parameters = newSorghum.first;
-      sorghumData->Apply(1.0f);
+      sorghumData->m_proceduralSorghum = newSorghum.first;
+      sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)
@@ -303,9 +303,8 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       sorghumEntity.SetDataComponent(sorghumTransform);
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
-      sorghumData->m_parameters = m_proceduralSorghumDescriptor;
-      sorghumData->Apply(
-          m_proceduralSorghumDescriptor.Get<ProceduralSorghum>()->m_endTime);
+      sorghumData->m_proceduralSorghum = m_proceduralSorghumDescriptor;
+      sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)

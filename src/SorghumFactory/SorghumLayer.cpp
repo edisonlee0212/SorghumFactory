@@ -23,24 +23,31 @@ void SorghumLayer::OnCreate() {
 
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-  ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum", ".proceduralsorghum");
-  ClassRegistry::RegisterAsset<SorghumStateGenerator>(
-      "SorghumStateGenerator", ".sorghumstategenerator");
+  ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
+                                                  ".proceduralsorghum");
+  ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
+                                                      ".sorghumstategenerator");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
   ClassRegistry::RegisterAsset<RectangularSorghumField>(
       "RectangularSorghumField", ".rectsorghumfield");
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
                                                ".possorghumfield");
 
-  auto& editorManager = Editor::GetInstance();
+  auto &editorManager = Editor::GetInstance();
   auto texture2D = std::make_shared<Texture2D>();
-  texture2D->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "ProceduralSorghum.png"));
+  texture2D->Import(std::filesystem::absolute(
+      std::filesystem::path("./SorghumFactoryResources/Textures") /
+      "ProceduralSorghum.png"));
   editorManager.AssetIcons()["ProceduralSorghum"] = texture2D;
   texture2D = std::make_shared<Texture2D>();
-  texture2D->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "SorghumStateGenerator.png"));
+  texture2D->Import(std::filesystem::absolute(
+      std::filesystem::path("./SorghumFactoryResources/Textures") /
+      "SorghumStateGenerator.png"));
   editorManager.AssetIcons()["SorghumStateGenerator"] = texture2D;
   texture2D = std::make_shared<Texture2D>();
-  texture2D->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "PositionsField.png"));
+  texture2D->Import(std::filesystem::absolute(
+      std::filesystem::path("./SorghumFactoryResources/Textures") /
+      "PositionsField.png"));
   editorManager.AssetIcons()["PositionsField"] = texture2D;
 
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
@@ -56,9 +63,11 @@ void SorghumLayer::OnCreate() {
   m_sorghumQuery = Entities::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
-  if(!m_leafAlbedoTexture.Get<Texture2D>()){
+  if (!m_leafAlbedoTexture.Get<Texture2D>()) {
     auto albedo = AssetManager::CreateAsset<Texture2D>("Leaf texture");
-    albedo->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "leafSurfaceDark.png"));
+    albedo->Import(std::filesystem::absolute(
+        std::filesystem::path("./SorghumFactoryResources/Textures") /
+        "leafSurfaceDark.png"));
     m_leafAlbedoTexture.Set(albedo);
   }
 
@@ -161,14 +170,15 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
 }
 
 void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
-                                              bool segmentedMask, int segmentAmount, int step) {
+                                              bool segmentedMask,
+                                              int segmentAmount, int step) {
   std::vector<Entity> plants;
   Entities::ForEach<GlobalTransform>(
       Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
       [=](int index, Entity entity, GlobalTransform &ltw) {
         if (entity.HasPrivateComponent<SorghumData>()) {
-          auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>()
-                                 .lock();
+          auto sorghumData =
+              entity.GetOrSetPrivateComponent<SorghumData>().lock();
           sorghumData->GenerateGeometry();
         }
       });
@@ -176,7 +186,8 @@ void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
   m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     if (plant.HasPrivateComponent<SorghumData>())
-      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry(seperated, includeStem, segmentedMask);
+      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry(
+          seperated, includeStem, segmentedMask);
   }
 }
 
@@ -657,8 +668,8 @@ Entity SorghumLayer::CreateSorghum(
   }
   Entity sorghum = CreateSorghum();
   auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-  sorghumData->m_parameters = descriptor;
-  sorghumData->Apply(descriptor->m_endTime);
+  sorghumData->m_proceduralSorghum = descriptor;
+  sorghumData->SetTime(1.0f);
   sorghumData->GenerateGeometry();
   sorghumData->ApplyGeometry();
   return sorghum;
@@ -999,6 +1010,23 @@ void SorghumLayer::ScanPointCloudLabeled(
 #else
   UNIENGINE_ERROR("Ray tracer disabled!");
 #endif
+}
+void SorghumLayer::LateUpdate() {
+  std::vector<Entity> plants;
+  m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
+  for (auto &plant : plants) {
+    if (plant.HasPrivateComponent<SorghumData>()) {
+      auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
+      auto proceduralSorghum =
+          sorghumData->m_proceduralSorghum.Get<ProceduralSorghum>();
+      if (proceduralSorghum &&
+          proceduralSorghum->m_version != sorghumData->m_recordedVersion) {
+        sorghumData->Apply();
+        sorghumData->GenerateGeometry();
+        sorghumData->ApplyGeometry(true, true, false);
+      }
+    }
+  }
 }
 void PointCloudSampleSettings::OnInspect() {
   ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);

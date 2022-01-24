@@ -85,6 +85,7 @@ public:
                      const std::string &name);
   void OnInspect() override;
   void Update() override;
+  void LateUpdate() override;
   void CreateGrid(RectangularSorghumFieldPattern &field,
                   const std::vector<Entity> &candidates);
   void CloneSorghums(const Entity &parent, const Entity &original,

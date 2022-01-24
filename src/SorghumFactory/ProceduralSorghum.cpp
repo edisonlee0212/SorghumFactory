@@ -252,7 +252,7 @@ void ProceduralSorghum::OnInspect() {
     Set(maxTime, longestLeafTime);
     descriptor.Clear();
   }
-  if (ImGui::TreeNode("End state")) {
+  if (ImGui::TreeNodeEx("End state", ImGuiTreeNodeFlags_DefaultOpen)) {
     bool changed = m_endState.OnInspect();
     m_saved = m_saved && changed;
     if (autoCal && changed) {
@@ -277,26 +277,34 @@ void ProceduralSorghum::OnInspect() {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(
         AssetManager::Get<ProceduralSorghum>(GetHandle()));
   }
-
-  if (ImGui::TreeNode("Stem")) {
-    if (m_stem.OnInspect(m_endTime))
-      m_saved = false;
-    ImGui::TreePop();
-  }
-  if (ImGui::TreeNode("Pinnacle")) {
-    if (m_pinnacle.OnInspect(m_endTime))
-      m_saved = false;
-    ImGui::TreePop();
-  }
-  if (ImGui::TreeNode("Leaves")) {
-    int index = 0;
-    for (auto &leaf : m_leaves) {
-      if (ImGui::TreeNode(("Leaf " + std::to_string(index)).c_str())) {
-        if (leaf.OnInspect(m_endTime))
-          m_saved = false;
-        ImGui::TreePop();
+  if (ImGui::TreeNode("Growth")) {
+    if (ImGui::TreeNode("Stem")) {
+      if (m_stem.OnInspect(m_endTime)) {
+        m_saved = false;
+        m_version++;
       }
-      index++;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Pinnacle")) {
+      if (m_pinnacle.OnInspect(m_endTime)) {
+        m_saved = false;
+        m_version++;
+      }
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Leaves")) {
+      int index = 0;
+      for (auto &leaf : m_leaves) {
+        if (ImGui::TreeNode(("Leaf " + std::to_string(index)).c_str())) {
+          if (leaf.OnInspect(m_endTime)) {
+            m_saved = false;
+            m_version++;
+          }
+          ImGui::TreePop();
+        }
+        index++;
+      }
+      ImGui::TreePop();
     }
     ImGui::TreePop();
   }
@@ -306,7 +314,7 @@ void ProceduralSorghum::Set(float endTime, float longestLeafTime) {
   m_saved = false;
   m_endState.m_time = endTime;
   m_endTime = endTime;
-
+  m_version++;
   m_stem.m_length = {0.0f, m_endState.m_stem.m_length,
                      UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
   m_stem.m_direction = m_endState.m_stem.m_direction;
@@ -316,7 +324,9 @@ void ProceduralSorghum::Set(float endTime, float longestLeafTime) {
   m_stem.m_width = {0.0f, m_endState.m_stem.m_widthAlongStem.m_maxValue,
                     UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
-  m_pinnacle.m_startTime = m_endState.m_pinnacle.m_active ? endTime - endTime * 0.1f : endTime + 0.1f;
+  m_pinnacle.m_startTime = m_endState.m_pinnacle.m_active
+                               ? endTime - endTime * 0.1f
+                               : endTime + 0.1f;
   m_pinnacle.m_endTime = endTime;
   m_pinnacle.m_seedRadius = {0.0f, m_endState.m_pinnacle.m_seedRadius,
                              UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
@@ -434,7 +444,7 @@ bool ProceduralStemDescriptor::OnInspect(float maxTime) {
 void ProceduralSorghum::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_endTime" << YAML::Value << m_endTime;
   out << YAML::Key << "m_seed" << YAML::Value << m_seed;
-
+  out << YAML::Key << "m_version" << YAML::Value << m_version;
   out << YAML::Key << "m_endState" << YAML::Value << YAML::BeginMap;
   m_endState.Serialize(out);
   out << YAML::EndMap;
@@ -463,7 +473,8 @@ void ProceduralSorghum::Deserialize(const YAML::Node &in) {
     m_endTime = in["m_endTime"].as<float>();
   if (in["m_seed"])
     m_seed = in["m_seed"].as<unsigned>();
-
+  if (in["m_version"])
+    m_version = in["m_version"].as<unsigned>();
   if (in["m_endState"])
     m_endState.Deserialize(in["m_endState"]);
 
