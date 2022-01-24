@@ -18,7 +18,7 @@ void SDFDataCapture::OnInspect() {
 #else
   EditorManager::DragAndDropButton<Camera>(m_rayTracerCamera, "Camera");
 #endif
-  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(
+  Editor::DragAndDropButton<ProceduralSorghum>(
       m_parameters, "Procedural Sorghum Descriptor");
   ImGui::DragInt("Instance Count", &m_generationAmount, 1, 0);
   if (ImGui::TreeNode("Data selection")) {
@@ -48,7 +48,7 @@ void SDFDataCapture::OnInspect() {
 #endif
   if (!Application::IsPlaying()) {
     ImGui::Text("Application not Playing!");
-  } else if (!m_parameters.Get<ProceduralSorghumDescriptor>()) {
+  } else if (!m_parameters.Get<ProceduralSorghum>()) {
     ImGui::Text("Procedural Sorghum escriptor Missing");
   } else if (!rayTracerCamera) {
     ImGui::Text("Camera Missing");
@@ -115,7 +115,7 @@ void SDFDataCapture::OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) {
     m_pitchAngle = m_turnAngle = -1;
     return;
   }
-  auto descriptor = m_parameters.Get<ProceduralSorghumDescriptor>();
+  auto descriptor = m_parameters.Get<ProceduralSorghum>();
   m_currentGrowingSorghum =
       Application::GetLayer<SorghumLayer>()->CreateSorghum(descriptor);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
@@ -142,7 +142,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
 #endif
     auto rayTracerCameraEntity = rayTracerCamera->GetOwner();
     auto prefix =
-        m_parameters.Get<ProceduralSorghumDescriptor>()
+        m_parameters.Get<ProceduralSorghum>()
             ->GetPath()
             .stem()
             .string() +
@@ -229,7 +229,7 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
               .lock()
               ->ExportModel((ProjectManager::GetProjectPath().parent_path() /
                              m_currentExportFolder / "Mesh" /
-                             (m_parameters.Get<ProceduralSorghumDescriptor>()
+                             (m_parameters.Get<ProceduralSorghum>()
                                   ->GetPath()
                                   .stem()
                                   .string() +
@@ -239,11 +239,11 @@ void SDFDataCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
                               ".obj"))
                                 .string());
         }
-        m_parameters.Get<ProceduralSorghumDescriptor>()->Export(
+        m_parameters.Get<ProceduralSorghum>()->Export(
             std::filesystem::absolute(
                 ProjectManager::GetProjectPath().parent_path()) /
             m_currentExportFolder /
-            m_parameters.Get<ProceduralSorghumDescriptor>()
+            m_parameters.Get<ProceduralSorghum>()
                 ->GetPath()
                 .filename());
         m_remainingInstanceAmount--;

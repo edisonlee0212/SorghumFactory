@@ -1,6 +1,6 @@
 #pragma once
 #include <sorghum_factory_export.h>
-#include "ProceduralSorghumDescriptor.hpp"
+#include "ProceduralSorghum.hpp"
 #include <SorghumStateGenerator.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {

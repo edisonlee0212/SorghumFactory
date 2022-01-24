@@ -116,7 +116,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
 }
 
 void RectangularSorghumField::GenerateMatrices() {
-  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>())
+  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghum>())
     return;
   m_newSorghums.clear();
   for (int xi = 0; xi < m_size.x; xi++) {
@@ -135,7 +135,7 @@ void RectangularSorghumField::GenerateMatrices() {
 }
 void RectangularSorghumField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(
+  Editor::DragAndDropButton<ProceduralSorghum>(
       m_proceduralSorghumDescriptor, "Procedural Parameters");
   ImGui::DragFloat4("Distance mean/var", &m_distance.x, 0.01f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
@@ -168,7 +168,7 @@ void RectangularSorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
 }
 
 void PositionsField::GenerateMatrices() {
-  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>())
+  if (!m_proceduralSorghumDescriptor.Get<ProceduralSorghum>())
     return;
   m_newSorghums.clear();
   for (auto &position : m_positions) {
@@ -187,7 +187,7 @@ void PositionsField::GenerateMatrices() {
 }
 void PositionsField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(
+  Editor::DragAndDropButton<ProceduralSorghum>(
       m_proceduralSorghumDescriptor, "Procedural Parameter");
   ImGui::Text("Available count: %d", m_positions.size());
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
@@ -303,7 +303,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_parameters = m_proceduralSorghumDescriptor;
       sorghumData->ApplyParameters(
-          m_proceduralSorghumDescriptor.Get<ProceduralSorghumDescriptor>()->m_endTime);
+          m_proceduralSorghumDescriptor.Get<ProceduralSorghum>()->m_endTime);
       sorghumEntity.SetParent(field);
       size++;
       if (size >= m_sizeLimit)

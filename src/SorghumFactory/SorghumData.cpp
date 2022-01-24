@@ -14,9 +14,9 @@ void SorghumData::OnCreate() {}
 void SorghumData::OnDestroy() {}
 
 void SorghumData::OnInspect() {
-  Editor::DragAndDropButton<ProceduralSorghumDescriptor>(m_parameters,
+  Editor::DragAndDropButton<ProceduralSorghum>(m_parameters,
                                                                "Descriptor");
-  auto descriptor = m_parameters.Get<ProceduralSorghumDescriptor>();
+  auto descriptor = m_parameters.Get<ProceduralSorghum>();
   if (descriptor) {
     static float time = 1.0f;
     static bool autoApply = true;
@@ -117,7 +117,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_state.Deserialize(in["m_state"]);
 }
 void SorghumData::ApplyParameters(float time) {
-  auto descriptor = m_parameters.Get<ProceduralSorghumDescriptor>();
+  auto descriptor = m_parameters.Get<ProceduralSorghum>();
   if (!descriptor)
     return;
   m_state = descriptor->Get(time);

@@ -23,7 +23,7 @@ void SorghumLayer::OnCreate() {
 
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
-  ClassRegistry::RegisterAsset<ProceduralSorghumDescriptor>("ProceduralSorghumDescriptor", ".proceduralsorghumdescriptor");
+  ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum", ".proceduralsorghum");
   ClassRegistry::RegisterAsset<SorghumStateGenerator>(
       "SorghumStateGenerator", ".sorghumstategenerator");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
@@ -632,7 +632,7 @@ void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
 }
 
 Entity SorghumLayer::CreateSorghum(
-    const std::shared_ptr<ProceduralSorghumDescriptor> &descriptor) {
+    const std::shared_ptr<ProceduralSorghum> &descriptor) {
   if (!descriptor) {
     UNIENGINE_ERROR("Descriptor empty!");
     return Entity();

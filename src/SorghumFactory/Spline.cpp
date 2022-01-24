@@ -126,7 +126,9 @@ glm::vec3 Spline::EvaluateAxisFromCurves(float point) const {
   return m_curves.at(curveIndex).GetAxis(curveU);
 }
 
-void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const ProceduralLeafState & leafState, int nodeAmount) {
+void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
+                                  const ProceduralLeafState &leafState,
+                                  int nodeAmount) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (!sorghumLayer)
     return;
@@ -136,9 +138,6 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const P
   m_segments.clear();
   float leftPeriod = 0.0f;
   float rightPeriod = 0.0f;
-  float leftFlatness = leafState.m_maxWaviness;  // glm::linearRand(0.5f, 2.0f);
-  float rightFlatness = leafState.m_maxWaviness; // glm::linearRand(0.5f, 2.0f);
-
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {
     auto &prev = m_nodes.at(i - 1);
@@ -158,19 +157,20 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const P
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += leafState.m_wavinessPeriod /
+        leftPeriod += leafState.m_wavinessFrequency /
                       static_cast<float>(sorghumLayer->m_segmentAmount);
-        rightPeriod += leafState.m_wavinessPeriod /
+        rightPeriod += leafState.m_wavinessFrequency /
                        static_cast<float>(sorghumLayer->m_segmentAmount);
       }
+      auto waviness = glm::mix(prev.m_waviness, curr.m_waviness, div);
       m_segments.emplace_back(
           curve.GetPoint(div), up, front,
-          prev.m_width * (1.0f - div) + curr.m_width * div,
-          prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
+          glm::mix(prev.m_width, curr.m_width, div),
+          glm::mix(prev.m_theta, curr.m_theta, div), curr.m_isLeaf,
           prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
               curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
-          1.0f + glm::sin(leftPeriod) * leftFlatness,
-          1.0f + glm::sin(rightPeriod) * rightFlatness);
+          1.0f + glm::sin(leftPeriod) * waviness,
+          1.0f + glm::sin(rightPeriod) * waviness);
     }
   }
 
@@ -181,8 +181,6 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const P
   m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f,
                             ((index / 9) % 3) * 0.5f, 1.0f);
 #pragma endregion
-  if (leafState.m_startingPoint == -1)
-    m_vertexColor = glm::vec4(0, 0, 0, 1);
   archetype.m_color = m_vertexColor;
   const float xStep = 1.0f / sorghumLayer->m_step / 2.0f;
   const float yStemStep = 0.5f / static_cast<float>(stemSegmentCount);
@@ -227,57 +225,55 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState & stemState, const P
   }
 }
 void Spline::FormLeaf(const ProceduralStemState &stemState,
-                           const ProceduralLeafState &leafState, int nodeAmount) {
+                      const ProceduralLeafState &leafState, int nodeAmount) {
   m_nodes.clear();
-  float stemWidth =
-      glm::mix(stemState.m_startWidth, stemState.m_endWidth, leafState.m_startingPoint);
+  auto startingPoint = leafState.m_distanceToRoot / stemState.m_length;
+  float stemWidth = stemState.m_widthAlongStem.GetValue(startingPoint);
   float backDistance = 0.1f;
-  if (leafState.m_startingPoint < 0.2f)
-    backDistance = leafState.m_startingPoint / 2.0f;
-  float actualStartingPoint = leafState.m_startingPoint - 2.0f * backDistance;
+  if (startingPoint < 0.2f)
+    backDistance = startingPoint / 2.0f;
+  float actualStartingPoint = startingPoint - 2.0f * backDistance;
   if (leafState.m_index == 0) {
     actualStartingPoint = 0.0f;
   }
-  m_nodes.emplace_back(stemState.GetPoint(actualStartingPoint), 180.0f, stemWidth,
-                       -stemState.m_direction, false, 0.0f);
-  m_nodes.emplace_back(
-      stemState.GetPoint(leafState.m_startingPoint - backDistance), 180.0f, stemWidth,
-      -stemState.m_direction, false, 0.0f);
-  m_nodes.emplace_back(stemState.GetPoint(leafState.m_startingPoint), 90.0f, stemWidth,
-                       -stemState.m_direction, false, 0.0f);
-  glm::vec3 position = stemState.GetPoint(leafState.m_startingPoint);
-  m_left = glm::rotate(glm::vec3(1, 0, 0),
-                               glm::radians(leafState.m_rollAngle),
-                               glm::vec3(0, 1, 0));
+  m_nodes.emplace_back(stemState.GetPoint(actualStartingPoint), 180.0f,
+                       stemWidth, 0.0f, -stemState.m_direction, false, 0.0f);
+  m_nodes.emplace_back(stemState.GetPoint(startingPoint - backDistance), 180.0f,
+                       stemWidth, 0.0f, -stemState.m_direction, false, 0.0f);
+  m_nodes.emplace_back(stemState.GetPoint(startingPoint), 90.0f, stemWidth,
+                       0.0f, -stemState.m_direction, false, 0.0f);
+  glm::vec3 position = stemState.GetPoint(startingPoint);
+  m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(leafState.m_rollAngle),
+                       glm::vec3(0, 1, 0));
   auto initialDirection = glm::rotate(
-      glm::vec3(0, 1, 0), glm::radians(leafState.m_branchingAngle),
-      m_left);
+      glm::vec3(0, 1, 0), glm::radians(leafState.m_branchingAngle), m_left);
   glm::vec3 direction = initialDirection;
   float unitLength = leafState.m_length / nodeAmount;
   for (int i = 0; i < nodeAmount; i++) {
     position += direction * unitLength;
-    m_nodes.emplace_back(position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f), leafState.m_maxWidth * leafState.m_widthAlongLeafCurve.GetValue((float)i / (nodeAmount - 1)),
-                         -direction, true, 1.0f);
+    m_nodes.emplace_back(
+        position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f),
+        leafState.m_widthAlongLeaf.GetValue((float)i / (nodeAmount - 1)),
+        leafState.m_wavinessAlongLeaf.GetValue((float)i / (nodeAmount - 1)),
+        -direction, true, 1.0f);
     direction = glm::rotate(
-        direction, glm::radians(leafState.m_bending.x + i * leafState.m_bending.y),
+        direction,
+        glm::radians(leafState.m_bending.x + i * leafState.m_bending.y),
         m_left);
   }
   GenerateLeafGeometry(stemState, leafState, nodeAmount);
 }
 void Spline::Copy(const std::shared_ptr<Spline> &target) { *this = *target; }
-void Spline::FormStem(const ProceduralStemState &stemState,
-                           int nodeAmount) {
+void Spline::FormStem(const ProceduralStemState &stemState, int nodeAmount) {
   m_nodes.clear();
   float unitLength = stemState.m_length / nodeAmount;
   for (int i = 0; i < nodeAmount; i++) {
     float stemWidth =
-        glm::mix(stemState.m_startWidth, stemState.m_endWidth, (float)i / (nodeAmount - 1));
+        stemState.m_widthAlongStem.GetValue((float)i / (nodeAmount - 1));
     m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
                              static_cast<float>(i),
-                         180.0f,
-                         stemWidth +
-                             0.005,
-                         -stemState.m_direction, false, 0.0f);
+                         180.0f, stemWidth + 0.005, 0.0f, -stemState.m_direction,
+                         false, 0.0f);
   }
   m_left =
       glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
@@ -314,8 +310,7 @@ void Spline::GenerateStemGeometry(const ProceduralStemState &stemState,
           prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
           prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
               curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
-          1.0f,
-          1.0f);
+          1.0f, 1.0f);
     }
   }
   int stemSegmentCount = m_segments.size();
@@ -365,13 +360,16 @@ void Spline::GenerateStemGeometry(const ProceduralStemState &stemState,
     }
   }
 }
+
+SplineNode::SplineNode() {}
 SplineNode::SplineNode(glm::vec3 position, float angle, float width,
-                       glm::vec3 axis, bool isLeaf, float surfacePush) {
+                       float waviness, glm::vec3 axis, bool isLeaf,
+                       float surfacePush) {
   m_position = position;
   m_theta = angle;
   m_width = width;
+  m_waviness = waviness;
   m_axis = axis;
   m_isLeaf = isLeaf;
   m_surfacePush = surfacePush;
 }
-SplineNode::SplineNode() {}

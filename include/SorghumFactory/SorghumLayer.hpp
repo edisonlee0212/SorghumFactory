@@ -76,7 +76,7 @@ public:
   void OnCreate() override;
   Entity CreateSorghum();
   Entity
-  CreateSorghum(const std::shared_ptr<ProceduralSorghumDescriptor> &descriptor);
+  CreateSorghum(const std::shared_ptr<ProceduralSorghum> &descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
