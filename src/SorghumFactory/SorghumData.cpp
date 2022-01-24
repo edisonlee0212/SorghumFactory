@@ -55,7 +55,6 @@ void SorghumData::OnInspect() {
       ApplyGeometry(true, true, false);
     }
   }
-  m_state.OnInspect();
   if (m_meshGenerated) {
     if (ImGui::TreeNodeEx("I/O")) {
       FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},

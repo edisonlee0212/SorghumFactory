@@ -71,7 +71,7 @@ bool SingleDistribution<T>::OnInspect(const std::string &name) {
     } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
       changed = ImGui::DragInt3("Mean", (int*)&m_mean, 0.01f);
     }
-    changed = changed || ImGui::DragFloat("Deviation", &m_deviation, 0.01f);
+    if(ImGui::DragFloat("Deviation", &m_deviation, 0.01f)) changed = true;
     ImGui::TreePop();
   }
   return changed;
@@ -87,7 +87,7 @@ bool MixedDistribution<T>::OnInspect(const std::string &name) {
     auto meanTitle = name + "(mean)";
     auto devTitle = name + "(deviation)";
     changed = m_mean.OnInspect(meanTitle);
-    changed = changed || m_deviation.OnInspect(devTitle);
+    if(m_deviation.OnInspect(devTitle)) changed = true;
     ImGui::TreePop();
   }
   return changed;
@@ -121,24 +121,24 @@ template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name) {
   if (ImGui::TreeNode(name.c_str())) {
     if (typeid(T).hash_code() == typeid(float).hash_code()) {
       changed = ImGui::DragFloat("Min", (float*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragFloat("Max", (float*)&m_maxValue, 0.01f);
+      if(ImGui::DragFloat("Max", (float*)&m_maxValue, 0.01f)) changed = true;
     } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
       changed = ImGui::DragFloat2("Min", (float*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragFloat2("Max", (float*)&m_maxValue, 0.01f);
+      if(ImGui::DragFloat2("Max", (float*)&m_maxValue, 0.01f)) changed = true;
     } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
       changed = ImGui::DragFloat3("Min", (float*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragFloat3("Max", (float*)&m_maxValue, 0.01f);
+      if(ImGui::DragFloat3("Max", (float*)&m_maxValue, 0.01f)) changed = true;
     } else if (typeid(T).hash_code() == typeid(int).hash_code()) {
       changed = ImGui::DragInt("Min", (int*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragInt("Max", (int*)&m_maxValue, 0.01f);
+      if(ImGui::DragInt("Max", (int*)&m_maxValue, 0.01f)) changed = true;
     } else if (typeid(T).hash_code() == typeid(glm::ivec2).hash_code()) {
       changed = ImGui::DragInt2("Min", (int*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragInt2("Max", (int*)&m_maxValue, 0.01f);
+      if(ImGui::DragInt2("Max", (int*)&m_maxValue, 0.01f)) changed = true;
     } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
       changed = ImGui::DragInt3("Min", (int*)&m_minValue, 0.01f);
-      changed = changed || ImGui::DragInt3("Max", (int*)&m_maxValue, 0.01f);
+      if(ImGui::DragInt3("Max", (int*)&m_maxValue, 0.01f)) changed = true;
     }
-    changed = changed || m_curve.CurveEditor("Curve");
+    if(m_curve.CurveEditor("Curve")) changed = true;
     ImGui::TreePop();
   }
   return changed;

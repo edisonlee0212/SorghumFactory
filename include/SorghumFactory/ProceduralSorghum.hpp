@@ -47,7 +47,7 @@ struct ProceduralPinnacleDescriptor {
   CurveDescriptor<glm::vec3> m_pinnacleSize;
   CurveDescriptor<int> m_seedAmount;
   CurveDescriptor<float> m_seedRadius;
-  [[nodiscard]] ProceduralPinnacleState Get(float time, unsigned seed) const;
+  [[nodiscard]] ProceduralPinnacleState Get(float time) const;
   bool OnInspect(float maxTime);
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -58,7 +58,7 @@ struct ProceduralStemDescriptor {
   CurveDescriptor<float> m_length;
   CurveDescriptor<float> m_width;
   CurveDescriptor<float> m_widthAlongStem;
-  [[nodiscard]] ProceduralStemState Get(float time, unsigned seed) const;
+  [[nodiscard]] ProceduralStemState Get(float time) const;
   bool OnInspect(float maxTime);
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -78,7 +78,7 @@ struct ProceduralLeafDescriptor {
   CurveDescriptor<float> m_widthAlongLeaf;
   CurveDescriptor<float> m_wavinessAlongLeaf;
 
-  [[nodiscard]] ProceduralLeafState Get(float time, unsigned seed) const;
+  [[nodiscard]] ProceduralLeafState Get(float time) const;
   bool OnInspect(float maxTime);
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -106,7 +106,7 @@ public:
   ProceduralStemDescriptor m_stem;
   std::vector<ProceduralLeafDescriptor> m_leaves;
   float m_endTime = 0;
-  void Set(float longestLeafTime);
+  void Set(float endTime, float longestLeafTime);
   [[nodiscard]] ProceduralSorghumState Get(float time) const;
   void OnInspect();
 
