@@ -53,8 +53,8 @@ public:
   std::vector<glm::dvec2> m_positions;
   glm::vec3 m_rotationVariance = glm::vec3(0.0f);
 
-  glm::dvec2 m_sampleX = glm::dvec2(408991.680858, 409017.660858);
-  glm::dvec2 m_sampleY = glm::dvec2(3660208.248188, 3660210.758188);
+  glm::dvec2 m_sampleX = glm::dvec2(0.0);
+  glm::dvec2 m_sampleY = glm::dvec2(0.0);
 
   glm::dvec2 m_xRange = glm::vec2(0, 0);
   glm::dvec2 m_yRange = glm::vec2(0, 0);

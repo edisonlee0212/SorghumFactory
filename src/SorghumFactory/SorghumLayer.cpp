@@ -39,7 +39,9 @@ void SorghumLayer::OnCreate() {
   texture2D = std::make_shared<Texture2D>();
   texture2D->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "SorghumStateGenerator.png"));
   editorManager.AssetIcons()["SorghumStateGenerator"] = texture2D;
-
+  texture2D = std::make_shared<Texture2D>();
+  texture2D->Import(std::filesystem::absolute(std::filesystem::path("./SorghumFactoryResources/Textures") / "PositionsField.png"));
+  editorManager.AssetIcons()["PositionsField"] = texture2D;
 
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();
@@ -158,7 +160,8 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
   return entity;
 }
 
-void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
+void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
+                                              bool segmentedMask, int segmentAmount, int step) {
   std::vector<Entity> plants;
   Entities::ForEach<GlobalTransform>(
       Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
@@ -173,7 +176,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
     if (plant.HasPrivateComponent<SorghumData>())
-      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry();
+      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry(seperated, includeStem, segmentedMask);
   }
 }
 
@@ -255,8 +258,8 @@ void SorghumLayer::OnInspect() {
     }
 #endif
     ImGui::Separator();
-    if (ImGui::Button("Generate mesh")) {
-      GenerateMeshForAllSorghums();
+    if (ImGui::Button("Generate mesh for all sorghums")) {
+      GenerateMeshForAllSorghums(false, true, false);
     }
     if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
       m_segmentAmount = glm::max(2, m_segmentAmount);

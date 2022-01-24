@@ -79,7 +79,8 @@ public:
   CreateSorghum(const std::shared_ptr<ProceduralSorghum> &descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
-  void GenerateMeshForAllSorghums(int segmentAmount = 2, int step = 2);
+  void GenerateMeshForAllSorghums(bool seperated, bool includeStem,
+                                  bool segmentedMask, int segmentAmount = 2, int step = 2);
   Entity ImportPlant(const std::filesystem::path &path,
                      const std::string &name);
   void OnInspect() override;
