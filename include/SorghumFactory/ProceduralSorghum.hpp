@@ -9,7 +9,7 @@ struct ProceduralPinnacleState {
   glm::vec3 m_pinnacleSize = glm::vec3(0, 0, 0);
   int m_seedAmount = 1200;
   float m_seedRadius = 0.02;
-  void OnInspect();
+  bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
@@ -20,7 +20,7 @@ struct ProceduralStemState {
   [[nodiscard]] glm::vec3 GetPoint(float point) const;
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
-  void OnInspect();
+  bool OnInspect();
 };
 struct ProceduralLeafState {
   bool m_active = false;
@@ -37,7 +37,7 @@ struct ProceduralLeafState {
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
-  void OnInspect();
+  bool OnInspect();
 };
 #pragma endregion
 #pragma region Descriptors
@@ -90,20 +90,23 @@ struct ProceduralSorghumState {
   ProceduralPinnacleState m_pinnacle;
   ProceduralStemState m_stem;
   std::vector<ProceduralLeafState> m_leaves;
-  void OnInspect();
+  bool OnInspect();
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
 class SorghumStateGenerator;
+
+
 class ProceduralSorghum : public IAsset {
 public:
   unsigned m_seed = 0;
+  ProceduralSorghumState m_endState;
   ProceduralPinnacleDescriptor m_pinnacle;
   ProceduralStemDescriptor m_stem;
   std::vector<ProceduralLeafDescriptor> m_leaves;
   float m_endTime = 0;
-  void Set(const ProceduralSorghumState &endState);
+  void Set(float longestLeafTime);
   [[nodiscard]] ProceduralSorghumState Get(float time) const;
   void OnInspect();
 

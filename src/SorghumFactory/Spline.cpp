@@ -227,6 +227,7 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
 void Spline::FormLeaf(const ProceduralStemState &stemState,
                       const ProceduralLeafState &leafState, int nodeAmount) {
   m_nodes.clear();
+  if(!leafState.m_active) return;
   auto startingPoint = leafState.m_distanceToRoot / stemState.m_length;
   float stemWidth = stemState.m_widthAlongStem.GetValue(startingPoint);
   float backDistance = 0.1f;

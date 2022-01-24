@@ -147,7 +147,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(int segmentAmount, int step) {
   std::vector<Entity> plants;
   Entities::ForEach<GlobalTransform>(
       Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
-      [segmentAmount, step](int index, Entity entity, GlobalTransform &ltw) {
+      [=](int index, Entity entity, GlobalTransform &ltw) {
         if (entity.HasPrivateComponent<SorghumData>()) {
           auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>()
                                  .lock();
@@ -640,7 +640,7 @@ Entity SorghumLayer::CreateSorghum(
   Entity sorghum = CreateSorghum();
   auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
   sorghumData->m_parameters = descriptor;
-  sorghumData->ApplyParameters(descriptor->m_endTime);
+  sorghumData->Apply(descriptor->m_endTime);
   sorghumData->GenerateGeometry();
   sorghumData->ApplyGeometry();
   return sorghum;

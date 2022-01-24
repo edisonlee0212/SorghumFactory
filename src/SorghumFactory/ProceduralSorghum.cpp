@@ -31,6 +31,7 @@ ProceduralStemState ProceduralStemDescriptor::Get(float time,
   state.m_direction = m_direction;
   state.m_widthAlongStem = m_widthAlongStem;
   state.m_widthAlongStem.m_maxValue = m_width.GetValue(a);
+  state.m_widthAlongStem.m_minValue = 0.0f;
   return state;
 }
 ProceduralLeafState ProceduralLeafDescriptor::Get(float time,
@@ -46,7 +47,7 @@ ProceduralLeafState ProceduralLeafDescriptor::Get(float time,
   state.m_distanceToRoot = m_distanceToRoot.GetValue(a);
   state.m_length = m_length.GetValue(a);
 
-  state.m_widthAlongLeaf = m_wavinessAlongLeaf;
+  state.m_widthAlongLeaf = m_widthAlongLeaf;
   state.m_widthAlongLeaf.m_minValue = 0.0f;
   state.m_widthAlongLeaf.m_maxValue = m_width.GetValue(a);
 
@@ -74,14 +75,12 @@ ProceduralSorghumState ProceduralSorghum::Get(float time) const {
   return state;
 }
 
-void ProceduralPinnacleState::OnInspect() {
-  ImGui::Text(("Active: " + std::to_string(m_active)).c_str());
-  ImGui::Text(("Pinnacle size: " + std::to_string(m_pinnacleSize.x) + ", " +
-               std::to_string(m_pinnacleSize.y) + ", " +
-               std::to_string(m_pinnacleSize.z))
-                  .c_str());
-  ImGui::Text(("Seed amount: " + std::to_string(m_seedAmount)).c_str());
-  ImGui::Text(("Seed radius: " + std::to_string(m_seedRadius)).c_str());
+bool ProceduralPinnacleState::OnInspect() {
+  bool changed = ImGui::Checkbox("Active", &m_active);
+  changed = changed || ImGui::DragFloat3("Pinnacle size", &m_pinnacleSize.x, 0.01f);
+  changed = changed || ImGui::DragInt("Num of seed", &m_seedAmount, 0.01f);
+  changed = changed || ImGui::DragFloat("Seed radius", &m_seedRadius, 0.01f);
+  return changed;
 }
 void ProceduralPinnacleState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_active" << YAML::Value << m_active;
@@ -112,27 +111,25 @@ void ProceduralStemState::Deserialize(const YAML::Node &in) {
     m_length = in["m_length"].as<float>();
   m_widthAlongStem.Deserialize("m_widthAlongStem", in);
 }
-void ProceduralStemState::OnInspect() {
-  ImGui::Text(("Direction: " + std::to_string(m_direction.x) + ", " +
-               std::to_string(m_direction.y) + ", " +
-               std::to_string(m_direction.z))
-                  .c_str());
-  ImGui::Text(("Length: " + std::to_string(m_length)).c_str());
+bool ProceduralStemState::OnInspect() {
+  bool changed = ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
+  changed = changed || ImGui::DragFloat("Length", &m_length, 0.01f);
   m_widthAlongStem.OnInspect("Width along stem");
+  return changed;
 }
-void ProceduralLeafState::OnInspect() {
-  ImGui::Checkbox("Active", &m_active);
-  ImGui::DragFloat2("Bending", &m_bending.x, 0.01f, 0.0f, 999.0f);
+bool ProceduralLeafState::OnInspect() {
+  bool changed = ImGui::Checkbox("Active", &m_active);
   ImGui::Text(("Index: " + std::to_string(m_index)).c_str());
-  ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f);
-  ImGui::Text(
-      ("Distance to root: " + std::to_string(m_distanceToRoot)).c_str());
-  m_widthAlongLeaf.OnInspect("Width along leaf");
-  ImGui::DragFloat("Roll angle", &m_rollAngle, 0.01f, 0.0f, 999.0f);
-  ImGui::DragFloat("Branching angle", &m_branchingAngle, 0.01f, 0.0f, 999.0f);
-  m_wavinessAlongLeaf.OnInspect("Waviness along leaf");
-  ImGui::DragFloat("Waviness frequency", &m_wavinessFrequency, 0.01f, 0.0f,
+  changed = changed || ImGui::DragFloat2("Bending", &m_bending.x, 0.01f, 0.0f, 999.0f);
+  changed = changed || ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f);
+  changed = changed || ImGui::DragFloat("Dist to root", &m_distanceToRoot, 0.01f, 0.0f, 999.0f);
+  changed = changed || m_widthAlongLeaf.OnInspect("Width along leaf");
+  changed = changed || ImGui::DragFloat("Roll angle", &m_rollAngle, 0.01f, 0.0f, 999.0f);
+  changed = changed || ImGui::DragFloat("Branching angle", &m_branchingAngle, 0.01f, 0.0f, 999.0f);
+  changed = changed || m_wavinessAlongLeaf.OnInspect("Waviness along leaf");
+  changed = changed || ImGui::DragFloat("Waviness frequency", &m_wavinessFrequency, 0.01f, 0.0f,
                    999.0f);
+  return changed;
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_active" << YAML::Value << m_active;
@@ -169,27 +166,28 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
 }
-void ProceduralSorghumState::OnInspect() {
-  ImGui::Text(("Time: " + std::to_string(m_time)).c_str());
+bool ProceduralSorghumState::OnInspect() {
+  bool changed = ImGui::DragFloat("Time", &m_time, 0.01f);
   if (ImGui::TreeNode("Stem")) {
-    m_stem.OnInspect();
+    changed = changed || m_stem.OnInspect();
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Pinnacle")) {
-    m_pinnacle.OnInspect();
+    changed = changed || m_pinnacle.OnInspect();
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Leaves")) {
     int index = 0;
     for (auto &leaf : m_leaves) {
       if (ImGui::TreeNode(("Leaf " + std::to_string(index)).c_str())) {
-        leaf.OnInspect();
+        changed = changed || leaf.OnInspect();
         ImGui::TreePop();
       }
       index++;
     }
     ImGui::TreePop();
   }
+  return changed;
 }
 void ProceduralSorghumState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_time" << YAML::Value << m_time;
@@ -234,12 +232,14 @@ void ProceduralSorghum::OnInspect() {
       descriptor, "Drag SPD here to apply end state");
   auto temp = descriptor.Get<SorghumStateGenerator>();
   if (temp) {
-    auto endState = temp->Generate(m_seed);
-    endState.m_time = 1.0f;
-    Set(endState);
+    m_endState = temp->Generate(m_seed);
     descriptor.Clear();
   }
-
+  if (ImGui::TreeNode("End state")) {
+    m_endState.OnInspect();
+  }
+  static float longestLeafTime = 0.3f;
+  ImGui::SliderFloat("Time for longest leaf", &longestLeafTime, 0.0f, 1.0f);
   if (ImGui::Button("Instantiate")) {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(
         AssetManager::Get<ProceduralSorghum>(GetHandle()));
@@ -266,39 +266,39 @@ void ProceduralSorghum::OnInspect() {
   }
 }
 
-void ProceduralSorghum::Set(const ProceduralSorghumState &endState) {
-  float endTime = endState.m_time;
+void ProceduralSorghum::Set(float longestLeafTime) {
+  float endTime = m_endState.m_time;
   m_endTime = endTime;
 
-  m_stem.m_length = {0.0f, endState.m_stem.m_length,
+  m_stem.m_length = {0.0f, m_endState.m_stem.m_length,
                      UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
-  m_stem.m_direction = endState.m_stem.m_direction;
-  m_stem.m_widthAlongStem = endState.m_stem.m_widthAlongStem;
+  m_stem.m_direction = m_endState.m_stem.m_direction;
+  m_stem.m_widthAlongStem = m_endState.m_stem.m_widthAlongStem;
   m_stem.m_widthAlongStem.m_minValue = 0.0f;
   m_stem.m_widthAlongStem.m_maxValue = 1.0f;
-  m_stem.m_width = {0.0f, endState.m_stem.m_widthAlongStem.m_maxValue,
+  m_stem.m_width = {0.0f, m_endState.m_stem.m_widthAlongStem.m_maxValue,
                     UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
   m_pinnacle.m_startTime = endTime - endTime * 0.01f;
   m_pinnacle.m_endTime = endTime;
-  m_pinnacle.m_seedRadius = {0.0f, endState.m_pinnacle.m_seedRadius,
+  m_pinnacle.m_seedRadius = {0.0f, m_endState.m_pinnacle.m_seedRadius,
                              UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
-  m_pinnacle.m_seedAmount = {0, endState.m_pinnacle.m_seedAmount,
+  m_pinnacle.m_seedAmount = {0, m_endState.m_pinnacle.m_seedAmount,
                              UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
   m_pinnacle.m_pinnacleSize = {glm::vec3(0.0f),
-                               endState.m_pinnacle.m_pinnacleSize,
+                               m_endState.m_pinnacle.m_pinnacleSize,
                                UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
 
-  int leafSize = (int)endState.m_leaves.size();
+  int leafSize = (int)m_endState.m_leaves.size();
   m_leaves.resize(leafSize);
 
   float maxLength = 0.0f;
   int maxIndex = 0;
-  float growthTimeForLongestLeaf = endTime * 0.2f;
+  float growthTimeForLongestLeaf = endTime * longestLeafTime;
 
   for (int i = 0; i < leafSize; i++) {
     auto &leaf = m_leaves[i];
-    const auto &leafEndState = endState.m_leaves[i];
+    const auto &leafEndState = m_endState.m_leaves[i];
     leaf.m_length = {0.0f, leafEndState.m_length,
                      UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
     if (leaf.m_length.GetValue(1.0f) > maxLength) {
@@ -307,14 +307,14 @@ void ProceduralSorghum::Set(const ProceduralSorghumState &endState) {
     }
   }
   float growthTimeForLastLeaf = growthTimeForLongestLeaf *
-                                m_leaves.back().m_length.m_maxValue / maxLength;
+                                m_endState.m_leaves.back().m_length / maxLength;
   float lastLeafStartTime = endTime - growthTimeForLastLeaf;
 
   m_stem.m_endTime =
-      lastLeafStartTime / (m_leaves.back().m_distanceToRoot.GetValue(1.0f) /
+      lastLeafStartTime / (m_endState.m_leaves.back().m_distanceToRoot /
                            m_stem.m_length.GetValue(1.0f));
   float firstLeafStartTime = m_stem.m_endTime *
-                             m_leaves.front().m_distanceToRoot.GetValue(0.0f) /
+                             m_endState.m_leaves.front().m_distanceToRoot /
                              m_stem.m_length.GetValue(1.0f);
   float startingTimeStep =
       leafSize <= 1 ? 0.0f
@@ -322,7 +322,7 @@ void ProceduralSorghum::Set(const ProceduralSorghumState &endState) {
   for (int i = 0; i < leafSize; i++) {
     float step = (i + 1.0f) / leafSize;
     auto &leaf = m_leaves[i];
-    const auto &leafEndState = endState.m_leaves[i];
+    const auto &leafEndState = m_endState.m_leaves[i];
 
     leaf.m_distanceToRoot = {0.0f, leafEndState.m_distanceToRoot * 2.0f,
                              UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
@@ -330,7 +330,7 @@ void ProceduralSorghum::Set(const ProceduralSorghumState &endState) {
     leaf.m_widthAlongLeaf.m_minValue = 0.0f;
     leaf.m_widthAlongLeaf.m_maxValue = 1.0f;
 
-    leaf.m_width = {0.0f, leafEndState.m_widthAlongLeaf.m_maxValue,
+    leaf.m_width = {0.1f, leafEndState.m_widthAlongLeaf.m_maxValue,
                     UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
     leaf.m_rollAngle = leafEndState.m_rollAngle;
@@ -390,9 +390,14 @@ void ProceduralSorghum::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_endTime" << YAML::Value << m_endTime;
   out << YAML::Key << "m_seed" << YAML::Value << m_seed;
 
+  out << YAML::Key << "m_endState" << YAML::Value << YAML::BeginMap;
+  m_endState.Serialize(out);
+  out << YAML::EndMap;
+
   out << YAML::Key << "m_pinnacle" << YAML::Value << YAML::BeginMap;
   m_pinnacle.Serialize(out);
   out << YAML::EndMap;
+
   out << YAML::Key << "m_stem" << YAML::Value << YAML::BeginMap;
   m_stem.Serialize(out);
   out << YAML::EndMap;
@@ -413,6 +418,9 @@ void ProceduralSorghum::Deserialize(const YAML::Node &in) {
     m_endTime = in["m_endTime"].as<float>();
   if (in["m_seed"])
     m_seed = in["m_seed"].as<unsigned>();
+
+  if (in["m_endState"])
+    m_endState.Deserialize(in["m_endState"]);
 
   if (in["m_pinnacle"])
     m_pinnacle.Deserialize(in["m_pinnacle"]);

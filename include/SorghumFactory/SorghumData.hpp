@@ -20,7 +20,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void PreparePinnacleMesh(const glm::vec3 &center, std::vector<Vertex>& vertices, std::vector<glm::uvec3>& triangles);
-  void ApplyParameters(float time);
+  void Apply(float time);
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void GenerateGeometry();
   void ApplyGeometry(bool seperated = true, bool includeStem = true, bool segmentedMask = false);

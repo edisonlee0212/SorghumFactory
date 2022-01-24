@@ -22,16 +22,16 @@ void SorghumData::OnInspect() {
     static bool autoApply = true;
     ImGui::Checkbox("Auto apply", &autoApply);
     if(ImGui::SliderFloat("Time", &time, 0.0f, descriptor->m_endTime) && autoApply){
-      ApplyParameters(time);
+      Apply(time);
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
     time = glm::clamp(time, 0.0f, descriptor->m_endTime);
     if (ImGui::Button("Apply state only")) {
-      ApplyParameters(time);
+      Apply(time);
     }
     if (ImGui::Button("Apply state and build sorghum")) {
-      ApplyParameters(time);
+      Apply(time);
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
@@ -42,7 +42,7 @@ void SorghumData::OnInspect() {
     if(ImGui::Button("Apply +1/20")){
       time += descriptor->m_endTime / 20.0f;
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
-      ApplyParameters(time);
+      Apply(time);
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
@@ -50,7 +50,7 @@ void SorghumData::OnInspect() {
     if(ImGui::Button("Apply -1/20")){
       time -= descriptor->m_endTime / 20.0f;
       time = glm::clamp(time, 0.0f, descriptor->m_endTime);
-      ApplyParameters(time);
+      Apply(time);
       GenerateGeometry();
       ApplyGeometry(true, true, false);
     }
@@ -116,7 +116,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
   if (in["m_state"])
     m_state.Deserialize(in["m_state"]);
 }
-void SorghumData::ApplyParameters(float time) {
+void SorghumData::Apply(float time) {
   auto descriptor = m_parameters.Get<ProceduralSorghum>();
   if (!descriptor)
     return;
@@ -129,6 +129,7 @@ void SorghumData::ApplyParameters(float time) {
     Entities::DeleteEntity(Entities::GetCurrentScene(), children[i]);
   }
   for (int i = 0; i < m_state.m_leaves.size(); i++) {
+    if(!m_state.m_leaves[i].m_active) continue;
     Entity child;
     child =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
@@ -182,6 +183,9 @@ void SorghumData::GenerateGeometry() {
       [&](const std::shared_ptr<Scene> &scene, Entity child) {
         if (child.HasDataComponent<LeafTag>()) {
           auto leafSpline = child.GetOrSetPrivateComponent<Spline>().lock();
+          while(!m_state.m_leaves[i].m_active){
+            i++;
+          }
           leafSpline->FormLeaf(m_state.m_stem, m_state.m_leaves[i],
                                m_leafSubdivisionAmount);
         }
