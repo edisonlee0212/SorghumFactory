@@ -14,7 +14,10 @@ void SorghumData::OnCreate() {}
 void SorghumData::OnDestroy() {}
 
 void SorghumData::OnInspect() {
-  switch (m_mode) {
+  static const char *SorghumModes[]{"Procedural Growth", "Sorghum State"};
+  ImGui::Combo("Mode", &m_mode, SorghumModes,
+               IM_ARRAYSIZE(SorghumModes));
+  switch ((SorghumMode)m_mode) {
   case SorghumMode::ProceduralSorghum: {
     Editor::DragAndDropButton<ProceduralSorghum>(m_descriptor,
                                                  "Procedural Sorghum");
@@ -84,7 +87,7 @@ void SorghumData::ExportModel(const std::string &filename,
 }
 
 void SorghumData::Serialize(YAML::Emitter &out) {
-  out << YAML::Key << "m_mode" << YAML::Value << (unsigned)m_mode;
+  out << YAML::Key << "m_mode" << YAML::Value << m_mode;
   out << YAML::Key << "m_seed" << YAML::Value << m_seed;
 
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
@@ -104,7 +107,7 @@ void SorghumData::Serialize(YAML::Emitter &out) {
 }
 void SorghumData::Deserialize(const YAML::Node &in) {
   if (in["m_mode"])
-    m_mode = (SorghumMode)in["m_mode"].as<unsigned>();
+    m_mode = in["m_mode"].as<int>();
   if (in["m_seed"])
     m_seed = in["m_seed"].as<int>();
   if (in["m_gravityDirection"])
@@ -127,7 +130,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_state.Deserialize(in["m_state"]);
 }
 void SorghumData::Apply() {
-  switch (m_mode) {
+  switch ((SorghumMode)m_mode) {
   case SorghumMode::ProceduralSorghum: {
     auto descriptor = m_descriptor.Get<ProceduralSorghum>();
     if (!descriptor)

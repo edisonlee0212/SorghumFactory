@@ -14,7 +14,7 @@ class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
   unsigned m_recordedVersion = 0;
   friend class SorghumLayer;
 public:
-  SorghumMode m_mode = SorghumMode::ProceduralSorghum;
+  int m_mode = (int)SorghumMode::ProceduralSorghum;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
   ProceduralSorghumState m_state;

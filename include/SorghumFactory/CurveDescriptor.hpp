@@ -64,12 +64,6 @@ bool SingleDistribution<T>::OnInspect(const std::string &name) {
       changed = ImGui::DragFloat2("Mean", (float*)&m_mean, 0.01f);
     } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
       changed = ImGui::DragFloat3("Mean", (float*)&m_mean, 0.01f);
-    } else if (typeid(T).hash_code() == typeid(int).hash_code()) {
-      changed = ImGui::DragInt("Mean", (int*)&m_mean, 0.01f);
-    } else if (typeid(T).hash_code() == typeid(glm::ivec2).hash_code()) {
-      changed = ImGui::DragInt2("Mean", (int*)&m_mean, 0.01f);
-    } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
-      changed = ImGui::DragInt3("Mean", (int*)&m_mean, 0.01f);
     }
     if(ImGui::DragFloat("Deviation", &m_deviation, 0.01f)) changed = true;
     ImGui::TreePop();
@@ -77,7 +71,7 @@ bool SingleDistribution<T>::OnInspect(const std::string &name) {
   return changed;
 }
 template <class T> T SingleDistribution<T>::GetValue() const {
-  return m_mean * glm::gaussRand(1.0f, m_deviation);
+  return glm::gaussRand(m_mean, T(m_deviation));
 }
 
 template <class T>
@@ -113,7 +107,7 @@ void MixedDistribution<T>::Deserialize(const std::string &name,
   }
 }
 template <class T> T MixedDistribution<T>::GetValue(float t) const {
-  return m_mean.GetValue(t) * glm::gaussRand(1.0f, m_deviation.GetValue(t));
+  return glm::gaussRand(m_mean.GetValue(t) , T(m_deviation.GetValue(t)));
 }
 
 template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name, bool minmaxControl) {
@@ -131,18 +125,6 @@ template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name, b
       } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
         changed = ImGui::DragFloat3("Min", (float *)&m_minValue, 0.01f);
         if (ImGui::DragFloat3("Max", (float *)&m_maxValue, 0.01f))
-          changed = true;
-      } else if (typeid(T).hash_code() == typeid(int).hash_code()) {
-        changed = ImGui::DragInt("Min", (int *)&m_minValue, 0.01f);
-        if (ImGui::DragInt("Max", (int *)&m_maxValue, 0.01f))
-          changed = true;
-      } else if (typeid(T).hash_code() == typeid(glm::ivec2).hash_code()) {
-        changed = ImGui::DragInt2("Min", (int *)&m_minValue, 0.01f);
-        if (ImGui::DragInt2("Max", (int *)&m_maxValue, 0.01f))
-          changed = true;
-      } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
-        changed = ImGui::DragInt3("Min", (int *)&m_minValue, 0.01f);
-        if (ImGui::DragInt3("Max", (int *)&m_maxValue, 0.01f))
           changed = true;
       }
     }

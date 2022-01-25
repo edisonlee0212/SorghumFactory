@@ -11,14 +11,14 @@ public:
   //Pinnacle
   bool m_hasPinnacle;
   SingleDistribution<glm::vec3> m_pinnacleSize;
-  SingleDistribution<int> m_pinnacleSeedAmount;
+  SingleDistribution<float> m_pinnacleSeedAmount;
   SingleDistribution<float> m_pinnacleSeedRadius;
   //Stem
   glm::vec3 m_stemDirection;
   SingleDistribution<float> m_stemLength;
   SingleDistribution<float> m_stemWidth;
   //Leaf
-  int m_leafAmount;
+  SingleDistribution<float> m_leafAmount;
   SingleDistribution<float> m_firstLeafStartingPoint;
   SingleDistribution<float> m_lastLeafEndingPoint;
 

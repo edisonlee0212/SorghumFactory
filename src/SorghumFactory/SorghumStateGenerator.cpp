@@ -15,7 +15,7 @@ SorghumStateGenerator::SorghumStateGenerator() {
   m_stemLength.m_mean = 0.875f;
   m_stemWidth.m_mean = 0.015f;
 
-  m_leafAmount = 10;
+  m_leafAmount.m_mean = 20.0f;
   m_firstLeafStartingPoint.m_mean = 0.15f;
   m_lastLeafEndingPoint.m_mean = 1.0f;
 
@@ -66,7 +66,7 @@ SorghumStateGenerator::SorghumStateGenerator() {
 void SorghumStateGenerator::OnInspect() {
   bool changed = ImGui::Checkbox("Pinnacle", &m_hasPinnacle);
   if (m_hasPinnacle) {
-    if (ImGui::TreeNode("Pinnacle settings")) {
+    if (ImGui::TreeNodeEx("Pinnacle settings", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (m_pinnacleSize.OnInspect("Size"))
         changed = true;
       if (m_pinnacleSeedAmount.OnInspect("Seed amount"))
@@ -76,7 +76,7 @@ void SorghumStateGenerator::OnInspect() {
       ImGui::TreePop();
     }
   }
-  if (ImGui::TreeNode("Stem settings")) {
+  if (ImGui::TreeNodeEx("Stem settings", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::DragFloat3("Direction", &m_stemDirection.x))
       changed = true;
     if (m_stemLength.OnInspect("Length"))
@@ -90,14 +90,13 @@ void SorghumStateGenerator::OnInspect() {
     }
     ImGui::TreePop();
   }
-  if (ImGui::TreeNode("Leaves settings")) {
-    if (ImGui::DragInt("Num of leaves", &m_leafAmount, 1, 0, 128))
+  if (ImGui::TreeNodeEx("Leaves settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (m_leafAmount.OnInspect("Num of leaves"))
       changed = true;
     if (m_firstLeafStartingPoint.OnInspect("Starting point"))
       changed = true;
     if (m_lastLeafEndingPoint.OnInspect("Ending point"))
       changed = true;
-
     if (m_leafRollAngle.OnInspect("Roll angle"))
       changed = true;
     if (m_leafBranchingAngle.OnInspect("Branching angle"))
@@ -144,7 +143,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_stemLength.Serialize("m_stemLength", out);
   m_stemWidth.Serialize("m_stemWidth", out);
 
-  out << YAML::Key << "m_leafAmount" << YAML::Value << m_leafAmount;
+  m_leafAmount.Serialize("m_leafAmount", out);
   m_firstLeafStartingPoint.Serialize("m_firstLeafStartingPoint", out);
   m_lastLeafEndingPoint.Serialize("m_lastLeafEndingPoint", out);
   m_leafRollAngle.Serialize("m_leafRollAngle", out);
@@ -175,8 +174,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_stemLength.Deserialize("m_stemLength", in);
   m_stemWidth.Deserialize("m_stemWidth", in);
 
-  if (in["m_leafAmount"])
-    m_leafAmount = in["m_leafAmount"].as<int>();
+  m_leafAmount.Deserialize("m_leafAmount", in);
   m_firstLeafStartingPoint.Deserialize("m_firstLeafStartingPoint", in);
   m_lastLeafEndingPoint.Deserialize("m_lastLeafEndingPoint", in);
 
@@ -206,10 +204,11 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   endState.m_stem.m_widthAlongStem = {
       0.0f, m_stemWidth.GetValue(),
       m_widthAlongStem};
-  endState.m_leaves.resize(m_leafAmount);
-  for (int i = 0; i < m_leafAmount; i++) {
+  int leafSize = glm::clamp(m_leafAmount.GetValue(), 2.0f, 128.0f);
+  endState.m_leaves.resize(leafSize);
+  for (int i = 0; i < leafSize; i++) {
     float step =
-        static_cast<float>(i) / (static_cast<float>(m_leafAmount) - 1.0f);
+        static_cast<float>(i) / (static_cast<float>(leafSize) - 1.0f);
     auto &leafState = endState.m_leaves[i];
     leafState.m_active = true;
     leafState.m_index = i;
