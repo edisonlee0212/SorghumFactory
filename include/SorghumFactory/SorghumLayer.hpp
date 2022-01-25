@@ -77,6 +77,8 @@ public:
   Entity CreateSorghum();
   Entity
   CreateSorghum(const std::shared_ptr<ProceduralSorghum> &descriptor);
+  Entity
+  CreateSorghum(const std::shared_ptr<SorghumStateGenerator> &descriptor);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(bool seperated, bool includeStem,

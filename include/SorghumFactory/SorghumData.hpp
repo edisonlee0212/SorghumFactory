@@ -4,15 +4,22 @@
 #include <SorghumStateGenerator.hpp>
 using namespace UniEngine;
 namespace SorghumFactory {
+enum class SorghumMode{
+  ProceduralSorghum,
+  SorghumStateGenerator
+};
+
 class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
   float m_currentTime = 1.0f;
   unsigned m_recordedVersion = 0;
   friend class SorghumLayer;
 public:
+  SorghumMode m_mode = SorghumMode::ProceduralSorghum;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
   ProceduralSorghumState m_state;
-  AssetRef m_proceduralSorghum;
+  AssetRef m_descriptor;
+  int m_seed = 0;
   int m_stemSubdivisionAmount = 16;
   int m_leafSubdivisionAmount = 16;
   void OnCreate() override;
@@ -28,6 +35,5 @@ public:
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void GenerateGeometry();
   void ApplyGeometry(bool seperated = true, bool includeStem = true, bool segmentedMask = false);
-  void LateUpdate() override;
 };
 } // namespace PlantFactory

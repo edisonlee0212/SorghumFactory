@@ -19,63 +19,122 @@ SorghumStateGenerator::SorghumStateGenerator() {
   m_firstLeafStartingPoint.m_mean = 0.15f;
   m_lastLeafEndingPoint.m_mean = 1.0f;
 
-  m_leafRollAngle.m_mean = {-1.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafRollAngle.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
+  m_leafRollAngle.m_mean = {-1.0f, 1.0f,
+                            UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafRollAngle.m_deviation = {0.0f, 0.0f,
+                                 UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
-  m_leafBranchingAngle.m_mean = {0.0f, 50.0f, UniEngine::Curve(0.5f, 0.1f, {0, 0}, {1, 1})};
-  m_leafBranchingAngle.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
+  m_leafBranchingAngle.m_mean = {0.0f, 50.0f,
+                                 UniEngine::Curve(0.5f, 0.1f, {0, 0}, {1, 1})};
+  m_leafBranchingAngle.m_deviation = {
+      0.0f, 0.0f, UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
 
-  m_leafBending.m_mean = {0.0f, 4.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafBending.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafBending.m_mean = {0.0f, 4.0f,
+                          UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafBending.m_deviation = {0.0f, 0.0f,
+                               UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_leafBendingAcceleration.m_mean = {0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafBendingAcceleration.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafBendingAcceleration.m_mean = {
+      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafBendingAcceleration.m_deviation = {
+      0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_leafWaviness.m_mean = {0.0f, 20.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafWaviness.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWaviness.m_mean = {0.0f, 20.0f,
+                           UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWaviness.m_deviation = {0.0f, 0.0f,
+                                UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_leafWavinessFrequency.m_mean = {0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafWavinessFrequency.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWavinessFrequency.m_mean = {
+      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWavinessFrequency.m_deviation = {
+      0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_leafLength.m_mean = {0.0f, 2.55f, UniEngine::Curve(0.333, 0.247, {0, 0}, {1, 1})};
-  m_leafLength.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafLength.m_mean = {0.0f, 2.55f,
+                         UniEngine::Curve(0.333, 0.247, {0, 0}, {1, 1})};
+  m_leafLength.m_deviation = {0.0f, 0.0f,
+                              UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_leafWidth.m_mean = {0.0f, 0.035f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
-  m_leafWidth.m_deviation = {0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWidth.m_mean = {0.0f, 0.035f,
+                        UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafWidth.m_deviation = {0.0f, 0.0f,
+                             UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+
+  m_widthAlongStem = UniEngine::Curve(1.0f, 0.1f, {0, 0}, {1, 1});
+  m_widthAlongLeaf = UniEngine::Curve(1.0f, 0.1f, {0, 0}, {1, 1});
+  m_wavinessAlongLeaf = UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1});
 }
 void SorghumStateGenerator::OnInspect() {
-  m_saved = ImGui::Checkbox("Pinnacle", &m_hasPinnacle);
+  bool changed = ImGui::Checkbox("Pinnacle", &m_hasPinnacle);
   if (m_hasPinnacle) {
     if (ImGui::TreeNode("Pinnacle settings")) {
-      if(m_pinnacleSize.OnInspect("Size")) m_saved = false;
-      if(m_pinnacleSeedAmount.OnInspect("Seed amount")) m_saved = false;
-      if(m_pinnacleSeedRadius.OnInspect("Seed radius")) m_saved = false;
+      if (m_pinnacleSize.OnInspect("Size"))
+        changed = true;
+      if (m_pinnacleSeedAmount.OnInspect("Seed amount"))
+        changed = true;
+      if (m_pinnacleSeedRadius.OnInspect("Seed radius"))
+        changed = true;
       ImGui::TreePop();
     }
   }
   if (ImGui::TreeNode("Stem settings")) {
-    if(ImGui::DragFloat3("Direction", &m_stemDirection.x)) m_saved = false;
-    if(m_stemLength.OnInspect("Length")) m_saved = false;
-    if(m_stemWidth.OnInspect("Width")) m_saved = false;
+    if (ImGui::DragFloat3("Direction", &m_stemDirection.x))
+      changed = true;
+    if (m_stemLength.OnInspect("Length"))
+      changed = true;
+    if (m_stemWidth.OnInspect("Width"))
+      changed = true;
+    if (ImGui::TreeNode("Stem Details")) {
+      if (m_widthAlongStem.OnInspect("Width along stem"))
+        changed = true;
+      ImGui::TreePop();
+    }
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Leaves settings")) {
-    if(ImGui::DragInt("Num of leaves", &m_leafAmount)) m_saved = false;
-    if(m_firstLeafStartingPoint.OnInspect("Starting point")) m_saved = false;
-    if(m_lastLeafEndingPoint.OnInspect("Ending point")) m_saved = false;
+    if (ImGui::DragInt("Num of leaves", &m_leafAmount, 1, 0, 128))
+      changed = true;
+    if (m_firstLeafStartingPoint.OnInspect("Starting point"))
+      changed = true;
+    if (m_lastLeafEndingPoint.OnInspect("Ending point"))
+      changed = true;
 
-    if(m_leafRollAngle.OnInspect("Roll angle")) m_saved = false;
-    if(m_leafBranchingAngle.OnInspect("Branching angle")) m_saved = false;
-    if(m_leafBending.OnInspect("Bending")) m_saved = false;
-    if(m_leafBendingAcceleration.OnInspect("Bending acceleration")) m_saved = false;
-    if(m_leafWaviness.OnInspect("Waviness")) m_saved = false;
-    if(m_leafWavinessFrequency.OnInspect("Waviness Frequency")) m_saved = false;
-    if(m_leafLength.OnInspect("Length")) m_saved = false;
-    if(m_leafWidth.OnInspect("Width")) m_saved = false;
+    if (m_leafRollAngle.OnInspect("Roll angle"))
+      changed = true;
+    if (m_leafBranchingAngle.OnInspect("Branching angle"))
+      changed = true;
+    if (m_leafBending.OnInspect("Bending"))
+      changed = true;
+    if (m_leafBendingAcceleration.OnInspect("Bending acceleration"))
+      changed = true;
+    if (m_leafWaviness.OnInspect("Waviness"))
+      changed = true;
+    if (m_leafWavinessFrequency.OnInspect("Waviness Frequency"))
+      changed = true;
+    if (m_leafLength.OnInspect("Length"))
+      changed = true;
+    if (m_leafWidth.OnInspect("Width"))
+      changed = true;
+    if (ImGui::TreeNode("Leaf Details")) {
+      if (m_widthAlongLeaf.OnInspect("Width along leaf"))
+        changed = true;
+      if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
+        changed = true;
+      ImGui::TreePop();
+    }
     ImGui::TreePop();
+  }
+  if (changed) {
+    m_saved = false;
+    m_version++;
+  }
+  if (ImGui::Button("Instantiate")) {
+    Application::GetLayer<SorghumLayer>()->CreateSorghum(
+        AssetManager::Get<SorghumStateGenerator>(GetHandle()));
   }
 }
 void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_version" << YAML::Value << m_version;
+
   out << YAML::Key << "m_hasPinnacle" << YAML::Value << m_hasPinnacle;
   m_pinnacleSize.Serialize("m_pinnacleSize", out);
   m_pinnacleSeedAmount.Serialize("m_pinnacleSeedAmount", out);
@@ -96,18 +155,28 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_leafWavinessFrequency.Serialize("m_leafWavinessFrequency", out);
   m_leafLength.Serialize("m_leafLength", out);
   m_leafWidth.Serialize("m_leafWidth", out);
+
+  m_widthAlongStem.UniEngine::ISerializable::Serialize("m_widthAlongStem", out);
+  m_widthAlongLeaf.UniEngine::ISerializable::Serialize("m_widthAlongLeaf", out);
+  m_wavinessAlongLeaf.UniEngine::ISerializable::Serialize("m_wavinessAlongLeaf", out);
 }
 void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
-  if(in["m_hasPinnacle"]) m_hasPinnacle = in["m_hasPinnacle"].as<bool>();
+  if (in["m_version"])
+    m_version = in["m_version"].as<unsigned>();
+
+  if (in["m_hasPinnacle"])
+    m_hasPinnacle = in["m_hasPinnacle"].as<bool>();
   m_pinnacleSize.Deserialize("m_pinnacleSize", in);
   m_pinnacleSeedAmount.Deserialize("m_pinnacleSeedAmount", in);
   m_pinnacleSeedRadius.Deserialize("m_pinnacleSeedRadius", in);
 
-  if(in["m_stemDirection"]) m_stemDirection = in["m_stemDirection"].as<glm::vec3>();
+  if (in["m_stemDirection"])
+    m_stemDirection = in["m_stemDirection"].as<glm::vec3>();
   m_stemLength.Deserialize("m_stemLength", in);
   m_stemWidth.Deserialize("m_stemWidth", in);
 
-  if(in["m_leafAmount"]) m_leafAmount = in["m_leafAmount"].as<int>();
+  if (in["m_leafAmount"])
+    m_leafAmount = in["m_leafAmount"].as<int>();
   m_firstLeafStartingPoint.Deserialize("m_firstLeafStartingPoint", in);
   m_lastLeafEndingPoint.Deserialize("m_lastLeafEndingPoint", in);
 
@@ -118,6 +187,10 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_leafWavinessFrequency.Deserialize("m_leafWavinessFrequency", in);
   m_leafLength.Deserialize("m_leafLength", in);
   m_leafWidth.Deserialize("m_leafWidth", in);
+
+  m_widthAlongStem.UniEngine::ISerializable::Deserialize("m_widthAlongStem", in);
+  m_widthAlongLeaf.UniEngine::ISerializable::Deserialize("m_widthAlongLeaf", in);
+  m_wavinessAlongLeaf.UniEngine::ISerializable::Deserialize("m_wavinessAlongLeaf", in);
 }
 ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   srand(seed);
@@ -132,12 +205,13 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   endState.m_stem.m_length = m_stemLength.GetValue();
   endState.m_stem.m_widthAlongStem = {
       0.0f, m_stemWidth.GetValue(),
-      UniEngine::Curve(1.0f, 0.1f, {0, 0}, {1, 1})};
+      m_widthAlongStem};
   endState.m_leaves.resize(m_leafAmount);
   for (int i = 0; i < m_leafAmount; i++) {
     float step =
         static_cast<float>(i) / (static_cast<float>(m_leafAmount) - 1.0f);
     auto &leafState = endState.m_leaves[i];
+    leafState.m_active = true;
     leafState.m_index = i;
     auto firstLeafStartingPoint = m_firstLeafStartingPoint.GetValue();
     leafState.m_distanceToRoot =
@@ -148,12 +222,12 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
 
     leafState.m_wavinessAlongLeaf = {
         0.0f, m_leafWaviness.GetValue(step) * 2.0f,
-        UniEngine::Curve(0.0f, 1.0f, {0, 0}, {1, 1})};
+        m_wavinessAlongLeaf};
     leafState.m_wavinessFrequency = m_leafWavinessFrequency.GetValue(step);
 
     leafState.m_widthAlongLeaf = {
         0.0f, m_leafWidth.GetValue(step) * 2.0f,
-        UniEngine::Curve(1.0f, 0.005f, {0, 0}, {1, 1})};
+        m_widthAlongLeaf};
 
     leafState.m_branchingAngle = m_leafBranchingAngle.GetValue(step);
     leafState.m_rollAngle = (i % 2) * 180.0f + m_leafRollAngle.GetValue(step);
@@ -162,3 +236,4 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   }
   return endState;
 }
+unsigned SorghumStateGenerator::GetVersion() const { return m_version; }

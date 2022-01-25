@@ -67,7 +67,7 @@ void SorghumLayer::OnCreate() {
     auto albedo = AssetManager::CreateAsset<Texture2D>("Leaf texture");
     albedo->Import(std::filesystem::absolute(
         std::filesystem::path("./SorghumFactoryResources/Textures") /
-        "leafSurfaceDark.png"));
+        "leafSurfaceDark.jpg"));
     m_leafAlbedoTexture.Set(albedo);
   }
 
@@ -663,18 +663,33 @@ void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
 Entity SorghumLayer::CreateSorghum(
     const std::shared_ptr<ProceduralSorghum> &descriptor) {
   if (!descriptor) {
-    UNIENGINE_ERROR("Descriptor empty!");
-    return Entity();
+    UNIENGINE_ERROR("ProceduralSorghum empty!");
+    return {};
   }
   Entity sorghum = CreateSorghum();
   auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
-  sorghumData->m_proceduralSorghum = descriptor;
+  sorghumData->m_mode = SorghumMode::ProceduralSorghum;
+  sorghumData->m_descriptor = descriptor;
   sorghumData->SetTime(1.0f);
   sorghumData->GenerateGeometry();
   sorghumData->ApplyGeometry();
   return sorghum;
 }
-
+Entity SorghumLayer::CreateSorghum(
+    const std::shared_ptr<SorghumStateGenerator> &descriptor) {
+  if (!descriptor) {
+    UNIENGINE_ERROR("SorghumStateGenerator empty!");
+    return {};
+  }
+  Entity sorghum = CreateSorghum();
+  auto sorghumData = sorghum.GetOrSetPrivateComponent<SorghumData>().lock();
+  sorghumData->m_mode = SorghumMode::SorghumStateGenerator;
+  sorghumData->m_descriptor = descriptor;
+  sorghumData->SetTime(1.0f);
+  sorghumData->GenerateGeometry();
+  sorghumData->ApplyGeometry();
+  return sorghum;
+}
 std::shared_ptr<PointCloud>
 SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
                              glm::vec2 boundingBoxHeightRange,
@@ -1018,9 +1033,18 @@ void SorghumLayer::LateUpdate() {
     if (plant.HasPrivateComponent<SorghumData>()) {
       auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
       auto proceduralSorghum =
-          sorghumData->m_proceduralSorghum.Get<ProceduralSorghum>();
+          sorghumData->m_descriptor.Get<ProceduralSorghum>();
       if (proceduralSorghum &&
-          proceduralSorghum->m_version != sorghumData->m_recordedVersion) {
+          proceduralSorghum->GetVersion() != sorghumData->m_recordedVersion) {
+        sorghumData->Apply();
+        sorghumData->GenerateGeometry();
+        sorghumData->ApplyGeometry(true, true, false);
+        continue;
+      }
+      auto sorghumStateGenerator =
+          sorghumData->m_descriptor.Get<SorghumStateGenerator>();
+      if (sorghumStateGenerator && sorghumStateGenerator->GetVersion() !=
+                                       sorghumData->m_recordedVersion) {
         sorghumData->Apply();
         sorghumData->GenerateGeometry();
         sorghumData->ApplyGeometry(true, true, false);
@@ -1028,6 +1052,7 @@ void SorghumLayer::LateUpdate() {
     }
   }
 }
+
 void PointCloudSampleSettings::OnInspect() {
   ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);
   ImGui::DragFloat("Scanner angle", &m_scannerAngle, 0.5f);

@@ -11,7 +11,7 @@ template <class T> struct CurveDescriptor {
   CurveDescriptor(T min, T max,
                   UniEngine::Curve curve = UniEngine::Curve(0.5f, 0.5f, {0, 0},
                                                             {1, 1}));
-  bool OnInspect(const std::string &name);
+  bool OnInspect(const std::string &name, bool minmaxControl = true);
   void Serialize(const std::string &name, YAML::Emitter &out);
   void Deserialize(const std::string &name, const YAML::Node &in);
 
@@ -116,29 +116,37 @@ template <class T> T MixedDistribution<T>::GetValue(float t) const {
   return m_mean.GetValue(t) * glm::gaussRand(1.0f, m_deviation.GetValue(t));
 }
 
-template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name) {
+template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name, bool minmaxControl) {
   bool changed = false;
   if (ImGui::TreeNode(name.c_str())) {
-    if (typeid(T).hash_code() == typeid(float).hash_code()) {
-      changed = ImGui::DragFloat("Min", (float*)&m_minValue, 0.01f);
-      if(ImGui::DragFloat("Max", (float*)&m_maxValue, 0.01f)) changed = true;
-    } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
-      changed = ImGui::DragFloat2("Min", (float*)&m_minValue, 0.01f);
-      if(ImGui::DragFloat2("Max", (float*)&m_maxValue, 0.01f)) changed = true;
-    } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
-      changed = ImGui::DragFloat3("Min", (float*)&m_minValue, 0.01f);
-      if(ImGui::DragFloat3("Max", (float*)&m_maxValue, 0.01f)) changed = true;
-    } else if (typeid(T).hash_code() == typeid(int).hash_code()) {
-      changed = ImGui::DragInt("Min", (int*)&m_minValue, 0.01f);
-      if(ImGui::DragInt("Max", (int*)&m_maxValue, 0.01f)) changed = true;
-    } else if (typeid(T).hash_code() == typeid(glm::ivec2).hash_code()) {
-      changed = ImGui::DragInt2("Min", (int*)&m_minValue, 0.01f);
-      if(ImGui::DragInt2("Max", (int*)&m_maxValue, 0.01f)) changed = true;
-    } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
-      changed = ImGui::DragInt3("Min", (int*)&m_minValue, 0.01f);
-      if(ImGui::DragInt3("Max", (int*)&m_maxValue, 0.01f)) changed = true;
+    if(minmaxControl) {
+      if (typeid(T).hash_code() == typeid(float).hash_code()) {
+        changed = ImGui::DragFloat("Min", (float *)&m_minValue, 0.01f);
+        if (ImGui::DragFloat("Max", (float *)&m_maxValue, 0.01f))
+          changed = true;
+      } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
+        changed = ImGui::DragFloat2("Min", (float *)&m_minValue, 0.01f);
+        if (ImGui::DragFloat2("Max", (float *)&m_maxValue, 0.01f))
+          changed = true;
+      } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
+        changed = ImGui::DragFloat3("Min", (float *)&m_minValue, 0.01f);
+        if (ImGui::DragFloat3("Max", (float *)&m_maxValue, 0.01f))
+          changed = true;
+      } else if (typeid(T).hash_code() == typeid(int).hash_code()) {
+        changed = ImGui::DragInt("Min", (int *)&m_minValue, 0.01f);
+        if (ImGui::DragInt("Max", (int *)&m_maxValue, 0.01f))
+          changed = true;
+      } else if (typeid(T).hash_code() == typeid(glm::ivec2).hash_code()) {
+        changed = ImGui::DragInt2("Min", (int *)&m_minValue, 0.01f);
+        if (ImGui::DragInt2("Max", (int *)&m_maxValue, 0.01f))
+          changed = true;
+      } else if (typeid(T).hash_code() == typeid(glm::ivec3).hash_code()) {
+        changed = ImGui::DragInt3("Min", (int *)&m_minValue, 0.01f);
+        if (ImGui::DragInt3("Max", (int *)&m_maxValue, 0.01f))
+          changed = true;
+      }
     }
-    if(m_curve.CurveEditor("Curve")) changed = true;
+    if(m_curve.OnInspect("Curve")) changed = true;
     ImGui::TreePop();
   }
   return changed;

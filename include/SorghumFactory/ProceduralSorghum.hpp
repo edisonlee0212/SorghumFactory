@@ -57,7 +57,7 @@ struct ProceduralStemDescriptor {
   glm::vec3 m_direction = glm::vec3(0, 1, 0);
   CurveDescriptor<float> m_length;
   CurveDescriptor<float> m_width;
-  CurveDescriptor<float> m_widthAlongStem;
+  UniEngine::Curve m_widthAlongStem;
   [[nodiscard]] ProceduralStemState Get(float time) const;
   bool OnInspect(float maxTime);
   void Serialize(YAML::Emitter &out);
@@ -75,8 +75,8 @@ struct ProceduralLeafDescriptor {
   CurveDescriptor<float> m_length;
   CurveDescriptor<float> m_width;
   CurveDescriptor<float> m_waviness;
-  CurveDescriptor<float> m_widthAlongLeaf;
-  CurveDescriptor<float> m_wavinessAlongLeaf;
+  UniEngine::Curve m_widthAlongLeaf;
+  UniEngine::Curve m_wavinessAlongLeaf;
 
   [[nodiscard]] ProceduralLeafState Get(float time) const;
   bool OnInspect(float maxTime);
@@ -99,9 +99,9 @@ class SorghumStateGenerator;
 
 
 class ProceduralSorghum : public IAsset {
-public:
-  unsigned m_seed = 0;
   unsigned m_version = 0;
+public:
+  int m_seed = 0;
   ProceduralSorghumState m_endState;
   ProceduralPinnacleDescriptor m_pinnacle;
   ProceduralStemDescriptor m_stem;
@@ -110,7 +110,7 @@ public:
   void Set(float endTime, float longestLeafTime);
   [[nodiscard]] ProceduralSorghumState Get(float time) const;
   void OnInspect();
-
+  [[nodiscard]] unsigned GetVersion() const;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };
