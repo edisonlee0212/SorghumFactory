@@ -96,6 +96,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
       sorghumEntity.SetDataComponent(sorghumTransform);
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
+      sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
       sorghumData->m_descriptor = newSorghum.first;
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
@@ -108,7 +109,8 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
                                                 field);
 
-    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(false, true, false);
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
+        false, true, false);
     field.SetStatic(true);
     return field;
   } else {
@@ -129,16 +131,17 @@ void RectangularSorghumField::GenerateMatrices() {
           glm::vec3(xi * m_distance.x, 0.0f, yi * m_distance.y);
       auto rotation = glm::quat(glm::radians(
           glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
-      m_newSorghums.emplace_back(m_sorghumStateGenerator, glm::translate(position) *
-                                            glm::mat4_cast(rotation) *
-                                            glm::scale(glm::vec3(1.0f)));
+      m_newSorghums.emplace_back(m_sorghumStateGenerator,
+                                 glm::translate(position) *
+                                     glm::mat4_cast(rotation) *
+                                     glm::scale(glm::vec3(1.0f)));
     }
   }
 }
 void RectangularSorghumField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<SorghumStateGenerator>(
-      m_sorghumStateGenerator, "SorghumStateGenerator");
+  Editor::DragAndDropButton<SorghumStateGenerator>(m_sorghumStateGenerator,
+                                                   "SorghumStateGenerator");
   ImGui::DragFloat4("Distance mean/var", &m_distance.x, 0.01f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
                     180.0f);
@@ -182,15 +185,15 @@ void PositionsField::GenerateMatrices() {
         m_factor;
     auto rotation = glm::quat(glm::radians(
         glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
-    m_newSorghums.emplace_back(m_sorghumStateGenerator, glm::translate(pos) *
-                                          glm::mat4_cast(rotation) *
-                                          glm::scale(glm::vec3(1.0f)));
+    m_newSorghums.emplace_back(m_sorghumStateGenerator,
+                               glm::translate(pos) * glm::mat4_cast(rotation) *
+                                   glm::scale(glm::vec3(1.0f)));
   }
 }
 void PositionsField::OnInspect() {
   SorghumField::OnInspect();
-  Editor::DragAndDropButton<SorghumStateGenerator>(
-      m_sorghumStateGenerator, "SorghumStateGenerator");
+  Editor::DragAndDropButton<SorghumStateGenerator>(m_sorghumStateGenerator,
+                                                   "SorghumStateGenerator");
   ImGui::Text("Available count: %d", m_positions.size());
   ImGui::DragFloat("Distance factor", &m_factor, 0.01f, 0.0f, 20.0f);
   ImGui::DragFloat3("Rotation variance", &m_rotationVariance.x, 0.01f, 0.0f,
@@ -288,10 +291,9 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       if (glm::distance(center, position) > radius)
         continue;
       Entity sorghumEntity = sorghumLayer->CreateSorghum();
-      if (glm::distance(center, position) == 0)
+      if (center == position)
         centerSorghum = sorghumEntity;
       auto sorghumTransform = sorghumEntity.GetDataComponent<Transform>();
-
       auto pos =
           glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
       auto rotation = glm::quat(glm::radians(
@@ -304,6 +306,8 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       auto sorghumData =
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_descriptor = m_sorghumStateGenerator;
+      sorghumData->m_mode = 1;
+      sorghumData->m_seed = size;
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
@@ -314,8 +318,8 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
                                                 field);
-    Application::GetLayer<SorghumLayer>()
-        ->GenerateMeshForAllSorghums(true, true, false);
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
+        true, true, false);
     field.SetStatic(true);
 
     return {centerSorghum, field};

@@ -1,10 +1,10 @@
 m_name: New PositionsField
-m_psgd:
-  m_assetHandle: 0
-  m_assetTypeName: ""
+m_sorghumStateGenerator:
+  m_assetHandle: 13632919304821811199
+  m_assetTypeName: SorghumStateGenerator
 m_rotationVariance: [0, 0, 0]
-m_sampleX: [408991.68085800001, 409017.66085799999]
-m_sampleY: [3660208.2481880002, 3660210.7581879999]
+m_sampleX: [0, 5]
+m_sampleY: [0, 5]
 m_xRange: [-75.517934253082331, 77.604070670185024]
 m_yRange: [-11.691954107324602, 10.820809964462217]
 m_factor: 1
@@ -12,4 +12,91 @@ m_positions: !!binary "wFRgPIOawb9omiySDHTVv7BuaMkeA7m/mmHWPEt+3T9UIQcwr4Tmv7Ofu
 m_sizeLimit: 2000
 m_sorghumSize: 1
 m_newSorghums:
-  []
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [2.52165985, 0, 1.15623403, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.40502834, 0, 0.444965154, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.46912551, 0, 1.15928614, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.88532257, 0, 0.494791508, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.81254888, 0, 1.23335624, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.26525402, 0, 1.22116351, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.11229825, 0, 3.4428618, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.67398787, 0, 0.496621817, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.3137908, 0, 1.96781194, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.90546489, 0, 2.79612708, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [2.26597929, 0, 4.29162741, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0.265728593, 0, 4.98413086, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.95299339, 0, 1.22055387, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.99100804, 0, 3.4765377, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.97522306, 0, 1.91904092, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.59196424, 0, 2.80100393, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [2.29224014, 0, 4.98779202, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.4381516, 0, 4.30505848, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.88652396, 0, 4.3239212, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.75239229, 0, 3.46739459, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [3.42138505, 0, 4.97070169, 1]]
+  - SPD:
+      m_assetHandle: 13632919304821811199
+      m_assetTypeName: SorghumStateGenerator
+    Transform: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [4.44074631, 0, 4.3220911, 1]]

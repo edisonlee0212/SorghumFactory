@@ -110,8 +110,7 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_mode = in["m_mode"].as<int>();
   if (in["m_seed"])
     m_seed = in["m_seed"].as<int>();
-  if (in["m_gravityDirection"])
-    m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
+
   if (in["m_gravityDirection"])
     m_gravityDirection = in["m_gravityDirection"].as<glm::vec3>();
   if (in["m_meshGenerated"])
@@ -120,10 +119,12 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_currentTime = in["m_currentTime"].as<float>();
   if (in["m_recordedVersion"])
     m_recordedVersion = in["m_recordedVersion"].as<unsigned>();
+
   if (in["m_stemSubdivisionAmount"])
-    m_stemSubdivisionAmount = in["m_stemSubdivisionAmount"].as<float>();
+    m_stemSubdivisionAmount = in["m_stemSubdivisionAmount"].as<int>();
   if (in["m_leafSubdivisionAmount"])
-    m_leafSubdivisionAmount = in["m_leafSubdivisionAmount"].as<float>();
+    m_leafSubdivisionAmount = in["m_leafSubdivisionAmount"].as<int>();
+
   if (in["m_descriptor"])
     m_descriptor.Deserialize(in["m_descriptor"]);
   if (in["m_state"])

@@ -104,7 +104,7 @@ public:
                  glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2),
                  glm::vec2 pointDistance = glm::vec2(0.005f),
                  float scannerAngle = 30.0f);
-  void ScanPointCloudLabeled(const Entity &sorghum, const std::filesystem::path& savePath, const PointCloudSampleSettings& settings);
+  void ScanPointCloudLabeled(const Entity &sorghum, const Entity &field, const std::filesystem::path& savePath, const PointCloudSampleSettings& settings);
 };
 
 } // namespace SorghumFactory

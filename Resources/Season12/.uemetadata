@@ -1,0 +1,21 @@
+m_fileRecords:
+  - Handle: 1968019432222624388
+    m_name: New PositionsField
+    m_fileName: New PositionsField.possorghumfield
+    m_typeName: PositionsField
+  - Handle: 6621185625411609038
+    m_name: season12original
+    m_fileName: season12original.txt
+    m_typeName: Binary
+  - Handle: 1244541715133144496
+    m_name: season12
+    m_fileName: season12.ply
+    m_typeName: Prefab
+  - Handle: 11505670431120784656
+    m_name: season12
+    m_fileName: season12.txt
+    m_typeName: Binary
+  - Handle: 14786103242887539698
+    m_name: New PointCloud
+    m_fileName: New PointCloud.uepc
+    m_typeName: PointCloud

@@ -37,7 +37,7 @@ void Scripts::PointCloudCapture::OnGrowth(
 void Scripts::PointCloudCapture::OnAfterGrowth(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   Application::GetLayer<SorghumLayer>()->ScanPointCloudLabeled(
-      m_currentSorghum,
+      m_currentSorghum, m_currentSorghumField,
       std::filesystem::absolute(
           ProjectManager::GetProjectPath().parent_path() /
           m_currentExportFolder / "PointCloud" /
