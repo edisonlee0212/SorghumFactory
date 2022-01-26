@@ -31,7 +31,7 @@ public:
   bool m_captureImage = true;
   bool m_captureMask = true;
   bool m_captureMesh = false;
-  std::filesystem::path m_currentExportFolder = "export/";
+  std::filesystem::path m_currentExportFolder = "Datasets/";
   int m_pitchAngleStart = 0;
   int m_pitchAngleStep = 20;
   int m_pitchAngleEnd = 60;

@@ -11,7 +11,7 @@ public:
   PointCloudSampleSettings m_settings;
   void Reset(Scripts::AutoSorghumGenerationPipeline &pipeline);
   AssetRef m_positionsField;
-  std::filesystem::path m_currentExportFolder = "export/";
+  std::filesystem::path m_currentExportFolder = "Datasets/";
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) override;
