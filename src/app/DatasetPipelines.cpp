@@ -17,7 +17,7 @@
 #include "PointCloudCapture.hpp"
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <DepthCamera.hpp>
-#include <SDFDataCapture.hpp>
+#include <GeneralDataCapture.hpp>
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -29,7 +29,7 @@ void EngineSetup();
 int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
-  ClassRegistry::RegisterAsset<SDFDataCapture>("SDFDataCapture",
+  ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
                                                ".sdfdatacapture");
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
                                                   ".pointCloudCapture");
@@ -89,25 +89,18 @@ void EngineSetup() {
     */
 
     auto sdfEntity =
-        Entities::CreateEntity(Entities::GetCurrentScene(), "SDFPipeline");
+        Entities::CreateEntity(Entities::GetCurrentScene(), "GeneralDataPipeline");
     auto pipeline =
         sdfEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
             .lock();
-    auto capture = AssetManager::CreateAsset<SDFDataCapture>();
+    auto capture = AssetManager::CreateAsset<GeneralDataCapture>();
     pipeline->m_pipelineBehaviour = capture;
 
-#ifdef RAYTRACERFACILITY
     auto rayTracerCamera = mainCamera->GetOwner()
                                .GetOrSetPrivateComponent<RayTracerCamera>()
                                .lock();
     capture->m_rayTracerCamera = rayTracerCamera;
     rayTracerCamera->SetMainCamera(true);
-#else
-    capture->m_rayTracerCamera = mainCamera;
-#endif
-    auto depthCamera =
-        mainCamera->GetOwner().GetOrSetPrivateComponent<DepthCamera>().lock();
-    capture->m_depthCamera = depthCamera;
 
     auto pointCloudCaptureEntity = Entities::CreateEntity(
         Entities::GetCurrentScene(), "PointCloudPipeline");

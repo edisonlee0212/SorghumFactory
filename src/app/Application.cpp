@@ -12,7 +12,7 @@
 #include <SorghumLayer.hpp>
 
 #include <AutoSorghumGenerationPipeline.hpp>
-#include <SDFDataCapture.hpp>
+#include <GeneralDataCapture.hpp>
 #include <SorghumStateGenerator.hpp>
 #include "PointCloudCapture.hpp"
 using namespace Scripts;
@@ -24,7 +24,7 @@ using namespace RayTracerFacility;
 int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
-  ClassRegistry::RegisterAsset<SDFDataCapture>("SDFDataCapture",
+  ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
                                                ".sDFDataCapture");
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
                                                ".pointCloudCapture");

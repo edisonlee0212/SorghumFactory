@@ -71,7 +71,7 @@ public:
   AssetRef m_segmentedLeafMaterials[25];
 
   int m_segmentAmount = 2;
-  int m_step = 2;
+  int m_step = 4;
 
   void OnCreate() override;
   Entity CreateSorghum();

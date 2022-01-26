@@ -5,51 +5,50 @@
 using namespace SorghumFactory;
 namespace Scripts {
 enum class MultipleAngleCaptureStatus { Info, Mask, Angles };
-class SDFDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
-  int m_pitchAngle = -1;
-  int m_turnAngle = -1;
+
+struct CameraMatricesCollection{
+  GlobalTransform m_camera;
+  glm::mat4 m_projection;
+  glm::mat4 m_view;
+  std::string m_postFix;
+};
+struct SorghumInfo{
+  GlobalTransform m_sorghum;
+  std::string m_name;
+};
+class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_currentGrowingSorghum;
   int m_remainingInstanceAmount = 0;
-  bool m_skipCurrentFrame = false;
-
   MultipleAngleCaptureStatus m_captureStatus = MultipleAngleCaptureStatus::Info;
   bool SetUpCamera();
   void ExportMatrices(const std::filesystem::path& path);
-  glm::vec3 m_cameraPosition;
-  glm::quat m_cameraRotation;
+  std::vector<CameraMatricesCollection> m_cameraMatrices;
+  std::vector<SorghumInfo> m_sorghumInfos;
+  void CalculateMatrices();
 public:
   AssetRef m_parameters;
   bool m_captureImage = true;
   bool m_captureMask = true;
-  bool m_captureDepth = true;
-  bool m_captureMesh = true;
+  bool m_captureMesh = false;
   std::filesystem::path m_currentExportFolder = "export/";
 
-  glm::vec3 m_focusPoint = glm::vec3(0, 1, 0);
-  float m_pitchAngleStart = 0;
-  float m_pitchAngleStep = 20;
-  float m_pitchAngleEnd = 60;
-  float m_turnAngleStart = 0;
-  float m_turnAngleStep = 120;
-  float m_turnAngleEnd = 360;
-  float m_distance = 5;
+  int m_pitchAngleStart = 0;
+  int m_pitchAngleStep = 20;
+  int m_pitchAngleEnd = 60;
+  int m_turnAngleStart = 0;
+  int m_turnAngleStep = 120;
+  int m_turnAngleEnd = 360;
   float m_fov = 60;
 
   float m_denoiserStrength = 0.f;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   PrivateComponentRef m_rayTracerCamera;
-  PrivateComponentRef m_depthCamera;
   int m_generationAmount = 5;
 
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
   float m_cameraMin = 1;
   float m_cameraMax = 30;
-  std::vector<glm::mat4> m_cameraModels;
-  std::vector<glm::mat4> m_sorghumModels;
-  std::vector<glm::mat4> m_projections;
-  std::vector<glm::mat4> m_views;
-  std::vector<std::string> m_names;
   void OnIdle(AutoSorghumGenerationPipeline &pipeline) override;
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;

@@ -53,7 +53,7 @@ void AutoSorghumGenerationPipeline::DropBehaviourButton() {
         ImGui::SameLine();
         ImGui::Button("Here");
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("SDFDataCapture")) {
+            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("GeneralDataCapture")) {
                 IM_ASSERT(payload->DataSize == sizeof(std::shared_ptr<IAsset>));
                 std::shared_ptr<IAutoSorghumGenerationPipelineBehaviour> payload_n =
                         std::dynamic_pointer_cast<

@@ -273,7 +273,7 @@ void Spline::FormStem(const ProceduralStemState &stemState, int nodeAmount) {
         stemState.m_widthAlongStem.GetValue((float)i / (nodeAmount - 1));
     m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
                              static_cast<float>(i),
-                         180.0f, stemWidth + 0.005, 0.0f, -stemState.m_direction,
+                         180.0f, stemWidth + 0.002f, 0.0f, -stemState.m_direction,
                          false, 0.0f);
   }
   m_left =
