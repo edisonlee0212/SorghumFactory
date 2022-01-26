@@ -5,20 +5,23 @@
 using namespace SorghumFactory;
 namespace Scripts {
 class PointCloudCapture : public IAutoSorghumGenerationPipelineBehaviour {
-  int m_currentIndex = -1;
-  Entity m_currentSorghum;
   Entity m_currentSorghumField;
+  void Instantiate();
 public:
   PointCloudSampleSettings m_settings;
-  void Reset();
+  void Reset(Scripts::AutoSorghumGenerationPipeline &pipeline);
   AssetRef m_positionsField;
-  int m_startIndex = 0;
-  int m_endIndex = 2;
   std::filesystem::path m_currentExportFolder = "export/";
-  void OnIdle(AutoSorghumGenerationPipeline &pipeline) override;
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnInspect() override;
+  void Start(AutoSorghumGenerationPipeline &pipeline) override;
+  void End(AutoSorghumGenerationPipeline &pipeline) override;
+  bool IsReady() override;
+
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
 };
 }

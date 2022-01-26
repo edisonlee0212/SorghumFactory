@@ -25,9 +25,9 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
   ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
-                                               ".sDFDataCapture");
+                                                   ".gdc");
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
-                                               ".pointCloudCapture");
+                                                  ".pcc");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
 
   ApplicationConfigs applicationConfigs;

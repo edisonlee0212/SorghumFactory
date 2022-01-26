@@ -170,34 +170,6 @@ else ()
             Scripts
             )
 endif ()
-add_executable(DatasetPipelines
-        "src/app/DatasetPipelines.cpp"
-        )
-target_include_directories(DatasetPipelines
-        PUBLIC
-        ${SCRIPTS_INCLUDES_LOCAL}
-        )
-target_precompile_headers(DatasetPipelines
-        PRIVATE
-        ${SORGHUM_FACTORY_PCH_LOCAL}
-        )
-if (BUILD_RAY_TRACER_FACILITY)
-    target_link_libraries(DatasetPipelines
-            RayTracerFacility
-            SorghumFactory
-            Scripts
-            )
-    target_compile_definitions(DatasetPipelines
-            PRIVATE
-            RAYTRACERFACILITY
-            )
-else ()
-    target_link_libraries(DatasetPipelines
-            uniengine
-            SorghumFactory
-            Scripts
-            )
-endif ()
 
 # ------------------------------------------------------------------
 # Copy Internal resources

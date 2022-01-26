@@ -50,6 +50,11 @@ void SorghumLayer::OnCreate() {
       "PositionsField.png"));
   editorManager.AssetIcons()["PositionsField"] = texture2D;
 
+  texture2D->Import(std::filesystem::absolute(
+      std::filesystem::path("./SorghumFactoryResources/Textures") /
+      "GeneralDataPipeline.png"));
+  editorManager.AssetIcons()["GeneralDataPipeline"] = texture2D;
+
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
@@ -1091,5 +1096,33 @@ void PointCloudSampleSettings::OnInspect() {
                      2.0f);
   } else {
     ImGui::DragFloat("Bounding box radius", &m_boundingBoxRadius, 0.01f);
+  }
+}
+void PointCloudSampleSettings::Serialize(const std::string &name,
+                                         YAML::Emitter &out) {
+  out << YAML::Key << name << YAML::Value << YAML::BeginMap;
+
+  out << YAML::Key << "m_boundingBoxHeightRange" << YAML::Value << m_boundingBoxHeightRange;
+  out << YAML::Key << "m_pointDistance" << YAML::Value << m_pointDistance;
+  out << YAML::Key << "m_scannerAngle" << YAML::Value << m_scannerAngle;
+  out << YAML::Key << "m_adjustBoundingBox" << YAML::Value << m_adjustBoundingBox;
+  out << YAML::Key << "m_boundingBoxRadius" << YAML::Value << m_boundingBoxRadius;
+  out << YAML::Key << "m_adjustmentFactor" << YAML::Value << m_adjustmentFactor;
+  out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
+
+  out << YAML::EndMap;
+}
+void PointCloudSampleSettings::Deserialize(const std::string &name,
+                                           const YAML::Node &in) {
+  if (in[name])
+  {
+    auto& cd = in[name];
+    if(cd["m_boundingBoxHeightRange"]) m_boundingBoxHeightRange = cd["m_boundingBoxHeightRange"].as<glm::vec2>();
+    if(cd["m_pointDistance"]) m_pointDistance = cd["m_pointDistance"].as<glm::vec2>();
+    if(cd["m_scannerAngle"]) m_scannerAngle = cd["m_scannerAngle"].as<float>();
+    if(cd["m_adjustBoundingBox"]) m_adjustBoundingBox = cd["m_adjustBoundingBox"].as<bool>();
+    if(cd["m_boundingBoxRadius"]) m_boundingBoxRadius = cd["m_boundingBoxRadius"].as<float>();
+    if(cd["m_adjustmentFactor"]) m_adjustmentFactor = cd["m_adjustmentFactor"].as<float>();
+    if(cd["m_segmentAmount"]) m_segmentAmount = cd["m_segmentAmount"].as<int>();
   }
 }

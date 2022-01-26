@@ -17,21 +17,21 @@ struct SorghumInfo{
   std::string m_name;
 };
 class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
-  Entity m_currentGrowingSorghum;
-  int m_remainingInstanceAmount = 0;
   MultipleAngleCaptureStatus m_captureStatus = MultipleAngleCaptureStatus::Info;
-  bool SetUpCamera();
+  bool SetUpCamera(AutoSorghumGenerationPipeline &pipeline);
   void ExportMatrices(const std::filesystem::path& path);
   std::vector<CameraMatricesCollection> m_cameraMatrices;
   std::vector<SorghumInfo> m_sorghumInfos;
   void CalculateMatrices();
+  void Instantiate();
+  Entity m_rayTracerCamera;
+
 public:
   AssetRef m_parameters;
   bool m_captureImage = true;
   bool m_captureMask = true;
   bool m_captureMesh = false;
   std::filesystem::path m_currentExportFolder = "export/";
-
   int m_pitchAngleStart = 0;
   int m_pitchAngleStep = 20;
   int m_pitchAngleEnd = 60;
@@ -39,20 +39,25 @@ public:
   int m_turnAngleStep = 120;
   int m_turnAngleEnd = 360;
   float m_fov = 60;
-
   float m_denoiserStrength = 0.f;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
-  PrivateComponentRef m_rayTracerCamera;
-  int m_generationAmount = 5;
-
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
   float m_cameraMin = 1;
   float m_cameraMax = 30;
-  void OnIdle(AutoSorghumGenerationPipeline &pipeline) override;
+
+
+  bool IsReady() override;
+  void Start(AutoSorghumGenerationPipeline &pipeline) override;
+  void End(AutoSorghumGenerationPipeline &pipeline) override;
+
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnInspect() override;
+
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
 };
 } // namespace Scripts

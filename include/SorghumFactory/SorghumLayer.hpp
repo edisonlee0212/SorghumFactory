@@ -27,6 +27,8 @@ struct PointCloudSampleSettings {
   float m_adjustmentFactor = 1.2f;
   int m_segmentAmount = 3;
   void OnInspect();
+  void Serialize(const std::string& name, YAML::Emitter &out);
+  void Deserialize(const std::string& name, const YAML::Node &in);
 };
 
 class SORGHUM_FACTORY_API SorghumLayer : public ILayer {
