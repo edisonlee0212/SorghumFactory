@@ -98,6 +98,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
       sorghumData->m_descriptor = newSorghum.first;
+      sorghumData->m_seed = size;
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
