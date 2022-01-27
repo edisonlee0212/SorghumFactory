@@ -6,11 +6,6 @@
 #include "DepthCamera.hpp"
 #include <SorghumData.hpp>
 #include <SorghumStateGenerator.hpp>
-#ifdef RAYTRACERFACILITY
-#include "RayTracerCamera.hpp"
-#include "RayTracerLayer.hpp"
-using namespace RayTracerFacility;
-#endif
 using namespace Scripts;
 void GeneralDataCapture::OnInspect() {
   Editor::DragAndDropButton<SorghumStateGenerator>(m_parameters,
@@ -22,6 +17,9 @@ void GeneralDataCapture::OnInspect() {
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Camera Settings")) {
+    ImGui::DragInt("Bounces", &m_rayProperties.m_bounces, 1, 1, 16);
+    ImGui::DragInt("Samples", &m_rayProperties.m_samples, 1, 1, 2048);
+    ImGui::DragFloat("Denoiser strength", &m_denoiserStrength, 0.01f);
     ImGui::DragInt3("Pitch Angle From/Step/End", &m_pitchAngleStart, 1);
     ImGui::DragInt3("Turn Angle From/Step/End", &m_turnAngleStart, 1);
     ImGui::Separator();
@@ -85,13 +83,11 @@ void GeneralDataCapture::OnAfterGrowth(
           RayTracerFacility::EnvironmentalLightingType::Color;
       Application::GetLayer<RayTracerLayer>()
           ->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
-      RayProperties rayProperties;
-      rayProperties.m_samples = 1000;
       rayTracerCamera->SetOutputType(OutputType::Color);
       rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
       for (const auto &i : m_cameraMatrices) {
         m_rayTracerCamera.SetDataComponent(i.m_camera);
-        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->Render(m_rayProperties);
         rayTracerCamera->m_colorTexture->SetPathAndSave(
             m_currentExportFolder / m_name / "Image" /
             (prefix + i.m_postFix + "_image.png"));
@@ -114,6 +110,7 @@ void GeneralDataCapture::OnAfterGrowth(
         ->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
     RayProperties rayProperties;
     rayProperties.m_samples = 1;
+    rayProperties.m_bounces = 1;
     rayTracerCamera->SetDenoiserStrength(0.0f);
     rayTracerCamera->SetOutputType(OutputType::Albedo);
     for (const auto &i : m_cameraMatrices) {
@@ -220,6 +217,9 @@ void GeneralDataCapture::CollectAssetRef(std::vector<AssetRef> &list) {
 }
 void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   m_parameters.Save("m_parameters", out);
+  out << YAML::Key << "m_rayProperties.m_samples" << YAML::Value << m_rayProperties.m_samples;
+  out << YAML::Key << "m_rayProperties.m_bounces" << YAML::Value << m_rayProperties.m_bounces;
+
   out << YAML::Key << "m_captureImage" << YAML::Value << m_captureImage;
   out << YAML::Key << "m_captureMask" << YAML::Value << m_captureMask;
   out << YAML::Key << "m_captureMesh" << YAML::Value << m_captureMesh;
@@ -240,6 +240,9 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
 }
 void GeneralDataCapture::Deserialize(const YAML::Node &in) {
   m_parameters.Load("m_parameters", in);
+  if(in["m_rayProperties.m_samples"]) m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
+  if(in["m_rayProperties.m_bounces"]) m_rayProperties.m_bounces = in["m_rayProperties.m_bounces"].as<float>();
+
   if(in["m_captureImage"]) m_captureImage = in["m_captureImage"].as<bool>();
   if(in["m_captureMask"]) m_captureMask = in["m_captureMask"].as<bool>();
   if(in["m_captureMesh"]) m_captureMesh = in["m_captureMesh"].as<bool>();

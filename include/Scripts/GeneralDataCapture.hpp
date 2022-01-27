@@ -2,6 +2,11 @@
 #include <AutoSorghumGenerationPipeline.hpp>
 
 #include <SorghumLayer.hpp>
+#ifdef RAYTRACERFACILITY
+#include "RayTracerCamera.hpp"
+#include "RayTracerLayer.hpp"
+using namespace RayTracerFacility;
+#endif
 using namespace SorghumFactory;
 namespace Scripts {
 enum class MultipleAngleCaptureStatus { Info, Mask, Angles };
@@ -27,6 +32,7 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_rayTracerCamera;
 
 public:
+  RayProperties m_rayProperties = {4, 512};
   AssetRef m_parameters;
   bool m_captureImage = true;
   bool m_captureMask = true;
@@ -34,15 +40,15 @@ public:
   std::filesystem::path m_currentExportFolder = "Datasets/";
   int m_pitchAngleStart = 0;
   int m_pitchAngleStep = 20;
-  int m_pitchAngleEnd = 60;
+  int m_pitchAngleEnd = 40;
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 120;
   int m_turnAngleEnd = 360;
   float m_fov = 60;
-  float m_denoiserStrength = 0.f;
+  float m_denoiserStrength = 1.0f;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   bool m_useClearColor = true;
-  glm::vec3 m_backgroundColor = glm::vec3(1.0f);
+  glm::vec3 m_backgroundColor = glm::vec3(0.2f);
   float m_cameraMin = 1;
   float m_cameraMax = 30;
 

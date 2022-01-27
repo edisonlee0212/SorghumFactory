@@ -53,7 +53,7 @@ void SorghumLayer::OnCreate() {
   texture2D->Import(std::filesystem::absolute(
       std::filesystem::path("./SorghumFactoryResources/Textures") /
       "GeneralDataPipeline.png"));
-  editorManager.AssetIcons()["GeneralDataPipeline"] = texture2D;
+  editorManager.AssetIcons()["GeneralDataCapture"] = texture2D;
 
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();

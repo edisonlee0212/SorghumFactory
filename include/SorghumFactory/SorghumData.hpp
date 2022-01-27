@@ -30,7 +30,7 @@ public:
                    const bool &includeFoliage = true) const;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-  void PreparePinnacleMesh(const glm::vec3 &center, std::vector<Vertex>& vertices, std::vector<glm::uvec3>& triangles);
+  void PreparePinnacleMesh(const glm::vec3 &center, std::vector<UniEngine::Vertex>& vertices, std::vector<glm::uvec3>& triangles);
   void Apply();
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void GenerateGeometry();

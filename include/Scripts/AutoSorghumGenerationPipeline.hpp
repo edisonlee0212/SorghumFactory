@@ -15,13 +15,16 @@ class AutoSorghumGenerationPipeline : public IPrivateComponent {
 public:
   int m_currentIndex = 0;
   int m_startIndex = 0;
-  int m_endIndex = 2;
+  int m_endIndex = 0;
   Entity m_currentGrowingSorghum;
   AutoSorghumGenerationPipelineStatus m_status =
       AutoSorghumGenerationPipelineStatus::Idle;
   AssetRef m_pipelineBehaviour;
   void Update() override;
   void OnInspect() override;
+  void CollectAssetRef(std::vector<AssetRef> &list) override;
+  void Serialize(YAML::Emitter &out) override;
+  void Deserialize(const YAML::Node &in) override;
 };
 
 class IAutoSorghumGenerationPipelineBehaviour : public IAsset {

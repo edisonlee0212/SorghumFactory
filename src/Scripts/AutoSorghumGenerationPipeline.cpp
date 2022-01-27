@@ -103,6 +103,16 @@ void AutoSorghumGenerationPipeline::DropBehaviourButton() {
     }
   }
 }
+void AutoSorghumGenerationPipeline::CollectAssetRef(
+    std::vector<AssetRef> &list) {
+  IPrivateComponent::CollectAssetRef(list);
+}
+void AutoSorghumGenerationPipeline::Serialize(YAML::Emitter &out) {
+  ISerializable::Serialize(out);
+}
+void AutoSorghumGenerationPipeline::Deserialize(const YAML::Node &in) {
+  ISerializable::Deserialize(in);
+}
 
 void IAutoSorghumGenerationPipelineBehaviour::OnBeforeGrowth(
     AutoSorghumGenerationPipeline &pipeline) {}
