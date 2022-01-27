@@ -33,27 +33,26 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
                                                ".possorghumfield");
 
-  auto &editorManager = Editor::GetInstance();
   auto texture2D = std::make_shared<Texture2D>();
   texture2D->Import(std::filesystem::absolute(
       std::filesystem::path("./SorghumFactoryResources/Textures") /
       "ProceduralSorghum.png"));
-  editorManager.AssetIcons()["ProceduralSorghum"] = texture2D;
+  Editor::AssetIcons()["ProceduralSorghum"] = texture2D;
   texture2D = std::make_shared<Texture2D>();
   texture2D->Import(std::filesystem::absolute(
       std::filesystem::path("./SorghumFactoryResources/Textures") /
       "SorghumStateGenerator.png"));
-  editorManager.AssetIcons()["SorghumStateGenerator"] = texture2D;
+  Editor::AssetIcons()["SorghumStateGenerator"] = texture2D;
   texture2D = std::make_shared<Texture2D>();
   texture2D->Import(std::filesystem::absolute(
       std::filesystem::path("./SorghumFactoryResources/Textures") /
       "PositionsField.png"));
-  editorManager.AssetIcons()["PositionsField"] = texture2D;
+  Editor::AssetIcons()["PositionsField"] = texture2D;
 
   texture2D->Import(std::filesystem::absolute(
       std::filesystem::path("./SorghumFactoryResources/Textures") /
       "GeneralDataPipeline.png"));
-  editorManager.AssetIcons()["GeneralDataCapture"] = texture2D;
+  Editor::AssetIcons()["GeneralDataCapture"] = texture2D;
 
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();

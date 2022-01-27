@@ -11,12 +11,8 @@ void Scripts::PointCloudCapture::OnBeforeGrowth(
     Reset(pipeline);
     return;
   }
-  if(pipeline.m_currentIndex >= positionsField->m_positions.size()){
-    UNIENGINE_ERROR("Max index reached!");
-    Reset(pipeline);
-    return;
-  }
-  auto result = positionsField->InstantiateAroundIndex(pipeline.m_currentIndex, 2.5f);
+
+  auto result = positionsField->InstantiateAroundIndex(pipeline.m_currentIndex % positionsField->m_positions.size(), 2.5f);
   pipeline.m_currentGrowingSorghum = result.first;
   m_currentSorghumField = result.second;
   if (!pipeline.m_currentGrowingSorghum.IsValid() ||

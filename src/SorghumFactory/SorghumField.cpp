@@ -308,7 +308,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_descriptor = m_sorghumStateGenerator;
       sorghumData->m_mode = 1;
-      sorghumData->m_seed = size;
+      sorghumData->m_seed = glm::linearRand(0, INT_MAX);
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
