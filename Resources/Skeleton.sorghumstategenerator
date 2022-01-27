@@ -1,4 +1,4 @@
-m_name: Simple
+m_name: Skeleton
 m_version: 16512
 m_hasPinnacle: false
 m_pinnacleSize:
@@ -87,7 +87,7 @@ m_leafBranchingAngle:
 m_leafBending:
   m_mean:
     m_minValue: 0
-    m_maxValue: 5
+    m_maxValue: 4
     m_curve:
       m_tangent: true
       m_min: [0, 0]
