@@ -71,7 +71,7 @@ void SorghumLayer::OnCreate() {
     auto albedo = AssetManager::CreateAsset<Texture2D>("Leaf texture");
     albedo->Import(std::filesystem::absolute(
         std::filesystem::path("./SorghumFactoryResources/Textures") /
-        "leafSurfaceDark.jpg"));
+        "leafSurface.png"));
     m_leafAlbedoTexture.Set(albedo);
   }
 
