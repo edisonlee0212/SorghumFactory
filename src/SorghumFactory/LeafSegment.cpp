@@ -26,8 +26,7 @@ glm::vec3 LeafSegment::GetPoint(float angle) {
     const auto distanceToCenter =
         radius * glm::cos(glm::radians(glm::abs(angle)));
     auto actualHeight = radius - distanceToCenter;
-    if (m_theta == 10.0f)
-      actualHeight *= (angle < 0 ? m_leftHeightFactor : m_rightHeightFactor);
+    actualHeight *= (angle < 0 ? m_leftHeightFactor : m_rightHeightFactor);
     const auto center =
         m_position + (radius - m_radius * (1.0f - m_surfacePush)) * m_up;
     const auto direction = glm::rotate(m_up, glm::radians(angle), m_front);

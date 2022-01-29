@@ -1,5 +1,5 @@
 m_name: Young
-m_version: 7390
+m_version: 7784
 m_hasPinnacle: false
 m_pinnacleSize:
   m_mean: [0.200000003, 0.75, 0.200000003]
@@ -145,17 +145,20 @@ m_leafBendingAcceleration:
 m_leafWaviness:
   m_mean:
     m_minValue: 0
-    m_maxValue: 15
+    m_maxValue: 5
     m_curve:
       m_tangent: true
       m_min: [0, 0]
       m_max: [1, 1]
       m_values:
         - [-0.100000001, 0]
-        - [0, 0.5]
+        - [0, 0.236000001]
         - [0.100000001, 0]
         - [-0.100000001, 0]
-        - [1, 0.5]
+        - [0.640253544, 0.279365093]
+        - [0.100000001, 0]
+        - [-0.100000001, 0]
+        - [1, 0.188999996]
         - [0.100000001, 0]
   m_deviation:
     m_minValue: 0
@@ -174,7 +177,7 @@ m_leafWaviness:
 m_leafWavinessFrequency:
   m_mean:
     m_minValue: 0
-    m_maxValue: 1
+    m_maxValue: 3.55999994
     m_curve:
       m_tangent: true
       m_min: [0, 0]
@@ -275,7 +278,7 @@ m_widthAlongLeaf:
   m_max: [1, 1]
   m_values:
     - [-0.100000001, 0]
-    - [0, 0.802999973]
+    - [0, 0.501999974]
     - [0.100000001, 0]
     - [-0.100000001, 0]
     - [0.519368708, 1]
@@ -289,8 +292,11 @@ m_wavinessAlongLeaf:
   m_max: [1, 1]
   m_values:
     - [-0.100000001, 0]
-    - [0, 0.338999987]
+    - [0, 0]
     - [0.100000001, 0]
     - [-0.100000001, 0]
-    - [1, 0.5]
+    - [0.309815943, 0.546012282]
+    - [0.100000001, 0]
+    - [-0.100000001, 0]
+    - [1, 0.215000004]
     - [0.100000001, 0]

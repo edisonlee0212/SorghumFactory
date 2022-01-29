@@ -13,6 +13,7 @@ void GeneralDataCapture::OnInspect() {
                                                    "SorghumStateGenerator");
 
   Editor::DragAndDropButton<Prefab>(m_labPrefab, "Lab");
+  Editor::DragAndDropButton<Prefab>(m_dirtPrefab, "Dirt");
   if (ImGui::TreeNode("Data selection")) {
     ImGui::Checkbox("Capture image", &m_captureImage);
     ImGui::Checkbox("Capture mask", &m_captureMask);
@@ -27,10 +28,12 @@ void GeneralDataCapture::OnInspect() {
     ImGui::DragFloat("Height", &m_height, 0.01f);
     ImGui::Separator();
     ImGui::DragFloat("Camera FOV", &m_fov);
+    ImGui::DragFloat("Camera gamma", &m_gamma, 0.01f);
     ImGui::DragInt2("Camera Resolution", &m_resolution.x);
     ImGui::DragFloat2("Camera near/far", &m_cameraMin);
     ImGui::Checkbox("Use clear color", &m_useClearColor);
-    ImGui::ColorEdit3("Camera Clear Color", &m_backgroundColor.x);
+    ImGui::ColorEdit3("Env lighting color", &m_backgroundColor.x);
+    ImGui::DragFloat("Env lighting intensity", &m_backgroundColorIntensity);
     ImGui::TreePop();
   }
   if (m_parameters.Get<SorghumStateGenerator>()) {
@@ -59,7 +62,14 @@ void GeneralDataCapture::OnBeforeGrowth(
   sorghumData->GenerateGeometry();
   sorghumData->ApplyGeometry(true, true, false);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
-  if(m_lab.IsValid()) m_lab.SetEnabled(true);
+  if (m_lab.IsValid())
+    m_lab.SetEnabled(true);
+  if (m_dirt.IsValid()) {
+    m_dirt.SetEnabled(true);
+    auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
+    dirtGT.SetRotation(dirtGT.GetRotation() * glm::quat(glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
+    m_dirt.SetDataComponent(dirtGT);
+  }
 }
 void GeneralDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::AfterGrowth;
@@ -128,7 +138,10 @@ void GeneralDataCapture::OnAfterGrowth(
       }
     }
     if (m_captureMask) {
-      if(m_lab.IsValid()) m_lab.SetEnabled(false);
+      if (m_lab.IsValid())
+        m_lab.SetEnabled(false);
+      if (m_dirt.IsValid())
+        m_dirt.SetEnabled(false);
       m_captureStatus = MultipleAngleCaptureStatus::Mask;
       pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock()
@@ -206,10 +219,15 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
   Entities::GetCurrentScene()->m_environmentSettings.m_environmentType =
       UniEngine::EnvironmentType::Color;
   Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
-      glm::vec3(1.0f);
+      m_backgroundColor;
   Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
-      1.0f;
+      m_backgroundColorIntensity;
+  auto& envProp = Application::GetLayer<RayTracerLayer>()->m_environmentProperties;
+  envProp.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
+  envProp.m_sunColor = m_backgroundColor;
+  envProp.m_skylightIntensity = m_backgroundColorIntensity;
   rayTracerCamera->SetFov(m_fov);
+  rayTracerCamera->SetGamma(m_gamma);
   rayTracerCamera->m_allowAutoResize = false;
   rayTracerCamera->m_frameSize = m_resolution;
   auto depthCamera =
@@ -220,10 +238,12 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
 void GeneralDataCapture::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_parameters);
   list.push_back(m_labPrefab);
+  list.push_back(m_dirtPrefab);
 }
 void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   m_parameters.Save("m_parameters", out);
   m_labPrefab.Save("m_labPrefab", out);
+  m_dirtPrefab.Save("m_dirtPrefab", out);
   out << YAML::Key << "m_rayProperties.m_samples" << YAML::Value
       << m_rayProperties.m_samples;
   out << YAML::Key << "m_rayProperties.m_bounces" << YAML::Value
@@ -240,16 +260,19 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_turnAngleStep" << YAML::Value << m_turnAngleStep;
   out << YAML::Key << "m_turnAngleEnd" << YAML::Value << m_turnAngleEnd;
   out << YAML::Key << "m_fov" << YAML::Value << m_fov;
+  out << YAML::Key << "m_gamma" << YAML::Value << m_gamma;
   out << YAML::Key << "m_denoiserStrength" << YAML::Value << m_denoiserStrength;
   out << YAML::Key << "m_resolution" << YAML::Value << m_resolution;
   out << YAML::Key << "m_useClearColor" << YAML::Value << m_useClearColor;
   out << YAML::Key << "m_backgroundColor" << YAML::Value << m_backgroundColor;
+  out << YAML::Key << "m_backgroundColorIntensity" << YAML::Value << m_backgroundColorIntensity;
   out << YAML::Key << "m_cameraMin" << YAML::Value << m_cameraMin;
   out << YAML::Key << "m_cameraMax" << YAML::Value << m_cameraMax;
 }
 void GeneralDataCapture::Deserialize(const YAML::Node &in) {
   m_parameters.Load("m_parameters", in);
   m_labPrefab.Load("m_labPrefab", in);
+  m_dirtPrefab.Load("m_dirtPrefab", in);
   if (in["m_rayProperties.m_samples"])
     m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
   if (in["m_rayProperties.m_bounces"])
@@ -273,6 +296,8 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_turnAngleStep = in["m_turnAngleStep"].as<int>();
   if (in["m_turnAngleEnd"])
     m_turnAngleEnd = in["m_turnAngleEnd"].as<int>();
+  if (in["m_gamma"])
+    m_gamma = in["m_gamma"].as<float>();
   if (in["m_fov"])
     m_fov = in["m_fov"].as<float>();
   if (in["m_denoiserStrength"])
@@ -283,6 +308,8 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_useClearColor = in["m_useClearColor"].as<bool>();
   if (in["m_backgroundColor"])
     m_backgroundColor = in["m_backgroundColor"].as<glm::vec3>();
+  if (in["m_backgroundColorIntensity"])
+    m_backgroundColorIntensity = in["m_backgroundColorIntensity"].as<float>();
   if (in["m_cameraMin"])
     m_cameraMin = in["m_cameraMin"].as<float>();
   if (in["m_cameraMax"])
@@ -301,8 +328,11 @@ bool GeneralDataCapture::IsReady() {
   return m_parameters.Get<SorghumStateGenerator>().get();
 }
 void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
-  if(m_labPrefab.Get<Prefab>()){
+  if (m_labPrefab.Get<Prefab>()) {
     m_lab = m_labPrefab.Get<Prefab>()->ToEntity();
+  }
+  if (m_dirtPrefab.Get<Prefab>()) {
+    m_dirt = m_dirtPrefab.Get<Prefab>()->ToEntity();
   }
   m_captureStatus = MultipleAngleCaptureStatus::Info;
   m_rayTracerCamera =
@@ -335,7 +365,10 @@ void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
 }
 void GeneralDataCapture::End(AutoSorghumGenerationPipeline &pipeline) {
   ProjectManager::ScanProjectFolder(true);
-  if(m_lab.IsValid()) Entities::DeleteEntity(Entities::GetCurrentScene(), m_lab);
+  if (m_lab.IsValid())
+    Entities::DeleteEntity(Entities::GetCurrentScene(), m_lab);
+  if (m_dirt.IsValid())
+    Entities::DeleteEntity(Entities::GetCurrentScene(), m_dirt);
   Entities::DeleteEntity(Entities::GetCurrentScene(), m_rayTracerCamera);
   m_rayTracerCamera = {};
 }

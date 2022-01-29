@@ -22,10 +22,12 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   void Instantiate();
   Entity m_rayTracerCamera;
   Entity m_lab;
+  Entity m_dirt;
 public:
-  RayProperties m_rayProperties = {4, 512};
+  RayProperties m_rayProperties = {4, 128};
   AssetRef m_parameters;
   AssetRef m_labPrefab;
+  AssetRef m_dirtPrefab;
   bool m_captureImage = true;
   bool m_captureMask = true;
   bool m_captureMesh = false;
@@ -33,15 +35,16 @@ public:
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 72;
   int m_turnAngleEnd = 288;
+  float m_gamma = 1.0f;
   float m_fov = 30;
-  float m_distanceToCenter = 8.6;
-  float m_height = 0.8f;
+  float m_distanceToCenter = 8.2;
+  float m_height = 0.66f;
 
   float m_denoiserStrength = 1.0f;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
-  glm::vec3 m_backgroundColorIntensity = glm::vec3(1.5f);
+  float m_backgroundColorIntensity = 1.25f;
   float m_cameraMin = 1;
   float m_cameraMax = 30;
 

@@ -167,10 +167,9 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
           curve.GetPoint(div), up, front,
           glm::mix(prev.m_width, curr.m_width, div),
           glm::mix(prev.m_theta, curr.m_theta, div), curr.m_isLeaf,
-          prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
-              curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
-          1.0f + glm::sin(leftPeriod) * waviness,
-          1.0f + glm::sin(rightPeriod) * waviness);
+          glm::mix(prev.m_surfacePush, curr.m_surfacePush, div),
+          glm::sin(leftPeriod) * waviness,
+          glm::sin(rightPeriod) * waviness);
     }
   }
 
@@ -253,7 +252,7 @@ void Spline::FormLeaf(const ProceduralStemState &stemState,
   for (int i = 0; i < nodeAmount; i++) {
     position += direction * unitLength;
     m_nodes.emplace_back(
-        position, glm::max(10.0f, 90.0f - (i + 1) * 30.0f),
+        position, glm::max(20.0f, 90.0f - (i + 1) * 14.0f),
         leafState.m_widthAlongLeaf.GetValue((float)i / (nodeAmount - 1)),
         leafState.m_wavinessAlongLeaf.GetValue((float)i / (nodeAmount - 1)),
         -direction, true, 1.0f);
