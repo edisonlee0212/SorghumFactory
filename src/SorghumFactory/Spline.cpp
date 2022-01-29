@@ -136,8 +136,10 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
   m_vertices.clear();
   m_triangles.clear();
   m_segments.clear();
-  float leftPeriod = 0.0f;
-  float rightPeriod = 0.0f;
+  float leftPeriod = glm::linearRand(0.0f, 100.0f);
+  float rightPeriod = glm::linearRand(0.0f, 100.0f);
+  float leftFreq = glm::linearRand(0.9f, 1.1f) * leafState.m_wavinessFrequency;
+  float rightFreq = glm::linearRand(0.9f, 1.1f) * leafState.m_wavinessFrequency;
   int stemSegmentCount = 0;
   for (int i = 1; i < m_nodes.size(); i++) {
     auto &prev = m_nodes.at(i - 1);
@@ -157,9 +159,9 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
       if (prev.m_isLeaf) {
-        leftPeriod += leafState.m_wavinessFrequency /
+        leftPeriod += glm::linearRand(0.9f, 1.1f) * leftFreq /
                       static_cast<float>(sorghumLayer->m_segmentAmount);
-        rightPeriod += leafState.m_wavinessFrequency /
+        rightPeriod += glm::linearRand(0.9f, 1.1f) * rightFreq /
                        static_cast<float>(sorghumLayer->m_segmentAmount);
       }
       auto waviness = glm::mix(prev.m_waviness, curr.m_waviness, div);
