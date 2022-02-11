@@ -371,14 +371,14 @@ void ProceduralSorghum::Set(float endTime, float longestLeafTime) {
     const auto &leafEndState = m_endState.m_leaves[i];
     leaf.m_wavinessFrequency = leafEndState.m_wavinessFrequency;
     leaf.m_wavinessAlongLeaf = leafEndState.m_wavinessAlongLeaf.m_curve;
-    leaf.m_waviness = {0.1f, leafEndState.m_wavinessAlongLeaf.m_maxValue,
+    leaf.m_waviness = {0.0f, leafEndState.m_wavinessAlongLeaf.m_maxValue,
                        UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
     leaf.m_distanceToRoot = {0.0f, leafEndState.m_distanceToRoot * 2.0f,
                              UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
     leaf.m_widthAlongLeaf = leafEndState.m_widthAlongLeaf.m_curve;
-    leaf.m_width = {0.1f, leafEndState.m_widthAlongLeaf.m_maxValue,
+    leaf.m_width = {0.0f, leafEndState.m_widthAlongLeaf.m_maxValue,
                     UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
 
     leaf.m_rollAngle = leafEndState.m_rollAngle;
@@ -405,7 +405,7 @@ bool ProceduralLeafDescriptor::OnInspect(float maxTime) {
     changed = true;
   if (m_distanceToRoot.OnInspect("Distance to root"))
     changed = true;
-  if (m_length.OnInspect("Distance to root"))
+  if (m_length.OnInspect("Length"))
     changed = true;
   if (m_width.OnInspect("Width"))
     changed = true;
@@ -476,7 +476,7 @@ void ProceduralSorghum::Deserialize(const YAML::Node &in) {
   if (in["m_endTime"])
     m_endTime = in["m_endTime"].as<float>();
   if (in["m_seed"])
-    m_seed = in["m_seed"].as<unsigned>();
+    m_seed = in["m_seed"].as<int>();
   if (in["m_version"])
     m_version = in["m_version"].as<unsigned>();
   if (in["m_endState"])
@@ -521,6 +521,8 @@ void ProceduralStemDescriptor::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_direction" << YAML::Value << m_direction;
   m_length.Serialize("m_length", out);
   m_width.Serialize("m_width", out);
+
+  m_widthAlongStem.UniEngine::ISerializable::Serialize("m_widthAlongStem", out);
 }
 
 void ProceduralStemDescriptor::Deserialize(const YAML::Node &in) {
@@ -530,6 +532,8 @@ void ProceduralStemDescriptor::Deserialize(const YAML::Node &in) {
     m_direction = in["m_direction"].as<glm::vec3>();
   m_length.Deserialize("m_length", in);
   m_width.Deserialize("m_width", in);
+
+  m_widthAlongStem.UniEngine::ISerializable::Deserialize("m_widthAlongStem", in);
 }
 
 void ProceduralLeafDescriptor::Serialize(YAML::Emitter &out) {

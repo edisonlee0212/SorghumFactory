@@ -24,18 +24,18 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_lab;
   Entity m_dirt;
 public:
-  RayProperties m_rayProperties = {4, 128};
+  RayProperties m_rayProperties = {6, 256};
   AssetRef m_parameters;
   AssetRef m_labPrefab;
   AssetRef m_dirtPrefab;
   bool m_captureImage = true;
   bool m_captureMask = true;
   bool m_captureMesh = false;
-  std::filesystem::path m_currentExportFolder = "Datasets/";
+  std::filesystem::path m_currentExportFolder = "Datasets";
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 72;
   int m_turnAngleEnd = 288;
-  float m_gamma = 1.0f;
+  float m_gamma = 2.2f;
   float m_fov = 30;
   float m_distanceToCenter = 8.2;
   float m_height = 0.66f;

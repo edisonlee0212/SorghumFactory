@@ -26,6 +26,7 @@ void GeneralDataCapture::OnInspect() {
     ImGui::DragFloat("Denoiser strength", &m_denoiserStrength, 0.01f);
     ImGui::DragFloat("Distance to center", &m_distanceToCenter, 0.01f);
     ImGui::DragFloat("Height", &m_height, 0.01f);
+    ImGui::DragInt3("Turn angle Start/Step/End", &m_turnAngleStart, 0.01f);
     ImGui::Separator();
     ImGui::DragFloat("Camera FOV", &m_fov);
     ImGui::DragFloat("Camera gamma", &m_gamma, 0.01f);
@@ -88,7 +89,7 @@ void GeneralDataCapture::OnAfterGrowth(
     if (m_captureMesh) {
       pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock()
-          ->ExportModel((ProjectManager::GetProjectPath().parent_path() /
+          ->ExportModel((ProjectManager::GetProjectPath().parent_path().parent_path() /
                          m_currentExportFolder / m_name / "Mesh" /
                          (prefix + ".obj"))
                             .string());
@@ -115,7 +116,7 @@ void GeneralDataCapture::OnAfterGrowth(
             Entities::GetCurrentScene());
         Application::GetLayer<RayTracerLayer>()->UpdateScene();
         rayTracerCamera->Render(m_rayProperties);
-        rayTracerCamera->m_colorTexture->SetPathAndSave(
+        rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
             m_currentExportFolder / m_name / "Image" /
             (prefix + "_" + std::to_string(turnAngle) + "_image.png"));
       }
@@ -132,7 +133,7 @@ void GeneralDataCapture::OnAfterGrowth(
             Entities::GetCurrentScene());
         Application::GetLayer<RayTracerLayer>()->UpdateScene();
         rayTracerCamera->Render(m_rayProperties);
-        rayTracerCamera->m_colorTexture->SetPathAndSave(
+        rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
             m_currentExportFolder / m_name / "Image" /
             (prefix + "_" + std::to_string(turnAngle) + "_top_image.png"));
       }
@@ -175,7 +176,7 @@ void GeneralDataCapture::OnAfterGrowth(
           Entities::GetCurrentScene());
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->SetPathAndSave(
+      rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
           m_currentExportFolder / m_name / "Mask" /
           (prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
@@ -192,7 +193,7 @@ void GeneralDataCapture::OnAfterGrowth(
           Entities::GetCurrentScene());
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->SetPathAndSave(
+      rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
           m_currentExportFolder / m_name / "Mask" /
           (prefix + "_" + std::to_string(turnAngle) + "_top_mask.png"));
     }
@@ -228,6 +229,7 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
   envProp.m_skylightIntensity = m_backgroundColorIntensity;
   rayTracerCamera->SetFov(m_fov);
   rayTracerCamera->SetGamma(m_gamma);
+  rayTracerCamera->SetMainCamera(false);
   rayTracerCamera->m_allowAutoResize = false;
   rayTracerCamera->m_frameSize = m_resolution;
   auto depthCamera =
@@ -345,21 +347,21 @@ void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
 
   m_sorghumInfos.clear();
   std::filesystem::create_directories(
-      ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder /
+      ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
       m_name);
   if (m_captureImage) {
     std::filesystem::create_directories(
-        ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder /
+        ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
         m_name / "Image");
   }
   if (m_captureMask) {
     std::filesystem::create_directories(
-        ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder /
+        ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
         m_name / "Mask");
   }
   if (m_captureMesh) {
     std::filesystem::create_directories(
-        ProjectManager::GetProjectPath().parent_path() / m_currentExportFolder /
+        ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
         m_name / "Mesh");
   }
 }
