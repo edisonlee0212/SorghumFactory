@@ -1,0 +1,29 @@
+# Solcast https://solcast.com,,,,,,,,
+# Monthly averages for solar radiation air temperature and wind speed,,,,,,,,
+# Latitude: 33.073528,,,,,,,,
+# Longitude: -111.973816,,,,,,,,
+# Probability of exceedance statistic: p50,,,,,,,,
+#,,,,,,,,
+# GhiDaily: average daily sum of global horizontal irradiance [kWh/m^2/day],,,,,,,,
+# DniDaily: average daily sum of direct normal irradiance [kWh/m^2/day],,,,,,,,
+# DhiDaily: average daily sum of diffuse horizontal irradiance [kWh/m^2/day],,,,,,,,
+# GhiMonthly: monthly sum of global horizontal irradiance [kWh/m^2/month],,,,,,,,
+# DniMonthly: monthly sum of direct normal irradiance [kWh/m^2/month],,,,,,,,
+# DhiMonthly: monthly sum of diffuse horizontal irradiance [kWh/m^2/month],,,,,,,,
+# AirTempMonthly: average 2m air temperature [degrees Celcius],,,,,,,,
+# WindSpeed: average 10m wind speed [m/s],,,,,,,,
+#,,,,,,,,
+Month,GhiDaily,DniDaily,DhiDaily,GhiMonthly,DniMonthly,DhiMonthly,AirTempMonthly,WindSpeed
+"January",3.41,5.8,0.88,105.7,179.66,27.19,11.38,2.67
+"February",4.52,6.49,1.19,126.55,181.78,33.2,12.89,2.75
+"March",6.18,7.73,1.53,191.68,239.76,47.29,18.88,2.8
+"April",7.46,8.6,1.65,223.82,257.99,49.52,22.23,3.08
+"May",8.34,9.21,1.79,258.66,285.63,55.41,26.32,3.04
+"June",8.37,9.33,1.73,251.22,279.87,51.95,32.52,3.07
+"July",7.43,6.98,2.26,230.42,216.43,70.11,34.66,2.49
+"August",6.89,6.93,2.02,213.59,214.9,62.7,33.16,2.21
+"September",6.05,6.68,1.82,181.5,200.26,54.66,29.99,2.35
+"October",4.96,6.7,1.27,153.63,207.72,39.37,23.66,2.12
+"November",3.76,6.27,0.88,112.85,187.98,26.4,16.21,2.75
+"December",3.1,5.26,0.91,96.2,163.21,28.21,12.73,2.65
+"Total",5.87,7.17,1.49,2145.82,2615.18,546.01,22.89,2.67

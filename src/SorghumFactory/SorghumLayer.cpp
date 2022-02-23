@@ -8,6 +8,7 @@
 #include <SorghumLayer.hpp>
 
 #include "DepthCamera.hpp"
+#include "SkyIlluminance.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
@@ -28,6 +29,7 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
                                                       ".sorghumstategenerator");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
+  ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance", ".skyilluminance");
   ClassRegistry::RegisterAsset<RectangularSorghumField>(
       "RectangularSorghumField", ".rectsorghumfield");
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
@@ -798,7 +800,8 @@ SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
   return pointCloud;
 }
 void SorghumLayer::ScanPointCloudLabeled(
-    const Entity &sorghum, const Entity &field, const std::filesystem::path &savePath,
+    const Entity &sorghum, const Entity &field,
+    const std::filesystem::path &savePath,
     const PointCloudSampleSettings &settings) {
 #ifdef RAYTRACERFACILITY
   auto boundingBoxHeight =
@@ -813,6 +816,7 @@ void SorghumLayer::ScanPointCloudLabeled(
 
   std::vector<int> leafIndex;
   std::vector<int> leafPartIndex;
+  std::vector<int> plantIndex;
   std::vector<int> isMainPlant;
   std::vector<uint64_t> entityHandles;
   std::vector<glm::vec3> points;
@@ -880,7 +884,7 @@ void SorghumLayer::ScanPointCloudLabeled(
     i.wait();
 
   std::vector<std::pair<Handle, int>> mainPlantHandles = {};
-  std::vector<std::pair<Handle, int>> plantHandles = {};
+  std::vector<std::vector<std::pair<Handle, int>>> plantHandles = {};
   mainPlantHandles.emplace_back(
       sorghum.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle(), 0);
   sorghum.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
@@ -892,9 +896,11 @@ void SorghumLayer::ScanPointCloudLabeled(
     mainPlantHandles.emplace_back(handle, index);
   });
 
-  for(const auto& i : field.GetChildren()){
-    if(i.GetIndex() == sorghum.GetIndex()) continue;
-    plantHandles.emplace_back(
+  for (const auto &i : field.GetChildren()) {
+    if (i.GetIndex() == sorghum.GetIndex())
+      continue;
+    plantHandles.push_back(std::vector<std::pair<Handle, int>>());
+    plantHandles.back().emplace_back(
         i.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle(), 0);
     i.ForEachChild([&](const std::shared_ptr<Scene> &scene, Entity child) {
       auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>();
@@ -902,7 +908,7 @@ void SorghumLayer::ScanPointCloudLabeled(
         return;
       auto handle = meshRenderer.lock()->GetHandle();
       auto index = child.GetDataComponent<LeafTag>().m_index + 1;
-      plantHandles.emplace_back(handle, index);
+      plantHandles.back().emplace_back(handle, index);
     });
   }
 
@@ -990,6 +996,7 @@ void SorghumLayer::ScanPointCloudLabeled(
   leafIndex.resize(points.size());
   leafPartIndex.resize(points.size());
   isMainPlant.resize(points.size());
+  plantIndex.resize(points.size());
   std::vector<std::shared_future<void>> results3;
   Jobs::ParallelFor(
       points.size(),
@@ -1002,6 +1009,7 @@ void SorghumLayer::ScanPointCloudLabeled(
           leafPartIndex[i] = 3;
         }
         isMainPlant[i] = 0;
+        plantIndex[i] = 0;
         for (const auto &pair : mainPlantHandles) {
           if (pair.first.GetValue() == entityHandles[i]) {
             leafIndex[i] = pair.second;
@@ -1009,10 +1017,15 @@ void SorghumLayer::ScanPointCloudLabeled(
             return;
           }
         }
-        for (const auto &pair : plantHandles) {
-          if (pair.first.GetValue() == entityHandles[i]) {
-            leafIndex[i] = pair.second;
-            return;
+        int j = 0;
+        for (const auto &leafPairs : plantHandles) {
+          j++;
+          for (const auto &pair : leafPairs) {
+            if (pair.first.GetValue() == entityHandles[i]) {
+              leafIndex[i] = pair.second;
+              plantIndex[i] = j;
+              return;
+            }
           }
         }
       },
@@ -1049,6 +1062,9 @@ void SorghumLayer::ScanPointCloudLabeled(
   cube_file.add_properties_to_element(
       "isMainPlant", {"value"}, Type::INT32, isMainPlant.size(),
       reinterpret_cast<uint8_t *>(isMainPlant.data()), Type::INVALID, 0);
+  cube_file.add_properties_to_element(
+      "plantIndex", {"value"}, Type::INT32, plantIndex.size(),
+      reinterpret_cast<uint8_t *>(plantIndex.data()), Type::INVALID, 0);
   // Write a binary file
   cube_file.write(outstream_binary, true);
 #else
@@ -1101,11 +1117,14 @@ void PointCloudSampleSettings::Serialize(const std::string &name,
                                          YAML::Emitter &out) {
   out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 
-  out << YAML::Key << "m_boundingBoxHeightRange" << YAML::Value << m_boundingBoxHeightRange;
+  out << YAML::Key << "m_boundingBoxHeightRange" << YAML::Value
+      << m_boundingBoxHeightRange;
   out << YAML::Key << "m_pointDistance" << YAML::Value << m_pointDistance;
   out << YAML::Key << "m_scannerAngle" << YAML::Value << m_scannerAngle;
-  out << YAML::Key << "m_adjustBoundingBox" << YAML::Value << m_adjustBoundingBox;
-  out << YAML::Key << "m_boundingBoxRadius" << YAML::Value << m_boundingBoxRadius;
+  out << YAML::Key << "m_adjustBoundingBox" << YAML::Value
+      << m_adjustBoundingBox;
+  out << YAML::Key << "m_boundingBoxRadius" << YAML::Value
+      << m_boundingBoxRadius;
   out << YAML::Key << "m_adjustmentFactor" << YAML::Value << m_adjustmentFactor;
   out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
 
@@ -1113,15 +1132,21 @@ void PointCloudSampleSettings::Serialize(const std::string &name,
 }
 void PointCloudSampleSettings::Deserialize(const std::string &name,
                                            const YAML::Node &in) {
-  if (in[name])
-  {
-    auto& cd = in[name];
-    if(cd["m_boundingBoxHeightRange"]) m_boundingBoxHeightRange = cd["m_boundingBoxHeightRange"].as<glm::vec2>();
-    if(cd["m_pointDistance"]) m_pointDistance = cd["m_pointDistance"].as<glm::vec2>();
-    if(cd["m_scannerAngle"]) m_scannerAngle = cd["m_scannerAngle"].as<float>();
-    if(cd["m_adjustBoundingBox"]) m_adjustBoundingBox = cd["m_adjustBoundingBox"].as<bool>();
-    if(cd["m_boundingBoxRadius"]) m_boundingBoxRadius = cd["m_boundingBoxRadius"].as<float>();
-    if(cd["m_adjustmentFactor"]) m_adjustmentFactor = cd["m_adjustmentFactor"].as<float>();
-    if(cd["m_segmentAmount"]) m_segmentAmount = cd["m_segmentAmount"].as<int>();
+  if (in[name]) {
+    auto &cd = in[name];
+    if (cd["m_boundingBoxHeightRange"])
+      m_boundingBoxHeightRange = cd["m_boundingBoxHeightRange"].as<glm::vec2>();
+    if (cd["m_pointDistance"])
+      m_pointDistance = cd["m_pointDistance"].as<glm::vec2>();
+    if (cd["m_scannerAngle"])
+      m_scannerAngle = cd["m_scannerAngle"].as<float>();
+    if (cd["m_adjustBoundingBox"])
+      m_adjustBoundingBox = cd["m_adjustBoundingBox"].as<bool>();
+    if (cd["m_boundingBoxRadius"])
+      m_boundingBoxRadius = cd["m_boundingBoxRadius"].as<float>();
+    if (cd["m_adjustmentFactor"])
+      m_adjustmentFactor = cd["m_adjustmentFactor"].as<float>();
+    if (cd["m_segmentAmount"])
+      m_segmentAmount = cd["m_segmentAmount"].as<int>();
   }
 }

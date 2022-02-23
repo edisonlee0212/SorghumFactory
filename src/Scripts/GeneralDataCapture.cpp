@@ -97,9 +97,9 @@ void GeneralDataCapture::OnAfterGrowth(
     if (m_captureImage) {
       Application::GetLayer<RayTracerLayer>()
           ->m_environmentProperties.m_environmentalLightingType =
-          RayTracerFacility::EnvironmentalLightingType::Color;
-      Application::GetLayer<RayTracerLayer>()
-          ->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+          RayTracerFacility::EnvironmentalLightingType::Scene;
+      Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
+      Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
       rayTracerCamera->SetOutputType(OutputType::Color);
       rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
       GlobalTransform cameraGT;
@@ -154,9 +154,9 @@ void GeneralDataCapture::OnAfterGrowth(
   case MultipleAngleCaptureStatus::Mask: {
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
-        RayTracerFacility::EnvironmentalLightingType::Color;
-    Application::GetLayer<RayTracerLayer>()
-        ->m_environmentProperties.m_sunColor = glm::vec3(1.0f);
+        RayTracerFacility::EnvironmentalLightingType::Scene;
+    Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
+    Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
     RayProperties rayProperties;
     rayProperties.m_samples = 1;
     rayProperties.m_bounces = 1;
@@ -223,9 +223,12 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
       m_backgroundColor;
   Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
       m_backgroundColorIntensity;
+  Application::GetLayer<RayTracerLayer>()
+      ->m_environmentProperties.m_environmentalLightingType =
+      RayTracerFacility::EnvironmentalLightingType::Scene;
+  Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
+  Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
   auto& envProp = Application::GetLayer<RayTracerLayer>()->m_environmentProperties;
-  envProp.m_environmentalLightingType = RayTracerFacility::EnvironmentalLightingType::Color;
-  envProp.m_sunColor = m_backgroundColor;
   envProp.m_skylightIntensity = m_backgroundColorIntensity;
   rayTracerCamera->SetFov(m_fov);
   rayTracerCamera->SetGamma(m_gamma);

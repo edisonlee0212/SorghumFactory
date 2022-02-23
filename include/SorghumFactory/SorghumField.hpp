@@ -12,7 +12,7 @@ public:
   void GenerateField(std::vector<std::vector<glm::mat4>> &matricesList);
 };
 
-class SORGHUM_FACTORY_API SorghumField : public IAsset {
+  class SORGHUM_FACTORY_API SorghumField : public IAsset {
   friend class SorghumLayer;
 
 public:

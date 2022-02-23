@@ -1,0 +1,20 @@
+period_end,,Date time of the end of the period.
+period_start,,Date time of the start of the period.
+period,,Length of the averaging period in ISO8601 duration format.
+air_temp,degC,The air temperature 2 meters above ground.
+azimuth,degree,solar azimuth angle (degrees). Zero means true north. Vaies from -180 to 180. A value of -90 means the sun is in the east.
+cloud_opacity,percentage,the attenuation of incoming light due to cloud. Varies from 0 (no cloud) to 100 (full attenuation of incoming light).
+dewpoint,degC,The dewpoint temperature 2 meters above ground level.
+ghi,W/m^2,The total irradiance received on a horizontal surface. It is the sum of the horizontal components of direct (beam) and diffuse irradiance.
+dhi,W/m^2,The horizontal component of diffuse irradiance (irradiance that is scattered by the atmosphere).
+dni,W/m^2,Solar irradiance arriving in a direct line from the sun as measured on a surface held perpendicular to the sun.
+ebh,W/m^2,The horizontal component of direct normal irradiance.
+gti,W/m^2,"The total irradiance received on a surface with defined tilt and azimuth, fixed or tracking."
+precip_water,kg/m^2,precipitable water (kg/m2) of entire atmospheric column.
+relative_humidity,percentage,The air relative humidity (2 meters above ground level).
+snow_depth,cm,The snow depth liquid-water-equivalent.
+sfc_pressure,hPa,The air pressure at ground level.
+wind_direction_10m,degree,The wind direction (10 meters above ground level). This is the meteorological convention. 0 is a northerly (from the north); 90 is an easterly (from the east); 180 is a southerly (from the south); 270 is a westerly (from the west).
+wind_speed_10m,m/s,Wind speed at 10m above ground level.
+zenith,degree,The angle between a line perpendicular to the earth's surface and the sun (90 deg = sunrise and sunset; 0 deg = sun directly overhead)
+albedo_daily,(0 - 1),"The average daytime surface reflectivity of visible light, expressed as a value between 0 and 1. 0 represents complete absorption. 1 represents complete reflection."
