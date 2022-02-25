@@ -48,7 +48,7 @@ SkyIlluminanceSnapshot SkyIlluminance::Get(float time) {
 void SkyIlluminance::ImportCSV(const std::filesystem::path& path) {
   rapidcsv::Document doc(path.string());
   std::vector<float> timeSeries = doc.GetColumn<float>("Time");
-  std::vector<float> ghiSeries = doc.GetColumn<float>("Ghi");
+  std::vector<float> ghiSeries = doc.GetColumn<float>("SunLightDensity");
   std::vector<float> azimuthSeries = doc.GetColumn<float>("Azimuth");
   std::vector<float> zenithSeries = doc.GetColumn<float>("Zenith");
   assert(timeSeries.size() == ghiSeries.size() && azimuthSeries.size() == zenithSeries.size() && timeSeries.size() == azimuthSeries.size());
@@ -126,6 +126,6 @@ void SkyIlluminance::Deserialize(const YAML::Node &in) {
 }
 
 glm::vec3 SkyIlluminanceSnapshot::GetSunDirection() {
-  return glm::quat(glm::radians(glm::vec3(0, m_azimuth, m_zenith))) * glm::vec3(0, 0, -1);
+  return glm::quat(glm::radians(glm::vec3(90.0f - m_zenith, m_azimuth, 0))) * glm::vec3(0, 0, -1);
 }
-float SkyIlluminanceSnapshot::GetSunIntensity() { return m_ghi / 1000.0f; }
+float SkyIlluminanceSnapshot::GetSunIntensity() { return m_ghi; }

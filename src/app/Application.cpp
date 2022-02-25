@@ -15,6 +15,7 @@
 #include <GeneralDataCapture.hpp>
 #include <SorghumStateGenerator.hpp>
 #include "PointCloudCapture.hpp"
+#include "IlluminationEstimation.hpp"
 using namespace Scripts;
 using namespace SorghumFactory;
 #ifdef RAYTRACERFACILITY
@@ -24,6 +25,8 @@ using namespace RayTracerFacility;
 int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
+  ClassRegistry::RegisterPrivateComponent<IlluminationEstimation>(
+      "IlluminationEstimation");
   ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
                                                    ".gdc");
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
