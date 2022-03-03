@@ -11,7 +11,7 @@ template <class T> struct CurveDescriptor {
   CurveDescriptor(T min, T max,
                   UniEngine::Curve curve = UniEngine::Curve(0.5f, 0.5f, {0, 0},
                                                             {1, 1}));
-  bool OnInspect(const std::string &name, bool minmaxControl = true);
+  bool OnInspect(const std::string &name, bool minmaxControl = true, float speed = 0.01f, const std::string& tip = "");
   void Serialize(const std::string &name, YAML::Emitter &out);
   void Deserialize(const std::string &name, const YAML::Node &in);
 
@@ -20,7 +20,7 @@ template <class T> struct CurveDescriptor {
 template <class T> struct SingleDistribution {
   T m_mean;
   float m_deviation = 0.0f;
-  bool OnInspect(const std::string &name);
+  bool OnInspect(const std::string &name, float speed = 0.01f, const std::string& tip = "");
   void Serialize(const std::string &name, YAML::Emitter &out);
   void Deserialize(const std::string &name, const YAML::Node &in);
   [[nodiscard]] T GetValue() const;
@@ -29,7 +29,7 @@ template <class T> struct SingleDistribution {
 template <class T> struct MixedDistribution {
   CurveDescriptor<T> m_mean;
   CurveDescriptor<float> m_deviation;
-  bool OnInspect(const std::string &name);
+  bool OnInspect(const std::string &name, float speed = 0.01f, const std::string& tip = "");
   void Serialize(const std::string &name, YAML::Emitter &out);
   void Deserialize(const std::string &name, const YAML::Node &in);
   T GetValue(float t) const;
@@ -55,17 +55,23 @@ void SingleDistribution<T>::Deserialize(const std::string &name,
   }
 }
 template <class T>
-bool SingleDistribution<T>::OnInspect(const std::string &name) {
+bool SingleDistribution<T>::OnInspect(const std::string &name, float speed, const std::string& tip) {
   bool changed = false;
   if (ImGui::TreeNode(name.c_str())) {
-    if (typeid(T).hash_code() == typeid(float).hash_code()) {
-      changed = ImGui::DragFloat("Mean", (float*)&m_mean, 0.01f);
-    } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
-      changed = ImGui::DragFloat2("Mean", (float*)&m_mean, 0.01f);
-    } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
-      changed = ImGui::DragFloat3("Mean", (float*)&m_mean, 0.01f);
+    if (!tip.empty() && ImGui::IsItemHovered())
+    {
+      ImGui::BeginTooltip();
+      ImGui::TextUnformatted(tip.c_str());
+      ImGui::EndTooltip();
     }
-    if(ImGui::DragFloat("Deviation", &m_deviation, 0.01f)) changed = true;
+    if (typeid(T).hash_code() == typeid(float).hash_code()) {
+      changed = ImGui::DragFloat("Mean", (float*)&m_mean, speed);
+    } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
+      changed = ImGui::DragFloat2("Mean", (float*)&m_mean, speed);
+    } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
+      changed = ImGui::DragFloat3("Mean", (float*)&m_mean, speed);
+    }
+    if(ImGui::DragFloat("Deviation", &m_deviation, speed)) changed = true;
     ImGui::TreePop();
   }
   return changed;
@@ -75,13 +81,19 @@ template <class T> T SingleDistribution<T>::GetValue() const {
 }
 
 template <class T>
-bool MixedDistribution<T>::OnInspect(const std::string &name) {
+bool MixedDistribution<T>::OnInspect(const std::string &name, float speed, const std::string& tip) {
   bool changed = false;
   if (ImGui::TreeNode(name.c_str())) {
+    if (!tip.empty() && ImGui::IsItemHovered())
+    {
+      ImGui::BeginTooltip();
+      ImGui::TextUnformatted(tip.c_str());
+      ImGui::EndTooltip();
+    }
     auto meanTitle = name + "(mean)";
     auto devTitle = name + "(deviation)";
-    changed = m_mean.OnInspect(meanTitle);
-    if(m_deviation.OnInspect(devTitle)) changed = true;
+    changed = m_mean.OnInspect(meanTitle, speed);
+    if(m_deviation.OnInspect(devTitle, speed)) changed = true;
     ImGui::TreePop();
   }
   return changed;
@@ -110,21 +122,27 @@ template <class T> T MixedDistribution<T>::GetValue(float t) const {
   return glm::gaussRand(m_mean.GetValue(t) , T(m_deviation.GetValue(t)));
 }
 
-template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name, bool minmaxControl) {
+template <class T> bool CurveDescriptor<T>::OnInspect(const std::string &name, bool minmaxControl, float speed, const std::string& tip) {
   bool changed = false;
   if (ImGui::TreeNode(name.c_str())) {
+    if (!tip.empty() && ImGui::IsItemHovered())
+    {
+      ImGui::BeginTooltip();
+      ImGui::TextUnformatted(tip.c_str());
+      ImGui::EndTooltip();
+    }
     if(minmaxControl) {
       if (typeid(T).hash_code() == typeid(float).hash_code()) {
-        changed = ImGui::DragFloat("Min", (float *)&m_minValue, 0.01f);
-        if (ImGui::DragFloat("Max", (float *)&m_maxValue, 0.01f))
+        changed = ImGui::DragFloat("Min", (float *)&m_minValue, speed);
+        if (ImGui::DragFloat("Max", (float *)&m_maxValue, speed))
           changed = true;
       } else if (typeid(T).hash_code() == typeid(glm::vec2).hash_code()) {
-        changed = ImGui::DragFloat2("Min", (float *)&m_minValue, 0.01f);
-        if (ImGui::DragFloat2("Max", (float *)&m_maxValue, 0.01f))
+        changed = ImGui::DragFloat2("Min", (float *)&m_minValue, speed);
+        if (ImGui::DragFloat2("Max", (float *)&m_maxValue, speed))
           changed = true;
       } else if (typeid(T).hash_code() == typeid(glm::vec3).hash_code()) {
-        changed = ImGui::DragFloat3("Min", (float *)&m_minValue, 0.01f);
-        if (ImGui::DragFloat3("Max", (float *)&m_maxValue, 0.01f))
+        changed = ImGui::DragFloat3("Min", (float *)&m_minValue, speed);
+        if (ImGui::DragFloat3("Max", (float *)&m_maxValue, speed))
           changed = true;
       }
     }

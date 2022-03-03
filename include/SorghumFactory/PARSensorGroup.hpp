@@ -1,5 +1,7 @@
 #pragma once
+#ifdef RAYTRACERFACILITY
 #include <sorghum_factory_export.h>
+
 #include <CUDAModule.hpp>
 using namespace UniEngine;
 using namespace RayTracerFacility;
@@ -13,3 +15,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
 };
 } // namespace SorghumFactory
+#endif

@@ -1,7 +1,7 @@
 //
 // Created by lllll on 2/23/2022.
 //
-
+#ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
 using namespace SorghumFactory;
@@ -113,3 +113,4 @@ void PARSensorGroup::Deserialize(const YAML::Node &in) {
     std::memcpy(m_samplers.data(), binaryList.data(), binaryList.size());
   }
 }
+#endif

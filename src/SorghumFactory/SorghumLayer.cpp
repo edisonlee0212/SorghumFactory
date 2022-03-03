@@ -9,8 +9,9 @@
 
 #include "DepthCamera.hpp"
 #include "SkyIlluminance.hpp"
-#include "PARSensorGroup.hpp"
+
 #ifdef RAYTRACERFACILITY
+#include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
 #endif
 using namespace SorghumFactory;
@@ -30,7 +31,9 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
                                                       ".sorghumstategenerator");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
+#ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup", ".parsensorgroup");
+#endif
   ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance", ".skyilluminance");
   ClassRegistry::RegisterAsset<RectangularSorghumField>(
       "RectangularSorghumField", ".rectsorghumfield");

@@ -1,7 +1,7 @@
 //
 // Created by lllll on 9/9/2021.
 //
-
+#ifdef RAYTRACERFACILITY
 #include "GeneralDataCapture.hpp"
 #include "DepthCamera.hpp"
 #include "TransformLayer.hpp"
@@ -377,3 +377,4 @@ void GeneralDataCapture::End(AutoSorghumGenerationPipeline &pipeline) {
   Entities::DeleteEntity(Entities::GetCurrentScene(), m_rayTracerCamera);
   m_rayTracerCamera = {};
 }
+#endif

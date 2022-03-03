@@ -25,10 +25,12 @@ using namespace RayTracerFacility;
 int main() {
   ClassRegistry::RegisterPrivateComponent<AutoSorghumGenerationPipeline>(
       "AutoSorghumGenerationPipeline");
+#ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterPrivateComponent<IlluminationEstimation>(
       "IlluminationEstimation");
   ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
                                                    ".gdc");
+#endif
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
                                                   ".pcc");
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");

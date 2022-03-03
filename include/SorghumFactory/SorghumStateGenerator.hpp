@@ -36,8 +36,7 @@ public:
   UniEngine::Curve m_widthAlongLeaf;
   UniEngine::Curve m_wavinessAlongLeaf;
   [[nodiscard]] unsigned GetVersion() const;
-
-  SorghumStateGenerator();
+  void OnCreate() override;
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;

@@ -1,4 +1,5 @@
 #pragma once
+#ifdef RAYTRACERFACILITY
 #include <SorghumLayer.hpp>
 #include "RayTracer.hpp"
 using namespace SorghumFactory;
@@ -26,3 +27,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
 };
 }
+#endif

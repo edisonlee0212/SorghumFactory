@@ -1,12 +1,12 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
-
-#include <SorghumLayer.hpp>
 #ifdef RAYTRACERFACILITY
+#include <SorghumLayer.hpp>
+
 #include "RayTracerCamera.hpp"
 #include "RayTracerLayer.hpp"
 using namespace RayTracerFacility;
-#endif
+
 using namespace SorghumFactory;
 namespace Scripts {
 enum class MultipleAngleCaptureStatus { Info, Mask, Angles };
@@ -63,3 +63,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
 };
 } // namespace Scripts
+#endif

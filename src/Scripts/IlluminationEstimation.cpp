@@ -1,7 +1,7 @@
 //
 // Created by lllll on 2/23/2022.
 //
-
+#ifdef RAYTRACERFACILITY
 #include "IlluminationEstimation.hpp"
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
@@ -169,3 +169,4 @@ void Scripts::IlluminationEstimation::ExportCSV(
     UNIENGINE_ERROR("Can't open file!");
   }
 }
+#endif
