@@ -7,6 +7,7 @@
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 
+#include "FieldGround.hpp"
 #include "DepthCamera.hpp"
 #include "SkyIlluminance.hpp"
 
@@ -22,8 +23,8 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
 
+  ClassRegistry::RegisterPrivateComponent<FieldGround>("FieldGround");
   ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
-
   ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
@@ -818,7 +819,7 @@ void SorghumLayer::ScanPointCloudLabeled(
   auto boundingBoxCenter = (settings.m_boundingBoxHeightRange.y +
                             settings.m_boundingBoxHeightRange.x) /
                            2.0f;
-
+  std::vector<int> isGround;
   std::vector<int> leafIndex;
   std::vector<int> leafPartIndex;
   std::vector<int> plantIndex;
@@ -888,6 +889,7 @@ void SorghumLayer::ScanPointCloudLabeled(
   for (const auto &i : results2)
     i.wait();
 
+  Handle groundHandle = settings.m_ground.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle();
   std::vector<std::pair<Handle, int>> mainPlantHandles = {};
   std::vector<std::vector<std::pair<Handle, int>>> plantHandles = {};
   mainPlantHandles.emplace_back(
@@ -997,7 +999,7 @@ void SorghumLayer::ScanPointCloudLabeled(
       entityHandles.push_back(sample.m_handle);
     }
   }
-
+  isGround.resize(points.size());
   leafIndex.resize(points.size());
   leafPartIndex.resize(points.size());
   isMainPlant.resize(points.size());
@@ -1015,6 +1017,10 @@ void SorghumLayer::ScanPointCloudLabeled(
         }
         isMainPlant[i] = 0;
         plantIndex[i] = 0;
+
+        if(entityHandles[i] == groundHandle) isGround[i] = 1;
+        else isGround[i] = 0;
+
         for (const auto &pair : mainPlantHandles) {
           if (pair.first.GetValue() == entityHandles[i]) {
             leafIndex[i] = pair.second;
@@ -1022,6 +1028,7 @@ void SorghumLayer::ScanPointCloudLabeled(
             return;
           }
         }
+
         int j = 0;
         for (const auto &leafPairs : plantHandles) {
           j++;
@@ -1070,6 +1077,9 @@ void SorghumLayer::ScanPointCloudLabeled(
   cube_file.add_properties_to_element(
       "plantIndex", {"value"}, Type::INT32, plantIndex.size(),
       reinterpret_cast<uint8_t *>(plantIndex.data()), Type::INVALID, 0);
+  cube_file.add_properties_to_element(
+      "isGround", {"value"}, Type::INT32, isGround.size(),
+      reinterpret_cast<uint8_t *>(isGround.data()), Type::INVALID, 0);
   // Write a binary file
   cube_file.write(outstream_binary, true);
 #else

@@ -1,7 +1,7 @@
 //
 // Created by lllll on 1/1/2022.
 //
-
+#include "FieldGround.hpp"
 #include "PointCloudCapture.hpp"
 void Scripts::PointCloudCapture::OnBeforeGrowth(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
@@ -11,7 +11,8 @@ void Scripts::PointCloudCapture::OnBeforeGrowth(
     Reset(pipeline);
     return;
   }
-
+  auto fieldGround = m_ground.GetOrSetPrivateComponent<FieldGround>().lock();
+  fieldGround->GenerateMesh(glm::linearRand(0.12f, 0.17f) );
   auto result = positionsField->InstantiateAroundIndex(pipeline.m_currentIndex % positionsField->m_positions.size(), 2.5f);
   pipeline.m_currentGrowingSorghum = result.first;
   m_currentSorghumField = result.second;
@@ -59,12 +60,17 @@ void Scripts::PointCloudCapture::Start(
   std::filesystem::create_directories(
       std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path().parent_path() /
                                 m_currentExportFolder / m_name / "PointCloud"));
+  m_ground = Entities::CreateEntity(Entities::GetCurrentScene(), "Ground");
+  auto fieldGround = m_ground.GetOrSetPrivateComponent<FieldGround>().lock();
+  m_settings.m_ground = m_ground;
 }
 void Scripts::PointCloudCapture::End(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   if (m_currentSorghumField.IsValid())
     Entities::DeleteEntity(Entities::GetCurrentScene(), m_currentSorghumField);
   pipeline.m_currentGrowingSorghum = m_currentSorghumField = {};
+
+  Entities::DeleteEntity(Entities::GetCurrentScene(), m_ground);
 }
 bool Scripts::PointCloudCapture::IsReady() {
   return m_positionsField.Get<PositionsField>().get();

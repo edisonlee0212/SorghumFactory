@@ -6,6 +6,7 @@ using namespace SorghumFactory;
 namespace Scripts {
 class PointCloudCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_currentSorghumField;
+  Entity m_ground;
   void Instantiate();
 public:
   PointCloudSampleSettings m_settings;
