@@ -57,6 +57,7 @@ ProceduralLeafState ProceduralLeafDescriptor::Get(float time) const {
   state.m_bending = m_bending;
 
   state.m_wavinessFrequency = m_wavinessFrequency;
+  state.m_wavinessPeriodStart = m_wavinessPeriodStart;
   return state;
 }
 ProceduralSorghumState ProceduralSorghum::Get(float time) const {
@@ -138,8 +139,11 @@ bool ProceduralLeafState::OnInspect() {
     changed = true;
   if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
     changed = true;
-  if (ImGui::DragFloat("Waviness frequency", &m_wavinessFrequency, 0.01f, 0.0f,
+  if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f, 0.0f,
                        999.0f))
+    changed = true;
+  if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x, 0.01f, 0.0f,
+                        999.0f))
     changed = true;
   return changed;
 }
@@ -155,6 +159,8 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
   m_wavinessAlongLeaf.Serialize("m_wavinessAlongLeaf", out);
   out << YAML::Key << "m_wavinessFrequency" << YAML::Value
       << m_wavinessFrequency;
+  out << YAML::Key << "m_wavinessPeriodStart" << YAML::Value
+      << m_wavinessPeriodStart;
 }
 void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   if (in["m_active"])
@@ -172,7 +178,9 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   if (in["m_bending"])
     m_bending = in["m_bending"].as<glm::vec2>();
   if (in["m_wavinessFrequency"])
-    m_wavinessFrequency = in["m_wavinessFrequency"].as<float>();
+    m_wavinessFrequency = in["m_wavinessFrequency"].as<glm::vec2>();
+  if (in["m_wavinessPeriodStart"])
+    m_wavinessPeriodStart = in["m_wavinessPeriodStart"].as<glm::vec2>();
 
   m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
@@ -544,6 +552,8 @@ void ProceduralLeafDescriptor::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_bending" << YAML::Value << m_bending;
   out << YAML::Key << "m_wavinessFrequency" << YAML::Value
       << m_wavinessFrequency;
+  out << YAML::Key << "m_wavinessPeriodStart" << YAML::Value
+      << m_wavinessPeriodStart;
   m_distanceToRoot.Serialize("m_distanceToRoot", out);
   m_length.Serialize("m_length", out);
   m_width.Serialize("m_width", out);
@@ -564,8 +574,9 @@ void ProceduralLeafDescriptor::Deserialize(const YAML::Node &in) {
   if (in["m_bending"])
     m_bending = in["m_bending"].as<glm::vec2>();
   if (in["m_wavinessFrequency"])
-    m_wavinessFrequency = in["m_wavinessFrequency"].as<float>();
-
+    m_wavinessFrequency = in["m_wavinessFrequency"].as<glm::vec2>();
+  if (in["m_wavinessPeriodStart"])
+    m_wavinessPeriodStart = in["m_wavinessPeriodStart"].as<glm::vec2>();
   m_distanceToRoot.Deserialize("m_distanceToRoot", in);
   m_length.Deserialize("m_length", in);
   m_width.Deserialize("m_width", in);

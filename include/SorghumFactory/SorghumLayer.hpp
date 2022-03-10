@@ -73,8 +73,8 @@ public:
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
 
-  int m_segmentAmount = 2;
-  int m_step = 4;
+  float m_verticalSubdivisionMaxUnitLength = 0.01f;
+  int m_horizontalSubdivisionStep = 2;
 
   void OnCreate() override;
   Entity CreateSorghum();

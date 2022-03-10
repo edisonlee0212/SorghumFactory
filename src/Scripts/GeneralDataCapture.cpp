@@ -98,8 +98,8 @@ void GeneralDataCapture::OnAfterGrowth(
       Application::GetLayer<RayTracerLayer>()
           ->m_environmentProperties.m_environmentalLightingType =
           RayTracerFacility::EnvironmentalLightingType::Scene;
-      Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
-      Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
+      Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = m_backgroundColor;
+      Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = m_backgroundColorIntensity;
       rayTracerCamera->SetOutputType(OutputType::Color);
       rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
       GlobalTransform cameraGT;
@@ -118,7 +118,7 @@ void GeneralDataCapture::OnAfterGrowth(
         rayTracerCamera->Render(m_rayProperties);
         rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
             m_currentExportFolder / m_name / "Image" /
-            (prefix + "_" + std::to_string(turnAngle) + "_image.png"));
+            ("side_" + prefix + "_" + std::to_string(turnAngle) + "_image.png"));
       }
       cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
       cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
@@ -135,7 +135,7 @@ void GeneralDataCapture::OnAfterGrowth(
         rayTracerCamera->Render(m_rayProperties);
         rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
             m_currentExportFolder / m_name / "Image" /
-            (prefix + "_" + std::to_string(turnAngle) + "_top_image.png"));
+            ("top_" + prefix + "_" + std::to_string(turnAngle) + "_image.png"));
       }
     }
     if (m_captureMask) {
@@ -217,19 +217,17 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
     UNIENGINE_ERROR("Camera entity missing!");
     return false;
   }
-  Entities::GetCurrentScene()->m_environmentSettings.m_environmentType =
-      UniEngine::EnvironmentType::Color;
-  Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
-      m_backgroundColor;
-  Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
-      m_backgroundColorIntensity;
+
   Application::GetLayer<RayTracerLayer>()
       ->m_environmentProperties.m_environmentalLightingType =
       RayTracerFacility::EnvironmentalLightingType::Scene;
-  Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
-  Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity = 1.0f;
-  auto& envProp = Application::GetLayer<RayTracerLayer>()->m_environmentProperties;
-  envProp.m_skylightIntensity = m_backgroundColorIntensity;
+  auto scene = Entities::GetCurrentScene();
+  scene->m_environmentSettings.m_environmentType =
+      UniEngine::EnvironmentType::Color;
+  scene->m_environmentSettings.m_backgroundColor =
+      m_backgroundColor;
+  scene->m_environmentSettings.m_ambientLightIntensity =
+      m_backgroundColorIntensity;
   rayTracerCamera->SetFov(m_fov);
   rayTracerCamera->SetGamma(m_gamma);
   rayTracerCamera->SetMainCamera(false);

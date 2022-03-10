@@ -20,8 +20,6 @@ public:
   ProceduralSorghumState m_state;
   AssetRef m_descriptor;
   int m_seed = 0;
-  int m_stemSubdivisionAmount = 16;
-  int m_leafSubdivisionAmount = 16;
   void OnCreate() override;
   void OnDestroy() override;
   void OnInspect() override;

@@ -33,7 +33,8 @@ struct ProceduralLeafState {
   float m_branchingAngle = 0;
   glm::vec2 m_bending = {0, 0};
   CurveDescriptor<float> m_wavinessAlongLeaf;
-  float m_wavinessFrequency = 0;
+  glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
+  glm::vec2 m_wavinessFrequency = glm::vec2(0.0f);
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -69,8 +70,8 @@ struct ProceduralLeafDescriptor {
   float m_rollAngle;
   float m_branchingAngle;
   glm::vec2 m_bending;
-  float m_wavinessFrequency = 0;
-
+  glm::vec2 m_wavinessFrequency = glm::vec2(0.0f);
+  glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
   CurveDescriptor<float> m_distanceToRoot;
   CurveDescriptor<float> m_length;
   CurveDescriptor<float> m_width;

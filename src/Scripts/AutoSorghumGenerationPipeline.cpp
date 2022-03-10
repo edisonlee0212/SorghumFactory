@@ -36,6 +36,7 @@ void AutoSorghumGenerationPipeline::Update() {
         m_status = AutoSorghumGenerationPipelineStatus::Idle;
         m_currentIndex = -1;
         UNIENGINE_LOG("Finished!");
+        behaviour->End(*this);
       }
       break;
     }

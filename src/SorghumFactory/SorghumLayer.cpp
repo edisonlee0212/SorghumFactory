@@ -7,8 +7,8 @@
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 
-#include "FieldGround.hpp"
 #include "DepthCamera.hpp"
+#include "FieldGround.hpp"
 #include "SkyIlluminance.hpp"
 
 #ifdef RAYTRACERFACILITY
@@ -33,9 +33,11 @@ void SorghumLayer::OnCreate() {
                                                       ".sorghumstategenerator");
   ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
 #ifdef RAYTRACERFACILITY
-  ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup", ".parsensorgroup");
+  ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup",
+                                               ".parsensorgroup");
 #endif
-  ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance", ".skyilluminance");
+  ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance",
+                                               ".skyilluminance");
   ClassRegistry::RegisterAsset<RectangularSorghumField>(
       "RectangularSorghumField", ".rectsorghumfield");
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
@@ -92,8 +94,8 @@ void SorghumLayer::OnCreate() {
     material->m_cullingMode = MaterialCullingMode::Off;
     material->m_albedoColor =
         glm::vec3(113.0f / 255, 169.0f / 255, 44.0f / 255);
-    material->m_roughness = 1.0f;
-    material->m_metallic = 0.0f;
+    material->m_roughness = 0.8f;
+    material->m_metallic = 0.1f;
   }
 
   if (!m_pinnacleMaterial.Get<Material>()) {
@@ -283,13 +285,17 @@ void SorghumLayer::OnInspect() {
 #endif
     ImGui::Separator();
     if (ImGui::Button("Generate mesh for all sorghums")) {
-      GenerateMeshForAllSorghums(false, true, false);
+      GenerateMeshForAllSorghums(true, true, false);
     }
-    if (ImGui::DragInt("Segment amount", &m_segmentAmount)) {
-      m_segmentAmount = glm::max(2, m_segmentAmount);
+    if (ImGui::DragFloat("Vertical subdivision max unit length",
+                         &m_verticalSubdivisionMaxUnitLength, 0.001f, 0.001f,
+                         1.0f)) {
+      m_verticalSubdivisionMaxUnitLength =
+          glm::max(0.0001f, m_verticalSubdivisionMaxUnitLength);
     }
-    if (ImGui::DragInt("Step amount", &m_step)) {
-      m_step = glm::max(2, m_step);
+    if (ImGui::DragInt("Horizontal subdivision step",
+                       &m_horizontalSubdivisionStep)) {
+      m_horizontalSubdivisionStep = glm::max(4, m_horizontalSubdivisionStep);
     }
     if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                              "Replace Leaf Albedo Texture")) {
@@ -889,7 +895,10 @@ void SorghumLayer::ScanPointCloudLabeled(
   for (const auto &i : results2)
     i.wait();
 
-  Handle groundHandle = settings.m_ground.GetOrSetPrivateComponent<MeshRenderer>().lock()->GetHandle();
+  Handle groundHandle =
+      settings.m_ground.GetOrSetPrivateComponent<MeshRenderer>()
+          .lock()
+          ->GetHandle();
   std::vector<std::pair<Handle, int>> mainPlantHandles = {};
   std::vector<std::vector<std::pair<Handle, int>>> plantHandles = {};
   mainPlantHandles.emplace_back(
@@ -1018,8 +1027,10 @@ void SorghumLayer::ScanPointCloudLabeled(
         isMainPlant[i] = 0;
         plantIndex[i] = 0;
 
-        if(entityHandles[i] == groundHandle) isGround[i] = 1;
-        else isGround[i] = 0;
+        if (entityHandles[i] == groundHandle)
+          isGround[i] = 1;
+        else
+          isGround[i] = 0;
 
         for (const auto &pair : mainPlantHandles) {
           if (pair.first.GetValue() == entityHandles[i]) {

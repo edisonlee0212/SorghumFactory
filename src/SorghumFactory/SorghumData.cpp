@@ -11,7 +11,10 @@ using namespace SorghumFactory;
 
 void SorghumData::OnCreate() {}
 
-void SorghumData::OnDestroy() {}
+void SorghumData::OnDestroy() {
+  m_descriptor.Clear();
+  m_meshGenerated = false;
+}
 
 void SorghumData::OnInspect() {
   static const char *SorghumModes[]{"Procedural Growth", "Sorghum State"};
@@ -95,11 +98,6 @@ void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_recordedVersion" << YAML::Value << m_recordedVersion;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
 
-  out << YAML::Key << "m_stemSubdivisionAmount" << YAML::Value
-      << m_stemSubdivisionAmount;
-  out << YAML::Key << "m_leafSubdivisionAmount" << YAML::Value
-      << m_leafSubdivisionAmount;
-
   out << YAML::Key << "m_descriptor" << YAML::BeginMap;
   m_descriptor.Serialize(out);
   m_state.Serialize(out);
@@ -119,11 +117,6 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_currentTime = in["m_currentTime"].as<float>();
   if (in["m_recordedVersion"])
     m_recordedVersion = in["m_recordedVersion"].as<unsigned>();
-
-  if (in["m_stemSubdivisionAmount"])
-    m_stemSubdivisionAmount = in["m_stemSubdivisionAmount"].as<int>();
-  if (in["m_leafSubdivisionAmount"])
-    m_leafSubdivisionAmount = in["m_leafSubdivisionAmount"].as<int>();
 
   if (in["m_descriptor"])
     m_descriptor.Deserialize(in["m_descriptor"]);
@@ -205,7 +198,7 @@ void SorghumData::PreparePinnacleMesh(const glm::vec3 &center,
 void SorghumData::GenerateGeometry() {
   auto owner = GetOwner();
   auto stemSpline = owner.GetOrSetPrivateComponent<Spline>().lock();
-  stemSpline->FormStem(m_state.m_stem, m_stemSubdivisionAmount);
+  stemSpline->FormStem(m_state.m_stem);
   int i = 0;
   GetOwner().ForEachChild(
       [&](const std::shared_ptr<Scene> &scene, Entity child) {
@@ -214,8 +207,7 @@ void SorghumData::GenerateGeometry() {
           while (!m_state.m_leaves[i].m_active) {
             i++;
           }
-          leafSpline->FormLeaf(m_state.m_stem, m_state.m_leaves[i],
-                               m_leafSubdivisionAmount);
+          leafSpline->FormLeaf(m_state.m_stem, m_state.m_leaves[i]);
         }
         i++;
       });

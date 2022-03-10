@@ -28,6 +28,7 @@ public:
   MixedDistribution<float> m_leafBendingAcceleration;
   MixedDistribution<float> m_leafWaviness;
   MixedDistribution<float> m_leafWavinessFrequency;
+  MixedDistribution<float> m_leafPeriodStart;
   MixedDistribution<float> m_leafLength;
   MixedDistribution<float> m_leafWidth;
 

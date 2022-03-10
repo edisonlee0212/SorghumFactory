@@ -33,8 +33,8 @@ public:
   bool m_captureMesh = false;
   std::filesystem::path m_currentExportFolder = "Datasets";
   int m_turnAngleStart = 0;
-  int m_turnAngleStep = 72;
-  int m_turnAngleEnd = 288;
+  int m_turnAngleStep = 1;
+  int m_turnAngleEnd = 2;
   float m_gamma = 2.2f;
   float m_fov = 30;
   float m_distanceToCenter = 8.2;
@@ -44,7 +44,7 @@ public:
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
-  float m_backgroundColorIntensity = 1.25f;
+  float m_backgroundColorIntensity = 1.0f;
   float m_cameraMin = 1;
   float m_cameraMax = 30;
 

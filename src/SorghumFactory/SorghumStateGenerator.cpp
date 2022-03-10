@@ -115,6 +115,8 @@ void SorghumStateGenerator::OnInspect() {
       changed = true;
     if (m_leafWavinessFrequency.OnInspect("Waviness Frequency"))
       changed = true;
+    if (m_leafPeriodStart.OnInspect("Waviness Period Start"))
+      changed = true;
     if (m_leafLength.OnInspect("Length", 0.01f, "The length of the leaf"))
       changed = true;
     if (m_leafWidth.OnInspect("Width", 0.01f, "The length of the leaf"))
@@ -158,6 +160,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_leafBendingAcceleration.Serialize("m_leafBendingAcceleration", out);
   m_leafWaviness.Serialize("m_leafWaviness", out);
   m_leafWavinessFrequency.Serialize("m_leafWavinessFrequency", out);
+  m_leafPeriodStart.Serialize("m_leafPeriodStart", out);
   m_leafLength.Serialize("m_leafLength", out);
   m_leafWidth.Serialize("m_leafWidth", out);
 
@@ -190,6 +193,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_leafBendingAcceleration.Deserialize("m_leafBendingAcceleration", in);
   m_leafWaviness.Deserialize("m_leafWaviness", in);
   m_leafWavinessFrequency.Deserialize("m_leafWavinessFrequency", in);
+  m_leafPeriodStart.Deserialize("m_leafPeriodStart", in);
   m_leafLength.Deserialize("m_leafLength", in);
   m_leafWidth.Deserialize("m_leafWidth", in);
 
@@ -224,7 +228,11 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
 
     leafState.m_wavinessAlongLeaf = {0.0f, m_leafWaviness.GetValue(step) * 2.0f,
                                      m_wavinessAlongLeaf};
-    leafState.m_wavinessFrequency = m_leafWavinessFrequency.GetValue(step);
+    leafState.m_wavinessFrequency.x = m_leafWavinessFrequency.GetValue(step);
+    leafState.m_wavinessFrequency.y = m_leafWavinessFrequency.GetValue(step);
+
+    leafState.m_wavinessPeriodStart.x = m_leafPeriodStart.GetValue(step);
+    leafState.m_wavinessPeriodStart.y = m_leafPeriodStart.GetValue(step);
 
     leafState.m_widthAlongLeaf = {0.0f, m_leafWidth.GetValue(step) * 2.0f,
                                   m_widthAlongLeaf};
