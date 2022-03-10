@@ -178,7 +178,7 @@ void GeneralDataCapture::OnAfterGrowth(
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
           m_currentExportFolder / m_name / "Mask" /
-          (prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
+          ("side_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
     cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
@@ -195,7 +195,7 @@ void GeneralDataCapture::OnAfterGrowth(
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
           m_currentExportFolder / m_name / "Mask" /
-          (prefix + "_" + std::to_string(turnAngle) + "_top_mask.png"));
+          ("top_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
 
     m_captureStatus = MultipleAngleCaptureStatus::Angles;

@@ -73,8 +73,8 @@ public:
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
 
-  float m_verticalSubdivisionMaxUnitLength = 0.01f;
-  int m_horizontalSubdivisionStep = 2;
+  float m_verticalSubdivisionMaxUnitLength = 0.02f;
+  int m_horizontalSubdivisionStep = 4;
 
   void OnCreate() override;
   Entity CreateSorghum();
@@ -85,7 +85,7 @@ public:
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(bool seperated, bool includeStem,
-                                  bool segmentedMask, int segmentAmount = 2, int step = 2);
+                                  bool segmentedMask);
   Entity ImportPlant(const std::filesystem::path &path,
                      const std::string &name);
   void OnInspect() override;

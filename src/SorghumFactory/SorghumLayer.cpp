@@ -185,8 +185,7 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
 }
 
 void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
-                                              bool segmentedMask,
-                                              int segmentAmount, int step) {
+                                              bool segmentedMask) {
   std::vector<Entity> plants;
   Entities::ForEach<GlobalTransform>(
       Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
@@ -295,7 +294,7 @@ void SorghumLayer::OnInspect() {
     }
     if (ImGui::DragInt("Horizontal subdivision step",
                        &m_horizontalSubdivisionStep)) {
-      m_horizontalSubdivisionStep = glm::max(4, m_horizontalSubdivisionStep);
+      m_horizontalSubdivisionStep = glm::max(2, m_horizontalSubdivisionStep);
     }
     if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                              "Replace Leaf Albedo Texture")) {

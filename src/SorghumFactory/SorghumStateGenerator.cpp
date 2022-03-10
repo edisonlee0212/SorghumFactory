@@ -190,6 +190,8 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
 
   m_leafRollAngle.Deserialize("m_leafRollAngle", in);
   m_leafBranchingAngle.Deserialize("m_leafBranchingAngle", in);
+
+  m_leafBending.Deserialize("m_leafBending", in);
   m_leafBendingAcceleration.Deserialize("m_leafBendingAcceleration", in);
   m_leafWaviness.Deserialize("m_leafWaviness", in);
   m_leafWavinessFrequency.Deserialize("m_leafWavinessFrequency", in);

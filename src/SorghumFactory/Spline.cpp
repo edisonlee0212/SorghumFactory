@@ -148,8 +148,10 @@ void Spline::GenerateLeafGeometry(const ProceduralStemState &stemState,
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
 
     for (float div = (i == 1 ? 0.0f : 0.5f); div <= 1.0f; div += 0.5f) {
-      float leftPeriod = leafState.m_wavinessPeriodStart.x + glm::mix(prev.m_range, curr.m_range, div) * leftFreq;
-      float rightPeriod = leafState.m_wavinessPeriodStart.y + glm::mix(prev.m_range, curr.m_range, div) * rightFreq;
+      float leftPeriod = leafState.m_wavinessPeriodStart.x +
+                         glm::mix(prev.m_range, curr.m_range, div) * leftFreq;
+      float rightPeriod = leafState.m_wavinessPeriodStart.y +
+                          glm::mix(prev.m_range, curr.m_range, div) * rightFreq;
 
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
@@ -219,19 +221,20 @@ void Spline::FormLeaf(const ProceduralStemState &stemState,
     return;
   auto startingPoint = leafState.m_distanceToRoot / stemState.m_length;
   float stemWidth = stemState.m_widthAlongStem.GetValue(startingPoint);
-  float backDistance = 0.1f;
-  if (startingPoint < 0.2f)
-    backDistance = startingPoint / 2.0f;
-  float actualStartingPoint = startingPoint - 2.0f * backDistance;
-  if (leafState.m_index == 0) {
-    actualStartingPoint = 0.0f;
+  float backDistance = 0.05f;
+  if (startingPoint < backDistance)
+    backDistance = startingPoint;
+  float sheathPoint = startingPoint - backDistance;
+
+  int nodeForSheath =
+      glm::max(2.0f, stemState.m_length * backDistance /
+                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+  for (int i = 0; i <= nodeForSheath; i++) {
+    float currentPoint = (float)i / nodeForSheath * backDistance;
+    m_nodes.emplace_back(stemState.GetPoint(sheathPoint + currentPoint),
+                         180.0f - 90.0f * (float)i / nodeForSheath, stemWidth + 0.002f * (float)i / nodeForSheath,
+                         0.0f, -stemState.m_direction, false, 0.0f, 0.0f);
   }
-  m_nodes.emplace_back(stemState.GetPoint(actualStartingPoint), 180.0f,
-                       stemWidth, 0.0f, -stemState.m_direction, false, 0.0f, 0.0f);
-  m_nodes.emplace_back(stemState.GetPoint(startingPoint - backDistance), 180.0f,
-                       stemWidth, 0.0f, -stemState.m_direction, false, 0.0f, 0.0f);
-  m_nodes.emplace_back(stemState.GetPoint(startingPoint), 90.0f, stemWidth,
-                       0.0f, -stemState.m_direction, false, 0.0f, 0.0f);
   glm::vec3 position = stemState.GetPoint(startingPoint);
   m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(leafState.m_rollAngle),
                        glm::vec3(0, 1, 0));
@@ -242,20 +245,24 @@ void Spline::FormLeaf(const ProceduralStemState &stemState,
   int nodeAmount =
       glm::max(4.0f, leafState.m_length /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
-  float unitLength =
-      leafState.m_length / nodeAmount;
-
-  for (int i = 0; i < nodeAmount; i++) {
-    const float factor = (float)i / (float)(nodeAmount - 1);
+  float unitLength = leafState.m_length / nodeAmount;
+  float expandAngle = 30.0f;
+  int nodeToFullExpand =
+      glm::max(2.0f, 0.05f * leafState.m_length /
+                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+  for (int i = 0; i <= nodeAmount; i++) {
+    const float factor = (float)i / nodeAmount;
     position += direction * unitLength;
-    m_nodes.emplace_back(
-        position, glm::max(30.0f, 90.0f - (i + 1) * 14.0f),
-        leafState.m_widthAlongLeaf.GetValue(factor),
-        leafState.m_wavinessAlongLeaf.GetValue(factor),
-        -direction, true, 1.0f, factor);
+    float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);
+    float width = glm::mix(stemWidth + 0.002f, leafState.m_widthAlongLeaf.GetValue(factor), collarFactor);
+    float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
+    m_nodes.emplace_back(position, angle,
+                         width,
+                         leafState.m_wavinessAlongLeaf.GetValue(factor),
+                         -direction, true, 0.0f, factor);
     direction = glm::rotate(
         direction,
-        glm::radians(leafState.m_bending.x + factor * leafState.m_bending.y) / (float)(nodeAmount - 1),
+        glm::radians(leafState.m_bending.x + factor * leafState.m_bending.y) / nodeAmount,
         m_left);
   }
   GenerateLeafGeometry(stemState, leafState);
@@ -267,17 +274,17 @@ void Spline::FormStem(const ProceduralStemState &stemState) {
   int nodeAmount =
       glm::max(4.0f, stemState.m_length /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
-  float unitLength =
-      stemState.m_length / nodeAmount;
+  float unitLength = stemState.m_length / nodeAmount;
 
   m_nodes.clear();
-  for (int i = 0; i < nodeAmount; i++) {
+  for (int i = 0; i <= nodeAmount; i++) {
     float stemWidth =
-        stemState.m_widthAlongStem.GetValue((float)i / (nodeAmount - 1));
+        stemState.m_widthAlongStem.GetValue((float)i / nodeAmount);
     m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
                              static_cast<float>(i),
-                         180.0f, stemWidth + 0.002f, 0.0f,
-                         -stemState.m_direction, false, 0.0f, (float)i / (nodeAmount - 1));
+                         180.0f, stemWidth, 0.0f,
+                         -stemState.m_direction, false, 0.0f,
+                         (float)i / nodeAmount);
   }
   m_left =
       glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
@@ -363,8 +370,9 @@ void Spline::OnDestroy() {
 }
 
 SplineNode::SplineNode() {}
-SplineNode::SplineNode(glm::vec3 position, float angle, float width, float waviness, glm::vec3 axis,
-                       bool isLeaf, float surfacePush, float range) {
+SplineNode::SplineNode(glm::vec3 position, float angle, float width,
+                       float waviness, glm::vec3 axis, bool isLeaf,
+                       float surfacePush, float range) {
   m_position = position;
   m_theta = angle;
   m_width = width;
