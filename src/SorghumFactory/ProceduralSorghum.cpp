@@ -152,6 +152,7 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_index" << YAML::Value << m_index;
   out << YAML::Key << "m_distanceToRoot" << YAML::Value << m_distanceToRoot;
   out << YAML::Key << "m_length" << YAML::Value << m_length;
+  out << YAML::Key << "m_curling" << YAML::Value << m_curling;
   m_widthAlongLeaf.Serialize("m_widthAlongLeaf", out);
   out << YAML::Key << "m_rollAngle" << YAML::Value << m_rollAngle;
   out << YAML::Key << "m_branchingAngle" << YAML::Value << m_branchingAngle;
@@ -169,6 +170,8 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
     m_index = in["m_index"].as<int>();
   if (in["m_distanceToRoot"])
     m_distanceToRoot = in["m_distanceToRoot"].as<float>();
+  if (in["m_curling"])
+    m_curling = in["m_curling"].as<float>();
   if (in["m_length"])
     m_length = in["m_length"].as<float>();
   if (in["m_rollAngle"])

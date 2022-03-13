@@ -246,7 +246,7 @@ void Spline::FormLeaf(const ProceduralStemState &stemState,
       glm::max(4.0f, leafState.m_length /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
   float unitLength = leafState.m_length / nodeAmount;
-  float expandAngle = 30.0f;
+  float expandAngle = leafState.m_curling;
   int nodeToFullExpand =
       glm::max(2.0f, 0.05f * leafState.m_length /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);

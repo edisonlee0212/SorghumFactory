@@ -93,6 +93,16 @@ void SorghumStateGenerator::OnInspect() {
                                       leafStartingPoint)) {
       changed = true;
     }
+
+    static MixedDistributionSettings leafCurling = {0.01f,
+                                                    {0.01f, false, true, ""},
+                                                    {0.01f, false, false, ""},
+                                                    "The leaf curling."};
+
+    if (m_leafCurling.OnInspect("Leaf curling", leafCurling)) {
+      changed = true;
+    }
+
     static MixedDistributionSettings leafRollAngle = {
         0.01f,
         {},
@@ -175,6 +185,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
 
   m_leafAmount.Serialize("m_leafAmount", out);
   m_leafStartingPoint.Serialize("m_leafStartingPoint", out);
+  m_leafCurling.Serialize("m_leafCurling", out);
   m_leafRollAngle.Serialize("m_leafRollAngle", out);
   m_leafBranchingAngle.Serialize("m_leafBranchingAngle", out);
   m_leafBending.Serialize("m_leafBending", out);
@@ -207,6 +218,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
 
   m_leafAmount.Deserialize("m_leafAmount", in);
   m_leafStartingPoint.Deserialize("m_leafStartingPoint", in);
+  m_leafCurling.Deserialize("m_leafCurling", in);
 
   m_leafRollAngle.Deserialize("m_leafRollAngle", in);
   m_leafBranchingAngle.Deserialize("m_leafBranchingAngle", in);
@@ -256,7 +268,7 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
 
     leafState.m_widthAlongLeaf = {0.0f, m_leafWidth.GetValue(step) * 2.0f,
                                   m_widthAlongLeaf};
-
+    leafState.m_curling = glm::clamp(m_leafCurling.GetValue(step), 0.0f, 90.0f);
     leafState.m_branchingAngle = m_leafBranchingAngle.GetValue(step);
     leafState.m_rollAngle = (i % 2) * 180.0f + m_leafRollAngle.GetValue(step);
     leafState.m_bending = {m_leafBending.GetValue(step),
@@ -292,6 +304,10 @@ void SorghumStateGenerator::OnCreate() {
   m_leafStartingPoint.m_deviation = {
       0.0f, 1.0f, UniEngine::Curve(0.0f, 0.0f, {0, 0}, {1, 1})};
 
+  m_leafCurling.m_mean = {0.0f, 90.0f,
+                          UniEngine::Curve(0.3f, 0.7f, {0, 0}, {1, 1})};
+  m_leafCurling.m_deviation = {0.0f, 1.0f,
+                               UniEngine::Curve(0.0f, 0.0f, {0, 0}, {1, 1})};
   m_leafRollAngle.m_mean = {-1.0f, 1.0f,
                             UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafRollAngle.m_deviation = {0.0f, 6.0f,

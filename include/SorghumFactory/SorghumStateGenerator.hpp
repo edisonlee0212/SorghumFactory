@@ -21,7 +21,7 @@ public:
   SingleDistribution<float> m_leafAmount;
 
   MixedDistribution<float> m_leafStartingPoint;
-
+  MixedDistribution<float> m_leafCurling;
   MixedDistribution<float> m_leafRollAngle;
   MixedDistribution<float> m_leafBranchingAngle;
   MixedDistribution<float> m_leafBending;

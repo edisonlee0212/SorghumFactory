@@ -31,6 +31,7 @@ struct ProceduralLeafState {
   CurveDescriptor<float> m_widthAlongLeaf;
   float m_rollAngle = 0;
   float m_branchingAngle = 0;
+  float m_curling;
   glm::vec2 m_bending = {0, 0};
   CurveDescriptor<float> m_wavinessAlongLeaf;
   glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
