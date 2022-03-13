@@ -81,46 +81,68 @@ void SorghumStateGenerator::OnInspect() {
     if (m_leafAmount.OnInspect("Num of leaves", 1.0f,
                                "The total amount of leaves"))
       changed = true;
-    if (m_firstLeafStartingPoint.OnInspect(
-            "Starting point", 0.01f,
-            "The point of the stem where the bottom leaf is located. Values "
-            "are in percentage."))
+
+    static MixedDistributionSettings leafStartingPoint = {
+        0.01f,
+        {0.01f, false, true, ""},
+        {0.01f, false, false, ""},
+        "The starting point of each leaf along stem. Default each leaf "
+        "located uniformly on stem."};
+
+    if (m_leafStartingPoint.OnInspect("Starting point along stem",
+                                      leafStartingPoint)) {
       changed = true;
-    if (m_lastLeafEndingPoint.OnInspect(
-            "Ending point", 0.01f,
-            "The point of the top leaf is located. Values are in percentage."))
+    }
+    static MixedDistributionSettings leafRollAngle = {
+        0.01f,
+        {},
+        {},
+        "The polar angle of leaf. Normally you should only change the "
+        "deviation. Values are in degrees"};
+    if (m_leafRollAngle.OnInspect("Roll angle", leafRollAngle))
       changed = true;
-    if (m_leafRollAngle.OnInspect(
-            "Roll angle", 0.1f,
-            "The polar angle of leaf. Normally you should only change the "
-            "deviation. Values are in degrees"))
+
+    static MixedDistributionSettings leafBranchingAngle = {
+        0.01f,
+        {},
+        {},
+        "The branching angle of the leaf. Values are in degrees"};
+    if (m_leafBranchingAngle.OnInspect("Branching angle", leafBranchingAngle))
       changed = true;
-    if (m_leafBranchingAngle.OnInspect(
-            "Branching angle", 0.1f,
-            "The branching angle of the leaf. Values are in degrees"))
+
+    static MixedDistributionSettings leafBending = {
+        0.01f,
+        {},
+        {},
+        "The bending of the leaf, controls how leaves bend because of "
+        "gravity. Positive value results in leaf bending towards the "
+        "ground, negative value results in leaf bend towards the sky"};
+    if (m_leafBending.OnInspect("Bending", leafBending))
       changed = true;
-    if (m_leafBending.OnInspect(
-            "Bending", 0.01f,
-            "The bending of the leaf, controls how leaves bend because of "
-            "gravity. Positive value results in leaf bending towards the "
-            "ground, negative value results in leaf bend towards the sky"))
+
+    static MixedDistributionSettings leafBendingAcceleration = {
+        0.01f,
+        {},
+        {},
+        "The changes of bending along the leaf. You can use this to create "
+        "S-shaped leaves."};
+
+    if (m_leafBendingAcceleration.OnInspect("Bending acceleration",
+                                            leafBendingAcceleration))
       changed = true;
-    if (m_leafBendingAcceleration.OnInspect(
-            "Bending acceleration", 0.01f,
-            "The changes of bending along the leaf. You can use this to create "
-            "S-shaped leaves."))
-      changed = true;
-    if (m_leafWaviness.OnInspect("Waviness", 0.01f,
-                                 "The waviness of the leaf."))
+
+    if (m_leafWaviness.OnInspect("Waviness"))
       changed = true;
     if (m_leafWavinessFrequency.OnInspect("Waviness Frequency"))
       changed = true;
     if (m_leafPeriodStart.OnInspect("Waviness Period Start"))
       changed = true;
-    if (m_leafLength.OnInspect("Length", 0.01f, "The length of the leaf"))
+
+    if (m_leafLength.OnInspect("Length"))
       changed = true;
-    if (m_leafWidth.OnInspect("Width", 0.01f, "The length of the leaf"))
+    if (m_leafWidth.OnInspect("Width"))
       changed = true;
+
     if (ImGui::TreeNode("Leaf Details")) {
       if (m_widthAlongLeaf.OnInspect("Width along leaf"))
         changed = true;
@@ -152,8 +174,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_stemWidth.Serialize("m_stemWidth", out);
 
   m_leafAmount.Serialize("m_leafAmount", out);
-  m_firstLeafStartingPoint.Serialize("m_firstLeafStartingPoint", out);
-  m_lastLeafEndingPoint.Serialize("m_lastLeafEndingPoint", out);
+  m_leafStartingPoint.Serialize("m_leafStartingPoint", out);
   m_leafRollAngle.Serialize("m_leafRollAngle", out);
   m_leafBranchingAngle.Serialize("m_leafBranchingAngle", out);
   m_leafBending.Serialize("m_leafBending", out);
@@ -185,8 +206,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_stemWidth.Deserialize("m_stemWidth", in);
 
   m_leafAmount.Deserialize("m_leafAmount", in);
-  m_firstLeafStartingPoint.Deserialize("m_firstLeafStartingPoint", in);
-  m_lastLeafEndingPoint.Deserialize("m_lastLeafEndingPoint", in);
+  m_leafStartingPoint.Deserialize("m_leafStartingPoint", in);
 
   m_leafRollAngle.Deserialize("m_leafRollAngle", in);
   m_leafBranchingAngle.Deserialize("m_leafBranchingAngle", in);
@@ -221,11 +241,9 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
     auto &leafState = endState.m_leaves[i];
     leafState.m_active = true;
     leafState.m_index = i;
-    auto firstLeafStartingPoint = m_firstLeafStartingPoint.GetValue();
+
     leafState.m_distanceToRoot =
-        endState.m_stem.m_length *
-        (firstLeafStartingPoint +
-         step * (m_lastLeafEndingPoint.GetValue() - firstLeafStartingPoint));
+        endState.m_stem.m_length * m_leafStartingPoint.GetValue(step);
     leafState.m_length = m_leafLength.GetValue(step);
 
     leafState.m_wavinessAlongLeaf = {0.0f, m_leafWaviness.GetValue(step) * 2.0f,
@@ -269,11 +287,10 @@ void SorghumStateGenerator::OnCreate() {
   m_leafAmount.m_mean = 9.0f;
   m_leafAmount.m_deviation = 1.0f;
 
-  m_firstLeafStartingPoint.m_mean = 0.2f;
-  m_firstLeafStartingPoint.m_deviation = 0.1f;
-
-  m_lastLeafEndingPoint.m_mean = 1.0f;
-  m_lastLeafEndingPoint.m_deviation = 0.0f;
+  m_leafStartingPoint.m_mean = {0.0f, 1.0f,
+                                UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
+  m_leafStartingPoint.m_deviation = {
+      0.0f, 1.0f, UniEngine::Curve(0.0f, 0.0f, {0, 0}, {1, 1})};
 
   m_leafRollAngle.m_mean = {-1.0f, 1.0f,
                             UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};

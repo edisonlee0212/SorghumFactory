@@ -19,8 +19,8 @@ public:
   SingleDistribution<float> m_stemWidth;
   //Leaf
   SingleDistribution<float> m_leafAmount;
-  SingleDistribution<float> m_firstLeafStartingPoint;
-  SingleDistribution<float> m_lastLeafEndingPoint;
+
+  MixedDistribution<float> m_leafStartingPoint;
 
   MixedDistribution<float> m_leafRollAngle;
   MixedDistribution<float> m_leafBranchingAngle;
