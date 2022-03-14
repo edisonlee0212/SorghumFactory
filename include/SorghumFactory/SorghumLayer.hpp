@@ -15,6 +15,7 @@ struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
   int m_index = 0;
 };
 struct SORGHUM_FACTORY_API PinnacleTag : IDataComponent {};
+struct SORGHUM_FACTORY_API StemTag : IDataComponent {};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 class SorghumStateGenerator;
 
@@ -66,6 +67,8 @@ public:
   EntityQuery m_sorghumQuery;
   EntityArchetype m_pinnacleArchetype;
   EntityQuery m_pinnacleQuery;
+  EntityArchetype m_stemArchetype;
+  EntityQuery m_stemQuery;
 
   AssetRef m_pinnacleMaterial;
   AssetRef m_leafMaterial;
@@ -82,6 +85,7 @@ public:
   CreateSorghum(const std::shared_ptr<ProceduralSorghum> &descriptor);
   Entity
   CreateSorghum(const std::shared_ptr<SorghumStateGenerator> &descriptor);
+  Entity CreateSorghumStem(const Entity &plantEntity);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPinnacle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(bool seperated, bool includeStem,
@@ -91,10 +95,7 @@ public:
   void OnInspect() override;
   void Update() override;
   void LateUpdate() override;
-  void CreateGrid(RectangularSorghumFieldPattern &field,
-                  const std::vector<Entity> &candidates);
-  void CloneSorghums(const Entity &parent, const Entity &original,
-                     std::vector<glm::mat4> &matrices);
+
   static void ExportSorghum(const Entity &sorghum, std::ofstream &of,
                             unsigned &startIndex);
   void ExportAllSorghumsModel(const std::string &filename);

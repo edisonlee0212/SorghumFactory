@@ -59,7 +59,6 @@ void GeneralDataCapture::OnBeforeGrowth(
       pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock();
   sorghumData->m_seed = pipeline.m_currentIndex;
-  sorghumData->Apply();
   sorghumData->GenerateGeometry();
   sorghumData->ApplyGeometry(true, true, false);
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;

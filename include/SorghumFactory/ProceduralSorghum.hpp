@@ -23,9 +23,7 @@ struct ProceduralStemState {
   bool OnInspect();
 };
 struct ProceduralLeafState {
-  bool m_active = false;
   int m_index;
-
   float m_distanceToRoot = 0;
   float m_length = 0;
   CurveDescriptor<float> m_widthAlongLeaf;
@@ -42,77 +40,43 @@ struct ProceduralLeafState {
   bool OnInspect();
 };
 #pragma endregion
-#pragma region Descriptors
-struct ProceduralPinnacleDescriptor {
-  float m_startTime = 0;
-  float m_endTime = 0;
-  CurveDescriptor<glm::vec3> m_pinnacleSize;
-  CurveDescriptor<int> m_seedAmount;
-  CurveDescriptor<float> m_seedRadius;
-  [[nodiscard]] ProceduralPinnacleState Get(float time) const;
-  bool OnInspect(float maxTime);
-  void Serialize(YAML::Emitter &out);
-  void Deserialize(const YAML::Node &in);
-};
-struct ProceduralStemDescriptor {
-  float m_endTime = 0;
-  glm::vec3 m_direction = glm::vec3(0, 1, 0);
-  CurveDescriptor<float> m_length;
-  CurveDescriptor<float> m_width;
-  UniEngine::Curve m_widthAlongStem;
-  [[nodiscard]] ProceduralStemState Get(float time) const;
-  bool OnInspect(float maxTime);
-  void Serialize(YAML::Emitter &out);
-  void Deserialize(const YAML::Node &in);
-};
-struct ProceduralLeafDescriptor {
-  float m_startTime;
-  float m_endTime;
-  float m_rollAngle;
-  float m_branchingAngle;
-  glm::vec2 m_bending;
-  glm::vec2 m_wavinessFrequency = glm::vec2(0.0f);
-  glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
-  CurveDescriptor<float> m_distanceToRoot;
-  CurveDescriptor<float> m_length;
-  CurveDescriptor<float> m_width;
-  CurveDescriptor<float> m_waviness;
-  UniEngine::Curve m_widthAlongLeaf;
-  UniEngine::Curve m_wavinessAlongLeaf;
 
-  [[nodiscard]] ProceduralLeafState Get(float time) const;
-  bool OnInspect(float maxTime);
-  void Serialize(YAML::Emitter &out);
-  void Deserialize(const YAML::Node &in);
-};
-#pragma endregion
-struct ProceduralSorghumState {
-  float m_time = 0;
-
+class SorghumState{
+  friend class ProceduralSorghum;
+  unsigned m_version = 0;
+  bool OnMenu();
+public:
   ProceduralPinnacleState m_pinnacle;
   ProceduralStemState m_stem;
   std::vector<ProceduralLeafState> m_leaves;
-  bool OnInspect();
+  void OnInspect();
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
 class SorghumStateGenerator;
 
+struct SorghumStatePair{
+  SorghumState m_left = SorghumState();
+  SorghumState m_right = SorghumState();
+  float m_a = 1.0f;
+  [[nodiscard]] int SizeOfLeaf();
+};
 
 class ProceduralSorghum : public IAsset {
   unsigned m_version = 0;
+  friend class SorghumData;
+  std::vector<std::pair<float, SorghumState>> m_sorghumStates;
 public:
-  int m_seed = 0;
-  ProceduralSorghumState m_endState;
-  ProceduralPinnacleDescriptor m_pinnacle;
-  ProceduralStemDescriptor m_stem;
-  std::vector<ProceduralLeafDescriptor> m_leaves;
-  float m_endTime = 0;
-  void Set(float endTime, float longestLeafTime);
-  [[nodiscard]] ProceduralSorghumState Get(float time) const;
-  void OnInspect();
   [[nodiscard]] unsigned GetVersion() const;
+  [[nodiscard]] float GetCurrentStartTime() const;
+  [[nodiscard]] float GetCurrentEndTime() const;
+  void Add(float time, const SorghumState& state);
+  void ResetTime(float previousTime, float newTime);
+  void Remove(float time);
+  [[nodiscard]] SorghumStatePair Get(float time) const;
+
+  void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };

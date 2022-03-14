@@ -15,6 +15,10 @@ void TipMenu(const std::string &content) {
 }
 
 void SorghumStateGenerator::OnInspect() {
+  if (ImGui::Button("Instantiate")) {
+    Application::GetLayer<SorghumLayer>()->CreateSorghum(
+        AssetManager::Get<SorghumStateGenerator>(GetHandle()));
+  }
   if (!m_saved) {
     ImGui::Text("Warning: Changed not saved!");
     TipMenu("Click \"Save\" above to save the changes!");
@@ -166,10 +170,7 @@ void SorghumStateGenerator::OnInspect() {
     m_saved = false;
     m_version++;
   }
-  if (ImGui::Button("Instantiate")) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghum(
-        AssetManager::Get<SorghumStateGenerator>(GetHandle()));
-  }
+
 }
 void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_version" << YAML::Value << m_version;
@@ -238,9 +239,9 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_wavinessAlongLeaf.UniEngine::ISerializable::Deserialize(
       "m_wavinessAlongLeaf", in);
 }
-ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
+SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   srand(seed);
-  ProceduralSorghumState endState = {};
+  SorghumState endState = {};
 
   endState.m_stem.m_direction = m_stemDirection;
   endState.m_stem.m_length = m_stemLength.GetValue();
@@ -251,7 +252,6 @@ ProceduralSorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   for (int i = 0; i < leafSize; i++) {
     float step = static_cast<float>(i) / (static_cast<float>(leafSize) - 1.0f);
     auto &leafState = endState.m_leaves[i];
-    leafState.m_active = true;
     leafState.m_index = i;
 
     leafState.m_distanceToRoot =

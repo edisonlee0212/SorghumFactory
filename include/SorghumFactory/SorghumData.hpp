@@ -17,7 +17,6 @@ public:
   int m_mode = (int)SorghumMode::ProceduralSorghum;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
   bool m_meshGenerated = false;
-  ProceduralSorghumState m_state;
   AssetRef m_descriptor;
   int m_seed = 0;
   void OnCreate() override;
@@ -28,8 +27,6 @@ public:
                    const bool &includeFoliage = true) const;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-  void PreparePinnacleMesh(const glm::vec3 &center, std::vector<UniEngine::Vertex>& vertices, std::vector<glm::uvec3>& triangles);
-  void Apply();
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void GenerateGeometry();
   void ApplyGeometry(bool seperated = true, bool includeStem = true, bool segmentedMask = false);

@@ -41,6 +41,6 @@ public:
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-  [[nodiscard]] ProceduralSorghumState Generate(unsigned int seed);
+  [[nodiscard]] SorghumState Generate(unsigned int seed);
 };
 } // namespace SorghumFactory

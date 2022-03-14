@@ -10,7 +10,9 @@
 #include "DepthCamera.hpp"
 #include "FieldGround.hpp"
 #include "SkyIlluminance.hpp"
-
+#include "StemData.hpp"
+#include "LeafData.hpp"
+#include "PinnacleData.hpp"
 #ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
@@ -20,13 +22,17 @@ using namespace UniEngine;
 using namespace tinyply;
 void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterDataComponent<PinnacleTag>("PinnacleTag");
+  ClassRegistry::RegisterDataComponent<StemTag>("StemTag");
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
 
   ClassRegistry::RegisterPrivateComponent<FieldGround>("FieldGround");
   ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
-  ClassRegistry::RegisterPrivateComponent<Spline>("Spline");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
+  ClassRegistry::RegisterPrivateComponent<LeafData>("LeafData");
+  ClassRegistry::RegisterPrivateComponent<StemData>("StemData");
+  ClassRegistry::RegisterPrivateComponent<PinnacleData>("PinnacleData");
+  
   ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
                                                   ".proceduralsorghum");
   ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
@@ -67,6 +73,10 @@ void SorghumLayer::OnCreate() {
   m_leafArchetype = Entities::CreateEntityArchetype("Leaf", LeafTag());
   m_leafQuery = Entities::CreateEntityQuery();
   m_leafQuery.SetAllFilters(LeafTag());
+
+  m_stemArchetype = Entities::CreateEntityArchetype("Stem", StemTag());
+  m_stemQuery = Entities::CreateEntityQuery();
+  m_stemQuery.SetAllFilters(StemTag());
 
   m_pinnacleArchetype =
       Entities::CreateEntityArchetype("Pinnacle", PinnacleTag());
@@ -129,7 +139,6 @@ Entity SorghumLayer::CreateSorghum() {
   transform.SetScale(glm::vec3(1.0f));
   const Entity entity = Entities::CreateEntity(Entities::GetCurrentScene(),
                                                m_sorghumArchetype, "Sorghum");
-  entity.GetOrSetPrivateComponent<Spline>();
   auto sorghumData = entity.GetOrSetPrivateComponent<SorghumData>().lock();
   entity.SetName("Sorghum");
 #ifdef RAYTRACERFACILITY
@@ -150,7 +159,22 @@ Entity SorghumLayer::CreateSorghum() {
   mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
   return entity;
 }
+Entity SorghumLayer::CreateSorghumStem(const Entity &plantEntity) {
+  const Entity entity =
+      Entities::CreateEntity(Entities::GetCurrentScene(), m_stemArchetype);
+  entity.SetName("Stem");
+  entity.SetParent(plantEntity);
+  Transform transform;
+  transform.SetScale(glm::vec3(1.0f));
+  auto stemData = entity.GetOrSetPrivateComponent<StemData>().lock();
 
+  StemTag tag;
+  entity.SetDataComponent(tag);
+  entity.SetDataComponent(transform);
+  auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
+  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
+  return entity;
+}
 Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
                                        int leafIndex) {
   const Entity entity =
@@ -159,7 +183,7 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   entity.SetParent(plantEntity);
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
+  auto leafData = entity.GetOrSetPrivateComponent<LeafData>().lock();
   LeafTag tag;
   tag.m_index = leafIndex;
   entity.SetDataComponent(tag);
@@ -175,7 +199,7 @@ Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
   entity.SetParent(plantEntity);
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  auto spline = entity.GetOrSetPrivateComponent<Spline>().lock();
+  auto pinnacleData = entity.GetOrSetPrivateComponent<PinnacleData>().lock();
   PinnacleTag tag;
   entity.SetDataComponent(tag);
   entity.SetDataComponent(transform);
@@ -423,49 +447,6 @@ void SorghumLayer::OnInspect() {
   ImGui::End();
 }
 
-void SorghumLayer::CloneSorghums(const Entity &parent, const Entity &original,
-                                 std::vector<glm::mat4> &matrices) {
-  auto sorghumData = original.GetOrSetPrivateComponent<SorghumData>().lock();
-  for (const auto &matrix : matrices) {
-    Entity sorghum = CreateSorghum();
-    Transform transform;
-    transform.m_value = matrix;
-
-    auto newSpline = sorghum.GetOrSetPrivateComponent<Spline>().lock();
-    auto spline = original.GetOrSetPrivateComponent<Spline>().lock();
-    newSpline->Copy(spline);
-
-    original.ForEachChild([this, &sorghum,
-                           &matrices](const std::shared_ptr<Scene> &scene,
-                                      Entity child) {
-      if (!child.HasDataComponent<LeafTag>())
-        return;
-      auto tag = child.GetDataComponent<LeafTag>();
-      const auto newChild = CreateSorghumLeaf(sorghum, tag.m_index);
-      newChild.SetDataComponent(tag);
-      newChild.SetDataComponent(child.GetDataComponent<Transform>());
-      auto newSpline = newChild.GetOrSetPrivateComponent<Spline>().lock();
-      auto spline = child.GetOrSetPrivateComponent<Spline>().lock();
-      newSpline->Copy(spline);
-#ifdef RAYTRACERFACILITY
-      if (m_enableMLVQ && child.HasPrivateComponent<MLVQRenderer>()) {
-        auto newRayTracedRenderer =
-            newChild.GetOrSetPrivateComponent<MLVQRenderer>().lock();
-        newRayTracedRenderer->m_materialIndex = 1;
-        newRayTracedRenderer->Sync();
-      }
-#endif
-      auto newMeshRenderer =
-          newChild.GetOrSetPrivateComponent<MeshRenderer>().lock();
-      auto meshRenderer = child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-      newMeshRenderer->m_mesh = meshRenderer->m_mesh;
-      newMeshRenderer->m_material = meshRenderer->m_material;
-    });
-    sorghum.SetParent(parent);
-    sorghum.SetDataComponent(transform);
-  }
-}
-
 void SorghumLayer::ExportSorghum(const Entity &sorghum, std::ofstream &of,
                                  unsigned &startIndex) {
   const std::string start = "#Sorghum\n";
@@ -661,21 +642,6 @@ void SorghumLayer::Update() {
     }
   }
 #endif
-}
-
-void SorghumLayer::CreateGrid(RectangularSorghumFieldPattern &field,
-                              const std::vector<Entity> &candidates) {
-  const Entity entity =
-      Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
-  std::vector<std::vector<glm::mat4>> matricesList;
-  matricesList.resize(candidates.size());
-  for (auto &i : matricesList) {
-    i = std::vector<glm::mat4>();
-  }
-  field.GenerateField(matricesList);
-  for (int i = 0; i < candidates.size(); i++) {
-    CloneSorghums(entity, candidates[i], matricesList[i]);
-  }
 }
 
 Entity SorghumLayer::CreateSorghum(
@@ -1106,7 +1072,6 @@ void SorghumLayer::LateUpdate() {
           sorghumData->m_descriptor.Get<ProceduralSorghum>();
       if (proceduralSorghum &&
           proceduralSorghum->GetVersion() != sorghumData->m_recordedVersion) {
-        sorghumData->Apply();
         sorghumData->GenerateGeometry();
         sorghumData->ApplyGeometry(true, true, false);
         continue;
@@ -1115,13 +1080,13 @@ void SorghumLayer::LateUpdate() {
           sorghumData->m_descriptor.Get<SorghumStateGenerator>();
       if (sorghumStateGenerator && sorghumStateGenerator->GetVersion() !=
                                        sorghumData->m_recordedVersion) {
-        sorghumData->Apply();
         sorghumData->GenerateGeometry();
         sorghumData->ApplyGeometry(true, true, false);
       }
     }
   }
 }
+
 
 void PointCloudSampleSettings::OnInspect() {
   ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);
