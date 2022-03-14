@@ -14,16 +14,17 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
   SorghumStatePair retVal;
   if (m_sorghumStates.empty())
     return retVal;
-  if (m_sorghumStates.size() == 1) {
-    retVal.m_right = m_sorghumStates.begin()->second;
-    return retVal;
-  }
   auto actualTime = glm::clamp(time, 0.0f, 99999.0f);
   float previousTime = m_sorghumStates.begin()->first;
   SorghumState previousState = m_sorghumStates.begin()->second;
   if (actualTime < previousTime) {
     // Get from zero state to first state.
+    retVal.m_left = SorghumState();
+    retVal.m_left.m_leaves.clear();
+    retVal.m_left.m_pinnacle.m_active = false;
+    retVal.m_left.m_stem.m_length = 0;
     retVal.m_right = m_sorghumStates.begin()->second;
+    retVal.m_a = actualTime / previousTime;
     return retVal;
   }
   for (auto it = (++m_sorghumStates.begin()); it != m_sorghumStates.end();
@@ -220,6 +221,20 @@ void ProceduralSorghum::OnInspect() {
         AssetManager::Get<ProceduralSorghum>(GetHandle()));
   }
   bool changed = false;
+
+  static AssetRef descriptor;
+  Editor::DragAndDropButton<SorghumStateGenerator>(
+      descriptor, "Drag SPD here to add end state");
+  auto temp = descriptor.Get<SorghumStateGenerator>();
+  static int seed = 0;
+  ImGui::DragInt("Seed", &seed);
+  if (temp) {
+    float endTime = m_sorghumStates.empty() ? -0.01f : (--m_sorghumStates.end())->first;
+    Add(endTime + 0.01f, temp->Generate(seed));
+    descriptor.Clear();
+    changed = true;
+  }
+
   if (ImGui::TreeNodeEx("States", ImGuiTreeNodeFlags_DefaultOpen)) {
     float startTime =
         m_sorghumStates.empty() ? 1.0f : m_sorghumStates.begin()->first;
@@ -343,7 +358,7 @@ float ProceduralSorghum::GetCurrentStartTime() const {
   return m_sorghumStates.begin()->first;
 }
 float ProceduralSorghum::GetCurrentEndTime() const {
-  if (!m_sorghumStates.empty()) {
+  if (m_sorghumStates.empty()) {
     return 0.0f;
   }
   return (--m_sorghumStates.end())->first;
@@ -354,6 +369,15 @@ unsigned ProceduralSorghum::GetVersion() const { return m_version; }
 glm::vec3 ProceduralStemState::GetPoint(float point) const {
   return m_direction * point * m_length;
 }
-int SorghumStatePair::SizeOfLeaf() {
-  return (m_left.m_leaves.size() + m_right.m_leaves.size()) * m_a;
+int SorghumStatePair::GetLeafSize() const {
+  return m_left.m_leaves.size() + glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
+}
+float SorghumStatePair::GetStemLength() const {
+  return glm::mix(m_left.m_stem.m_length, m_right.m_stem.m_length, m_a);
+}
+glm::vec3 SorghumStatePair::GetStemDirection() const {
+  return glm::normalize(glm::mix(m_left.m_stem.m_direction, m_right.m_stem.m_direction, m_a));
+}
+glm::vec3 SorghumStatePair::GetStemPoint(float point) const {
+  return GetStemDirection() * point * GetStemLength();
 }

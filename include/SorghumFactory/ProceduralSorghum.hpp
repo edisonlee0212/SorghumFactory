@@ -7,8 +7,8 @@ namespace SorghumFactory {
 struct ProceduralPinnacleState {
   bool m_active = false;
   glm::vec3 m_pinnacleSize = glm::vec3(0, 0, 0);
-  int m_seedAmount = 1200;
-  float m_seedRadius = 0.02;
+  int m_seedAmount = 0;
+  float m_seedRadius = 0.0f;
   bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -23,13 +23,13 @@ struct ProceduralStemState {
   bool OnInspect();
 };
 struct ProceduralLeafState {
-  int m_index;
+  int m_index = 0;
   float m_distanceToRoot = 0;
   float m_length = 0;
   CurveDescriptor<float> m_widthAlongLeaf;
   float m_rollAngle = 0;
   float m_branchingAngle = 0;
-  float m_curling;
+  float m_curling = 0;
   glm::vec2 m_bending = {0, 0};
   CurveDescriptor<float> m_wavinessAlongLeaf;
   glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
@@ -60,7 +60,10 @@ struct SorghumStatePair{
   SorghumState m_left = SorghumState();
   SorghumState m_right = SorghumState();
   float m_a = 1.0f;
-  [[nodiscard]] int SizeOfLeaf();
+  [[nodiscard]] int GetLeafSize() const;
+  [[nodiscard]] float GetStemLength() const;
+  [[nodiscard]] glm::vec3 GetStemDirection() const;
+  [[nodiscard]] glm::vec3 GetStemPoint(float point) const;
 };
 
 class ProceduralSorghum : public IAsset {

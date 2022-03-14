@@ -152,26 +152,28 @@ void StemData::GenerateStemGeometry() {
     }
   }
 }
-void StemData::FormStem(const SorghumStatePair & sorghumStatePair) {
+void StemData::FormStem(const SorghumStatePair &sorghumStatePair) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
-  auto stemState = sorghumStatePair.m_right.m_stem;
-  int nodeAmount =
-      glm::max(4.0f, stemState.m_length /
-                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
-  float unitLength = stemState.m_length / nodeAmount;
+  float length = sorghumStatePair.GetStemLength();
+  auto direction = sorghumStatePair.GetStemDirection();
+  int nodeAmount = (int)glm::max(
+      4.0f, length / sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+  float unitLength = length / nodeAmount;
 
   m_nodes.clear();
   for (int i = 0; i <= nodeAmount; i++) {
     float stemWidth =
-        stemState.m_widthAlongStem.GetValue((float)i / nodeAmount);
-    m_nodes.emplace_back(glm::normalize(stemState.m_direction) * unitLength *
-                             static_cast<float>(i),
-                         180.0f, stemWidth, 0.0f, -stemState.m_direction, false,
-                         0.0f, (float)i / nodeAmount);
+        glm::mix(sorghumStatePair.m_left.m_stem.m_widthAlongStem.GetValue(
+                     (float)i / nodeAmount),
+                 sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(
+                     (float)i / nodeAmount),
+                 sorghumStatePair.m_a);
+    m_nodes.emplace_back(
+        glm::normalize(direction) * unitLength * static_cast<float>(i), 180.0f,
+        stemWidth, 0.0f, -direction, false, 0.0f, (float)i / nodeAmount);
   }
-  m_left =
-      glm::rotate(glm::vec3(1, 0, 0), glm::radians(glm::linearRand(0.0f, 0.0f)),
-                  stemState.m_direction);
+  m_left = glm::rotate(glm::vec3(1, 0, 0),
+                       glm::radians(glm::linearRand(0.0f, 0.0f)), direction);
   GenerateStemGeometry();
 }
 void StemData::Copy(const std::shared_ptr<StemData> &target) {

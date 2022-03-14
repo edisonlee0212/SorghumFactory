@@ -139,7 +139,7 @@ void SorghumData::GenerateGeometry() {
     auto descriptor = m_descriptor.Get<SorghumStateGenerator>();
     if (!descriptor)
       break;
-    statePair.m_right = descriptor->Generate(m_seed);
+    statePair.m_right = statePair.m_left = descriptor->Generate(m_seed);
     statePair.m_a = 1.0f;
     m_recordedVersion = descriptor->GetVersion();
   } break;
@@ -155,7 +155,7 @@ void SorghumData::GenerateGeometry() {
       Application::GetLayer<SorghumLayer>()->CreateSorghumStem(GetOwner());
   auto stemData = stem.GetOrSetPrivateComponent<StemData>().lock();
   stemData->FormStem(statePair);
-  auto leafSize = statePair.SizeOfLeaf();
+  auto leafSize = statePair.GetLeafSize();
   for (int i = 0; i < leafSize; i++) {
     Entity leaf =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);

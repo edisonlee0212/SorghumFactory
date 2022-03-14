@@ -80,18 +80,41 @@ void LeafData::Deserialize(const YAML::Node &in) {
     std::memcpy(m_nodes.data(), nodes.data(), nodes.size());
   }
 }
-void LeafData::GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair) {
+void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (!sorghumLayer)
     return;
-  auto leafTag = GetOwner().GetDataComponent<LeafTag>().m_index;
-  auto leafState = sorghumStatePair.m_right.m_leaves[leafTag];
+  auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
+
+  int previousLeafSize = sorghumStatePair.m_left.m_leaves.size();
+  int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
+  int completedLeafSize = sorghumStatePair.m_left.m_leaves.size() + glm::floor((sorghumStatePair.m_right.m_leaves.size() - sorghumStatePair.m_left.m_leaves.size()) * sorghumStatePair.m_a);
+  ProceduralLeafState actualLeft, actualRight;
+  float actualA = previousLeafSize == nextLeafSize ? sorghumStatePair.m_a : sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) -
+                                                                                (completedLeafSize - previousLeafSize);
+  actualRight = sorghumStatePair.m_right.m_leaves[leafIndex];
+  if (sorghumStatePair.GetLeafSize() == previousLeafSize) {
+    actualLeft = sorghumStatePair.m_left.m_leaves[leafIndex];
+  } else if(leafIndex >= completedLeafSize){
+    actualLeft = actualRight;
+    actualLeft.m_distanceToRoot = actualRight.m_distanceToRoot;
+    actualLeft.m_curling = 90.0f;
+    actualLeft.m_length = 0.0f;
+    actualLeft.m_widthAlongLeaf.m_minValue = actualLeft.m_widthAlongLeaf.m_maxValue = 0.0f;
+    actualLeft.m_wavinessAlongLeaf.m_minValue = actualLeft.m_wavinessAlongLeaf.m_maxValue = 0.0f;
+  }else{
+    actualA = 1.0f;
+    actualLeft = actualRight;
+  }
+
   m_vertices.clear();
   m_triangles.clear();
   m_segments.clear();
 
-  float leftFreq = leafState.m_wavinessFrequency.x;
-  float rightFreq = leafState.m_wavinessFrequency.y;
+  float leftFreq = glm::mix(actualLeft.m_wavinessFrequency.x,
+                            actualRight.m_wavinessFrequency.x, actualA);
+  float rightFreq = glm::mix(actualLeft.m_wavinessFrequency.y,
+                             actualRight.m_wavinessFrequency.y, actualA);
 
   for (int i = 1; i < m_nodes.size(); i++) {
     auto &prev = m_nodes.at(i - 1);
@@ -102,10 +125,14 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair) {
         curr.m_position - distance / 5.0f * curr.m_axis, curr.m_position);
 
     for (float div = (i == 1 ? 0.0f : 0.5f); div <= 1.0f; div += 0.5f) {
-      float leftPeriod = leafState.m_wavinessPeriodStart.x +
-                         glm::mix(prev.m_range, curr.m_range, div) * leftFreq;
-      float rightPeriod = leafState.m_wavinessPeriodStart.y +
-                          glm::mix(prev.m_range, curr.m_range, div) * rightFreq;
+      float leftPeriod =
+          glm::mix(actualLeft.m_wavinessPeriodStart.x,
+                   actualRight.m_wavinessPeriodStart.x, actualA) +
+          glm::mix(prev.m_range, curr.m_range, div) * leftFreq;
+      float rightPeriod =
+          glm::mix(actualLeft.m_wavinessPeriodStart.x,
+                   actualRight.m_wavinessPeriodStart.x, actualA) +
+          glm::mix(prev.m_range, curr.m_range, div) * rightFreq;
 
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;
       auto up = glm::normalize(glm::cross(m_left, front));
@@ -122,7 +149,7 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair) {
   const int vertexIndex = m_vertices.size();
   Vertex archetype{};
 #pragma region Semantic mask color
-  auto index = leafState.m_index + 1;
+  auto index = leafIndex + 1;
   m_vertexColor = glm::vec4((index % 3) * 0.5f, ((index / 3) % 3) * 0.5f,
                             ((index / 9) % 3) * 0.5f, 1.0f);
 #pragma endregion
@@ -167,60 +194,96 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair) {
     }
   }
 }
-void LeafData::FormLeaf(const SorghumStatePair & sorghumStatePair) {
-  auto leafTag = GetOwner().GetDataComponent<LeafTag>().m_index;
-  auto leafState = sorghumStatePair.m_right.m_leaves[leafTag];
-  auto stemState = sorghumStatePair.m_right.m_stem;
+void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
+  auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
 
+  int previousLeafSize = sorghumStatePair.m_left.m_leaves.size();
+  int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
+  int completedLeafSize = sorghumStatePair.m_left.m_leaves.size() + glm::floor((sorghumStatePair.m_right.m_leaves.size() - sorghumStatePair.m_left.m_leaves.size()) * sorghumStatePair.m_a);
+  ProceduralLeafState actualLeft, actualRight;
+  float actualA = previousLeafSize == nextLeafSize ? sorghumStatePair.m_a : sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) -
+                                                                                (completedLeafSize - previousLeafSize);
+  actualRight = sorghumStatePair.m_right.m_leaves[leafIndex];
+  if (sorghumStatePair.GetLeafSize() == previousLeafSize) {
+    actualLeft = sorghumStatePair.m_left.m_leaves[leafIndex];
+  } else if(leafIndex >= completedLeafSize){
+    actualLeft = actualRight;
+    actualLeft.m_distanceToRoot = actualRight.m_distanceToRoot;
+    actualLeft.m_curling = 90.0f;
+    actualLeft.m_length = 0.0f;
+    actualLeft.m_widthAlongLeaf.m_minValue = actualLeft.m_widthAlongLeaf.m_maxValue = 0.0f;
+    actualLeft.m_wavinessAlongLeaf.m_minValue = actualLeft.m_wavinessAlongLeaf.m_maxValue = 0.0f;
+  }else{
+    actualA = 1.0f;
+    actualLeft = actualRight;
+  }
+
+  float stemLength = sorghumStatePair.GetStemLength();
+  auto stemDirection = sorghumStatePair.GetStemDirection();
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   m_nodes.clear();
-  auto startingPoint = leafState.m_distanceToRoot / stemState.m_length;
-  float stemWidth = stemState.m_widthAlongStem.GetValue(startingPoint);
+  auto startingPoint = glm::mix(actualLeft.m_distanceToRoot,
+                                actualRight.m_distanceToRoot, actualA) /
+                       stemLength;
+  float stemWidth = glm::mix(
+      sorghumStatePair.m_left.m_stem.m_widthAlongStem.GetValue(startingPoint),
+      sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(startingPoint),
+      sorghumStatePair.m_a);
   float backDistance = 0.05f;
   if (startingPoint < backDistance)
     backDistance = startingPoint;
   float sheathPoint = startingPoint - backDistance;
 
   int nodeForSheath =
-      glm::max(2.0f, stemState.m_length * backDistance /
+      glm::max(2.0f, stemLength * backDistance /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
   for (int i = 0; i <= nodeForSheath; i++) {
     float currentPoint = (float)i / nodeForSheath * backDistance;
-    m_nodes.emplace_back(stemState.GetPoint(sheathPoint + currentPoint),
-                         180.0f - 90.0f * (float)i / nodeForSheath,
-                         stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f,
-                         -stemState.m_direction, false, 0.0f, 0.0f);
+    m_nodes.emplace_back(
+        sorghumStatePair.GetStemPoint(sheathPoint + currentPoint),
+        180.0f - 90.0f * (float)i / nodeForSheath,
+        stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -stemDirection,
+        false, 0.0f, 0.0f);
   }
-  glm::vec3 position = stemState.GetPoint(startingPoint);
-  m_left = glm::rotate(glm::vec3(1, 0, 0), glm::radians(leafState.m_rollAngle),
+  glm::vec3 position = sorghumStatePair.GetStemPoint(startingPoint);
+  m_left = glm::rotate(glm::vec3(1, 0, 0),
+                       glm::radians(glm::mix(actualLeft.m_rollAngle,
+                                             actualRight.m_rollAngle, actualA)),
                        glm::vec3(0, 1, 0));
-  auto initialDirection = glm::rotate(
-      glm::vec3(0, 1, 0), glm::radians(leafState.m_branchingAngle), m_left);
+  auto initialDirection =
+      glm::rotate(glm::vec3(0, 1, 0),
+                  glm::radians(glm::mix(actualLeft.m_branchingAngle,
+                                        actualRight.m_branchingAngle, actualA)),
+                  m_left);
   glm::vec3 direction = initialDirection;
+  auto leafLength =
+      glm::mix(actualLeft.m_length, actualRight.m_length, actualA);
+  auto leafBending =
+      glm::mix(actualLeft.m_bending, actualRight.m_bending, actualA);
 
-  int nodeAmount =
-      glm::max(4.0f, leafState.m_length /
-                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
-  float unitLength = leafState.m_length / nodeAmount;
-  float expandAngle = leafState.m_curling;
+  int nodeAmount = glm::max(
+      4.0f, leafLength / sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+  float unitLength = leafLength / nodeAmount;
+  float expandAngle =
+      glm::mix(actualLeft.m_curling, actualRight.m_curling, actualA);
   int nodeToFullExpand =
-      glm::max(2.0f, 0.05f * leafState.m_length /
+      glm::max(2.0f, 0.05f * leafLength /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
   for (int i = 0; i <= nodeAmount; i++) {
     const float factor = (float)i / nodeAmount;
     position += direction * unitLength;
     float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);
-    float width =
-        glm::mix(stemWidth + 0.002f,
-                 leafState.m_widthAlongLeaf.GetValue(factor), collarFactor);
+    float wavinessAlongLeaf =
+        glm::mix(actualLeft.m_wavinessAlongLeaf.GetValue(factor),
+                 actualRight.m_wavinessAlongLeaf.GetValue(factor), actualA);
+    float width = glm::mix(stemWidth + 0.002f, glm::mix(actualLeft.m_widthAlongLeaf.GetValue(factor),
+                                                        actualRight.m_widthAlongLeaf.GetValue(factor), actualA), collarFactor);
     float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
-    m_nodes.emplace_back(position, angle, width,
-                         leafState.m_wavinessAlongLeaf.GetValue(factor),
-                         -direction, true, 0.0f, factor);
+    m_nodes.emplace_back(position, angle, width, wavinessAlongLeaf, -direction,
+                         true, 0.0f, factor);
     direction = glm::rotate(
         direction,
-        glm::radians(leafState.m_bending.x + factor * leafState.m_bending.y) /
-            nodeAmount,
+        glm::radians(leafBending.x + factor * leafBending.y) / nodeAmount,
         m_left);
   }
   GenerateLeafGeometry(sorghumStatePair);
