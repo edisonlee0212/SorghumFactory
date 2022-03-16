@@ -190,10 +190,10 @@ bool SorghumState::OnMenu() {
     auto previousSize = m_leaves.size();
     m_leaves.resize(leafSize);
     for (int i = 0; i < leafSize; i++) {
-      m_leaves[i].m_index = i;
       if (i >= previousSize && i - 1 >= 0) {
          m_leaves[i] = m_leaves[i - 1];
       }
+      m_leaves[i].m_index = i;
     }
   }
   if (ImGui::TreeNode("Leaves")) {
