@@ -111,7 +111,7 @@ bool ProceduralLeafState::OnInspect() {
       changed = true;
     ImGui::TreePop();
   }
-  
+
   if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
       changed = true;
@@ -189,9 +189,10 @@ bool SorghumState::OnMenu() {
   if (ImGui::InputInt("Size of leaves", &leafSize)) {
     auto previousSize = m_leaves.size();
     m_leaves.resize(leafSize);
-    for (int i = previousSize; i < leafSize; i++) {
-      if (i - 1 >= 0) {
-        m_leaves[i] = m_leaves[i - 1];
+    for (int i = 0; i < leafSize; i++) {
+      m_leaves[i].m_index = i;
+      if (i >= previousSize && i - 1 >= 0) {
+         m_leaves[i] = m_leaves[i - 1];
       }
     }
   }
