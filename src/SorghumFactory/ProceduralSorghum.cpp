@@ -46,7 +46,7 @@ bool ProceduralPinnacleState::OnInspect() {
   bool changed = ImGui::Checkbox("Active", &m_active);
   if (ImGui::DragFloat3("Pinnacle size", &m_pinnacleSize.x, 0.01f))
     changed = true;
-  if (ImGui::DragInt("Num of seed", &m_seedAmount, 0.01f))
+  if (ImGui::DragInt("Num of seeds", &m_seedAmount, 0.01f))
     changed = true;
   if (ImGui::DragFloat("Seed radius", &m_seedRadius, 0.01f))
     changed = true;
@@ -91,27 +91,46 @@ bool ProceduralStemState::OnInspect() {
 bool ProceduralLeafState::OnInspect() {
   bool changed = false;
   ImGui::Text(("Index: " + std::to_string(m_index)).c_str());
-  if (ImGui::DragFloat2("Bending", &m_bending.x, 0.01f, 0.0f, 999.0f))
-    changed = true;
-  if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
-    changed = true;
-  if (ImGui::DragFloat("Starting point", &m_startingPoint, 0.01f, 0.0f, 999.0f))
-    changed = true;
-  if (m_widthAlongLeaf.OnInspect("Width along leaf"))
-    changed = true;
-  if (ImGui::DragFloat("Roll angle", &m_rollAngle, 0.01f, 0.0f, 999.0f))
-    changed = true;
-  if (ImGui::DragFloat("Branching angle", &m_branchingAngle, 0.01f, 0.0f,
-                       999.0f))
-    changed = true;
-  if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
-    changed = true;
-  if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
-                        0.0f, 999.0f))
-    changed = true;
-  if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x,
-                        0.01f, 0.0f, 999.0f))
-    changed = true;
+  if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
+      changed = true;
+    if (m_widthAlongLeaf.OnInspect("Width along leaf"))
+      changed = true;
+    if (ImGui::SliderFloat("Starting point", &m_startingPoint, 0.0f, 1.0f))
+      changed = true;
+    if (ImGui::SliderFloat("Curling", &m_curling, 0.0f, 90.0f))
+      changed = true;
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNodeEx("Bending", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::DragFloat("Bending", &m_bending.x, 1.0f, -1080.0f, 1080.0f))
+      changed = true;
+    if (ImGui::DragFloat("Bending acceleration", &m_bending.y, 1.0f, -1080.0f,
+                         1080.0f))
+      changed = true;
+    ImGui::TreePop();
+  }
+  
+  if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
+      changed = true;
+    if (ImGui::SliderFloat("Branching angle", &m_branchingAngle, 0.0f, 180.0f))
+      changed = true;
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNodeEx("Waviness", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
+                          0.0f, 999.0f))
+      changed = true;
+    if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x,
+                          0.01f, 0.0f, 999.0f))
+      changed = true;
+    if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
+      changed = true;
+    ImGui::TreePop();
+  }
   return changed;
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
@@ -165,8 +184,18 @@ bool SorghumState::OnMenu() {
       changed = true;
     ImGui::TreePop();
   }
-  if (ImGui::TreeNode("Leaves")) {
 
+  int leafSize = m_leaves.size();
+  if (ImGui::InputInt("Size of leaves", &leafSize)) {
+    auto previousSize = m_leaves.size();
+    m_leaves.resize(leafSize);
+    for (int i = previousSize; i < leafSize; i++) {
+      if (i - 1 >= 0) {
+        m_leaves[i] = m_leaves[i - 1];
+      }
+    }
+  }
+  if (ImGui::TreeNode("Leaves")) {
     for (auto &leaf : m_leaves) {
       if (ImGui::TreeNode(("Leaf " + std::to_string(leaf.m_index)).c_str())) {
         if (leaf.OnInspect())
@@ -231,7 +260,8 @@ void ProceduralSorghum::OnInspect() {
   static int seed = 0;
   ImGui::DragInt("Seed", &seed);
   if (temp) {
-    float endTime = m_sorghumStates.empty() ? -0.01f : (--m_sorghumStates.end())->first;
+    float endTime =
+        m_sorghumStates.empty() ? -0.01f : (--m_sorghumStates.end())->first;
     Add(endTime + 0.01f, temp->Generate(seed));
     descriptor.Clear();
     changed = true;
@@ -372,13 +402,15 @@ glm::vec3 ProceduralStemState::GetPoint(float point) const {
   return m_direction * point * m_length;
 }
 int SorghumStatePair::GetLeafSize() const {
-  return m_left.m_leaves.size() + glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
+  return m_left.m_leaves.size() +
+         glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
 }
 float SorghumStatePair::GetStemLength() const {
   return glm::mix(m_left.m_stem.m_length, m_right.m_stem.m_length, m_a);
 }
 glm::vec3 SorghumStatePair::GetStemDirection() const {
-  return glm::normalize(glm::mix(m_left.m_stem.m_direction, m_right.m_stem.m_direction, m_a));
+  return glm::normalize(
+      glm::mix(m_left.m_stem.m_direction, m_right.m_stem.m_direction, m_a));
 }
 glm::vec3 SorghumStatePair::GetStemPoint(float point) const {
   return GetStemDirection() * point * GetStemLength();
