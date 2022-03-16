@@ -9,6 +9,8 @@
 using namespace UniEngine;
 namespace SorghumFactory {
 class SORGHUM_FACTORY_API LeafData : public IPrivateComponent {
+  void LeafStateHelper(ProceduralLeafState& left, ProceduralLeafState& right, float& a, const SorghumStatePair &sorghumStatePair, int leafIndex);
+
   void GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair);
 public:
 

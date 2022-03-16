@@ -32,9 +32,11 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
     if (it->first > actualTime) {
       retVal.m_left = previousState;
       retVal.m_right = it->second;
-      retVal.m_a = (actualTime - previousTime) / it->first - previousTime;
+      retVal.m_a = (actualTime - previousTime) / (it->first - previousTime);
       return retVal;
     }
+    previousTime = it->first;
+    previousState = it->second;
   }
   return {(--m_sorghumStates.end())->second, (--m_sorghumStates.end())->second,
           1.0f};
@@ -93,7 +95,7 @@ bool ProceduralLeafState::OnInspect() {
     changed = true;
   if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
     changed = true;
-  if (ImGui::DragFloat("Dist to root", &m_distanceToRoot, 0.01f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Starting point", &m_startingPoint, 0.01f, 0.0f, 999.0f))
     changed = true;
   if (m_widthAlongLeaf.OnInspect("Width along leaf"))
     changed = true;
@@ -114,7 +116,7 @@ bool ProceduralLeafState::OnInspect() {
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_index" << YAML::Value << m_index;
-  out << YAML::Key << "m_distanceToRoot" << YAML::Value << m_distanceToRoot;
+  out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
   out << YAML::Key << "m_length" << YAML::Value << m_length;
   out << YAML::Key << "m_curling" << YAML::Value << m_curling;
   m_widthAlongLeaf.Serialize("m_widthAlongLeaf", out);
@@ -130,8 +132,8 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
 void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   if (in["m_index"])
     m_index = in["m_index"].as<int>();
-  if (in["m_distanceToRoot"])
-    m_distanceToRoot = in["m_distanceToRoot"].as<float>();
+  if (in["m_startingPoint"])
+    m_startingPoint = in["m_startingPoint"].as<float>();
   if (in["m_curling"])
     m_curling = in["m_curling"].as<float>();
   if (in["m_length"])

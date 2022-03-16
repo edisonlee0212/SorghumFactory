@@ -24,7 +24,7 @@ struct ProceduralStemState {
 };
 struct ProceduralLeafState {
   int m_index = 0;
-  float m_distanceToRoot = 0;
+  float m_startingPoint = 0;
   float m_length = 0;
   CurveDescriptor<float> m_widthAlongLeaf;
   float m_rollAngle = 0;

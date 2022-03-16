@@ -86,26 +86,10 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
     return;
   auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
 
-  int previousLeafSize = sorghumStatePair.m_left.m_leaves.size();
-  int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
-  int completedLeafSize = sorghumStatePair.m_left.m_leaves.size() + glm::floor((sorghumStatePair.m_right.m_leaves.size() - sorghumStatePair.m_left.m_leaves.size()) * sorghumStatePair.m_a);
   ProceduralLeafState actualLeft, actualRight;
-  float actualA = previousLeafSize == nextLeafSize ? sorghumStatePair.m_a : sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) -
-                                                                                (completedLeafSize - previousLeafSize);
-  actualRight = sorghumStatePair.m_right.m_leaves[leafIndex];
-  if (sorghumStatePair.GetLeafSize() == previousLeafSize) {
-    actualLeft = sorghumStatePair.m_left.m_leaves[leafIndex];
-  } else if(leafIndex >= completedLeafSize){
-    actualLeft = actualRight;
-    actualLeft.m_distanceToRoot = actualRight.m_distanceToRoot;
-    actualLeft.m_curling = 90.0f;
-    actualLeft.m_length = 0.0f;
-    actualLeft.m_widthAlongLeaf.m_minValue = actualLeft.m_widthAlongLeaf.m_maxValue = 0.0f;
-    actualLeft.m_wavinessAlongLeaf.m_minValue = actualLeft.m_wavinessAlongLeaf.m_maxValue = 0.0f;
-  }else{
-    actualA = 1.0f;
-    actualLeft = actualRight;
-  }
+  float actualA;
+  LeafStateHelper(actualLeft, actualRight, actualA, sorghumStatePair,
+                  leafIndex);
 
   m_vertices.clear();
   m_triangles.clear();
@@ -197,34 +181,17 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
 void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
   auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
 
-  int previousLeafSize = sorghumStatePair.m_left.m_leaves.size();
-  int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
-  int completedLeafSize = sorghumStatePair.m_left.m_leaves.size() + glm::floor((sorghumStatePair.m_right.m_leaves.size() - sorghumStatePair.m_left.m_leaves.size()) * sorghumStatePair.m_a);
   ProceduralLeafState actualLeft, actualRight;
-  float actualA = previousLeafSize == nextLeafSize ? sorghumStatePair.m_a : sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) -
-                                                                                (completedLeafSize - previousLeafSize);
-  actualRight = sorghumStatePair.m_right.m_leaves[leafIndex];
-  if (sorghumStatePair.GetLeafSize() == previousLeafSize) {
-    actualLeft = sorghumStatePair.m_left.m_leaves[leafIndex];
-  } else if(leafIndex >= completedLeafSize){
-    actualLeft = actualRight;
-    actualLeft.m_distanceToRoot = actualRight.m_distanceToRoot;
-    actualLeft.m_curling = 90.0f;
-    actualLeft.m_length = 0.0f;
-    actualLeft.m_widthAlongLeaf.m_minValue = actualLeft.m_widthAlongLeaf.m_maxValue = 0.0f;
-    actualLeft.m_wavinessAlongLeaf.m_minValue = actualLeft.m_wavinessAlongLeaf.m_maxValue = 0.0f;
-  }else{
-    actualA = 1.0f;
-    actualLeft = actualRight;
-  }
+  float actualA;
+  LeafStateHelper(actualLeft, actualRight, actualA, sorghumStatePair,
+                  leafIndex);
 
   float stemLength = sorghumStatePair.GetStemLength();
   auto stemDirection = sorghumStatePair.GetStemDirection();
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   m_nodes.clear();
-  auto startingPoint = glm::mix(actualLeft.m_distanceToRoot,
-                                actualRight.m_distanceToRoot, actualA) /
-                       stemLength;
+  auto startingPoint = glm::mix(actualLeft.m_startingPoint,
+                                actualRight.m_startingPoint, actualA);
   float stemWidth = glm::mix(
       sorghumStatePair.m_left.m_stem.m_widthAlongStem.GetValue(startingPoint),
       sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(startingPoint),
@@ -276,8 +243,11 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     float wavinessAlongLeaf =
         glm::mix(actualLeft.m_wavinessAlongLeaf.GetValue(factor),
                  actualRight.m_wavinessAlongLeaf.GetValue(factor), actualA);
-    float width = glm::mix(stemWidth + 0.002f, glm::mix(actualLeft.m_widthAlongLeaf.GetValue(factor),
-                                                        actualRight.m_widthAlongLeaf.GetValue(factor), actualA), collarFactor);
+    float width = glm::mix(
+        stemWidth + 0.002f,
+        glm::mix(actualLeft.m_widthAlongLeaf.GetValue(factor),
+                 actualRight.m_widthAlongLeaf.GetValue(factor), actualA),
+        collarFactor);
     float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
     m_nodes.emplace_back(position, angle, width, wavinessAlongLeaf, -direction,
                          true, 0.0f, factor);
@@ -290,4 +260,33 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
 }
 void LeafData::Copy(const std::shared_ptr<LeafData> &target) {
   *this = *target;
+}
+void LeafData::LeafStateHelper(ProceduralLeafState &left,
+                               ProceduralLeafState &right, float &a,
+                               const SorghumStatePair &sorghumStatePair,
+                               int leafIndex) {
+  int previousLeafSize = sorghumStatePair.m_left.m_leaves.size();
+  int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
+  if (leafIndex < previousLeafSize) {
+    left = sorghumStatePair.m_left.m_leaves[leafIndex];
+    right = sorghumStatePair.m_right.m_leaves[leafIndex];
+    a = sorghumStatePair.m_a;
+    return;
+  }
+
+  int completedLeafSize = sorghumStatePair.m_left.m_leaves.size() +
+                          glm::floor((sorghumStatePair.m_right.m_leaves.size() -
+                                      sorghumStatePair.m_left.m_leaves.size()) *
+                                     sorghumStatePair.m_a);
+  a = glm::clamp(sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) - (completedLeafSize - previousLeafSize), 0.0f, 1.0f);
+  left = right = sorghumStatePair.m_right.m_leaves[leafIndex];
+  if (leafIndex >= completedLeafSize) {
+    left.m_curling = 90.0f;
+    left.m_length = 0.0f;
+    left.m_widthAlongLeaf.m_minValue = left.m_widthAlongLeaf.m_maxValue = 0.0f;
+    left.m_wavinessAlongLeaf.m_minValue = left.m_wavinessAlongLeaf.m_maxValue =
+        0.0f;
+  } else {
+    left = right;
+  }
 }

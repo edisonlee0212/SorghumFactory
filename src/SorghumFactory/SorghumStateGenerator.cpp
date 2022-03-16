@@ -254,8 +254,7 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
     auto &leafState = endState.m_leaves[i];
     leafState.m_index = i;
 
-    leafState.m_distanceToRoot =
-        endState.m_stem.m_length * m_leafStartingPoint.GetValue(step);
+    leafState.m_startingPoint = m_leafStartingPoint.GetValue(step);
     leafState.m_length = m_leafLength.GetValue(step);
 
     leafState.m_wavinessAlongLeaf = {0.0f, m_leafWaviness.GetValue(step) * 2.0f,
