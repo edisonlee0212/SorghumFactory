@@ -9,9 +9,11 @@
 #include "Utilities.hpp"
 #include <utility>
 using namespace SorghumFactory;
+static const char *StateModes[]{"Default", "Cubic-Bezier"};
 
 SorghumStatePair ProceduralSorghum::Get(float time) const {
   SorghumStatePair retVal;
+  retVal.m_mode = m_mode;
   if (m_sorghumStates.empty())
     return retVal;
   auto actualTime = glm::clamp(time, 0.0f, 99999.0f);
@@ -38,8 +40,11 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
     previousTime = it->first;
     previousState = it->second;
   }
-  return {(--m_sorghumStates.end())->second, (--m_sorghumStates.end())->second,
-          1.0f};
+
+  retVal.m_left = (--m_sorghumStates.end())->second;
+  retVal.m_right = (--m_sorghumStates.end())->second;
+  retVal.m_a = 1.0f;
+  return retVal;
 }
 
 bool ProceduralPinnacleState::OnInspect() {
@@ -72,55 +77,84 @@ void ProceduralStemState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_direction" << YAML::Value << m_direction;
   m_widthAlongStem.Serialize("m_widthAlongStem", out);
   out << YAML::Key << "m_length" << YAML::Value << m_length;
+  out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
+  m_spline.Serialize(out);
+  out << YAML::EndMap;
 }
 void ProceduralStemState::Deserialize(const YAML::Node &in) {
+  if (in["m_spline"]) {
+    m_spline.Deserialize(in["m_spline"]);
+  }
+
   if (in["m_direction"])
     m_direction = in["m_direction"].as<glm::vec3>();
   if (in["m_length"])
     m_length = in["m_length"].as<float>();
   m_widthAlongStem.Deserialize("m_widthAlongStem", in);
 }
-bool ProceduralStemState::OnInspect() {
-  bool changed = ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
-  if (ImGui::DragFloat("Length", &m_length, 0.01f))
-    changed = true;
-  if (m_widthAlongStem.OnInspect("Width along stem"))
-    changed = true;
+bool ProceduralStemState::OnInspect(int mode) {
+  bool changed = false;
+  switch ((StateMode)mode) {
+  case StateMode::Default:
+    ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
+    if (ImGui::DragFloat("Length", &m_length, 0.01f))
+      changed = true;
+    if (m_widthAlongStem.OnInspect("Width along stem"))
+      changed = true;
+    break;
+  case StateMode::CubicBezier:
+    if (ImGui::TreeNode("Spline")) {
+      m_spline.OnInspect();
+      ImGui::TreePop();
+    }
+    break;
+  }
+
   return changed;
 }
-bool ProceduralLeafState::OnInspect() {
+bool ProceduralLeafState::OnInspect(int mode) {
   bool changed = false;
-  ImGui::Text(("Index: " + std::to_string(m_index)).c_str());
-  if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
-      changed = true;
-    if (m_widthAlongLeaf.OnInspect("Width along leaf"))
-      changed = true;
-    if (ImGui::SliderFloat("Starting point", &m_startingPoint, 0.0f, 1.0f))
-      changed = true;
+  if (ImGui::SliderFloat("Starting point", &m_startingPoint, 0.0f, 1.0f))
+    changed = true;
+  switch ((StateMode)mode) {
+  case StateMode::Default:
+    if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
+        changed = true;
+      if (m_widthAlongLeaf.OnInspect("Width along leaf"))
+        changed = true;
+
+      if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
+          changed = true;
+        if (ImGui::SliderFloat("Branching angle", &m_branchingAngle, 0.0f,
+                               180.0f))
+          changed = true;
+        ImGui::TreePop();
+      }
+
+      if (ImGui::TreeNodeEx("Bending", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::DragFloat("Bending", &m_bending.x, 1.0f, -1080.0f, 1080.0f))
+          changed = true;
+        if (ImGui::DragFloat("Bending acceleration", &m_bending.y, 1.0f,
+                             -1080.0f, 1080.0f))
+          changed = true;
+        ImGui::TreePop();
+      }
+      ImGui::TreePop();
+    }
+    break;
+  case StateMode::CubicBezier:
+    if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
+      m_spline.OnInspect();
+      ImGui::TreePop();
+    }
+    break;
+  }
+
+  if (ImGui::TreeNodeEx("Others")) {
     if (ImGui::SliderFloat("Curling", &m_curling, 0.0f, 90.0f))
       changed = true;
-    ImGui::TreePop();
-  }
-
-  if (ImGui::TreeNodeEx("Bending", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (ImGui::DragFloat("Bending", &m_bending.x, 1.0f, -1080.0f, 1080.0f))
-      changed = true;
-    if (ImGui::DragFloat("Bending acceleration", &m_bending.y, 1.0f, -1080.0f,
-                         1080.0f))
-      changed = true;
-    ImGui::TreePop();
-  }
-
-  if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
-      changed = true;
-    if (ImGui::SliderFloat("Branching angle", &m_branchingAngle, 0.0f, 180.0f))
-      changed = true;
-    ImGui::TreePop();
-  }
-
-  if (ImGui::TreeNodeEx("Waviness", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
                           0.0f, 999.0f))
       changed = true;
@@ -134,6 +168,10 @@ bool ProceduralLeafState::OnInspect() {
   return changed;
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
+  m_spline.Serialize(out);
+  out << YAML::EndMap;
+
   out << YAML::Key << "m_index" << YAML::Value << m_index;
   out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
   out << YAML::Key << "m_length" << YAML::Value << m_length;
@@ -149,6 +187,9 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
       << m_wavinessPeriodStart;
 }
 void ProceduralLeafState::Deserialize(const YAML::Node &in) {
+  if (in["m_spline"]) {
+    m_spline.Deserialize(in["m_spline"]);
+  }
   if (in["m_index"])
     m_index = in["m_index"].as<int>();
   if (in["m_startingPoint"])
@@ -172,10 +213,64 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
 }
 
-bool SorghumState::OnMenu() {
+bool SorghumState::OnInspect(int mode) {
   bool changed = false;
+  if (mode == (int)StateMode::CubicBezier) {
+    FileUtils::OpenFile(
+        "Import...", "TXT", {".txt"},
+        [&](const std::filesystem::path &path) {
+          std::ifstream file(path, std::fstream::in);
+          if (!file.is_open()) {
+            UNIENGINE_LOG("Failed to open file!");
+            return;
+          }
+          changed = false;
+          // Number of leaves in the file
+          int leafCount;
+          file >> leafCount;
+          m_stem.m_spline.Import(file);
+          // Recenter plant:
+          glm::vec3 posSum = m_stem.m_spline.m_curves.front().m_p0;
+          for (auto &curve : m_stem.m_spline.m_curves) {
+            curve.m_p0 -= posSum;
+            curve.m_p1 -= posSum;
+            curve.m_p2 -= posSum;
+            curve.m_p3 -= posSum;
+          }
+          m_leaves.resize(leafCount);
+          for (int i = 0; i < leafCount; i++) {
+            float startingPoint;
+            file >> startingPoint;
+            m_leaves[i].m_startingPoint = startingPoint;
+            m_leaves[i].m_spline.Import(file);
+            auto offset =
+                m_stem.m_spline.EvaluatePointFromCurves(startingPoint);
+            for (auto &curve : m_leaves[i].m_spline.m_curves) {
+              curve.m_p0 += offset;
+              curve.m_p1 += offset;
+              curve.m_p2 += offset;
+              curve.m_p3 += offset;
+            }
+          }
+          for (int i = 0; i < leafCount - 1; i++) {
+            for (int j = 0; j < leafCount - i - 1; j++) {
+              if (m_leaves[j].m_startingPoint >
+                  m_leaves[j + 1].m_startingPoint) {
+                auto temp = m_leaves[j];
+                m_leaves[j] = m_leaves[j + 1];
+                m_leaves[j + 1] = temp;
+              }
+            }
+          }
+          for (int i = 0; i < leafCount; i++) {
+            m_leaves[i].m_index = i;
+          }
+        },
+        false);
+  }
+
   if (ImGui::TreeNode("Stem")) {
-    if (m_stem.OnInspect())
+    if (m_stem.OnInspect(mode))
       changed = true;
     ImGui::TreePop();
   }
@@ -191,15 +286,16 @@ bool SorghumState::OnMenu() {
     m_leaves.resize(leafSize);
     for (int i = 0; i < leafSize; i++) {
       if (i >= previousSize && i - 1 >= 0) {
-         m_leaves[i] = m_leaves[i - 1];
+        m_leaves[i] = m_leaves[i - 1];
       }
       m_leaves[i].m_index = i;
     }
   }
   if (ImGui::TreeNode("Leaves")) {
     for (auto &leaf : m_leaves) {
-      if (ImGui::TreeNode(("Leaf " + std::to_string(leaf.m_index)).c_str())) {
-        if (leaf.OnInspect())
+      if (ImGui::TreeNode(
+              ("Leaf No." + std::to_string(leaf.m_index + 1)).c_str())) {
+        if (leaf.OnInspect(mode))
           changed = true;
         ImGui::TreePop();
       }
@@ -208,8 +304,9 @@ bool SorghumState::OnMenu() {
   }
   return changed;
 }
-void SorghumState::OnInspect() { OnMenu(); }
+
 void SorghumState::Serialize(YAML::Emitter &out) {
+
   out << YAML::Key << "m_version" << YAML::Value << m_version;
   out << YAML::Key << "m_pinnacle" << YAML::Value << YAML::BeginMap;
   m_pinnacle.Serialize(out);
@@ -253,26 +350,14 @@ void ProceduralSorghum::OnInspect() {
         AssetManager::Get<ProceduralSorghum>(GetHandle()));
   }
   bool changed = false;
-
-  static AssetRef descriptor;
-  Editor::DragAndDropButton<SorghumStateGenerator>(
-      descriptor, "Drag SPD here to add end state");
-  auto temp = descriptor.Get<SorghumStateGenerator>();
-  static int seed = 0;
-  ImGui::DragInt("Seed", &seed);
-  if (temp) {
-    float endTime =
-        m_sorghumStates.empty() ? -0.01f : (--m_sorghumStates.end())->first;
-    Add(endTime + 0.01f, temp->Generate(seed));
-    descriptor.Clear();
-    changed = true;
+  if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
+    changed = false;
   }
-
   if (ImGui::TreeNodeEx("States", ImGuiTreeNodeFlags_DefaultOpen)) {
     float startTime =
         m_sorghumStates.empty() ? 1.0f : m_sorghumStates.begin()->first;
     if (startTime >= 0.01f) {
-      if (ImGui::Button("Push new start state")) {
+      if (ImGui::Button("New start state")) {
         changed = true;
         if (m_sorghumStates.empty()) {
           Add(0.0f, SorghumState());
@@ -304,7 +389,7 @@ void ProceduralSorghum::OnInspect() {
             changed = true;
           }
         }
-        if (it->second.OnMenu()) {
+        if (it->second.OnInspect(m_mode)) {
           changed = true;
         }
         ImGui::TreePop();
@@ -314,14 +399,37 @@ void ProceduralSorghum::OnInspect() {
     }
 
     if (!m_sorghumStates.empty()) {
-      if (ImGui::Button("Push new end state")) {
+      if (ImGui::Button("New end state")) {
         changed = true;
         float endTime = (--m_sorghumStates.end())->first;
         Add(endTime + 0.01f, (--m_sorghumStates.end())->second);
       }
+      ImGui::SameLine();
+      if (ImGui::Button("Remove end state")) {
+        changed = true;
+        m_sorghumStates.erase(--m_sorghumStates.end());
+      }
     }
     ImGui::TreePop();
   }
+
+  if (ImGui::TreeNode("Import state...")) {
+    static int seed = 0;
+    ImGui::DragInt("Using seed", &seed);
+    static AssetRef descriptor;
+    Editor::DragAndDropButton<SorghumStateGenerator>(
+        descriptor, "Drag SPD here to add end state");
+    auto temp = descriptor.Get<SorghumStateGenerator>();
+    if (temp) {
+      float endTime =
+          m_sorghumStates.empty() ? -0.01f : (--m_sorghumStates.end())->first;
+      Add(endTime + 0.01f, temp->Generate(seed));
+      descriptor.Clear();
+      changed = true;
+    }
+    ImGui::TreePop();
+  }
+
   if (changed) {
     m_saved = false;
     m_version++;
@@ -329,6 +437,7 @@ void ProceduralSorghum::OnInspect() {
 }
 
 void ProceduralSorghum::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_mode" << YAML::Value << m_mode;
   out << YAML::Key << "m_version" << YAML::Value << m_version;
   out << YAML::Key << "m_sorghumStates" << YAML::Value << YAML::BeginSeq;
   for (auto &state : m_sorghumStates) {
@@ -341,6 +450,8 @@ void ProceduralSorghum::Serialize(YAML::Emitter &out) {
 }
 
 void ProceduralSorghum::Deserialize(const YAML::Node &in) {
+  if (in["m_mode"])
+    m_mode = in["m_mode"].as<int>();
   if (in["m_version"])
     m_version = in["m_version"].as<unsigned>();
   if (in["m_sorghumStates"]) {
@@ -407,12 +518,72 @@ int SorghumStatePair::GetLeafSize() const {
          glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
 }
 float SorghumStatePair::GetStemLength() const {
-  return glm::mix(m_left.m_stem.m_length, m_right.m_stem.m_length, m_a);
+  float leftLength, rightLength;
+  switch ((StateMode)m_mode) {
+  case StateMode::Default:
+    leftLength = m_left.m_stem.m_length;
+    rightLength = m_right.m_stem.m_length;
+    break;
+  case StateMode::CubicBezier:
+    if (!m_left.m_stem.m_spline.m_curves.empty()) {
+      leftLength = glm::distance(m_left.m_stem.m_spline.m_curves.front().m_p0,
+                                 m_left.m_stem.m_spline.m_curves.back().m_p3);
+    } else {
+      leftLength = 0.0f;
+    }
+    if (!m_right.m_stem.m_spline.m_curves.empty()) {
+      rightLength = glm::distance(m_right.m_stem.m_spline.m_curves.front().m_p0,
+                                  m_right.m_stem.m_spline.m_curves.back().m_p3);
+    } else {
+      rightLength = 0.0f;
+    }
+    break;
+  }
+  return glm::mix(leftLength, rightLength, m_a);
 }
 glm::vec3 SorghumStatePair::GetStemDirection() const {
-  return glm::normalize(
-      glm::mix(m_left.m_stem.m_direction, m_right.m_stem.m_direction, m_a));
+  glm::vec3 leftDir, rightDir;
+  switch ((StateMode)m_mode) {
+  case StateMode::Default:
+    leftDir = m_left.m_stem.m_direction;
+    rightDir = m_right.m_stem.m_direction;
+    break;
+  case StateMode::CubicBezier:
+    if (!m_left.m_stem.m_spline.m_curves.empty()) {
+      leftDir = glm::vec3(0.0f, 1.0f, 0.0f);
+    } else {
+      leftDir = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    if (!m_right.m_stem.m_spline.m_curves.empty()) {
+      rightDir = glm::vec3(0.0f, 1.0f, 0.0f);
+    } else {
+      rightDir = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    break;
+  }
+
+  return glm::normalize(glm::mix(leftDir, rightDir, m_a));
 }
 glm::vec3 SorghumStatePair::GetStemPoint(float point) const {
-  return GetStemDirection() * point * GetStemLength();
+  glm::vec3 leftPoint, rightPoint;
+  switch ((StateMode)m_mode) {
+  case StateMode::Default:
+    leftPoint = m_left.m_stem.m_direction * point * m_left.m_stem.m_length;
+    rightPoint = m_right.m_stem.m_direction * point * m_right.m_stem.m_length;
+    break;
+  case StateMode::CubicBezier:
+    if (!m_left.m_stem.m_spline.m_curves.empty()) {
+      leftPoint = m_left.m_stem.m_spline.EvaluatePointFromCurves(point);
+    } else {
+      leftPoint = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    if (!m_right.m_stem.m_spline.m_curves.empty()) {
+      rightPoint = m_right.m_stem.m_spline.EvaluatePointFromCurves(point);
+    } else {
+      rightPoint = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    break;
+  }
+
+  return glm::mix(leftPoint, rightPoint, m_a);
 }

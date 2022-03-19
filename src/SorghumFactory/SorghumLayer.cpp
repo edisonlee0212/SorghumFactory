@@ -9,10 +9,10 @@
 
 #include "DepthCamera.hpp"
 #include "FieldGround.hpp"
-#include "SkyIlluminance.hpp"
-#include "StemData.hpp"
 #include "LeafData.hpp"
 #include "PinnacleData.hpp"
+#include "SkyIlluminance.hpp"
+#include "StemData.hpp"
 #ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
@@ -32,7 +32,7 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterPrivateComponent<LeafData>("LeafData");
   ClassRegistry::RegisterPrivateComponent<StemData>("StemData");
   ClassRegistry::RegisterPrivateComponent<PinnacleData>("PinnacleData");
-  
+
   ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
                                                   ".proceduralsorghum");
   ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
@@ -307,6 +307,7 @@ void SorghumLayer::OnInspect() {
     }
 #endif
     ImGui::Separator();
+    /*
     if (ImGui::Button("Generate mesh for all sorghums")) {
       GenerateMeshForAllSorghums(true, true, false);
     }
@@ -320,6 +321,7 @@ void SorghumLayer::OnInspect() {
                        &m_horizontalSubdivisionStep)) {
       m_horizontalSubdivisionStep = glm::max(2, m_horizontalSubdivisionStep);
     }
+     */
     if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                              "Replace Leaf Albedo Texture")) {
       auto tex = m_leafAlbedoTexture.Get<Texture2D>();
@@ -1086,7 +1088,6 @@ void SorghumLayer::LateUpdate() {
     }
   }
 }
-
 
 void PointCloudSampleSettings::OnInspect() {
   ImGui::DragFloat2("Point distance", &m_pointDistance.x, 0.0001f);

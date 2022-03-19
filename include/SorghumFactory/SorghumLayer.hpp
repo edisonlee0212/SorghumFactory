@@ -76,7 +76,7 @@ public:
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
 
-  float m_verticalSubdivisionMaxUnitLength = 0.02f;
+  float m_verticalSubdivisionMaxUnitLength = 0.01f;
   int m_horizontalSubdivisionStep = 4;
 
   void OnCreate() override;

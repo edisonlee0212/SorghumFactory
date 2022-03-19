@@ -1,8 +1,8 @@
 //
 // Created by lllll on 3/13/2022.
 //
-
 #include "LeafData.hpp"
+#include "ProceduralSorghum.hpp"
 #include "SorghumLayer.hpp"
 using namespace SorghumFactory;
 void LeafData::OnInspect() {
@@ -212,19 +212,42 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
         stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -stemDirection,
         false, 0.0f, 0.0f);
   }
+
   glm::vec3 position = sorghumStatePair.GetStemPoint(startingPoint);
-  m_left = glm::rotate(glm::vec3(1, 0, 0),
-                       glm::radians(glm::mix(actualLeft.m_rollAngle,
-                                             actualRight.m_rollAngle, actualA)),
-                       glm::vec3(0, 1, 0));
-  auto initialDirection =
-      glm::rotate(glm::vec3(0, 1, 0),
-                  glm::radians(glm::mix(actualLeft.m_branchingAngle,
-                                        actualRight.m_branchingAngle, actualA)),
-                  m_left);
-  glm::vec3 direction = initialDirection;
-  auto leafLength =
-      glm::mix(actualLeft.m_length, actualRight.m_length, actualA);
+  glm::vec3 direction;
+  float leafLength;
+  BezierSpline middleSpline;
+  switch ((StateMode)sorghumStatePair.m_mode) {
+  case StateMode::Default:
+    m_left =
+        glm::rotate(glm::vec3(1, 0, 0),
+                    glm::radians(glm::mix(actualLeft.m_rollAngle,
+                                          actualRight.m_rollAngle, actualA)),
+                    glm::vec3(0, 1, 0));
+    direction = glm::rotate(
+        glm::vec3(0, 1, 0),
+        glm::radians(glm::mix(actualLeft.m_branchingAngle,
+                              actualRight.m_branchingAngle, actualA)),
+        m_left);
+    leafLength = glm::mix(actualLeft.m_length, actualRight.m_length, actualA);
+    break;
+  case StateMode::CubicBezier:
+    assert(!actualLeft.m_spline.m_curves.empty() && !actualRight.m_spline.m_curves.empty());
+    assert(actualLeft.m_spline.m_curves.size() == actualRight.m_spline.m_curves.size());
+    middleSpline.m_curves.resize(actualLeft.m_spline.m_curves.size());
+    leafLength = 0.0f;
+    for(int i = 0; i < actualLeft.m_spline.m_curves.size(); i++){
+      middleSpline.m_curves[i].m_p0 = glm::mix(actualLeft.m_spline.m_curves[i].m_p0, actualRight.m_spline.m_curves[i].m_p0, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p1 = glm::mix(actualLeft.m_spline.m_curves[i].m_p1, actualRight.m_spline.m_curves[i].m_p1, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p2 = glm::mix(actualLeft.m_spline.m_curves[i].m_p2, actualRight.m_spline.m_curves[i].m_p2, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p3 = glm::mix(actualLeft.m_spline.m_curves[i].m_p3, actualRight.m_spline.m_curves[i].m_p3, sorghumStatePair.m_a);
+      leafLength += glm::distance(middleSpline.m_curves[i].m_p0, middleSpline.m_curves[i].m_p3);
+    }
+    m_left = glm::cross(glm::vec3(0, 1, 0), middleSpline.EvaluateAxisFromCurves(0.0f));
+    direction = middleSpline.EvaluateAxisFromCurves(0.0f);
+    break;
+  }
+
   auto leafBending =
       glm::mix(actualLeft.m_bending, actualRight.m_bending, actualA);
 
@@ -236,9 +259,17 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
   int nodeToFullExpand =
       glm::max(2.0f, 0.05f * leafLength /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+
   for (int i = 0; i <= nodeAmount; i++) {
     const float factor = (float)i / nodeAmount;
-    position += direction * unitLength;
+    switch ((StateMode)sorghumStatePair.m_mode) {
+    case StateMode::Default:
+      position += direction * unitLength;
+      break;
+    case StateMode::CubicBezier:
+      position = middleSpline.EvaluatePointFromCurves(factor);
+      break;
+    }
     float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);
     float wavinessAlongLeaf =
         glm::mix(actualLeft.m_wavinessAlongLeaf.GetValue(factor),
@@ -251,10 +282,17 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
     m_nodes.emplace_back(position, angle, width, wavinessAlongLeaf, -direction,
                          true, 0.0f, factor);
-    direction = glm::rotate(
-        direction,
-        glm::radians(leafBending.x + factor * leafBending.y) / nodeAmount,
-        m_left);
+    switch ((StateMode)sorghumStatePair.m_mode) {
+    case StateMode::Default:
+      direction = glm::rotate(
+          direction,
+          glm::radians(leafBending.x + factor * leafBending.y) / nodeAmount,
+          m_left);
+      break;
+    case StateMode::CubicBezier:
+      direction = middleSpline.EvaluateAxisFromCurves(factor);
+      break;
+    }
   }
   GenerateLeafGeometry(sorghumStatePair);
 }
@@ -278,7 +316,9 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
                           glm::floor((sorghumStatePair.m_right.m_leaves.size() -
                                       sorghumStatePair.m_left.m_leaves.size()) *
                                      sorghumStatePair.m_a);
-  a = glm::clamp(sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) - (completedLeafSize - previousLeafSize), 0.0f, 1.0f);
+  a = glm::clamp(sorghumStatePair.m_a * (nextLeafSize - previousLeafSize) -
+                     (completedLeafSize - previousLeafSize),
+                 0.0f, 1.0f);
   left = right = sorghumStatePair.m_right.m_leaves[leafIndex];
   if (leafIndex >= completedLeafSize) {
     left.m_curling = 90.0f;
@@ -286,6 +326,9 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
     left.m_widthAlongLeaf.m_minValue = left.m_widthAlongLeaf.m_maxValue = 0.0f;
     left.m_wavinessAlongLeaf.m_minValue = left.m_wavinessAlongLeaf.m_maxValue =
         0.0f;
+    for(auto& i : left.m_spline.m_curves){
+      i.m_p0 = i.m_p1 = i.m_p2 = i.m_p3 = right.m_spline.EvaluatePointFromCurves(0.0f);
+    }
   } else {
     left = right;
   }

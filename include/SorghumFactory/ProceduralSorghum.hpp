@@ -1,9 +1,12 @@
 #pragma once
-#include <sorghum_factory_export.h>
 #include "CurveDescriptor.hpp"
+#include "ICurve.hpp"
+#include <sorghum_factory_export.h>
 using namespace UniEngine;
 namespace SorghumFactory {
 #pragma region States
+enum class StateMode { Default, CubicBezier };
+
 struct ProceduralPinnacleState {
   bool m_active = false;
   glm::vec3 m_pinnacleSize = glm::vec3(0, 0, 0);
@@ -14,15 +17,17 @@ struct ProceduralPinnacleState {
   void Deserialize(const YAML::Node &in);
 };
 struct ProceduralStemState {
+  BezierSpline m_spline;
   glm::vec3 m_direction = {0, 0, 0};
   CurveDescriptor<float> m_widthAlongStem;
   float m_length = 0;
   [[nodiscard]] glm::vec3 GetPoint(float point) const;
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
-  bool OnInspect();
+  bool OnInspect(int mode);
 };
 struct ProceduralLeafState {
+  BezierSpline m_spline;
   int m_index = 0;
   float m_startingPoint = 0;
   float m_length = 0;
@@ -37,29 +42,30 @@ struct ProceduralLeafState {
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
-  bool OnInspect();
+  bool OnInspect(int mode);
 };
 #pragma endregion
 
-class SorghumState{
+class SorghumState {
   friend class ProceduralSorghum;
   unsigned m_version = 0;
-  bool OnMenu();
 public:
+
   ProceduralPinnacleState m_pinnacle;
   ProceduralStemState m_stem;
   std::vector<ProceduralLeafState> m_leaves;
-  void OnInspect();
+  bool OnInspect(int mode);
 
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
 };
 class SorghumStateGenerator;
 
-struct SorghumStatePair{
+struct SorghumStatePair {
   SorghumState m_left = SorghumState();
   SorghumState m_right = SorghumState();
   float m_a = 1.0f;
+  int m_mode = (int)StateMode::Default;
   [[nodiscard]] int GetLeafSize() const;
   [[nodiscard]] float GetStemLength() const;
   [[nodiscard]] glm::vec3 GetStemDirection() const;
@@ -71,10 +77,12 @@ class ProceduralSorghum : public IAsset {
   friend class SorghumData;
   std::vector<std::pair<float, SorghumState>> m_sorghumStates;
 public:
+  int m_mode = (int)StateMode::Default;
+
   [[nodiscard]] unsigned GetVersion() const;
   [[nodiscard]] float GetCurrentStartTime() const;
   [[nodiscard]] float GetCurrentEndTime() const;
-  void Add(float time, const SorghumState& state);
+  void Add(float time, const SorghumState &state);
   void ResetTime(float previousTime, float newTime);
   void Remove(float time);
   [[nodiscard]] SorghumStatePair Get(float time) const;
