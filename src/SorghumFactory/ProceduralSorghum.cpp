@@ -99,8 +99,6 @@ bool ProceduralStemState::OnInspect(int mode) {
     ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
     if (ImGui::DragFloat("Length", &m_length, 0.01f))
       changed = true;
-    if (m_widthAlongStem.OnInspect("Width along stem"))
-      changed = true;
     break;
   case StateMode::CubicBezier:
     if (ImGui::TreeNode("Spline")) {
@@ -109,7 +107,8 @@ bool ProceduralStemState::OnInspect(int mode) {
     }
     break;
   }
-
+  if (m_widthAlongStem.OnInspect("Width along stem"))
+    changed = true;
   return changed;
 }
 bool ProceduralLeafState::OnInspect(int mode) {
@@ -121,9 +120,6 @@ bool ProceduralLeafState::OnInspect(int mode) {
     if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
         changed = true;
-      if (m_widthAlongLeaf.OnInspect("Width along leaf"))
-        changed = true;
-
       if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
           changed = true;
@@ -132,7 +128,6 @@ bool ProceduralLeafState::OnInspect(int mode) {
           changed = true;
         ImGui::TreePop();
       }
-
       if (ImGui::TreeNodeEx("Bending", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::DragFloat("Bending", &m_bending.x, 1.0f, -1080.0f, 1080.0f))
           changed = true;
@@ -153,6 +148,8 @@ bool ProceduralLeafState::OnInspect(int mode) {
   }
 
   if (ImGui::TreeNodeEx("Others")) {
+    if (m_widthAlongLeaf.OnInspect("Width along leaf"))
+      changed = true;
     if (ImGui::SliderFloat("Curling", &m_curling, 0.0f, 90.0f))
       changed = true;
     if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
@@ -228,6 +225,7 @@ bool SorghumState::OnInspect(int mode) {
           // Number of leaves in the file
           int leafCount;
           file >> leafCount;
+          m_stem = ProceduralStemState();
           m_stem.m_spline.Import(file);
           // Recenter plant:
           glm::vec3 posSum = m_stem.m_spline.m_curves.front().m_p0;
@@ -241,16 +239,9 @@ bool SorghumState::OnInspect(int mode) {
           for (int i = 0; i < leafCount; i++) {
             float startingPoint;
             file >> startingPoint;
+            m_leaves[i] = ProceduralLeafState();
             m_leaves[i].m_startingPoint = startingPoint;
             m_leaves[i].m_spline.Import(file);
-            auto offset =
-                m_stem.m_spline.EvaluatePointFromCurves(startingPoint);
-            for (auto &curve : m_leaves[i].m_spline.m_curves) {
-              curve.m_p0 += offset;
-              curve.m_p1 += offset;
-              curve.m_p2 += offset;
-              curve.m_p3 += offset;
-            }
           }
           for (int i = 0; i < leafCount - 1; i++) {
             for (int j = 0; j < leafCount - i - 1; j++) {

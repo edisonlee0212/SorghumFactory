@@ -212,8 +212,8 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
         stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -stemDirection,
         false, 0.0f, 0.0f);
   }
-
-  glm::vec3 position = sorghumStatePair.GetStemPoint(startingPoint);
+  glm::vec3 startPosition = sorghumStatePair.GetStemPoint(startingPoint);
+  glm::vec3 position = startPosition;
   glm::vec3 direction;
   float leafLength;
   BezierSpline middleSpline;
@@ -267,7 +267,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
       position += direction * unitLength;
       break;
     case StateMode::CubicBezier:
-      position = middleSpline.EvaluatePointFromCurves(factor);
+      position = startPosition + middleSpline.EvaluatePointFromCurves(factor);
       break;
     }
     float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);

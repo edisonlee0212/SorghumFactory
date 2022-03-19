@@ -168,8 +168,27 @@ void StemData::FormStem(const SorghumStatePair &sorghumStatePair) {
                  sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(
                      (float)i / nodeAmount),
                  sorghumStatePair.m_a);
+
+    glm::vec3 position;
+    switch ((StateMode)sorghumStatePair.m_mode) {
+    case StateMode::Default:
+      position = glm::normalize(direction) * unitLength * static_cast<float>(i);
+      break;
+    case StateMode::CubicBezier:
+      position = glm::mix(sorghumStatePair.m_left.m_stem.m_spline.EvaluatePointFromCurves(
+                              (float)i / nodeAmount),
+                          sorghumStatePair.m_right.m_stem.m_spline.EvaluatePointFromCurves(
+                              (float)i / nodeAmount),
+                          sorghumStatePair.m_a);
+      direction = glm::mix(sorghumStatePair.m_left.m_stem.m_spline.EvaluateAxisFromCurves(
+                               (float)i / nodeAmount),
+                           sorghumStatePair.m_right.m_stem.m_spline.EvaluateAxisFromCurves(
+                               (float)i / nodeAmount),
+                           sorghumStatePair.m_a);
+      break;
+    }
     m_nodes.emplace_back(
-        glm::normalize(direction) * unitLength * static_cast<float>(i), 180.0f,
+        position, 180.0f,
         stemWidth, 0.0f, -direction, false, 0.0f, (float)i / nodeAmount);
   }
   m_left = glm::rotate(glm::vec3(1, 0, 0),

@@ -18,8 +18,8 @@ struct ProceduralPinnacleState {
 };
 struct ProceduralStemState {
   BezierSpline m_spline;
-  glm::vec3 m_direction = {0, 0, 0};
-  CurveDescriptor<float> m_widthAlongStem;
+  glm::vec3 m_direction = {0, 1, 0};
+  CurveDescriptor<float> m_widthAlongStem = {0.0f, 0.015f, {0.6f, 0.4f, {0, 0}, {1, 1}}};
   float m_length = 0;
   [[nodiscard]] glm::vec3 GetPoint(float point) const;
   void Serialize(YAML::Emitter &out);
@@ -31,10 +31,10 @@ struct ProceduralLeafState {
   int m_index = 0;
   float m_startingPoint = 0;
   float m_length = 0;
-  CurveDescriptor<float> m_widthAlongLeaf;
+  CurveDescriptor<float> m_widthAlongLeaf = {0.0f, 0.012f, {0.1f, 0.5f, {0, 0}, {1, 1}}};
   float m_rollAngle = 0;
   float m_branchingAngle = 0;
-  float m_curling = 0;
+  float m_curling = 30;
   glm::vec2 m_bending = {0, 0};
   CurveDescriptor<float> m_wavinessAlongLeaf;
   glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
