@@ -209,6 +209,31 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
 }
+ProceduralStemState::ProceduralStemState() {
+  m_widthAlongStem = {0.0f, 0.015f, {0.6f, 0.4f, {0, 0}, {1, 1}}};
+}
+
+ProceduralLeafState::ProceduralLeafState() {
+  m_widthAlongLeaf = {0.0f, 0.02f, {0.5f, 0.1f, {0, 0}, {1, 1}}};
+  auto &pairs = m_widthAlongLeaf.m_curve.UnsafeGetValues();
+  pairs.clear();
+  pairs.emplace_back(-0.1, 0.0f);
+  pairs.emplace_back(0, 0.5);
+  pairs.emplace_back(0.11196319, 0.111996889);
+
+  pairs.emplace_back(-0.0687116608, 0);
+  pairs.emplace_back(0.268404901, 0.92331290);
+  pairs.emplace_back(0.100000001, 0.0f);
+
+  pairs.emplace_back(-0.100000001, 0);
+  pairs.emplace_back(0.519368708, 1);
+  pairs.emplace_back(0.100000001, 0);
+
+  pairs.emplace_back(-0.100000001, 0.0f);
+  pairs.emplace_back(1, 0.1);
+  pairs.emplace_back(-0.1, 0.0f);
+  m_curling = 30;
+}
 
 bool SorghumState::OnInspect(int mode) {
   bool changed = false;
@@ -504,9 +529,13 @@ unsigned ProceduralSorghum::GetVersion() const { return m_version; }
 glm::vec3 ProceduralStemState::GetPoint(float point) const {
   return m_direction * point * m_length;
 }
+
 int SorghumStatePair::GetLeafSize() const {
-  return m_left.m_leaves.size() +
-         glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
+  if (m_left.m_leaves.size() <= m_right.m_leaves.size()) {
+    return m_left.m_leaves.size() +
+           glm::ceil((m_right.m_leaves.size() - m_left.m_leaves.size()) * m_a);
+  } else
+    return m_left.m_leaves.size();
 }
 float SorghumStatePair::GetStemLength() const {
   float leftLength, rightLength;

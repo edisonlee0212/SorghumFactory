@@ -232,18 +232,30 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     leafLength = glm::mix(actualLeft.m_length, actualRight.m_length, actualA);
     break;
   case StateMode::CubicBezier:
-    assert(!actualLeft.m_spline.m_curves.empty() && !actualRight.m_spline.m_curves.empty());
-    assert(actualLeft.m_spline.m_curves.size() == actualRight.m_spline.m_curves.size());
+    assert(!actualLeft.m_spline.m_curves.empty() &&
+           !actualRight.m_spline.m_curves.empty());
+    assert(actualLeft.m_spline.m_curves.size() ==
+           actualRight.m_spline.m_curves.size());
     middleSpline.m_curves.resize(actualLeft.m_spline.m_curves.size());
     leafLength = 0.0f;
-    for(int i = 0; i < actualLeft.m_spline.m_curves.size(); i++){
-      middleSpline.m_curves[i].m_p0 = glm::mix(actualLeft.m_spline.m_curves[i].m_p0, actualRight.m_spline.m_curves[i].m_p0, sorghumStatePair.m_a);
-      middleSpline.m_curves[i].m_p1 = glm::mix(actualLeft.m_spline.m_curves[i].m_p1, actualRight.m_spline.m_curves[i].m_p1, sorghumStatePair.m_a);
-      middleSpline.m_curves[i].m_p2 = glm::mix(actualLeft.m_spline.m_curves[i].m_p2, actualRight.m_spline.m_curves[i].m_p2, sorghumStatePair.m_a);
-      middleSpline.m_curves[i].m_p3 = glm::mix(actualLeft.m_spline.m_curves[i].m_p3, actualRight.m_spline.m_curves[i].m_p3, sorghumStatePair.m_a);
-      leafLength += glm::distance(middleSpline.m_curves[i].m_p0, middleSpline.m_curves[i].m_p3);
+    for (int i = 0; i < actualLeft.m_spline.m_curves.size(); i++) {
+      middleSpline.m_curves[i].m_p0 =
+          glm::mix(actualLeft.m_spline.m_curves[i].m_p0,
+                   actualRight.m_spline.m_curves[i].m_p0, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p1 =
+          glm::mix(actualLeft.m_spline.m_curves[i].m_p1,
+                   actualRight.m_spline.m_curves[i].m_p1, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p2 =
+          glm::mix(actualLeft.m_spline.m_curves[i].m_p2,
+                   actualRight.m_spline.m_curves[i].m_p2, sorghumStatePair.m_a);
+      middleSpline.m_curves[i].m_p3 =
+          glm::mix(actualLeft.m_spline.m_curves[i].m_p3,
+                   actualRight.m_spline.m_curves[i].m_p3, sorghumStatePair.m_a);
+      leafLength += glm::distance(middleSpline.m_curves[i].m_p0,
+                                  middleSpline.m_curves[i].m_p3);
     }
-    m_left = glm::cross(glm::vec3(0, 1, 0), middleSpline.EvaluateAxisFromCurves(0.0f));
+    m_left = glm::cross(glm::vec3(0, 1, 0),
+                        middleSpline.EvaluateAxisFromCurves(0.0f));
     direction = middleSpline.EvaluateAxisFromCurves(0.0f);
     break;
   }
@@ -307,7 +319,11 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
   int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
   if (leafIndex < previousLeafSize) {
     left = sorghumStatePair.m_left.m_leaves[leafIndex];
-    right = sorghumStatePair.m_right.m_leaves[leafIndex];
+    if (leafIndex < nextLeafSize) {
+      right = sorghumStatePair.m_right.m_leaves[leafIndex];
+    } else {
+      right = sorghumStatePair.m_left.m_leaves[leafIndex];
+    }
     a = sorghumStatePair.m_a;
     return;
   }
@@ -326,8 +342,9 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
     left.m_widthAlongLeaf.m_minValue = left.m_widthAlongLeaf.m_maxValue = 0.0f;
     left.m_wavinessAlongLeaf.m_minValue = left.m_wavinessAlongLeaf.m_maxValue =
         0.0f;
-    for(auto& i : left.m_spline.m_curves){
-      i.m_p0 = i.m_p1 = i.m_p2 = i.m_p3 = right.m_spline.EvaluatePointFromCurves(0.0f);
+    for (auto &i : left.m_spline.m_curves) {
+      i.m_p0 = i.m_p1 = i.m_p2 = i.m_p3 =
+          right.m_spline.EvaluatePointFromCurves(0.0f);
     }
   } else {
     left = right;
