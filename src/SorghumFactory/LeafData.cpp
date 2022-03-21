@@ -201,17 +201,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     backDistance = startingPoint;
   float sheathPoint = startingPoint - backDistance;
 
-  int nodeForSheath =
-      glm::max(2.0f, stemLength * backDistance /
-                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
-  for (int i = 0; i <= nodeForSheath; i++) {
-    float currentPoint = (float)i / nodeForSheath * backDistance;
-    m_nodes.emplace_back(
-        sorghumStatePair.GetStemPoint(sheathPoint + currentPoint),
-        180.0f - 90.0f * (float)i / nodeForSheath,
-        stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -stemDirection,
-        false, 0.0f, 0.0f);
-  }
+
   glm::vec3 startPosition = sorghumStatePair.GetStemPoint(startingPoint);
   glm::vec3 position = startPosition;
   glm::vec3 direction;
@@ -260,6 +250,20 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     break;
   }
 
+
+  int nodeForSheath =
+      glm::max(2.0f, stemLength * backDistance /
+                         sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+  for (int i = 0; i <= nodeForSheath; i++) {
+    float currentPoint = (float)i / nodeForSheath * backDistance;
+    glm::vec3 actualDirection = glm::mix(stemDirection, direction, (float)i / nodeForSheath);
+    m_nodes.emplace_back(
+        sorghumStatePair.GetStemPoint(sheathPoint + currentPoint),
+        180.0f - 90.0f * (float)i / nodeForSheath,
+        stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -actualDirection,
+        false, 0.0f, 0.0f);
+  }
+
   auto leafBending =
       glm::mix(actualLeft.m_bending, actualRight.m_bending, actualA);
 
@@ -272,7 +276,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
       glm::max(2.0f, 0.05f * leafLength /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
 
-  for (int i = 0; i <= nodeAmount; i++) {
+  for (int i = 1; i <= nodeAmount; i++) {
     const float factor = (float)i / nodeAmount;
     switch ((StateMode)sorghumStatePair.m_mode) {
     case StateMode::Default:

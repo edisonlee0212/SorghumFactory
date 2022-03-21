@@ -268,16 +268,7 @@ bool SorghumState::OnInspect(int mode) {
             m_leaves[i].m_startingPoint = startingPoint;
             m_leaves[i].m_spline.Import(file);
           }
-          for (int i = 0; i < leafCount - 1; i++) {
-            for (int j = 0; j < leafCount - i - 1; j++) {
-              if (m_leaves[j].m_startingPoint >
-                  m_leaves[j + 1].m_startingPoint) {
-                auto temp = m_leaves[j];
-                m_leaves[j] = m_leaves[j + 1];
-                m_leaves[j + 1] = temp;
-              }
-            }
-          }
+
           for (int i = 0; i < leafCount; i++) {
             m_leaves[i].m_index = i;
           }
