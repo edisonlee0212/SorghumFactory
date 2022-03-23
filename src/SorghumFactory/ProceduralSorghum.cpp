@@ -402,7 +402,7 @@ void ProceduralSorghum::OnInspect() {
     float previousTime = 0.0f;
     int stateIndex = 1;
     for (auto it = m_sorghumStates.begin(); it != m_sorghumStates.end(); ++it) {
-      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex)).c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex)).c_str())) {
         if (it != (--m_sorghumStates.end())) {
           auto tit = it;
           ++tit;
@@ -424,6 +424,7 @@ void ProceduralSorghum::OnInspect() {
         if (it->second.OnInspect(m_mode)) {
           changed = true;
         }
+        ImGui::TreePop();
       }
       previousTime = it->first + 0.01f;
       stateIndex++;
