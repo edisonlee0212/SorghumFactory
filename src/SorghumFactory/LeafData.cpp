@@ -201,7 +201,6 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     backDistance = startingPoint;
   float sheathPoint = startingPoint - backDistance;
 
-
   glm::vec3 startPosition = sorghumStatePair.GetStemPoint(startingPoint);
   glm::vec3 position = startPosition;
   glm::vec3 direction;
@@ -250,13 +249,13 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     break;
   }
 
-
   int nodeForSheath =
       glm::max(2.0f, stemLength * backDistance /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
   for (int i = 0; i <= nodeForSheath; i++) {
     float currentPoint = (float)i / nodeForSheath * backDistance;
-    glm::vec3 actualDirection = glm::mix(stemDirection, direction, (float)i / nodeForSheath);
+    glm::vec3 actualDirection =
+        glm::mix(stemDirection, direction, (float)i / nodeForSheath);
     m_nodes.emplace_back(
         sorghumStatePair.GetStemPoint(sheathPoint + currentPoint),
         180.0f - 90.0f * (float)i / nodeForSheath,
@@ -264,28 +263,32 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
         false, 0.0f, 0.0f);
   }
 
-  auto leafBending =
-      glm::mix(actualLeft.m_bending, actualRight.m_bending, actualA);
-
   int nodeAmount = glm::max(
       4.0f, leafLength / sorghumLayer->m_verticalSubdivisionMaxUnitLength);
   float unitLength = leafLength / nodeAmount;
-  float expandAngle =
-      glm::mix(actualLeft.m_curling, actualRight.m_curling, actualA);
+
   int nodeToFullExpand =
       glm::max(2.0f, 0.05f * leafLength /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
 
   for (int i = 1; i <= nodeAmount; i++) {
     const float factor = (float)i / nodeAmount;
+    glm::vec3 currentDirection;
     switch ((StateMode)sorghumStatePair.m_mode) {
-    case StateMode::Default:
-      position += direction * unitLength;
-      break;
+    case StateMode::Default: {
+      float rotateAngle = glm::mix(actualLeft.m_bendingAlongLeaf.GetValue(factor),
+                   actualRight.m_bendingAlongLeaf.GetValue(factor), actualA);
+      currentDirection = glm::rotate(direction, glm::radians(rotateAngle), m_left);
+      position += currentDirection * unitLength;
+    } break;
     case StateMode::CubicBezier:
+      currentDirection = middleSpline.EvaluateAxisFromCurves(factor);
       position = middleSpline.EvaluatePointFromCurves(factor);
       break;
     }
+    float expandAngle =
+        glm::mix(actualLeft.m_curlingAlongLeaf.GetValue(factor),
+                 actualRight.m_curlingAlongLeaf.GetValue(factor), actualA);
     float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);
     float wavinessAlongLeaf =
         glm::mix(actualLeft.m_wavinessAlongLeaf.GetValue(factor),
@@ -296,19 +299,8 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
                  actualRight.m_widthAlongLeaf.GetValue(factor), actualA),
         collarFactor);
     float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
-    m_nodes.emplace_back(position, angle, width, wavinessAlongLeaf, -direction,
-                         true, 0.0f, factor);
-    switch ((StateMode)sorghumStatePair.m_mode) {
-    case StateMode::Default:
-      direction = glm::rotate(
-          direction,
-          glm::radians(leafBending.x + factor * leafBending.y) / nodeAmount,
-          m_left);
-      break;
-    case StateMode::CubicBezier:
-      direction = middleSpline.EvaluateAxisFromCurves(factor);
-      break;
-    }
+    m_nodes.emplace_back(position, angle, width, wavinessAlongLeaf,
+                         -currentDirection, true, 0.0f, factor);
   }
   GenerateLeafGeometry(sorghumStatePair);
 }
@@ -341,7 +333,6 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
                  0.0f, 1.0f);
   left = right = sorghumStatePair.m_right.m_leaves[leafIndex];
   if (leafIndex >= completedLeafSize) {
-    left.m_curling = 90.0f;
     left.m_length = 0.0f;
     left.m_widthAlongLeaf.m_minValue = left.m_widthAlongLeaf.m_maxValue = 0.0f;
     left.m_wavinessAlongLeaf.m_minValue = left.m_wavinessAlongLeaf.m_maxValue =

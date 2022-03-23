@@ -125,8 +125,8 @@ void SorghumStateGenerator::OnInspect() {
       changed = true;
 
     static MixedDistributionSettings leafBending = {
-        0.01f,
-        {},
+        1.0f,
+        {1.0f, false, true, ""},
         {},
         "The bending of the leaf, controls how leaves bend because of "
         "gravity. Positive value results in leaf bending towards the "
@@ -136,10 +136,9 @@ void SorghumStateGenerator::OnInspect() {
 
     static MixedDistributionSettings leafBendingAcceleration = {
         0.01f,
+        {0.01f, false, true, ""},
         {},
-        {},
-        "The changes of bending along the leaf. You can use this to create "
-        "S-shaped leaves."};
+        "The changes of bending along the leaf."};
 
     if (m_leafBendingAcceleration.OnInspect("Bending acceleration",
                                             leafBendingAcceleration))
@@ -170,7 +169,6 @@ void SorghumStateGenerator::OnInspect() {
     m_saved = false;
     m_version++;
   }
-
 }
 void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_version" << YAML::Value << m_version;
@@ -267,11 +265,31 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
 
     leafState.m_widthAlongLeaf = {0.0f, m_leafWidth.GetValue(step) * 2.0f,
                                   m_widthAlongLeaf};
-    leafState.m_curling = glm::clamp(m_leafCurling.GetValue(step), 0.0f, 90.0f);
+    auto curling =
+        glm::clamp(m_leafCurling.GetValue(step), 0.0f, 90.0f) / 90.0f;
+    leafState.m_curlingAlongLeaf = {
+        0.0f, 90.0f, {curling, curling, {0, 0}, {1, 1}}};
     leafState.m_branchingAngle = m_leafBranchingAngle.GetValue(step);
     leafState.m_rollAngle = (i % 2) * 180.0f + m_leafRollAngle.GetValue(step);
-    leafState.m_bending = {m_leafBending.GetValue(step),
-                           m_leafBendingAcceleration.GetValue(step)};
+
+    auto bending = m_leafBending.GetValue(step);
+    bending = (bending + 180) / 360.0f;
+    auto bendingAcceleration = m_leafBendingAcceleration.GetValue(step);
+    leafState.m_bendingAlongLeaf = {
+        -180.0f, 180.0f, {0.5f, bending, {0, 0}, {1, 1}}};
+
+    glm::vec2 middle = glm::mix(glm::vec2(0, bending), glm::vec2(1, 0.5f),
+                                bendingAcceleration);
+    auto &points = leafState.m_bendingAlongLeaf.m_curve.UnsafeGetValues();
+    points.clear();
+    points.emplace_back(-0.1, 0.0f);
+    points.emplace_back(0, 0.5f);
+    points.emplace_back(middle.x, middle.y - 0.5f);
+
+    points.emplace_back(middle.x - 1.0f, bending - middle.y);
+    points.emplace_back(1.0, bending);
+    points.emplace_back(0.1, 0.0f);
+
   }
 
   endState.m_pinnacle.m_active = m_hasPinnacle;
@@ -317,13 +335,13 @@ void SorghumStateGenerator::OnCreate() {
   m_leafBranchingAngle.m_deviation = {
       0.0f, 3.0f, UniEngine::Curve(0.67f, 0.225f, {0, 0}, {1, 1})};
 
-  m_leafBending.m_mean = {0.0f, 4.0f,
-                          UniEngine::Curve(0.2f, 0.2f, {0, 0}, {1, 1})};
+  m_leafBending.m_mean = {-180.0f, 180.0f,
+                          UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBending.m_deviation = {0.0f, 0.0f,
                                UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafBendingAcceleration.m_mean = {
-      -1.0f, 2.0f, UniEngine::Curve(0.72f, 0.28f, {0, 0}, {1, 1})};
+      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBendingAcceleration.m_deviation = {
       0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 

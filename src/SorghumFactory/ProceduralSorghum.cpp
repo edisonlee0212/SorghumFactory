@@ -128,14 +128,6 @@ bool ProceduralLeafState::OnInspect(int mode) {
           changed = true;
         ImGui::TreePop();
       }
-      if (ImGui::TreeNodeEx("Bending", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::DragFloat("Bending", &m_bending.x, 1.0f, -1080.0f, 1080.0f))
-          changed = true;
-        if (ImGui::DragFloat("Bending acceleration", &m_bending.y, 1.0f,
-                             -1080.0f, 1080.0f))
-          changed = true;
-        ImGui::TreePop();
-      }
       ImGui::TreePop();
     }
     break;
@@ -150,15 +142,18 @@ bool ProceduralLeafState::OnInspect(int mode) {
   if (ImGui::TreeNodeEx("Others")) {
     if (m_widthAlongLeaf.OnInspect("Width along leaf"))
       changed = true;
-    if (ImGui::SliderFloat("Curling", &m_curling, 0.0f, 90.0f))
+    if (m_curlingAlongLeaf.OnInspect("Curling along leaf"))
       changed = true;
+    if (m_bendingAlongLeaf.OnInspect("Bending along leaf"))
+      changed = true;
+    if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
+      changed = true;
+
     if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
                           0.0f, 999.0f))
       changed = true;
     if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x,
                           0.01f, 0.0f, 999.0f))
-      changed = true;
-    if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
       changed = true;
     ImGui::TreePop();
   }
@@ -172,11 +167,11 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_index" << YAML::Value << m_index;
   out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
   out << YAML::Key << "m_length" << YAML::Value << m_length;
-  out << YAML::Key << "m_curling" << YAML::Value << m_curling;
+  m_curlingAlongLeaf.Serialize("m_curlingAlongLeaf", out);
   m_widthAlongLeaf.Serialize("m_widthAlongLeaf", out);
   out << YAML::Key << "m_rollAngle" << YAML::Value << m_rollAngle;
   out << YAML::Key << "m_branchingAngle" << YAML::Value << m_branchingAngle;
-  out << YAML::Key << "m_bending" << YAML::Value << m_bending;
+  m_bendingAlongLeaf.Serialize("m_bendingAlongLeaf", out);
   m_wavinessAlongLeaf.Serialize("m_wavinessAlongLeaf", out);
   out << YAML::Key << "m_wavinessFrequency" << YAML::Value
       << m_wavinessFrequency;
@@ -191,21 +186,19 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
     m_index = in["m_index"].as<int>();
   if (in["m_startingPoint"])
     m_startingPoint = in["m_startingPoint"].as<float>();
-  if (in["m_curling"])
-    m_curling = in["m_curling"].as<float>();
   if (in["m_length"])
     m_length = in["m_length"].as<float>();
   if (in["m_rollAngle"])
     m_rollAngle = in["m_rollAngle"].as<float>();
   if (in["m_branchingAngle"])
     m_branchingAngle = in["m_branchingAngle"].as<float>();
-  if (in["m_bending"])
-    m_bending = in["m_bending"].as<glm::vec2>();
   if (in["m_wavinessFrequency"])
     m_wavinessFrequency = in["m_wavinessFrequency"].as<glm::vec2>();
   if (in["m_wavinessPeriodStart"])
     m_wavinessPeriodStart = in["m_wavinessPeriodStart"].as<glm::vec2>();
 
+  m_curlingAlongLeaf.Deserialize("m_curlingAlongLeaf", in);
+  m_bendingAlongLeaf.Deserialize("m_bendingAlongLeaf", in);
   m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
 }
@@ -231,8 +224,9 @@ ProceduralLeafState::ProceduralLeafState() {
 
   pairs.emplace_back(-0.100000001, 0.0f);
   pairs.emplace_back(1, 0.1);
-  pairs.emplace_back(-0.1, 0.0f);
-  m_curling = 30;
+  pairs.emplace_back(0.1, 0.0f);
+
+  m_curlingAlongLeaf = {0.0f, 90.0f, {0.3f, 0.3f, {0, 0}, {1, 1}}};
 }
 
 bool SorghumState::OnInspect(int mode) {
