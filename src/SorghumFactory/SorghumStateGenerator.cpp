@@ -144,6 +144,16 @@ void SorghumStateGenerator::OnInspect() {
                                             leafBendingAcceleration))
       changed = true;
 
+    static MixedDistributionSettings leafBendingSmoothness = {
+        0.01f,
+        {0.01f, false, true, ""},
+        {},
+        "The smoothness of bending along the leaf."};
+
+    if (m_leafBendingSmoothness.OnInspect("Bending smoothness",
+                                            leafBendingSmoothness))
+      changed = true;
+
     if (m_leafWaviness.OnInspect("Waviness"))
       changed = true;
     if (m_leafWavinessFrequency.OnInspect("Waviness Frequency"))
@@ -189,6 +199,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_leafBranchingAngle.Serialize("m_leafBranchingAngle", out);
   m_leafBending.Serialize("m_leafBending", out);
   m_leafBendingAcceleration.Serialize("m_leafBendingAcceleration", out);
+  m_leafBendingSmoothness.Serialize("m_leafBendingSmoothness", out);
   m_leafWaviness.Serialize("m_leafWaviness", out);
   m_leafWavinessFrequency.Serialize("m_leafWavinessFrequency", out);
   m_leafPeriodStart.Serialize("m_leafPeriodStart", out);
@@ -224,6 +235,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
 
   m_leafBending.Deserialize("m_leafBending", in);
   m_leafBendingAcceleration.Deserialize("m_leafBendingAcceleration", in);
+  m_leafBendingSmoothness.Deserialize("m_leafBendingSmoothness", in);
   m_leafWaviness.Deserialize("m_leafWaviness", in);
   m_leafWavinessFrequency.Deserialize("m_leafWavinessFrequency", in);
   m_leafPeriodStart.Deserialize("m_leafPeriodStart", in);
@@ -275,6 +287,7 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
     auto bending = m_leafBending.GetValue(step);
     bending = (bending + 180) / 360.0f;
     auto bendingAcceleration = m_leafBendingAcceleration.GetValue(step);
+    auto bendingSmoothness = m_leafBendingSmoothness.GetValue(step);
     leafState.m_bendingAlongLeaf = {
         -180.0f, 180.0f, {0.5f, bending, {0, 0}, {1, 1}}};
 
@@ -284,9 +297,10 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
     points.clear();
     points.emplace_back(-0.1, 0.0f);
     points.emplace_back(0, 0.5f);
-    points.emplace_back(middle.x, middle.y - 0.5f);
-
-    points.emplace_back(middle.x - 1.0f, bending - middle.y);
+    glm::vec2 leftDelta = {middle.x, middle.y - 0.5f};
+    points.push_back(leftDelta * (1.0f - bendingSmoothness));
+    glm::vec2 rightDelta = {middle.x - 1.0f, bending - middle.y};
+    points.push_back(rightDelta * (1.0f - bendingSmoothness));
     points.emplace_back(1.0, bending);
     points.emplace_back(0.1, 0.0f);
 
@@ -341,6 +355,8 @@ void SorghumStateGenerator::OnCreate() {
                                UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafBendingAcceleration.m_mean = {
+      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+  m_leafBendingSmoothness.m_mean = {
       0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBendingAcceleration.m_deviation = {
       0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
