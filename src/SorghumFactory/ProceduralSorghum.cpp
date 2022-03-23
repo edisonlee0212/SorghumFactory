@@ -381,6 +381,12 @@ void ProceduralSorghum::OnInspect() {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(
         AssetManager::Get<ProceduralSorghum>(GetHandle()));
   }
+  if(!m_saved){
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
+    ImGui::Text("[[!!!Changed unsaved!!!]]");
+    ImGui::PopStyleColor();
+  }
+
   bool changed = false;
   if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
     changed = false;
