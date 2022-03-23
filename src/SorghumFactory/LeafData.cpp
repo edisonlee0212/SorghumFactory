@@ -114,8 +114,8 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
                    actualRight.m_wavinessPeriodStart.x, actualA) +
           glm::mix(prev.m_range, curr.m_range, div) * leftFreq;
       float rightPeriod =
-          glm::mix(actualLeft.m_wavinessPeriodStart.x,
-                   actualRight.m_wavinessPeriodStart.x, actualA) +
+          glm::mix(actualLeft.m_wavinessPeriodStart.y,
+                   actualRight.m_wavinessPeriodStart.y, actualA) +
           glm::mix(prev.m_range, curr.m_range, div) * rightFreq;
 
       auto front = prev.m_axis * (1.0f - div) + curr.m_axis * div;

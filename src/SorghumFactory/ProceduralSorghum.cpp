@@ -144,8 +144,15 @@ bool ProceduralLeafState::OnInspect(int mode) {
       changed = true;
     if (m_curlingAlongLeaf.OnInspect("Curling along leaf"))
       changed = true;
-    if (m_bendingAlongLeaf.OnInspect("Bending along leaf"))
+
+    static CurveDescriptorSettings leafBending = {1.0f, false, true, "The bending of the leaf, controls how leaves bend because of "
+        "gravity. Positive value results in leaf bending towards the "
+        "ground, negative value results in leaf bend towards the sky"};
+
+    if (m_bendingAlongLeaf.OnInspect("Bending along leaf", leafBending)) {
       changed = true;
+      m_bendingAlongLeaf.m_curve.UnsafeGetValues()[1].y = 0.5f;
+    }
     if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
       changed = true;
 
@@ -203,10 +210,14 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
 }
 ProceduralStemState::ProceduralStemState() {
+  m_length = 0.35f;
   m_widthAlongStem = {0.0f, 0.015f, {0.6f, 0.4f, {0, 0}, {1, 1}}};
 }
 
 ProceduralLeafState::ProceduralLeafState() {
+  m_wavinessAlongLeaf = {0.0f, 5.0f, {0.0f, 0.5f, {0, 0}, {1, 1}}};
+  m_wavinessFrequency = {30.0f, 30.0f};
+  m_wavinessPeriodStart = {0.0f, 0.0f};
   m_widthAlongLeaf = {0.0f, 0.02f, {0.5f, 0.1f, {0, 0}, {1, 1}}};
   auto &pairs = m_widthAlongLeaf.m_curve.UnsafeGetValues();
   pairs.clear();
@@ -226,11 +237,60 @@ ProceduralLeafState::ProceduralLeafState() {
   pairs.emplace_back(1, 0.1);
   pairs.emplace_back(0.1, 0.0f);
 
+  m_bendingAlongLeaf = {
+      -180.0f, 180.0f, {0.5f, 0.5, {0, 0}, {1, 1}}};
   m_curlingAlongLeaf = {0.0f, 90.0f, {0.3f, 0.3f, {0, 0}, {1, 1}}};
+  m_length = 0.35f;
+  m_branchingAngle = 30.0f;
 }
 
 bool SorghumState::OnInspect(int mode) {
   bool changed = false;
+  if (ImGui::TreeNodeEx("Stem")) {
+    if (m_stem.OnInspect(mode))
+      changed = true;
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNodeEx("Leaves")) {
+    int leafSize = m_leaves.size();
+    if (ImGui::InputInt("Size of leaves", &leafSize)) {
+      changed = true;
+      leafSize = glm::clamp(leafSize, 0, 999);
+      auto previousSize = m_leaves.size();
+      m_leaves.resize(leafSize);
+      for (int i = 0; i < leafSize; i++) {
+        if (i >= previousSize) {
+          if (i - 1 >= 0) {
+            m_leaves[i] = m_leaves[i - 1];
+            m_leaves[i].m_rollAngle =
+                glm::mod(m_leaves[i - 1].m_rollAngle + 180.0f, 360.0f);
+            m_leaves[i].m_startingPoint = m_leaves[i - 1].m_startingPoint + 0.1f;
+          }else{
+            m_leaves[i] = ProceduralLeafState();
+            m_leaves[i].m_rollAngle = 0;
+            m_leaves[i].m_startingPoint = 0.1f;
+          }
+        }
+        m_leaves[i].m_index = i;
+      }
+    }
+    for (auto &leaf : m_leaves) {
+      if (ImGui::TreeNode(
+              ("Leaf No." + std::to_string(leaf.m_index + 1)).c_str())) {
+        if (leaf.OnInspect(mode))
+          changed = true;
+        ImGui::TreePop();
+      }
+    }
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNodeEx("Pinnacle")) {
+    if (m_pinnacle.OnInspect())
+      changed = true;
+    ImGui::TreePop();
+  }
   if (mode == (int)StateMode::CubicBezier) {
     FileUtils::OpenFile(
         "Import...", "TXT", {".txt"},
@@ -263,7 +323,8 @@ bool SorghumState::OnInspect(int mode) {
             m_leaves[i] = ProceduralLeafState();
             m_leaves[i].m_startingPoint = startingPoint;
             m_leaves[i].m_spline.Import(file);
-            m_leaves[i].m_spline.m_curves[0].m_p0 = m_stem.m_spline.EvaluatePointFromCurves(startingPoint);
+            m_leaves[i].m_spline.m_curves[0].m_p0 =
+                m_stem.m_spline.EvaluatePointFromCurves(startingPoint);
           }
 
           for (int i = 0; i < leafCount; i++) {
@@ -273,39 +334,6 @@ bool SorghumState::OnInspect(int mode) {
         false);
   }
 
-  if (ImGui::TreeNode("Stem")) {
-    if (m_stem.OnInspect(mode))
-      changed = true;
-    ImGui::TreePop();
-  }
-  if (ImGui::TreeNode("Pinnacle")) {
-    if (m_pinnacle.OnInspect())
-      changed = true;
-    ImGui::TreePop();
-  }
-
-  int leafSize = m_leaves.size();
-  if (ImGui::InputInt("Size of leaves", &leafSize)) {
-    auto previousSize = m_leaves.size();
-    m_leaves.resize(leafSize);
-    for (int i = 0; i < leafSize; i++) {
-      if (i >= previousSize && i - 1 >= 0) {
-        m_leaves[i] = m_leaves[i - 1];
-      }
-      m_leaves[i].m_index = i;
-    }
-  }
-  if (ImGui::TreeNode("Leaves")) {
-    for (auto &leaf : m_leaves) {
-      if (ImGui::TreeNode(
-              ("Leaf No." + std::to_string(leaf.m_index + 1)).c_str())) {
-        if (leaf.OnInspect(mode))
-          changed = true;
-        ImGui::TreePop();
-      }
-    }
-    ImGui::TreePop();
-  }
   return changed;
 }
 
@@ -374,7 +402,7 @@ void ProceduralSorghum::OnInspect() {
     float previousTime = 0.0f;
     int stateIndex = 1;
     for (auto it = m_sorghumStates.begin(); it != m_sorghumStates.end(); ++it) {
-      if (ImGui::TreeNode(("State " + std::to_string(stateIndex)).c_str())) {
+      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex)).c_str(), ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
         if (it != (--m_sorghumStates.end())) {
           auto tit = it;
           ++tit;
@@ -396,7 +424,6 @@ void ProceduralSorghum::OnInspect() {
         if (it->second.OnInspect(m_mode)) {
           changed = true;
         }
-        ImGui::TreePop();
       }
       previousTime = it->first + 0.01f;
       stateIndex++;
