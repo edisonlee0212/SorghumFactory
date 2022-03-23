@@ -252,6 +252,7 @@ bool SorghumState::OnInspect(int mode) {
           file >> leafCount;
           m_stem = ProceduralStemState();
           m_stem.m_spline.Import(file);
+          /*
           // Recenter plant:
           glm::vec3 posSum = m_stem.m_spline.m_curves.front().m_p0;
           for (auto &curve : m_stem.m_spline.m_curves) {
@@ -260,6 +261,7 @@ bool SorghumState::OnInspect(int mode) {
             curve.m_p2 -= posSum;
             curve.m_p3 -= posSum;
           }
+          */
           m_leaves.resize(leafCount);
           for (int i = 0; i < leafCount; i++) {
             float startingPoint;
@@ -267,6 +269,7 @@ bool SorghumState::OnInspect(int mode) {
             m_leaves[i] = ProceduralLeafState();
             m_leaves[i].m_startingPoint = startingPoint;
             m_leaves[i].m_spline.Import(file);
+            m_leaves[i].m_spline.m_curves[0].m_p0 = m_stem.m_spline.EvaluatePointFromCurves(startingPoint);
           }
 
           for (int i = 0; i < leafCount; i++) {

@@ -283,7 +283,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
       position += direction * unitLength;
       break;
     case StateMode::CubicBezier:
-      position = startPosition + middleSpline.EvaluatePointFromCurves(factor);
+      position = middleSpline.EvaluatePointFromCurves(factor);
       break;
     }
     float collarFactor = glm::min(1.0f, (float)i / nodeToFullExpand);
