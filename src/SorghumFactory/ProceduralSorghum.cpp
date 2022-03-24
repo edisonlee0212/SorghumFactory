@@ -273,7 +273,7 @@ bool SorghumState::OnInspect(int mode) {
     }
     for (auto &leaf : m_leaves) {
       if (ImGui::TreeNode(
-              ("Leaf No." + std::to_string(leaf.m_index + 1)).c_str())) {
+              ("Leaf No." + std::to_string(leaf.m_index + 1) + (leaf.m_length == 0.0f ? " (Died)" : "")).c_str())) {
         if (leaf.OnInspect(mode))
           changed = true;
         ImGui::TreePop();
