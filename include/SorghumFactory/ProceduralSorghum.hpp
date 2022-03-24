@@ -7,11 +7,10 @@ namespace SorghumFactory {
 #pragma region States
 enum class StateMode { Default, CubicBezier };
 
-struct ProceduralPinnacleState {
-  bool m_active = false;
-  glm::vec3 m_pinnacleSize = glm::vec3(0, 0, 0);
+struct ProceduralPanicleState {
+  glm::vec3 m_panicleSize = glm::vec3(0, 0, 0);
   int m_seedAmount = 0;
-  float m_seedRadius = 0.0f;
+  float m_seedRadius = 0.002f;
   bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -51,8 +50,7 @@ class SorghumState {
   friend class ProceduralSorghum;
   unsigned m_version = 0;
 public:
-
-  ProceduralPinnacleState m_pinnacle;
+  ProceduralPanicleState m_panicle;
   ProceduralStemState m_stem;
   std::vector<ProceduralLeafState> m_leaves;
   bool OnInspect(int mode);

@@ -5,11 +5,11 @@
 
 using namespace UniEngine;
 namespace SorghumFactory {
-class SORGHUM_FACTORY_API PinnacleData : public IPrivateComponent {
+class SORGHUM_FACTORY_API PanicleData : public IPrivateComponent {
 public:
   std::vector<Vertex> m_vertices;
   std::vector<glm::uvec3> m_triangles;
-  void FormPinnacle(const SorghumStatePair & sorghumStatePair);
+  void FormPanicle(const SorghumStatePair & sorghumStatePair);
   void OnInspect() override;
   void OnDestroy() override;
   void Serialize(YAML::Emitter &out) override;

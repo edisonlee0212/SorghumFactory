@@ -1,13 +1,13 @@
 m_name: Skeleton
 m_version: 18712
 m_hasPinnacle: false
-m_pinnacleSize:
+m_panicleSize:
   m_mean: [0.200000003, 0.75, 0.200000003]
   m_deviation: 0
-m_pinnacleSeedAmount:
+m_panicleSeedAmount:
   m_mean: 1200
   m_deviation: 0
-m_pinnacleSeedRadius:
+m_panicleSeedRadius:
   m_mean: 0.0199999996
   m_deviation: 0
 m_stemDirection: [0, 1, 0]

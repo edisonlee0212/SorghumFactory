@@ -8,11 +8,10 @@ namespace SorghumFactory {
 class SORGHUM_FACTORY_API SorghumStateGenerator : public IAsset {
   unsigned m_version = 0;
 public:
-  //Pinnacle
-  bool m_hasPinnacle;
-  SingleDistribution<glm::vec3> m_pinnacleSize;
-  SingleDistribution<float> m_pinnacleSeedAmount;
-  SingleDistribution<float> m_pinnacleSeedRadius;
+  //Panicle
+  SingleDistribution<glm::vec3> m_panicleSize;
+  SingleDistribution<float> m_panicleSeedAmount;
+  SingleDistribution<float> m_panicleSeedRadius;
   //Stem
   glm::vec3 m_stemDirection;
   SingleDistribution<float> m_stemLength;

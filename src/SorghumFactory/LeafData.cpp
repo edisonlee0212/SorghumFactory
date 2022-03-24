@@ -95,6 +95,8 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
   m_triangles.clear();
   m_segments.clear();
 
+  if(m_nodes.empty()) return;
+
   float leftFreq = glm::mix(actualLeft.m_wavinessFrequency.x,
                             actualRight.m_wavinessFrequency.x, actualA);
   float rightFreq = glm::mix(actualLeft.m_wavinessFrequency.y,
@@ -248,7 +250,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     direction = middleSpline.EvaluateAxisFromCurves(0.0f);
     break;
   }
-
+  if(leafLength == 0.0f) return;
   int nodeForSheath =
       glm::max(2.0f, stemLength * backDistance /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);

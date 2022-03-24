@@ -14,7 +14,7 @@ namespace SorghumFactory {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {
   int m_index = 0;
 };
-struct SORGHUM_FACTORY_API PinnacleTag : IDataComponent {};
+struct SORGHUM_FACTORY_API PanicleTag : IDataComponent {};
 struct SORGHUM_FACTORY_API StemTag : IDataComponent {};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 class SorghumStateGenerator;
@@ -65,12 +65,12 @@ public:
   EntityQuery m_leafQuery;
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
-  EntityArchetype m_pinnacleArchetype;
-  EntityQuery m_pinnacleQuery;
+  EntityArchetype m_panicleArchetype;
+  EntityQuery m_panicleQuery;
   EntityArchetype m_stemArchetype;
   EntityQuery m_stemQuery;
 
-  AssetRef m_pinnacleMaterial;
+  AssetRef m_panicleMaterial;
   AssetRef m_leafMaterial;
   AssetRef m_leafAlbedoTexture;
   AssetRef m_leafNormalTexture;
@@ -87,7 +87,7 @@ public:
   CreateSorghum(const std::shared_ptr<SorghumStateGenerator> &descriptor);
   Entity CreateSorghumStem(const Entity &plantEntity);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
-  Entity CreateSorghumPinnacle(const Entity &plantEntity);
+  Entity CreateSorghumPanicle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums(bool seperated, bool includeStem,
                                   bool segmentedMask);
   Entity ImportPlant(const std::filesystem::path &path,

@@ -10,7 +10,7 @@
 #include "DepthCamera.hpp"
 #include "FieldGround.hpp"
 #include "LeafData.hpp"
-#include "PinnacleData.hpp"
+#include "PanicleData.hpp"
 #include "SkyIlluminance.hpp"
 #include "StemData.hpp"
 #ifdef RAYTRACERFACILITY
@@ -21,7 +21,7 @@ using namespace SorghumFactory;
 using namespace UniEngine;
 using namespace tinyply;
 void SorghumLayer::OnCreate() {
-  ClassRegistry::RegisterDataComponent<PinnacleTag>("PinnacleTag");
+  ClassRegistry::RegisterDataComponent<PanicleTag>("PanicleTag");
   ClassRegistry::RegisterDataComponent<StemTag>("StemTag");
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
@@ -31,7 +31,7 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterPrivateComponent<LeafData>("LeafData");
   ClassRegistry::RegisterPrivateComponent<StemData>("StemData");
-  ClassRegistry::RegisterPrivateComponent<PinnacleData>("PinnacleData");
+  ClassRegistry::RegisterPrivateComponent<PanicleData>("PanicleData");
 
   ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
                                                   ".proceduralsorghum");
@@ -78,10 +78,10 @@ void SorghumLayer::OnCreate() {
   m_stemQuery = Entities::CreateEntityQuery();
   m_stemQuery.SetAllFilters(StemTag());
 
-  m_pinnacleArchetype =
-      Entities::CreateEntityArchetype("Pinnacle", PinnacleTag());
-  m_pinnacleQuery = Entities::CreateEntityQuery();
-  m_pinnacleQuery.SetAllFilters(PinnacleTag());
+  m_panicleArchetype =
+      Entities::CreateEntityArchetype("Panicle", PanicleTag());
+  m_panicleQuery = Entities::CreateEntityQuery();
+  m_panicleQuery.SetAllFilters(PanicleTag());
 
   m_sorghumArchetype = Entities::CreateEntityArchetype("Sorghum", SorghumTag());
   m_sorghumQuery = Entities::CreateEntityQuery();
@@ -108,10 +108,10 @@ void SorghumLayer::OnCreate() {
     material->m_metallic = 0.1f;
   }
 
-  if (!m_pinnacleMaterial.Get<Material>()) {
+  if (!m_panicleMaterial.Get<Material>()) {
     auto material = AssetManager::LoadMaterial(
         DefaultResources::GLPrograms::StandardProgram);
-    m_pinnacleMaterial = material;
+    m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_cullingMode = MaterialCullingMode::Off;
     material->m_albedoColor = glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
@@ -172,7 +172,6 @@ Entity SorghumLayer::CreateSorghumStem(const Entity &plantEntity) {
   entity.SetDataComponent(tag);
   entity.SetDataComponent(transform);
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
-  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
   return entity;
 }
 Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
@@ -189,22 +188,20 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   entity.SetDataComponent(tag);
   entity.SetDataComponent(transform);
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
-  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
   return entity;
 }
-Entity SorghumLayer::CreateSorghumPinnacle(const Entity &plantEntity) {
+Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
   const Entity entity =
-      Entities::CreateEntity(Entities::GetCurrentScene(), m_pinnacleArchetype);
-  entity.SetName("Pinnacle");
+      Entities::CreateEntity(Entities::GetCurrentScene(), m_panicleArchetype);
+  entity.SetName("Panicle");
   entity.SetParent(plantEntity);
   Transform transform;
   transform.SetScale(glm::vec3(1.0f));
-  auto pinnacleData = entity.GetOrSetPrivateComponent<PinnacleData>().lock();
-  PinnacleTag tag;
+  auto panicleData = entity.GetOrSetPrivateComponent<PanicleData>().lock();
+  PanicleTag tag;
   entity.SetDataComponent(tag);
   entity.SetDataComponent(transform);
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
-  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
   return entity;
 }
 

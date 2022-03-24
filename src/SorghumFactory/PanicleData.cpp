@@ -2,28 +2,28 @@
 // Created by lllll on 3/13/2022.
 //
 
-#include "PinnacleData.hpp"
+#include "PanicleData.hpp"
 #include "IVolume.hpp"
 using namespace SorghumFactory;
-void PinnacleData::OnInspect() {
+void PanicleData::OnInspect() {
 
 }
-void PinnacleData::OnDestroy() {
+void PanicleData::OnDestroy() {
   m_vertices.clear();
   m_triangles.clear();
 }
-void PinnacleData::Serialize(YAML::Emitter &out) {
+void PanicleData::Serialize(YAML::Emitter &out) {
   ISerializable::Serialize(out);
 }
-void PinnacleData::Deserialize(const YAML::Node &in) {
+void PanicleData::Deserialize(const YAML::Node &in) {
   ISerializable::Deserialize(in);
 }
-void PinnacleData::FormPinnacle(const SorghumStatePair &sorghumStatePair) {
+void PanicleData::FormPanicle(const SorghumStatePair &sorghumStatePair) {
   m_vertices.clear();
   m_triangles.clear();
-  auto pinnacleSize = glm::mix(sorghumStatePair.m_left.m_pinnacle.m_pinnacleSize, sorghumStatePair.m_right.m_pinnacle.m_pinnacleSize, sorghumStatePair.m_a);
-  auto seedAmount = glm::mix(sorghumStatePair.m_left.m_pinnacle.m_seedAmount, sorghumStatePair.m_right.m_pinnacle.m_seedAmount, sorghumStatePair.m_a);
-  auto seedRadius = glm::mix(sorghumStatePair.m_left.m_pinnacle.m_seedRadius, sorghumStatePair.m_right.m_pinnacle.m_seedRadius, sorghumStatePair.m_a);
+  auto pinnacleSize = glm::mix(sorghumStatePair.m_left.m_panicle.m_panicleSize, sorghumStatePair.m_right.m_panicle.m_panicleSize, sorghumStatePair.m_a);
+  auto seedAmount = glm::mix(sorghumStatePair.m_left.m_panicle.m_seedAmount, sorghumStatePair.m_right.m_panicle.m_seedAmount, sorghumStatePair.m_a);
+  auto seedRadius = glm::mix(sorghumStatePair.m_left.m_panicle.m_seedRadius, sorghumStatePair.m_right.m_panicle.m_seedRadius, sorghumStatePair.m_a);
   std::vector<glm::vec3> icosahedronVertices;
   std::vector<glm::uvec3> icosahedronTriangles;
   SphereMeshGenerator::Icosahedron(icosahedronVertices, icosahedronTriangles);

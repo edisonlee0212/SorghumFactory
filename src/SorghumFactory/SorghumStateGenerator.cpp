@@ -37,26 +37,23 @@ void SorghumStateGenerator::OnInspect() {
         "different leaves from the bottom to top.\nMake sure you Save the "
         "parameters!\nValues are in meters or degrees.");
   }
-
-  bool changed = ImGui::Checkbox("Pinnacle", &m_hasPinnacle);
-  TipMenu("Whether the sorghum has pinnacles");
-  if (m_hasPinnacle) {
-    if (ImGui::TreeNodeEx("Pinnacle settings",
+bool changed = false;
+    if (ImGui::TreeNodeEx("Panicle settings",
                           ImGuiTreeNodeFlags_DefaultOpen)) {
-      TipMenu("The settings for pinnacle. The pinnacle will always be placed "
+      TipMenu("The settings for panicle. The panicle will always be placed "
               "at the tip of the stem.");
-      if (m_pinnacleSize.OnInspect("Size", 0.001f, "The size of pinnacle")) {
+      if (m_panicleSize.OnInspect("Size", 0.001f, "The size of panicle")) {
         changed = true;
       }
-      if (m_pinnacleSeedAmount.OnInspect("Seed amount", 1.0f,
-                                         "The amount of seeds in the pinnacle"))
+      if (m_panicleSeedAmount.OnInspect("Seed amount", 1.0f,
+                                         "The amount of seeds in the panicle"))
         changed = true;
-      if (m_pinnacleSeedRadius.OnInspect(
-              "Seed radius", 0.001f, "The size of the seed in the pinnacle"))
+      if (m_panicleSeedRadius.OnInspect(
+              "Seed radius", 0.001f, "The size of the seed in the panicle"))
         changed = true;
       ImGui::TreePop();
     }
-  }
+
   if (ImGui::TreeNodeEx("Stem settings", ImGuiTreeNodeFlags_DefaultOpen)) {
     TipMenu("The settings for stem.");
     /*
@@ -66,7 +63,7 @@ void SorghumStateGenerator::OnInspect() {
     if (m_stemLength.OnInspect(
             "Length", 0.01f,
             "The length of the stem, use Ending Point in leaf settings to make "
-            "stem taller than top leaf for pinnacle"))
+            "stem taller than top leaf for panicle"))
       changed = true;
     if (m_stemWidth.OnInspect("Width", 0.001f,
                               "The overall width of the stem, adjust the width "
@@ -151,7 +148,7 @@ void SorghumStateGenerator::OnInspect() {
         "The smoothness of bending along the leaf."};
 
     if (m_leafBendingSmoothness.OnInspect("Bending smoothness",
-                                            leafBendingSmoothness))
+                                          leafBendingSmoothness))
       changed = true;
 
     if (m_leafWaviness.OnInspect("Waviness"))
@@ -182,11 +179,9 @@ void SorghumStateGenerator::OnInspect() {
 }
 void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_version" << YAML::Value << m_version;
-
-  out << YAML::Key << "m_hasPinnacle" << YAML::Value << m_hasPinnacle;
-  m_pinnacleSize.Serialize("m_pinnacleSize", out);
-  m_pinnacleSeedAmount.Serialize("m_pinnacleSeedAmount", out);
-  m_pinnacleSeedRadius.Serialize("m_pinnacleSeedRadius", out);
+  m_panicleSize.Serialize("m_panicleSize", out);
+  m_panicleSeedAmount.Serialize("m_panicleSeedAmount", out);
+  m_panicleSeedRadius.Serialize("m_panicleSeedRadius", out);
 
   out << YAML::Key << "m_stemDirection" << YAML::Value << m_stemDirection;
   m_stemLength.Serialize("m_stemLength", out);
@@ -215,11 +210,9 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   if (in["m_version"])
     m_version = in["m_version"].as<unsigned>();
 
-  if (in["m_hasPinnacle"])
-    m_hasPinnacle = in["m_hasPinnacle"].as<bool>();
-  m_pinnacleSize.Deserialize("m_pinnacleSize", in);
-  m_pinnacleSeedAmount.Deserialize("m_pinnacleSeedAmount", in);
-  m_pinnacleSeedRadius.Deserialize("m_pinnacleSeedRadius", in);
+  m_panicleSize.Deserialize("m_panicleSize", in);
+  m_panicleSeedAmount.Deserialize("m_panicleSeedAmount", in);
+  m_panicleSeedRadius.Deserialize("m_panicleSeedRadius", in);
 
   if (in["m_stemDirection"])
     m_stemDirection = in["m_stemDirection"].as<glm::vec3>();
@@ -303,23 +296,19 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
     points.push_back(rightDelta * (1.0f - bendingSmoothness));
     points.emplace_back(1.0, bending);
     points.emplace_back(0.1, 0.0f);
-
   }
 
-  endState.m_pinnacle.m_active = m_hasPinnacle;
-  if (endState.m_pinnacle.m_active) {
-    endState.m_pinnacle.m_seedAmount = m_pinnacleSeedAmount.GetValue();
-    endState.m_pinnacle.m_pinnacleSize = m_pinnacleSize.GetValue();
-    endState.m_pinnacle.m_seedRadius = m_pinnacleSeedRadius.GetValue();
-  }
+  endState.m_panicle.m_seedAmount = m_panicleSeedAmount.GetValue();
+  endState.m_panicle.m_panicleSize = m_panicleSize.GetValue();
+  endState.m_panicle.m_seedRadius = m_panicleSeedRadius.GetValue();
+
   return endState;
 }
 unsigned SorghumStateGenerator::GetVersion() const { return m_version; }
 void SorghumStateGenerator::OnCreate() {
-  m_hasPinnacle = false;
-  m_pinnacleSize.m_mean = glm::vec3(0.01, 0.1, 0.01);
-  m_pinnacleSeedAmount.m_mean = 1200;
-  m_pinnacleSeedRadius.m_mean = 0.002f;
+  m_panicleSize.m_mean = glm::vec3(0.0, 0.0, 0.0);
+  m_panicleSeedAmount.m_mean = 0;
+  m_panicleSeedRadius.m_mean = 0.002f;
 
   m_stemDirection = {0, 1, 0};
   m_stemLength.m_mean = 0.449999988f;

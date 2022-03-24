@@ -23,7 +23,6 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
     // Get from zero state to first state.
     retVal.m_left = SorghumState();
     retVal.m_left.m_leaves.clear();
-    retVal.m_left.m_pinnacle.m_active = false;
     retVal.m_left.m_stem.m_length = 0;
     retVal.m_right = m_sorghumStates.begin()->second;
     retVal.m_a = actualTime / previousTime;
@@ -47,27 +46,24 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
   return retVal;
 }
 
-bool ProceduralPinnacleState::OnInspect() {
-  bool changed = ImGui::Checkbox("Active", &m_active);
-  if (ImGui::DragFloat3("Pinnacle size", &m_pinnacleSize.x, 0.01f))
+bool ProceduralPanicleState::OnInspect() {
+  bool changed = false;
+  if (ImGui::DragFloat3("Pinnacle size", &m_panicleSize.x, 0.001f))
     changed = true;
-  if (ImGui::DragInt("Num of seeds", &m_seedAmount, 0.01f))
+  if (ImGui::DragInt("Num of seeds", &m_seedAmount, 1.0f))
     changed = true;
-  if (ImGui::DragFloat("Seed radius", &m_seedRadius, 0.01f))
+  if (ImGui::DragFloat("Seed radius", &m_seedRadius, 0.0001f))
     changed = true;
   return changed;
 }
-void ProceduralPinnacleState::Serialize(YAML::Emitter &out) {
-  out << YAML::Key << "m_active" << YAML::Value << m_active;
-  out << YAML::Key << "m_pinnacleSize" << YAML::Value << m_pinnacleSize;
+void ProceduralPanicleState::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_panicleSize" << YAML::Value << m_panicleSize;
   out << YAML::Key << "m_seedAmount" << YAML::Value << m_seedAmount;
   out << YAML::Key << "m_seedRadius" << YAML::Value << m_seedRadius;
 }
-void ProceduralPinnacleState::Deserialize(const YAML::Node &in) {
-  if (in["m_active"])
-    m_active = in["m_active"].as<bool>();
-  if (in["m_pinnacleSize"])
-    m_pinnacleSize = in["m_pinnacleSize"].as<glm::vec3>();
+void ProceduralPanicleState::Deserialize(const YAML::Node &in) {
+  if (in["m_panicleSize"])
+    m_panicleSize = in["m_panicleSize"].as<glm::vec3>();
   if (in["m_seedAmount"])
     m_seedAmount = in["m_seedAmount"].as<int>();
   if (in["m_seedRadius"])
@@ -120,7 +116,7 @@ bool ProceduralLeafState::OnInspect(int mode) {
     if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
         changed = true;
-      if (ImGui::TreeNodeEx("Angle", ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (ImGui::TreeNodeEx("Angles", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
           changed = true;
         if (ImGui::SliderFloat("Branching angle", &m_branchingAngle, 0.0f,
@@ -140,9 +136,9 @@ bool ProceduralLeafState::OnInspect(int mode) {
   }
 
   if (ImGui::TreeNodeEx("Others")) {
-    if (m_widthAlongLeaf.OnInspect("Width along leaf"))
+    if (m_widthAlongLeaf.OnInspect("Width"))
       changed = true;
-    if (m_curlingAlongLeaf.OnInspect("Curling along leaf"))
+    if (m_curlingAlongLeaf.OnInspect("Rolling"))
       changed = true;
 
     static CurveDescriptorSettings leafBending = {1.0f, false, true, "The bending of the leaf, controls how leaves bend because of "
@@ -254,7 +250,7 @@ bool SorghumState::OnInspect(int mode) {
 
   if (ImGui::TreeNodeEx("Leaves")) {
     int leafSize = m_leaves.size();
-    if (ImGui::InputInt("Size of leaves", &leafSize)) {
+    if (ImGui::InputInt("Number of leaves", &leafSize)) {
       changed = true;
       leafSize = glm::clamp(leafSize, 0, 999);
       auto previousSize = m_leaves.size();
@@ -286,8 +282,8 @@ bool SorghumState::OnInspect(int mode) {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Pinnacle")) {
-    if (m_pinnacle.OnInspect())
+  if (ImGui::TreeNodeEx("Panicle")) {
+    if (m_panicle.OnInspect())
       changed = true;
     ImGui::TreePop();
   }
@@ -340,8 +336,8 @@ bool SorghumState::OnInspect(int mode) {
 void SorghumState::Serialize(YAML::Emitter &out) {
 
   out << YAML::Key << "m_version" << YAML::Value << m_version;
-  out << YAML::Key << "m_pinnacle" << YAML::Value << YAML::BeginMap;
-  m_pinnacle.Serialize(out);
+  out << YAML::Key << "m_panicle" << YAML::Value << YAML::BeginMap;
+  m_panicle.Serialize(out);
   out << YAML::EndMap;
   out << YAML::Key << "m_stem" << YAML::Value << YAML::BeginMap;
   m_stem.Serialize(out);
@@ -361,8 +357,8 @@ void SorghumState::Deserialize(const YAML::Node &in) {
   if (in["m_version"])
     m_version = in["m_version"].as<unsigned>();
 
-  if (in["m_pinnacle"])
-    m_pinnacle.Deserialize(in["m_pinnacle"]);
+  if (in["m_panicle"])
+    m_panicle.Deserialize(in["m_panicle"]);
 
   if (in["m_stem"])
     m_stem.Deserialize(in["m_stem"]);
