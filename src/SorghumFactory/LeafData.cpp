@@ -17,12 +17,12 @@ void LeafData::OnInspect() {
     ImGui::TreePop();
   }
   static bool renderNodes = false;
-  static float nodeSize = 0.1f;
+  static float nodeSize = 0.01f;
   static glm::vec4 renderColor = glm::vec4(1.0f);
   ImGui::Checkbox("Render nodes", &renderNodes);
   if (renderNodes) {
     if (ImGui::TreeNodeEx("Render settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-      ImGui::DragFloat("Size", &nodeSize, 0.01f, 0.01f, 1.0f);
+      ImGui::DragFloat("Size", &nodeSize, 0.001f, 0.001f, 1.0f);
       ImGui::ColorEdit4("Color", &renderColor.x);
       ImGui::TreePop();
     }
