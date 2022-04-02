@@ -1,4 +1,4 @@
-#include "AssetManager.hpp"
+#include "ProjectManager.hpp"
 #include "SorghumLayer.hpp"
 #include <SorghumStateGenerator.hpp>
 #include <rapidxml.hpp>
@@ -16,8 +16,7 @@ void TipMenu(const std::string &content) {
 
 void SorghumStateGenerator::OnInspect() {
   if (ImGui::Button("Instantiate")) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghum(
-        AssetManager::Get<SorghumStateGenerator>(GetHandle()));
+    Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<SorghumStateGenerator>(m_self.lock()));
   }
   if (!m_saved) {
     ImGui::Text("Warning: Changed not saved!");

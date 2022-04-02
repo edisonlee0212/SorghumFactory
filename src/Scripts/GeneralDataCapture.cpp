@@ -7,6 +7,7 @@
 #include "TransformLayer.hpp"
 #include <SorghumData.hpp>
 #include <SorghumStateGenerator.hpp>
+#include "Prefab.hpp"
 using namespace Scripts;
 void GeneralDataCapture::OnInspect() {
   Editor::DragAndDropButton<SorghumStateGenerator>(m_parameters,
@@ -80,7 +81,7 @@ void GeneralDataCapture::OnAfterGrowth(
   auto rayTracerCamera =
       m_rayTracerCamera.GetOrSetPrivateComponent<RayTracerCamera>().lock();
   auto prefix =
-      m_parameters.Get<SorghumStateGenerator>()->GetPath().stem().string() +
+      m_parameters.Get<SorghumStateGenerator>()->GetAssetRecord().lock()->GetAssetFileName() +
       "_" + std::to_string(pipeline.m_currentIndex);
   m_sorghumInfos.push_back({GlobalTransform(), prefix});
   switch (m_captureStatus) {
@@ -89,7 +90,7 @@ void GeneralDataCapture::OnAfterGrowth(
       pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock()
           ->ExportModel((ProjectManager::GetProjectPath().parent_path().parent_path() /
-                         m_currentExportFolder / m_name / "Mesh" /
+                         m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "Mesh" /
                          (prefix + ".obj"))
                             .string());
     }
@@ -116,7 +117,7 @@ void GeneralDataCapture::OnAfterGrowth(
         Application::GetLayer<RayTracerLayer>()->UpdateScene();
         rayTracerCamera->Render(m_rayProperties);
         rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
-            m_currentExportFolder / m_name / "Image" /
+            m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "Image" /
             ("side_" + prefix + "_" + std::to_string(turnAngle) + "_image.png"));
       }
       cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
@@ -133,7 +134,7 @@ void GeneralDataCapture::OnAfterGrowth(
         Application::GetLayer<RayTracerLayer>()->UpdateScene();
         rayTracerCamera->Render(m_rayProperties);
         rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
-            m_currentExportFolder / m_name / "Image" /
+            m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "Image" /
             ("top_" + prefix + "_" + std::to_string(turnAngle) + "_image.png"));
       }
     }
@@ -176,7 +177,7 @@ void GeneralDataCapture::OnAfterGrowth(
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
-          m_currentExportFolder / m_name / "Mask" /
+          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
           ("side_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
     cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
@@ -193,7 +194,7 @@ void GeneralDataCapture::OnAfterGrowth(
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(ProjectManager::GetProjectPath().parent_path().parent_path() /
-          m_currentExportFolder / m_name / "Mask" /
+          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
           ("top_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
 
@@ -323,8 +324,7 @@ void GeneralDataCapture::Instantiate() {
   auto pipeline =
       pipelineEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
           .lock();
-  pipeline->m_pipelineBehaviour =
-      AssetManager::Get<GeneralDataCapture>(GetHandle());
+  pipeline->m_pipelineBehaviour = std::dynamic_pointer_cast<GeneralDataCapture>(m_self.lock());
 }
 bool GeneralDataCapture::IsReady() {
   return m_parameters.Get<SorghumStateGenerator>().get();
@@ -348,25 +348,24 @@ void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
   m_sorghumInfos.clear();
   std::filesystem::create_directories(
       ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
-      m_name);
+      GetAssetRecord().lock()->GetAssetFileName());
   if (m_captureImage) {
     std::filesystem::create_directories(
         ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
-        m_name / "Image");
+        GetAssetRecord().lock()->GetAssetFileName() / "Image");
   }
   if (m_captureMask) {
     std::filesystem::create_directories(
         ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
-        m_name / "Mask");
+        GetAssetRecord().lock()->GetAssetFileName() / "Mask");
   }
   if (m_captureMesh) {
     std::filesystem::create_directories(
         ProjectManager::GetProjectPath().parent_path().parent_path() / m_currentExportFolder /
-        m_name / "Mesh");
+        GetAssetRecord().lock()->GetAssetFileName() / "Mesh");
   }
 }
 void GeneralDataCapture::End(AutoSorghumGenerationPipeline &pipeline) {
-  ProjectManager::ScanProjectFolder(true);
   if (m_lab.IsValid())
     Entities::DeleteEntity(Entities::GetCurrentScene(), m_lab);
   if (m_dirt.IsValid())

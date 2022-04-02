@@ -34,20 +34,20 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterPrivateComponent<PanicleData>("PanicleData");
 
   ClassRegistry::RegisterAsset<ProceduralSorghum>("ProceduralSorghum",
-                                                  ".proceduralsorghum");
-  ClassRegistry::RegisterAsset<SorghumStateGenerator>("SorghumStateGenerator",
-                                                      ".sorghumstategenerator");
-  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", ".sorghumfield");
+                                                  {".proceduralsorghum"});
+  ClassRegistry::RegisterAsset<SorghumStateGenerator>(
+      "SorghumStateGenerator", {".sorghumstategenerator"});
+  ClassRegistry::RegisterAsset<SorghumField>("SorghumField", {".sorghumfield"});
 #ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup",
-                                               ".parsensorgroup");
+                                               {".parsensorgroup"});
 #endif
   ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance",
-                                               ".skyilluminance");
+                                               {".skyilluminance"});
   ClassRegistry::RegisterAsset<RectangularSorghumField>(
-      "RectangularSorghumField", ".rectsorghumfield");
+      "RectangularSorghumField", {".rectsorghumfield"});
   ClassRegistry::RegisterAsset<PositionsField>("PositionsField",
-                                               ".possorghumfield");
+                                               {".possorghumfield"});
 
   auto texture2D = std::make_shared<Texture2D>();
   texture2D->Import(std::filesystem::absolute(
@@ -78,8 +78,7 @@ void SorghumLayer::OnCreate() {
   m_stemQuery = Entities::CreateEntityQuery();
   m_stemQuery.SetAllFilters(StemTag());
 
-  m_panicleArchetype =
-      Entities::CreateEntityArchetype("Panicle", PanicleTag());
+  m_panicleArchetype = Entities::CreateEntityArchetype("Panicle", PanicleTag());
   m_panicleQuery = Entities::CreateEntityQuery();
   m_panicleQuery.SetAllFilters(PanicleTag());
 
@@ -88,7 +87,7 @@ void SorghumLayer::OnCreate() {
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
   if (!m_leafAlbedoTexture.Get<Texture2D>()) {
-    auto albedo = AssetManager::CreateAsset<Texture2D>("Leaf texture");
+    auto albedo = ProjectManager::CreateTemporaryAsset<Texture2D>();
     albedo->Import(std::filesystem::absolute(
         std::filesystem::path("./SorghumFactoryResources/Textures") /
         "leafSurface.png"));
@@ -96,8 +95,8 @@ void SorghumLayer::OnCreate() {
   }
 
   if (!m_leafMaterial.Get<Material>()) {
-    auto material = AssetManager::LoadMaterial(
-        DefaultResources::GLPrograms::StandardProgram);
+    auto material = ProjectManager::CreateTemporaryAsset<Material>();
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     m_leafMaterial = material;
     material->m_albedoTexture = m_leafAlbedoTexture;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
@@ -109,8 +108,8 @@ void SorghumLayer::OnCreate() {
   }
 
   if (!m_panicleMaterial.Get<Material>()) {
-    auto material = AssetManager::LoadMaterial(
-        DefaultResources::GLPrograms::StandardProgram);
+    auto material = ProjectManager::CreateTemporaryAsset<Material>();
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_cullingMode = MaterialCullingMode::Off;
@@ -121,10 +120,9 @@ void SorghumLayer::OnCreate() {
 
   for (auto &i : m_segmentedLeafMaterials) {
     if (!i.Get<Material>()) {
-      auto material = AssetManager::LoadMaterial(
-          DefaultResources::GLPrograms::StandardProgram);
-      i = material;
+      auto material = ProjectManager::CreateTemporaryAsset<Material>();
       material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+      i = material;
       material->m_cullingMode = MaterialCullingMode::Off;
       material->m_albedoColor =
           glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
@@ -147,16 +145,15 @@ Entity SorghumLayer::CreateSorghum() {
   auto mmc = entity.GetOrSetPrivateComponent<MeshRenderer>().lock();
   // mmc->m_material = m_segmentedLeafMaterials[leafIndex];
   {
-    auto material = AssetManager::LoadMaterial(
-        DefaultResources::GLPrograms::StandardProgram);
-    mmc->m_material = material;
+    auto material = ProjectManager::CreateTemporaryAsset<Material>();
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    mmc->m_material = material;
     material->m_cullingMode = MaterialCullingMode::Off;
     material->m_albedoColor = glm::vec3(0, 0, 0);
     material->m_roughness = 1.0f;
     material->m_metallic = 0.0f;
   }
-  mmc->m_mesh = AssetManager::CreateAsset<Mesh>();
+  mmc->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
   return entity;
 }
 Entity SorghumLayer::CreateSorghumStem(const Entity &plantEntity) {
@@ -678,7 +675,7 @@ SorghumLayer::ScanPointCloud(const Entity &sorghum, float boundingBoxRadius,
                              glm::vec2 boundingBoxHeightRange,
                              glm::vec2 pointDistance, float scannerAngle) {
   std::shared_ptr<PointCloud> pointCloud =
-      AssetManager::CreateAsset<PointCloud>();
+      ProjectManager::CreateTemporaryAsset<PointCloud>();
 #ifdef RAYTRACERFACILITY
   auto boundingBoxHeight = boundingBoxHeightRange.y - boundingBoxHeightRange.x;
   auto planeSize =

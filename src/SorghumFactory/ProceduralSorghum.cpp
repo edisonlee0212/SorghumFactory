@@ -374,8 +374,7 @@ void SorghumState::Deserialize(const YAML::Node &in) {
 
 void ProceduralSorghum::OnInspect() {
   if (ImGui::Button("Instantiate")) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghum(
-        AssetManager::Get<ProceduralSorghum>(GetHandle()));
+    Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
   }
   if(!m_saved){
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));

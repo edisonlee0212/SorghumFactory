@@ -58,15 +58,16 @@ void SorghumData::OnInspect() {
       FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
                           [this](const std::filesystem::path &path) {
                             ExportModel(path.string());
-                          });
+                          }, false);
 
       ImGui::TreePop();
     }
-    if (ImGui::Button("Scan point cloud")) {
+    FileUtils::SaveFile("Export Point cloud", "Point cloud", {".uepc"},
+                          [this](const std::filesystem::path &path) {
       auto pointCloud =
           Application::GetLayer<SorghumLayer>()->ScanPointCloud(GetOwner());
-      AssetManager::Share(pointCloud);
-    }
+      pointCloud->Export(path);
+    }, false);
   }
 }
 
@@ -176,60 +177,59 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
     std::vector<UniEngine::Vertex> vertices;
     std::vector<glm::uvec3> triangles;
     int i = 0;
-    GetOwner().ForEachChild(
-        [&](const std::shared_ptr<Scene> &scene, Entity child) {
-          if (includeStem && child.HasDataComponent<StemTag>()) {
-            auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
-            vertices.insert(vertices.end(), stemData->m_vertices.begin(),
-                            stemData->m_vertices.end());
-            for (const auto &triangle : stemData->m_triangles) {
-              triangles.emplace_back(triangle.x + vertexCount,
-                                     triangle.y + vertexCount,
-                                     triangle.z + vertexCount);
-            }
-            vertexCount = vertices.size();
-          } else if (child.HasDataComponent<LeafTag>()) {
-            auto leafData = child.GetOrSetPrivateComponent<LeafData>().lock();
-            vertices.insert(vertices.end(), leafData->m_vertices.begin(),
-                            leafData->m_vertices.end());
-            for (const auto &triangle : leafData->m_triangles) {
-              triangles.emplace_back(triangle.x + vertexCount,
-                                     triangle.y + vertexCount,
-                                     triangle.z + vertexCount);
-            }
-            vertexCount = vertices.size();
+    GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
+                                Entity child) {
+      if (includeStem && child.HasDataComponent<StemTag>()) {
+        auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
+        vertices.insert(vertices.end(), stemData->m_vertices.begin(),
+                        stemData->m_vertices.end());
+        for (const auto &triangle : stemData->m_triangles) {
+          triangles.emplace_back(triangle.x + vertexCount,
+                                 triangle.y + vertexCount,
+                                 triangle.z + vertexCount);
+        }
+        vertexCount = vertices.size();
+      } else if (child.HasDataComponent<LeafTag>()) {
+        auto leafData = child.GetOrSetPrivateComponent<LeafData>().lock();
+        vertices.insert(vertices.end(), leafData->m_vertices.begin(),
+                        leafData->m_vertices.end());
+        for (const auto &triangle : leafData->m_triangles) {
+          triangles.emplace_back(triangle.x + vertexCount,
+                                 triangle.y + vertexCount,
+                                 triangle.z + vertexCount);
+        }
+        vertexCount = vertices.size();
 
-          } else if (child.HasDataComponent<PanicleTag>()) {
-            auto panicleData =
-                child.GetOrSetPrivateComponent<PanicleData>().lock();
-            auto meshRenderer =
-                child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-            if(!panicleData->m_vertices.empty()) {
-              meshRenderer->m_mesh = AssetManager::CreateAsset<Mesh>();
-              meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
-                  17, panicleData->m_vertices, panicleData->m_triangles);
-              meshRenderer->m_material =
-                  Application::GetLayer<SorghumLayer>()->m_panicleMaterial;
-            }else{
-              meshRenderer->m_mesh.Clear();
-            }
-          }
-          i++;
+      } else if (child.HasDataComponent<PanicleTag>()) {
+        auto panicleData = child.GetOrSetPrivateComponent<PanicleData>().lock();
+        auto meshRenderer =
+            child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+        if (!panicleData->m_vertices.empty()) {
+          meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
+          meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
+              17, panicleData->m_vertices, panicleData->m_triangles);
+          meshRenderer->m_material =
+              Application::GetLayer<SorghumLayer>()->m_panicleMaterial;
+        } else {
+          meshRenderer->m_mesh.Clear();
+        }
+      }
+      i++;
 #ifdef RAYTRACERFACILITY
-          if (sorghumLayer->m_enableMLVQ) {
-            auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
-            rtt->Sync();
-            rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
-          }
+      if (sorghumLayer->m_enableMLVQ) {
+        auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+        rtt->Sync();
+        rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+      }
 #endif
-        });
+    });
     auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
     meshRenderer->m_material =
         Application::GetLayer<SorghumLayer>()->m_leafMaterial;
-    if(!vertices.empty()) {
-      meshRenderer->m_mesh = AssetManager::CreateAsset<Mesh>();
+    if (!vertices.empty()) {
+      meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
       meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices, triangles);
-    }else{
+    } else {
       meshRenderer->m_mesh.Clear();
     }
 #ifdef RAYTRACERFACILITY
@@ -248,18 +248,17 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
         auto meshRenderer =
             child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-        if(!stemData->m_vertices.empty()) {
-          meshRenderer->m_mesh = AssetManager::CreateAsset<Mesh>();
+        if (!stemData->m_vertices.empty()) {
+          meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
               17, stemData->m_vertices, stemData->m_triangles);
-        }else{
+        } else {
           meshRenderer->m_mesh.Clear();
         }
         if (segmentedMask) {
-          auto material = AssetManager::LoadMaterial(
-              DefaultResources::GLPrograms::StandardProgram);
-          meshRenderer->m_material = material;
+          auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+          meshRenderer->m_material = material;
           material->m_cullingMode = MaterialCullingMode::Off;
           material->m_albedoColor = stemData->m_vertexColor;
           material->m_roughness = 1.0f;
@@ -279,16 +278,15 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         auto leafData = child.GetOrSetPrivateComponent<LeafData>().lock();
         auto meshRenderer =
             child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-        if(!leafData->m_vertices.empty()) {
-          meshRenderer->m_mesh = AssetManager::CreateAsset<Mesh>();
+        if (!leafData->m_vertices.empty()) {
+          meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
               17, leafData->m_vertices, leafData->m_triangles);
-        }else{
+        } else {
           meshRenderer->m_mesh.Clear();
         }
         if (segmentedMask) {
-          auto material = AssetManager::LoadMaterial(
-              DefaultResources::GLPrograms::StandardProgram);
+          auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_cullingMode = MaterialCullingMode::Off;
@@ -301,20 +299,18 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         }
 
       } else if (child.HasDataComponent<PanicleTag>()) {
-        auto panicleData =
-            child.GetOrSetPrivateComponent<PanicleData>().lock();
+        auto panicleData = child.GetOrSetPrivateComponent<PanicleData>().lock();
         auto meshRenderer =
             child.GetOrSetPrivateComponent<MeshRenderer>().lock();
-        if(!panicleData->m_vertices.empty()) {
-          meshRenderer->m_mesh = AssetManager::CreateAsset<Mesh>();
+        if (!panicleData->m_vertices.empty()) {
+          meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
               17, panicleData->m_vertices, panicleData->m_triangles);
-        }else{
+        } else {
           meshRenderer->m_mesh.Clear();
         }
         if (segmentedMask) {
-          auto material = AssetManager::LoadMaterial(
-              DefaultResources::GLPrograms::StandardProgram);
+          auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_cullingMode = MaterialCullingMode::Off;

@@ -84,7 +84,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
   }
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (sorghumLayer) {
-    auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
+    auto fieldAsset = std::dynamic_pointer_cast<SorghumField>(m_self.lock());
     auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
     // Create sorghums here.
     int size = 0;
@@ -283,7 +283,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (sorghumLayer) {
     glm::dvec2 center = m_positions[i];
-    auto fieldAsset = AssetManager::Get<SorghumField>(GetHandle());
+    auto fieldAsset = std::dynamic_pointer_cast<PositionsField>(m_self.lock());
     auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
     // Create sorghums here.
     int size = 0;

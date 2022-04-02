@@ -29,13 +29,14 @@ int main() {
   ClassRegistry::RegisterPrivateComponent<IlluminationEstimation>(
       "IlluminationEstimation");
   ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
-                                                   ".gdc");
+                                                   {".gdc"});
 #endif
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
-                                                  ".pcc");
+                                                  {".pcc"});
   ClassRegistry::RegisterPrivateComponent<ObjectRotator>("ObjectRotator");
 
   ApplicationConfigs applicationConfigs;
+  applicationConfigs.m_applicationName = "Sorghum Factory";
   Application::Create(applicationConfigs);
 #ifdef RAYTRACERFACILITY
   Application::PushLayer<RayTracerLayer>();

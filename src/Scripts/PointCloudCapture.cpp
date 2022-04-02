@@ -34,7 +34,7 @@ void Scripts::PointCloudCapture::OnAfterGrowth(
       pipeline.m_currentGrowingSorghum, m_currentSorghumField,
       std::filesystem::absolute(
           ProjectManager::GetProjectPath().parent_path().parent_path() /
-          m_currentExportFolder / m_name / "PointCloud" /
+          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud" /
           (std::to_string(pipeline.m_currentIndex) + std::string(".ply"))),
       m_settings);
 
@@ -59,7 +59,7 @@ void Scripts::PointCloudCapture::Start(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   std::filesystem::create_directories(
       std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path().parent_path() /
-                                m_currentExportFolder / m_name / "PointCloud"));
+                                m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud"));
   m_ground = Entities::CreateEntity(Entities::GetCurrentScene(), "Ground");
   auto fieldGround = m_ground.GetOrSetPrivateComponent<FieldGround>().lock();
   m_settings.m_ground = m_ground;
@@ -88,7 +88,7 @@ void Scripts::PointCloudCapture::Instantiate() {
       pointCloudCaptureEntity
           .GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
           .lock();
-  pointCloudPipeline->m_pipelineBehaviour = AssetManager::Get<PointCloudCapture>(GetHandle());
+  pointCloudPipeline->m_pipelineBehaviour = std::dynamic_pointer_cast<PointCloudCapture>(m_self.lock());
 }
 void Scripts::PointCloudCapture::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_positionsField);

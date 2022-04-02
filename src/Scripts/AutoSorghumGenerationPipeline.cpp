@@ -74,7 +74,7 @@ void AutoSorghumGenerationPipeline::DropBehaviourButton() {
     auto behaviour =
         m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>();
     ImGui::Text("Current attached behaviour: ");
-    ImGui::Button(behaviour->GetName().c_str());
+    ImGui::Button(behaviour->GetTitle().c_str());
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
       Editor::GetInstance().m_inspectingAsset = behaviour;
     }

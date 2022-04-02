@@ -38,8 +38,8 @@ void SorghumFactory::FieldGround::GenerateMesh(float overrideDepth) {
   }
   auto meshRenderer =
       GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
-  auto mesh = AssetManager::CreateAsset<Mesh>();
-  auto material = AssetManager::CreateAsset<Material>();
+  auto mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
+  auto material = ProjectManager::CreateTemporaryAsset<Material>();
   mesh->SetVertices(17, vertices, triangles);
   meshRenderer->m_mesh = mesh;
   meshRenderer->m_material = material;
