@@ -106,12 +106,12 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
         break;
     }
 
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
+        false, true, false);
+
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
                                                 field);
-
-    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
-        false, true, false);
     field.SetStatic(true);
     return field;
   } else {
@@ -316,11 +316,12 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
         break;
     }
 
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
+        true, true, false);
+
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
                                                 field);
-    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
-        true, true, false);
     field.SetStatic(true);
 
     return {centerSorghum, field};

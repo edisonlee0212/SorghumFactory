@@ -205,21 +205,15 @@ Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
 void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
                                               bool segmentedMask) {
   std::vector<Entity> plants;
-  Entities::ForEach<GlobalTransform>(
-      Entities::GetCurrentScene(), Jobs::Workers(), m_sorghumQuery,
-      [=](int index, Entity entity, GlobalTransform &ltw) {
-        if (entity.HasPrivateComponent<SorghumData>()) {
-          auto sorghumData =
-              entity.GetOrSetPrivateComponent<SorghumData>().lock();
-          sorghumData->GenerateGeometry();
-        }
-      });
-
   m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
-    if (plant.HasPrivateComponent<SorghumData>())
-      plant.GetOrSetPrivateComponent<SorghumData>().lock()->ApplyGeometry(
+    if (plant.HasPrivateComponent<SorghumData>()) {
+      auto sorghumData =
+          plant.GetOrSetPrivateComponent<SorghumData>().lock();
+      sorghumData->GenerateGeometry();
+      sorghumData->ApplyGeometry(
           seperated, includeStem, segmentedMask);
+    }
   }
 }
 
