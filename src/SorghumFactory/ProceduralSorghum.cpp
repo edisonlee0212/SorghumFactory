@@ -376,11 +376,7 @@ void ProceduralSorghum::OnInspect() {
   if (ImGui::Button("Instantiate")) {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
   }
-  if(!m_saved){
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
-    ImGui::Text("[[!!!Changed unsaved!!!]]");
-    ImGui::PopStyleColor();
-  }
+
 
   bool changed = false;
   if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
@@ -466,6 +462,36 @@ void ProceduralSorghum::OnInspect() {
   if (changed) {
     m_saved = false;
     m_version++;
+  }
+
+  static double lastAutoSaveTime = 0;
+  static float autoSaveInterval = 5;
+  static bool autoSave = true;
+  ImGui::Checkbox("Auto save", &autoSave);
+  if(autoSave) {
+    if(ImGui::TreeNodeEx("Auto save settings")) {
+      if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
+                       300.0f)){
+        autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
+      }
+      if (lastAutoSaveTime == 0) {
+        lastAutoSaveTime = Application::Time().CurrentTime();
+      } else if (lastAutoSaveTime + autoSaveInterval <
+                 Application::Time().CurrentTime()) {
+        lastAutoSaveTime = Application::Time().CurrentTime();
+        if (!m_saved) {
+          Save();
+          UNIENGINE_LOG(GetTypeName() + " autosaved!");
+        }
+      }
+      ImGui::TreePop();
+    }
+  }else {
+    if(!m_saved){
+      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
+      ImGui::Text("[Changed unsaved!]");
+      ImGui::PopStyleColor();
+    }
   }
 }
 

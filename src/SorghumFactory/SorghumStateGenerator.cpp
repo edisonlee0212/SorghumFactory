@@ -16,11 +16,8 @@ void TipMenu(const std::string &content) {
 
 void SorghumStateGenerator::OnInspect() {
   if (ImGui::Button("Instantiate")) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<SorghumStateGenerator>(m_self.lock()));
-  }
-  if (!m_saved) {
-    ImGui::Text("Warning: Changed not saved!");
-    TipMenu("Click \"Save\" above to save the changes!");
+    Application::GetLayer<SorghumLayer>()->CreateSorghum(
+        std::dynamic_pointer_cast<SorghumStateGenerator>(m_self.lock()));
   }
   static bool intro = true;
   ImGui::Checkbox("Introduction", &intro);
@@ -36,22 +33,21 @@ void SorghumStateGenerator::OnInspect() {
         "different leaves from the bottom to top.\nMake sure you Save the "
         "parameters!\nValues are in meters or degrees.");
   }
-bool changed = false;
-    if (ImGui::TreeNodeEx("Panicle settings",
-                          ImGuiTreeNodeFlags_DefaultOpen)) {
-      TipMenu("The settings for panicle. The panicle will always be placed "
-              "at the tip of the stem.");
-      if (m_panicleSize.OnInspect("Size", 0.001f, "The size of panicle")) {
-        changed = true;
-      }
-      if (m_panicleSeedAmount.OnInspect("Seed amount", 1.0f,
-                                         "The amount of seeds in the panicle"))
-        changed = true;
-      if (m_panicleSeedRadius.OnInspect(
-              "Seed radius", 0.001f, "The size of the seed in the panicle"))
-        changed = true;
-      ImGui::TreePop();
+  bool changed = false;
+  if (ImGui::TreeNodeEx("Panicle settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+    TipMenu("The settings for panicle. The panicle will always be placed "
+            "at the tip of the stem.");
+    if (m_panicleSize.OnInspect("Size", 0.001f, "The size of panicle")) {
+      changed = true;
     }
+    if (m_panicleSeedAmount.OnInspect("Seed amount", 1.0f,
+                                      "The amount of seeds in the panicle"))
+      changed = true;
+    if (m_panicleSeedRadius.OnInspect("Seed radius", 0.001f,
+                                      "The size of the seed in the panicle"))
+      changed = true;
+    ImGui::TreePop();
+  }
 
   if (ImGui::TreeNodeEx("Stem settings", ImGuiTreeNodeFlags_DefaultOpen)) {
     TipMenu("The settings for stem.");
@@ -174,6 +170,36 @@ bool changed = false;
   if (changed) {
     m_saved = false;
     m_version++;
+  }
+
+  static double lastAutoSaveTime = 0;
+  static float autoSaveInterval = 5;
+  static bool autoSave = true;
+  ImGui::Checkbox("Auto save", &autoSave);
+  if(autoSave) {
+    if(ImGui::TreeNodeEx("Auto save settings")) {
+      if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
+                           300.0f)){
+        autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
+      }
+      if (lastAutoSaveTime == 0 || autoSaveInterval < 2.0f) {
+        lastAutoSaveTime = Application::Time().CurrentTime();
+      } else if (lastAutoSaveTime + autoSaveInterval <
+                 Application::Time().CurrentTime()) {
+        lastAutoSaveTime = Application::Time().CurrentTime();
+        if (!m_saved) {
+          Save();
+          UNIENGINE_LOG(GetTypeName() + " autosaved!");
+        }
+      }
+      ImGui::TreePop();
+    }
+  }else {
+    if(!m_saved){
+      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
+      ImGui::Text("[Changed unsaved!]");
+      ImGui::PopStyleColor();
+    }
   }
 }
 void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
