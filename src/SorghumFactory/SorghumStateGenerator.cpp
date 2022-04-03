@@ -19,6 +19,8 @@ void SorghumStateGenerator::OnInspect() {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(
         std::dynamic_pointer_cast<SorghumStateGenerator>(m_self.lock()));
   }
+  static bool autoSave = true;
+  ImGui::Checkbox("Auto save", &autoSave);
   static bool intro = true;
   ImGui::Checkbox("Introduction", &intro);
   if (intro) {
@@ -174,8 +176,7 @@ void SorghumStateGenerator::OnInspect() {
 
   static double lastAutoSaveTime = 0;
   static float autoSaveInterval = 5;
-  static bool autoSave = true;
-  ImGui::Checkbox("Auto save", &autoSave);
+
   if(autoSave) {
     if(ImGui::TreeNodeEx("Auto save settings")) {
       if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,

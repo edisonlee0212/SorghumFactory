@@ -30,6 +30,10 @@ void RectangularSorghumFieldPattern::GenerateField(
   }
 }
 void SorghumField::OnInspect() {
+  ImGui::Checkbox("Seperated", &m_seperated);
+  ImGui::Checkbox("Include stem", &m_includeStem);
+  ImGui::Checkbox("Mask", &m_segmentedMask);
+
   ImGui::DragInt("Size limit", &m_sizeLimit, 1, 0, 10000);
   ImGui::DragFloat("Sorghum size", &m_sorghumSize, 0.01f, 0, 10);
   if (ImGui::Button("Refresh matrices")) {
@@ -48,6 +52,11 @@ void SorghumField::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_sizeLimit" << YAML::Value << m_sizeLimit;
   out << YAML::Key << "m_sorghumSize" << YAML::Value << m_sorghumSize;
   out << YAML::Key << "m_newSorghums" << YAML::Value << YAML::BeginSeq;
+
+  out << YAML::Key << "m_seperated" << YAML::Value << m_seperated;
+  out << YAML::Key << "m_includeStem" << YAML::Value << m_includeStem;
+  out << YAML::Key << "m_segmentedMask" << YAML::Value << m_segmentedMask;
+
   for (auto &i : m_newSorghums) {
     out << YAML::BeginMap;
     i.first.Save("SPD", out);
@@ -61,6 +70,14 @@ void SorghumField::Deserialize(const YAML::Node &in) {
     m_sizeLimit = in["m_sizeLimit"].as<int>();
   if (in["m_sorghumSize"])
     m_sorghumSize = in["m_sorghumSize"].as<float>();
+
+  if (in["m_seperated"])
+    m_seperated = in["m_seperated"].as<bool>();
+  if (in["m_includeStem"])
+    m_includeStem = in["m_includeStem"].as<bool>();
+  if (in["m_segmentedMask"])
+    m_segmentedMask = in["m_segmentedMask"].as<bool>();
+
   m_newSorghums.clear();
   if (in["m_newSorghums"]) {
     for (const auto &i : in["m_newSorghums"]) {
@@ -99,6 +116,9 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
       sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
       sorghumData->m_descriptor = newSorghum.first;
       sorghumData->m_seed = size;
+      sorghumData->m_seperated = m_seperated;
+      sorghumData->m_includeStem = m_includeStem;
+      sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
       size++;
@@ -106,8 +126,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
         break;
     }
 
-    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
-        false, true, false);
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums();
 
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
@@ -308,6 +327,9 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
           sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->m_descriptor = m_sorghumStateGenerator;
       sorghumData->m_mode = 1;
+      sorghumData->m_seperated = m_seperated;
+      sorghumData->m_includeStem = m_includeStem;
+      sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->m_seed = glm::linearRand(0, INT_MAX);
       sorghumData->SetTime(1.0f);
       sorghumEntity.SetParent(field);
@@ -316,8 +338,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
         break;
     }
 
-    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums(
-        true, true, false);
+    Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums();
 
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),

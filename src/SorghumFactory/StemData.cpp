@@ -44,6 +44,7 @@ void StemData::OnDestroy() {
   m_segments.clear();
   m_vertices.clear();
   m_triangles.clear();
+  m_vertexColor = glm::vec4(0, 1, 0, 1);
 }
 void StemData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_left" << YAML::Value << m_left;

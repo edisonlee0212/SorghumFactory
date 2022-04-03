@@ -54,7 +54,7 @@ public:
   float m_lightProbeSize = 0.05f;
   float m_perPlantCalculationTime = 0.0f;
   bool m_displayLightProbes = true;
-
+  bool m_autoRefreshSorghums = true;
   void RenderLightProbes();
   void CalculateIlluminationFrameByFrame();
   void CalculateIllumination();
@@ -88,8 +88,7 @@ public:
   Entity CreateSorghumStem(const Entity &plantEntity);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPanicle(const Entity &plantEntity);
-  void GenerateMeshForAllSorghums(bool seperated, bool includeStem,
-                                  bool segmentedMask);
+  void GenerateMeshForAllSorghums();
   Entity ImportPlant(const std::filesystem::path &path,
                      const std::string &name);
   void OnInspect() override;

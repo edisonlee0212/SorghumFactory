@@ -9,18 +9,14 @@ using namespace RayTracerFacility;
 
 using namespace SorghumFactory;
 namespace Scripts {
-enum class MultipleAngleCaptureStatus { Info, Mask, Angles };
-
 struct SorghumInfo{
   GlobalTransform m_sorghum;
   std::string m_name;
 };
 class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
-  MultipleAngleCaptureStatus m_captureStatus = MultipleAngleCaptureStatus::Info;
   bool SetUpCamera(AutoSorghumGenerationPipeline &pipeline);
   std::vector<SorghumInfo> m_sorghumInfos;
   void Instantiate();
-  Entity m_rayTracerCamera;
   Entity m_lab;
   Entity m_dirt;
 public:

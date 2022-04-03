@@ -376,7 +376,8 @@ void ProceduralSorghum::OnInspect() {
   if (ImGui::Button("Instantiate")) {
     Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
   }
-
+  static bool autoSave = true;
+  ImGui::Checkbox("Auto save", &autoSave);
 
   bool changed = false;
   if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
@@ -466,8 +467,7 @@ void ProceduralSorghum::OnInspect() {
 
   static double lastAutoSaveTime = 0;
   static float autoSaveInterval = 5;
-  static bool autoSave = true;
-  ImGui::Checkbox("Auto save", &autoSave);
+
   if(autoSave) {
     if(ImGui::TreeNodeEx("Auto save settings")) {
       if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,

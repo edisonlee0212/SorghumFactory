@@ -17,10 +17,18 @@ void SorghumData::OnCreate() {}
 void SorghumData::OnDestroy() {
   m_descriptor.Clear();
   m_meshGenerated = false;
+  m_seperated = true;
+  m_includeStem = true;
+  m_segmentedMask = false;
 }
 
 void SorghumData::OnInspect() {
   static const char *SorghumModes[]{"Procedural Growth", "Sorghum State"};
+  ImGui::Checkbox("Seperated", &m_seperated);
+  ImGui::Checkbox("Include stem", &m_includeStem);
+  ImGui::Checkbox("Mask", &m_segmentedMask);
+
+
   ImGui::Combo("Mode", &m_mode, SorghumModes, IM_ARRAYSIZE(SorghumModes));
   switch ((SorghumMode)m_mode) {
   case SorghumMode::ProceduralSorghum: {
@@ -31,11 +39,11 @@ void SorghumData::OnInspect() {
       if (ImGui::SliderFloat("Time", &m_currentTime, 0.0f,
                              descriptor->GetCurrentEndTime())) {
         GenerateGeometry();
-        ApplyGeometry(true, true, false);
+        ApplyGeometry();
       }
       if (ImGui::Button("Apply")) {
         GenerateGeometry();
-        ApplyGeometry(true, true, false);
+        ApplyGeometry();
       }
     }
   } break;
@@ -47,7 +55,7 @@ void SorghumData::OnInspect() {
     if (descriptor) {
       if (ImGui::Button("Apply") || changed) {
         GenerateGeometry();
-        ApplyGeometry(true, true, false);
+        ApplyGeometry();
       }
     }
   } break;
@@ -97,7 +105,9 @@ void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_currentTime" << YAML::Value << m_currentTime;
   out << YAML::Key << "m_recordedVersion" << YAML::Value << m_recordedVersion;
   out << YAML::Key << "m_meshGenerated" << YAML::Value << m_meshGenerated;
-
+  out << YAML::Key << "m_seperated" << YAML::Value << m_seperated;
+  out << YAML::Key << "m_includeStem" << YAML::Value << m_includeStem;
+  out << YAML::Key << "m_segmentedMask" << YAML::Value << m_segmentedMask;
   out << YAML::Key << "m_descriptor" << YAML::BeginMap;
   m_descriptor.Serialize(out);
   out << YAML::EndMap;
@@ -114,6 +124,13 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_meshGenerated = in["m_meshGenerated"].as<bool>();
   if (in["m_currentTime"])
     m_currentTime = in["m_currentTime"].as<float>();
+  if (in["m_seperated"])
+    m_seperated = in["m_seperated"].as<bool>();
+  if (in["m_includeStem"])
+    m_includeStem = in["m_includeStem"].as<bool>();
+  if (in["m_segmentedMask"])
+    m_segmentedMask = in["m_segmentedMask"].as<bool>();
+
   if (in["m_recordedVersion"])
     m_recordedVersion = in["m_recordedVersion"].as<unsigned>();
   if (in["m_descriptor"])
@@ -168,10 +185,10 @@ void SorghumData::GenerateGeometry() {
   auto panicleData = panicle.GetOrSetPrivateComponent<PanicleData>().lock();
   panicleData->FormPanicle(statePair);
 }
-void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
-                                bool segmentedMask) {
+void SorghumData::ApplyGeometry() {
   auto owner = GetOwner();
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  bool seperated = m_seperated || m_segmentedMask;
   if (!seperated) {
     unsigned vertexCount = 0;
     std::vector<UniEngine::Vertex> vertices;
@@ -179,7 +196,7 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
     int i = 0;
     GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
                                 Entity child) {
-      if (includeStem && child.HasDataComponent<StemTag>()) {
+      if (m_includeStem && child.HasDataComponent<StemTag>()) {
         auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
         vertices.insert(vertices.end(), stemData->m_vertices.begin(),
                         stemData->m_vertices.end());
@@ -244,7 +261,7 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
     int i = 0;
     GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
                                 Entity child) {
-      if (includeStem && child.HasDataComponent<StemTag>()) {
+      if (m_includeStem && child.HasDataComponent<StemTag>()) {
         auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
         auto meshRenderer =
             child.GetOrSetPrivateComponent<MeshRenderer>().lock();
@@ -255,7 +272,7 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         } else {
           meshRenderer->m_mesh.Clear();
         }
-        if (segmentedMask) {
+        if (m_segmentedMask) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           meshRenderer->m_material = material;
@@ -285,7 +302,7 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         } else {
           meshRenderer->m_mesh.Clear();
         }
-        if (segmentedMask) {
+        if (m_segmentedMask) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
@@ -309,7 +326,7 @@ void SorghumData::ApplyGeometry(bool seperated, bool includeStem,
         } else {
           meshRenderer->m_mesh.Clear();
         }
-        if (segmentedMask) {
+        if (m_segmentedMask) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);

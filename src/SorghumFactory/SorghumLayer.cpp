@@ -202,8 +202,7 @@ Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
   return entity;
 }
 
-void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
-                                              bool segmentedMask) {
+void SorghumLayer::GenerateMeshForAllSorghums() {
   std::vector<Entity> plants;
   m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
   for (auto &plant : plants) {
@@ -211,8 +210,7 @@ void SorghumLayer::GenerateMeshForAllSorghums(bool seperated, bool includeStem,
       auto sorghumData =
           plant.GetOrSetPrivateComponent<SorghumData>().lock();
       sorghumData->GenerateGeometry();
-      sorghumData->ApplyGeometry(
-          seperated, includeStem, segmentedMask);
+      sorghumData->ApplyGeometry();
     }
   }
 }
@@ -295,9 +293,9 @@ void SorghumLayer::OnInspect() {
     }
 #endif
     ImGui::Separator();
-    /*
+    ImGui::Checkbox("Auto regenerate sorghum", &m_autoRefreshSorghums);
     if (ImGui::Button("Generate mesh for all sorghums")) {
-      GenerateMeshForAllSorghums(true, true, false);
+      GenerateMeshForAllSorghums();
     }
     if (ImGui::DragFloat("Vertical subdivision max unit length",
                          &m_verticalSubdivisionMaxUnitLength, 0.001f, 0.001f,
@@ -309,7 +307,7 @@ void SorghumLayer::OnInspect() {
                        &m_horizontalSubdivisionStep)) {
       m_horizontalSubdivisionStep = glm::max(2, m_horizontalSubdivisionStep);
     }
-     */
+
     if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                              "Replace Leaf Albedo Texture")) {
       auto tex = m_leafAlbedoTexture.Get<Texture2D>();
@@ -1053,25 +1051,27 @@ void SorghumLayer::ScanPointCloudLabeled(
 #endif
 }
 void SorghumLayer::LateUpdate() {
-  std::vector<Entity> plants;
-  m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
-  for (auto &plant : plants) {
-    if (plant.HasPrivateComponent<SorghumData>()) {
-      auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
-      auto proceduralSorghum =
-          sorghumData->m_descriptor.Get<ProceduralSorghum>();
-      if (proceduralSorghum &&
-          proceduralSorghum->GetVersion() != sorghumData->m_recordedVersion) {
-        sorghumData->GenerateGeometry();
-        sorghumData->ApplyGeometry(true, true, false);
-        continue;
-      }
-      auto sorghumStateGenerator =
-          sorghumData->m_descriptor.Get<SorghumStateGenerator>();
-      if (sorghumStateGenerator && sorghumStateGenerator->GetVersion() !=
-                                       sorghumData->m_recordedVersion) {
-        sorghumData->GenerateGeometry();
-        sorghumData->ApplyGeometry(true, true, false);
+  if(m_autoRefreshSorghums) {
+    std::vector<Entity> plants;
+    m_sorghumQuery.ToEntityArray(Entities::GetCurrentScene(), plants);
+    for (auto &plant : plants) {
+      if (plant.HasPrivateComponent<SorghumData>()) {
+        auto sorghumData = plant.GetOrSetPrivateComponent<SorghumData>().lock();
+        auto proceduralSorghum =
+            sorghumData->m_descriptor.Get<ProceduralSorghum>();
+        if (proceduralSorghum &&
+            proceduralSorghum->GetVersion() != sorghumData->m_recordedVersion) {
+          sorghumData->GenerateGeometry();
+          sorghumData->ApplyGeometry();
+          continue;
+        }
+        auto sorghumStateGenerator =
+            sorghumData->m_descriptor.Get<SorghumStateGenerator>();
+        if (sorghumStateGenerator && sorghumStateGenerator->GetVersion() !=
+                                         sorghumData->m_recordedVersion) {
+          sorghumData->GenerateGeometry();
+          sorghumData->ApplyGeometry();
+        }
       }
     }
   }
