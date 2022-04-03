@@ -60,23 +60,7 @@ void GeneralDataCapture::OnBeforeGrowth(
       pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
           .lock();
   sorghumData->m_seed = pipeline.m_currentIndex;
-  sorghumData->m_seperated = false;
-  sorghumData->m_includeStem = true;
-  sorghumData->m_segmentedMask = false;
-  sorghumData->GenerateGeometry();
-  sorghumData->ApplyGeometry();
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
-  if (m_lab.IsValid())
-    m_lab.SetEnabled(true);
-  if (m_dirt.IsValid()) {
-    m_dirt.SetEnabled(true);
-    auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
-    dirtGT.SetRotation(
-        dirtGT.GetRotation() *
-        glm::quat(
-            glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
-    m_dirt.SetDataComponent(dirtGT);
-  }
 }
 void GeneralDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::AfterGrowth;
@@ -120,7 +104,7 @@ void GeneralDataCapture::OnAfterGrowth(
 
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
-        RayTracerFacility::EnvironmentalLightingType::SingleLightSource;
+        RayTracerFacility::EnvironmentalLightingType::Scene;
     Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
         glm::vec3(1.0f);
     Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
@@ -174,8 +158,15 @@ void GeneralDataCapture::OnAfterGrowth(
   if (m_captureImage) {
     if (m_lab.IsValid())
       m_lab.SetEnabled(true);
-    if (m_dirt.IsValid())
+    if (m_dirt.IsValid()) {
       m_dirt.SetEnabled(true);
+      auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
+      dirtGT.SetRotation(
+          dirtGT.GetRotation() *
+          glm::quat(
+              glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
+      m_dirt.SetDataComponent(dirtGT);
+    }
     auto sorghumData =
         pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
             .lock();
