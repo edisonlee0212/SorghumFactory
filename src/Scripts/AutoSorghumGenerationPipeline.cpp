@@ -3,7 +3,6 @@
 //
 
 #include "AutoSorghumGenerationPipeline.hpp"
-#include "DepthCamera.hpp"
 #include "Editor.hpp"
 #include "GeneralDataCapture.hpp"
 #include <SorghumData.hpp>

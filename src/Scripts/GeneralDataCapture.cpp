@@ -3,7 +3,6 @@
 //
 #ifdef RAYTRACERFACILITY
 #include "GeneralDataCapture.hpp"
-#include "DepthCamera.hpp"
 #include "Prefab.hpp"
 #include "TransformLayer.hpp"
 #include <SorghumData.hpp>
@@ -19,6 +18,7 @@ void GeneralDataCapture::OnInspect() {
     ImGui::Checkbox("Capture image", &m_captureImage);
     ImGui::Checkbox("Capture mask", &m_captureMask);
     ImGui::Checkbox("Capture mesh", &m_captureMesh);
+    ImGui::Checkbox("Capture depth", &m_captureDepth);
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Camera Settings")) {
@@ -49,10 +49,7 @@ void GeneralDataCapture::OnInspect() {
 
 void GeneralDataCapture::OnBeforeGrowth(
     AutoSorghumGenerationPipeline &pipeline) {
-  if (!SetUpCamera(pipeline)) {
-    pipeline.m_currentIndex = -1;
-    return;
-  }
+  SetUpCamera(pipeline);
   auto descriptor = m_parameters.Get<SorghumStateGenerator>();
   pipeline.m_currentGrowingSorghum =
       Application::GetLayer<SorghumLayer>()->CreateSorghum(descriptor);
@@ -77,16 +74,6 @@ void GeneralDataCapture::OnAfterGrowth(
                 "_" + std::to_string(pipeline.m_currentIndex);
   m_sorghumInfos.push_back({GlobalTransform(), prefix});
 
-  if (m_captureMesh) {
-    pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-        .lock()
-        ->ExportModel(
-            (ProjectManager::GetProjectPath().parent_path().parent_path() /
-             m_currentExportFolder /
-             GetAssetRecord().lock()->GetAssetFileName() / "Mesh" /
-             (prefix + ".obj"))
-                .string());
-  }
   if (m_captureMask) {
     if (m_lab.IsValid())
       m_lab.SetEnabled(false);
@@ -100,8 +87,6 @@ void GeneralDataCapture::OnAfterGrowth(
     sorghumData->m_segmentedMask = true;
     sorghumData->GenerateGeometry();
     sorghumData->ApplyGeometry();
-    Application::GetLayer<RayTracerLayer>()->UpdateScene();
-
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
         RayTracerFacility::EnvironmentalLightingType::Scene;
@@ -155,7 +140,7 @@ void GeneralDataCapture::OnAfterGrowth(
           ("top_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
   }
-  if (m_captureImage) {
+  if (m_captureDepth) {
     if (m_lab.IsValid())
       m_lab.SetEnabled(true);
     if (m_dirt.IsValid()) {
@@ -170,12 +155,86 @@ void GeneralDataCapture::OnAfterGrowth(
     auto sorghumData =
         pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
             .lock();
+    if (!m_captureMask) {
+      sorghumData->m_seperated = true;
+      sorghumData->m_includeStem = true;
+      sorghumData->m_segmentedMask = false;
+      sorghumData->GenerateGeometry();
+      sorghumData->ApplyGeometry();
+    }
+    RayProperties rayProperties;
+    rayProperties.m_samples = 1;
+    rayProperties.m_bounces = 1;
+    Application::GetLayer<RayTracerLayer>()
+        ->m_environmentProperties.m_environmentalLightingType =
+        RayTracerFacility::EnvironmentalLightingType::Scene;
+    Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
+        m_backgroundColor;
+    Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
+        m_backgroundColorIntensity;
+    rayTracerCamera->SetOutputType(OutputType::Depth);
+    rayTracerCamera->SetDenoiserStrength(0.0f);
+    GlobalTransform cameraGT;
+    cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
+    cameraGT.SetRotation(glm::vec3(0, 0, 0));
+    pipeline.GetOwner().SetDataComponent(cameraGT);
+    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+         turnAngle += m_turnAngleStep) {
+      auto sorghumGT =
+          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
+      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+          Entities::GetCurrentScene());
+      Application::GetLayer<RayTracerLayer>()->UpdateScene();
+      rayTracerCamera->Render(rayProperties);
+      rayTracerCamera->m_colorTexture->Export(
+          ProjectManager::GetProjectPath().parent_path().parent_path() /
+          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
+          "Depth" /
+          ("side_" + prefix + "_" + std::to_string(turnAngle) + "_depth.hdr"));
+    }
+    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
+    pipeline.GetOwner().SetDataComponent(cameraGT);
+    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+         turnAngle += m_turnAngleStep) {
+      auto sorghumGT =
+          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
+      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+          Entities::GetCurrentScene());
+      Application::GetLayer<RayTracerLayer>()->UpdateScene();
+      rayTracerCamera->Render(rayProperties);
+      rayTracerCamera->m_colorTexture->Export(
+          ProjectManager::GetProjectPath().parent_path().parent_path() /
+          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
+          "Depth" /
+          ("top_" + prefix + "_" + std::to_string(turnAngle) + "_depth.hdr"));
+    }
+  }
+  if (m_captureImage) {
+    if (m_lab.IsValid())
+      m_lab.SetEnabled(true);
+    if (m_dirt.IsValid()) {
+      m_dirt.SetEnabled(true);
+      auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
+      dirtGT.SetRotation(
+          dirtGT.GetRotation() *
+          glm::quat(
+              glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
+      m_dirt.SetDataComponent(dirtGT);
+    }
+
+    auto sorghumData =
+        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+            .lock();
     sorghumData->m_seperated = true;
     sorghumData->m_includeStem = true;
     sorghumData->m_segmentedMask = false;
     sorghumData->GenerateGeometry();
     sorghumData->ApplyGeometry();
-    Application::GetLayer<RayTracerLayer>()->UpdateScene();
 
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
@@ -226,13 +285,30 @@ void GeneralDataCapture::OnAfterGrowth(
           ("top_" + prefix + "_" + std::to_string(turnAngle) + "_image.png"));
     }
   }
+  if (m_captureMesh) {
+    auto sorghumData =
+        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+            .lock();
+    if (!m_captureDepth && !m_captureMask && !m_captureImage) {
+      sorghumData->m_seperated = true;
+      sorghumData->m_includeStem = true;
+      sorghumData->m_segmentedMask = false;
+      sorghumData->GenerateGeometry();
+      sorghumData->ApplyGeometry();
+    }
+    sorghumData->ExportModel(
+        (ProjectManager::GetProjectPath().parent_path().parent_path() /
+         m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
+         "Mesh" / (prefix + ".obj"))
+            .string());
+  }
   Entities::DeleteEntity(Entities::GetCurrentScene(),
                          pipeline.m_currentGrowingSorghum);
   pipeline.m_currentGrowingSorghum = {};
   pipeline.m_currentIndex++;
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
 }
-bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
+void GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
   auto rayTracerCamera =
       pipeline.GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
 
@@ -250,9 +326,6 @@ bool GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
   rayTracerCamera->m_allowAutoResize = false;
   rayTracerCamera->m_frameSize = m_resolution;
   rayTracerCamera->SetAccumulate(false);
-
-
-  return true;
 }
 void GeneralDataCapture::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_parameters);
@@ -267,7 +340,7 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
       << m_rayProperties.m_samples;
   out << YAML::Key << "m_rayProperties.m_bounces" << YAML::Value
       << m_rayProperties.m_bounces;
-
+  out << YAML::Key << "m_captureDepth" << YAML::Value << m_captureDepth;
   out << YAML::Key << "m_captureImage" << YAML::Value << m_captureImage;
   out << YAML::Key << "m_captureMask" << YAML::Value << m_captureMask;
   out << YAML::Key << "m_captureMesh" << YAML::Value << m_captureMesh;
@@ -297,7 +370,8 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
   if (in["m_rayProperties.m_bounces"])
     m_rayProperties.m_bounces = in["m_rayProperties.m_bounces"].as<float>();
-
+  if (in["m_captureDepth"])
+    m_captureDepth = in["m_captureDepth"].as<bool>();
   if (in["m_captureImage"])
     m_captureImage = in["m_captureImage"].as<bool>();
   if (in["m_captureMask"])
@@ -336,8 +410,8 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_cameraMax = in["m_cameraMax"].as<float>();
 }
 void GeneralDataCapture::Instantiate() {
-  auto pipelineEntity = Entities::CreateEntity(Entities::GetCurrentScene(),
-                                               GetAssetRecord().lock()->GetAssetFileName());
+  auto pipelineEntity = Entities::CreateEntity(
+      Entities::GetCurrentScene(), GetAssetRecord().lock()->GetAssetFileName());
   auto pipeline =
       pipelineEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
           .lock();
@@ -354,10 +428,6 @@ void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
   if (m_dirtPrefab.Get<Prefab>()) {
     m_dirt = m_dirtPrefab.Get<Prefab>()->ToEntity();
   }
-
-  auto depthCamera =
-      pipeline.GetOwner().GetOrSetPrivateComponent<DepthCamera>().lock();
-  depthCamera->m_useCameraResolution = true;
 
   auto rayTracerCamera =
       pipeline.GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
@@ -384,6 +454,12 @@ void GeneralDataCapture::Start(AutoSorghumGenerationPipeline &pipeline) {
         ProjectManager::GetProjectPath().parent_path().parent_path() /
         m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
         "Mesh");
+  }
+  if (m_captureDepth) {
+    std::filesystem::create_directories(
+        ProjectManager::GetProjectPath().parent_path().parent_path() /
+        m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
+        "Depth");
   }
 }
 void GeneralDataCapture::End(AutoSorghumGenerationPipeline &pipeline) {

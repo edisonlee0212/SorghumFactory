@@ -14,7 +14,7 @@ struct SorghumInfo{
   std::string m_name;
 };
 class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
-  bool SetUpCamera(AutoSorghumGenerationPipeline &pipeline);
+  void SetUpCamera(AutoSorghumGenerationPipeline &pipeline);
   std::vector<SorghumInfo> m_sorghumInfos;
   void Instantiate();
   Entity m_lab;
@@ -27,6 +27,7 @@ public:
   bool m_captureImage = true;
   bool m_captureMask = true;
   bool m_captureMesh = false;
+  bool m_captureDepth = true;
   std::filesystem::path m_currentExportFolder = "Datasets";
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 1;

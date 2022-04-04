@@ -7,7 +7,6 @@
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 
-#include "DepthCamera.hpp"
 #include "FieldGround.hpp"
 #include "LeafData.hpp"
 #include "PanicleData.hpp"
@@ -27,7 +26,6 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
 
   ClassRegistry::RegisterPrivateComponent<FieldGround>("FieldGround");
-  ClassRegistry::RegisterPrivateComponent<DepthCamera>("DepthCamera");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterPrivateComponent<LeafData>("LeafData");
   ClassRegistry::RegisterPrivateComponent<StemData>("StemData");
@@ -461,7 +459,7 @@ void SorghumLayer::ExportSorghum(const Entity &sorghum, std::ofstream &of,
 void SorghumLayer::ObjExportHelper(glm::vec3 position,
                                    std::shared_ptr<Mesh> mesh,
                                    std::ofstream &of, unsigned &startIndex) {
-  if (!mesh->UnsafeGetTriangles().empty()) {
+  if (mesh && !mesh->UnsafeGetTriangles().empty()) {
     std::string header =
         "#Vertices: " + std::to_string(mesh->GetVerticesAmount()) +
         ", tris: " + std::to_string(mesh->GetTriangleAmount());
