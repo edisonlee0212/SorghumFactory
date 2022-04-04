@@ -50,6 +50,7 @@ class SorghumState {
   friend class ProceduralSorghum;
   unsigned m_version = 0;
 public:
+  std::string m_name = "Unnamed";
   ProceduralPanicleState m_panicle;
   ProceduralStemState m_stem;
   std::vector<ProceduralLeafState> m_leaves;

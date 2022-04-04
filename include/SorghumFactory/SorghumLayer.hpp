@@ -54,13 +54,14 @@ public:
   float m_lightProbeSize = 0.05f;
   float m_perPlantCalculationTime = 0.0f;
   bool m_displayLightProbes = true;
-  bool m_autoRefreshSorghums = true;
+
   void RenderLightProbes();
   void CalculateIlluminationFrameByFrame();
   void CalculateIllumination();
 
 #pragma endregion
 #endif
+  bool m_autoRefreshSorghums = true;
   EntityArchetype m_leafArchetype;
   EntityQuery m_leafQuery;
   EntityArchetype m_sorghumArchetype;

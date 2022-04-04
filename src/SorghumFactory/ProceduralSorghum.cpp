@@ -48,7 +48,11 @@ SorghumStatePair ProceduralSorghum::Get(float time) const {
 
 bool ProceduralPanicleState::OnInspect() {
   bool changed = false;
-  if (ImGui::DragFloat3("Pinnacle size", &m_panicleSize.x, 0.001f))
+  if (ImGui::DragFloat("Panicle width", &m_panicleSize.x, 0.001f)) {
+    changed = true;
+    m_panicleSize.z = m_panicleSize.x;
+  }
+  if (ImGui::DragFloat("Panicle height", &m_panicleSize.y, 0.001f))
     changed = true;
   if (ImGui::DragInt("Num of seeds", &m_seedAmount, 1.0f))
     changed = true;
@@ -92,7 +96,7 @@ bool ProceduralStemState::OnInspect(int mode) {
   bool changed = false;
   switch ((StateMode)mode) {
   case StateMode::Default:
-    ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
+    //ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
     if (ImGui::DragFloat("Length", &m_length, 0.01f))
       changed = true;
     break;
@@ -336,6 +340,7 @@ bool SorghumState::OnInspect(int mode) {
 void SorghumState::Serialize(YAML::Emitter &out) {
 
   out << YAML::Key << "m_version" << YAML::Value << m_version;
+  out << YAML::Key << "m_name" << YAML::Value << m_name;
   out << YAML::Key << "m_panicle" << YAML::Value << YAML::BeginMap;
   m_panicle.Serialize(out);
   out << YAML::EndMap;
@@ -356,7 +361,8 @@ void SorghumState::Serialize(YAML::Emitter &out) {
 void SorghumState::Deserialize(const YAML::Node &in) {
   if (in["m_version"])
     m_version = in["m_version"].as<unsigned>();
-
+  if (in["m_name"])
+    m_name = in["m_name"].as<std::string>();
   if (in["m_panicle"])
     m_panicle.Deserialize(in["m_panicle"]);
 
@@ -400,7 +406,23 @@ void ProceduralSorghum::OnInspect() {
     float previousTime = 0.0f;
     int stateIndex = 1;
     for (auto it = m_sorghumStates.begin(); it != m_sorghumStates.end(); ++it) {
-      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex)).c_str())) {
+      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex) + ": " + it->second.m_name).c_str())) {
+        const std::string tag = "##SorghumState" + std::to_string(stateIndex);
+        if (ImGui::BeginPopupContextItem(tag.c_str()))
+        {
+          if (ImGui::BeginMenu(("Rename" + tag).c_str()))
+          {
+            static char newName[256];
+            ImGui::InputText(("New name" + tag).c_str(), newName, 256);
+            if (ImGui::Button(("Confirm" + tag).c_str()))
+            {
+              it->second.m_name = newName;
+              memset(newName, 0, 256);
+            }
+            ImGui::EndMenu();
+          }
+          ImGui::EndPopup();
+        }
         if (it != (--m_sorghumStates.end())) {
           auto tit = it;
           ++tit;
@@ -535,6 +557,7 @@ void ProceduralSorghum::Add(float time, const SorghumState &state) {
     }
   }
   m_sorghumStates.emplace_back(time, state);
+  m_sorghumStates.back().second.m_name = "Unnamed";
 }
 
 void ProceduralSorghum::ResetTime(float previousTime, float newTime) {

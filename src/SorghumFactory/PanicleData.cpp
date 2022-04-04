@@ -37,7 +37,7 @@ void PanicleData::FormPanicle(const SorghumStatePair &sorghumStatePair) {
     glm::vec3 positionOffset = volume.GetRandomPoint();
     for (const auto position : icosahedronVertices) {
       archetype.m_position =
-          position * seedRadius +
+          position * seedRadius + glm::vec3(0, pinnacleSize.y, 0) +
           positionOffset + sorghumStatePair.GetStemPoint(1.0f);
       m_vertices.push_back(archetype);
     }
