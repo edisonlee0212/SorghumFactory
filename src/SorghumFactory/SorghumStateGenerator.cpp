@@ -183,17 +183,17 @@ void SorghumStateGenerator::OnInspect() {
                            300.0f)){
         autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
       }
-      if (lastAutoSaveTime == 0 || autoSaveInterval < 2.0f) {
-        lastAutoSaveTime = Application::Time().CurrentTime();
-      } else if (lastAutoSaveTime + autoSaveInterval <
-                 Application::Time().CurrentTime()) {
-        lastAutoSaveTime = Application::Time().CurrentTime();
-        if (!m_saved) {
-          Save();
-          UNIENGINE_LOG(GetTypeName() + " autosaved!");
-        }
-      }
       ImGui::TreePop();
+    }
+    if (lastAutoSaveTime == 0) {
+      lastAutoSaveTime = Application::Time().CurrentTime();
+    } else if (lastAutoSaveTime + autoSaveInterval <
+               Application::Time().CurrentTime()) {
+      lastAutoSaveTime = Application::Time().CurrentTime();
+      if (!m_saved) {
+        Save();
+        UNIENGINE_LOG(GetTypeName() + " autosaved!");
+      }
     }
   }else {
     if(!m_saved){
