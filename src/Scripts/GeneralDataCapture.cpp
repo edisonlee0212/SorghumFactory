@@ -19,6 +19,7 @@ void GeneralDataCapture::OnInspect() {
     ImGui::Checkbox("Capture mask", &m_captureMask);
     ImGui::Checkbox("Capture mesh", &m_captureMesh);
     ImGui::Checkbox("Capture depth", &m_captureDepth);
+    ImGui::Checkbox("Export matrices", &m_exportMatrices);
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Camera Settings")) {
@@ -32,7 +33,7 @@ void GeneralDataCapture::OnInspect() {
     ImGui::DragFloat("Camera FOV", &m_fov);
     ImGui::DragFloat("Camera gamma", &m_gamma, 0.01f);
     ImGui::DragInt2("Camera Resolution", &m_resolution.x);
-    ImGui::DragFloat2("Camera near/far", &m_cameraMin);
+    ImGui::DragFloat("Camera max distance", &m_cameraMax);
     ImGui::Checkbox("Use clear color", &m_useClearColor);
     ImGui::ColorEdit3("Env lighting color", &m_backgroundColor.x);
     ImGui::DragFloat("Env lighting intensity", &m_backgroundColorIntensity);
@@ -140,6 +141,7 @@ void GeneralDataCapture::OnAfterGrowth(
           ("top_" + prefix + "_" + std::to_string(turnAngle) + "_mask.png"));
     }
   }
+
   if (m_captureDepth) {
     if (m_lab.IsValid())
       m_lab.SetEnabled(true);
@@ -174,6 +176,7 @@ void GeneralDataCapture::OnAfterGrowth(
         m_backgroundColorIntensity;
     rayTracerCamera->SetOutputType(OutputType::Depth);
     rayTracerCamera->SetDenoiserStrength(0.0f);
+    rayTracerCamera->SetMaxDistance(m_cameraMax);
     GlobalTransform cameraGT;
     cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
     cameraGT.SetRotation(glm::vec3(0, 0, 0));
@@ -302,6 +305,38 @@ void GeneralDataCapture::OnAfterGrowth(
          "Mesh" / (prefix + ".obj"))
             .string());
   }
+
+  if ((m_captureImage || m_captureMask || m_captureDepth) && m_exportMatrices) {
+    GlobalTransform cameraGT;
+    cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
+    cameraGT.SetRotation(glm::vec3(0, 0, 0));
+    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+         turnAngle += m_turnAngleStep) {
+      auto sorghumGT =
+          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
+      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
+      m_cameraModels.push_back(cameraGT.m_value);
+      m_treeModels.push_back(sorghumGT.m_value);
+      m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
+      m_views.push_back(Camera::m_cameraInfoBlock.m_view);
+      m_names.push_back("side_" + prefix + "_" + std::to_string(turnAngle));
+    }
+
+    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
+    for (float turnAngle = m_turnAngleStart; turnAngle < m_turnAngleEnd;
+         turnAngle += m_turnAngleStep) {
+      auto sorghumGT =
+          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
+      m_cameraModels.push_back(cameraGT.m_value);
+      m_treeModels.push_back(sorghumGT.m_value);
+      m_projections.push_back(Camera::m_cameraInfoBlock.m_projection);
+      m_views.push_back(Camera::m_cameraInfoBlock.m_view);
+      m_names.push_back("top_" + prefix + "_" + std::to_string(turnAngle));
+    }
+  }
   Entities::DeleteEntity(Entities::GetCurrentScene(),
                          pipeline.m_currentGrowingSorghum);
   pipeline.m_currentGrowingSorghum = {};
@@ -344,6 +379,7 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_captureImage" << YAML::Value << m_captureImage;
   out << YAML::Key << "m_captureMask" << YAML::Value << m_captureMask;
   out << YAML::Key << "m_captureMesh" << YAML::Value << m_captureMesh;
+  out << YAML::Key << "m_exportMatrices" << YAML::Value << m_exportMatrices;
   out << YAML::Key << "m_currentExportFolder" << YAML::Value
       << m_currentExportFolder.string();
   out << YAML::Key << "m_distanceToCenter" << YAML::Value << m_distanceToCenter;
@@ -359,7 +395,6 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_backgroundColor" << YAML::Value << m_backgroundColor;
   out << YAML::Key << "m_backgroundColorIntensity" << YAML::Value
       << m_backgroundColorIntensity;
-  out << YAML::Key << "m_cameraMin" << YAML::Value << m_cameraMin;
   out << YAML::Key << "m_cameraMax" << YAML::Value << m_cameraMax;
 }
 void GeneralDataCapture::Deserialize(const YAML::Node &in) {
@@ -378,6 +413,9 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_captureMask = in["m_captureMask"].as<bool>();
   if (in["m_captureMesh"])
     m_captureMesh = in["m_captureMesh"].as<bool>();
+  if (in["m_exportMatrices"])
+    m_exportMatrices = in["m_exportMatrices"].as<bool>();
+
   if (in["m_currentExportFolder"])
     m_currentExportFolder = in["m_currentExportFolder"].as<std::string>();
   if (in["m_distanceToCenter"])
@@ -404,8 +442,6 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_backgroundColor = in["m_backgroundColor"].as<glm::vec3>();
   if (in["m_backgroundColorIntensity"])
     m_backgroundColorIntensity = in["m_backgroundColorIntensity"].as<float>();
-  if (in["m_cameraMin"])
-    m_cameraMin = in["m_cameraMin"].as<float>();
   if (in["m_cameraMax"])
     m_cameraMax = in["m_cameraMax"].as<float>();
 }
@@ -467,5 +503,32 @@ void GeneralDataCapture::End(AutoSorghumGenerationPipeline &pipeline) {
     Entities::DeleteEntity(Entities::GetCurrentScene(), m_lab);
   if (m_dirt.IsValid())
     Entities::DeleteEntity(Entities::GetCurrentScene(), m_dirt);
+
+  if ((m_captureImage || m_captureMask || m_captureDepth) && m_exportMatrices)
+    ExportMatrices(
+        ProjectManager::GetProjectPath().parent_path().parent_path() /
+        m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
+        "matrices.yml");
 }
+
+void GeneralDataCapture::ExportMatrices(const std::filesystem::path &path) {
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "Capture Info" << YAML::BeginSeq;
+  for (int i = 0; i < m_projections.size(); i++) {
+    out << YAML::BeginMap;
+    out << YAML::Key << "File Prefix" << YAML::Value << m_names[i];
+    out << YAML::Key << "Projection" << YAML::Value << m_projections[i];
+    out << YAML::Key << "View" << YAML::Value << m_views[i];
+    out << YAML::Key << "Camera Transform" << YAML::Value << m_cameraModels[i];
+    out << YAML::Key << "Plant Transform" << YAML::Value << m_treeModels[i];
+    out << YAML::EndMap;
+  }
+  out << YAML::EndSeq;
+  out << YAML::EndMap;
+  std::ofstream fout(path.string());
+  fout << out.c_str();
+  fout.flush();
+}
+
 #endif

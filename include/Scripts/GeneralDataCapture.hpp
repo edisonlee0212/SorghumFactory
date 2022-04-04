@@ -19,6 +19,14 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   void Instantiate();
   Entity m_lab;
   Entity m_dirt;
+
+
+  std::vector<glm::mat4> m_cameraModels;
+  std::vector<glm::mat4> m_treeModels;
+  std::vector<glm::mat4> m_projections;
+  std::vector<glm::mat4> m_views;
+  std::vector<std::string> m_names;
+  void ExportMatrices(const std::filesystem::path& path);
 public:
   RayProperties m_rayProperties = {6, 256};
   AssetRef m_parameters;
@@ -28,6 +36,7 @@ public:
   bool m_captureMask = true;
   bool m_captureMesh = false;
   bool m_captureDepth = true;
+  bool m_exportMatrices = true;
   std::filesystem::path m_currentExportFolder = "Datasets";
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 1;
@@ -42,8 +51,7 @@ public:
   bool m_useClearColor = true;
   glm::vec3 m_backgroundColor = glm::vec3(1.0f);
   float m_backgroundColorIntensity = 1.0f;
-  float m_cameraMin = 1;
-  float m_cameraMax = 30;
+  float m_cameraMax = 10;
 
 
   bool IsReady() override;
