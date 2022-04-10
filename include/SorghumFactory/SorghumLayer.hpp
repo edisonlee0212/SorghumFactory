@@ -90,8 +90,6 @@ public:
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPanicle(const Entity &plantEntity);
   void GenerateMeshForAllSorghums();
-  Entity ImportPlant(const std::filesystem::path &path,
-                     const std::string &name);
   void OnInspect() override;
   void Update() override;
   void LateUpdate() override;

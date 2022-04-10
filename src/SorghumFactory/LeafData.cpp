@@ -212,7 +212,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
   switch ((StateMode)sorghumStatePair.m_mode) {
   case StateMode::Default:
     m_left =
-        glm::rotate(glm::vec3(1, 0, 0),
+        glm::rotate(glm::vec3(0, 0, -1),
                     glm::radians(glm::mix(actualLeft.m_rollAngle,
                                           actualRight.m_rollAngle, actualA)),
                     glm::vec3(0, 1, 0));

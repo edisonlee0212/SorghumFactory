@@ -16,8 +16,9 @@ void TipMenu(const std::string &content) {
 
 void SorghumStateGenerator::OnInspect() {
   if (ImGui::Button("Instantiate")) {
-    Application::GetLayer<SorghumLayer>()->CreateSorghum(
+    auto sorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(
         std::dynamic_pointer_cast<SorghumStateGenerator>(m_self.lock()));
+    sorghum.SetName(m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
   }
   static bool autoSave = true;
   ImGui::Checkbox("Auto save", &autoSave);
@@ -53,10 +54,10 @@ void SorghumStateGenerator::OnInspect() {
 
   if (ImGui::TreeNodeEx("Stem settings", ImGuiTreeNodeFlags_DefaultOpen)) {
     TipMenu("The settings for stem.");
-    /*
-    if (ImGui::DragFloat3("Direction", &m_stemDirection.x))
+    if (m_stemTiltAngle.OnInspect("Stem tilt angle", 0.001f,
+                                  "The tilt angle for stem")) {
       changed = true;
-      */
+    }
     if (m_stemLength.OnInspect(
             "Length", 0.01f,
             "The length of the stem, use Ending Point in leaf settings to make "
@@ -177,10 +178,10 @@ void SorghumStateGenerator::OnInspect() {
   static double lastAutoSaveTime = 0;
   static float autoSaveInterval = 5;
 
-  if(autoSave) {
-    if(ImGui::TreeNodeEx("Auto save settings")) {
-      if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
-                           300.0f)){
+  if (autoSave) {
+    if (ImGui::TreeNodeEx("Auto save settings")) {
+      if (ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
+                           300.0f)) {
         autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
       }
       ImGui::TreePop();
@@ -195,9 +196,9 @@ void SorghumStateGenerator::OnInspect() {
         UNIENGINE_LOG(GetTypeName() + " autosaved!");
       }
     }
-  }else {
-    if(!m_saved){
-      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
+  } else {
+    if (!m_saved) {
+      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
       ImGui::Text("[Changed unsaved!]");
       ImGui::PopStyleColor();
     }
@@ -209,7 +210,7 @@ void SorghumStateGenerator::Serialize(YAML::Emitter &out) {
   m_panicleSeedAmount.Serialize("m_panicleSeedAmount", out);
   m_panicleSeedRadius.Serialize("m_panicleSeedRadius", out);
 
-  out << YAML::Key << "m_stemDirection" << YAML::Value << m_stemDirection;
+  m_stemTiltAngle.Serialize("m_stemTiltAngle", out);
   m_stemLength.Serialize("m_stemLength", out);
   m_stemWidth.Serialize("m_stemWidth", out);
 
@@ -240,8 +241,7 @@ void SorghumStateGenerator::Deserialize(const YAML::Node &in) {
   m_panicleSeedAmount.Deserialize("m_panicleSeedAmount", in);
   m_panicleSeedRadius.Deserialize("m_panicleSeedRadius", in);
 
-  if (in["m_stemDirection"])
-    m_stemDirection = in["m_stemDirection"].as<glm::vec3>();
+  m_stemTiltAngle.Deserialize("m_stemTiltAngle", in);
   m_stemLength.Deserialize("m_stemLength", in);
   m_stemWidth.Deserialize("m_stemWidth", in);
 
@@ -272,7 +272,16 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   srand(seed);
   SorghumState endState = {};
 
-  endState.m_stem.m_direction = m_stemDirection;
+  auto upDirection = glm::vec3(0, 1, 0);
+  auto frontDirection = glm::vec3(0, 0, -1);
+  frontDirection = glm::rotate(
+      frontDirection, glm::radians(glm::linearRand(0.0f, 360.0f)), upDirection);
+
+  endState.m_stem.m_direction =
+      glm::rotate(upDirection,
+                  glm::radians(glm::gaussRand(m_stemTiltAngle.m_mean,
+                                              m_stemTiltAngle.m_deviation)),
+                  frontDirection);
   endState.m_stem.m_length = m_stemLength.GetValue();
   endState.m_stem.m_widthAlongStem = {0.0f, m_stemWidth.GetValue(),
                                       m_widthAlongStem};
@@ -325,7 +334,8 @@ SorghumState SorghumStateGenerator::Generate(unsigned int seed) {
   }
 
   endState.m_panicle.m_seedAmount = m_panicleSeedAmount.GetValue();
-  endState.m_panicle.m_panicleSize = m_panicleSize.GetValue();
+  auto panicleSize = m_panicleSize.GetValue();
+  endState.m_panicle.m_panicleSize = glm::vec3(panicleSize.x, panicleSize.y, panicleSize.x);
   endState.m_panicle.m_seedRadius = m_panicleSeedRadius.GetValue();
 
   return endState;
@@ -336,7 +346,8 @@ void SorghumStateGenerator::OnCreate() {
   m_panicleSeedAmount.m_mean = 0;
   m_panicleSeedRadius.m_mean = 0.002f;
 
-  m_stemDirection = {0, 1, 0};
+  m_stemTiltAngle.m_mean = 0.0f;
+  m_stemTiltAngle.m_deviation = 0.0f;
   m_stemLength.m_mean = 0.449999988f;
   m_stemLength.m_deviation = 0.150000006f;
   m_stemWidth.m_mean = 0.0140000004;

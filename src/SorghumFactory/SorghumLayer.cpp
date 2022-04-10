@@ -110,9 +110,9 @@ void SorghumLayer::OnCreate() {
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-    material->m_cullingMode = MaterialCullingMode::Off;
-    material->m_albedoColor = glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
-    material->m_roughness = 1.0f;
+    material->m_cullingMode = MaterialCullingMode::Back;
+    material->m_albedoColor = glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
+    material->m_roughness = 0.5f;
     material->m_metallic = 0.0f;
   }
 
@@ -213,60 +213,6 @@ void SorghumLayer::GenerateMeshForAllSorghums() {
   }
 }
 
-Entity SorghumLayer::ImportPlant(const std::filesystem::path &path,
-                                 const std::string &name) {
-  /*
-  std::ifstream file(path, std::fstream::in);
-  if (!file.is_open()) {
-    UNIENGINE_LOG("Failed to open file!");
-    return Entity();
-  }
-  // Number of leaves in the file
-  int leafCount;
-  file >> leafCount;
-  const auto sorghum = CreateSorghum();
-  sorghum.SetName(name);
-  auto truckSpline = sorghum.GetOrSetPrivateComponent<Spline>().lock();
-  truckSpline->m_startingPoint = -1;
-  truckSpline->m_startingPoint = -1;
-  truckSpline->Import(file);
-
-  // Recenter plant:
-  glm::vec3 posSum = truckSpline->m_curves.front().m_p0;
-
-  for (auto &curve : truckSpline->m_curves) {
-    curve.m_p0 -= posSum;
-    curve.m_p1 -= posSum;
-    curve.m_p2 -= posSum;
-    curve.m_p3 -= posSum;
-  }
-  truckSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f),
-                                   truckSpline->m_curves.begin()->m_p0 -
-                                       truckSpline->m_curves.back().m_p3);
-  for (int i = 0; i < leafCount; i++) {
-    Entity leaf = CreateSorghumLeaf(sorghum, i);
-    auto leafSpline = leaf.GetOrSetPrivateComponent<Spline>().lock();
-    float startingPoint;
-    file >> startingPoint;
-
-    leafSpline->m_startingPoint = startingPoint;
-    leafSpline->Import(file);
-    for (auto &curve : leafSpline->m_curves) {
-      curve.m_p0 += truckSpline->EvaluatePoint(startingPoint);
-      curve.m_p1 += truckSpline->EvaluatePoint(startingPoint);
-      curve.m_p2 += truckSpline->EvaluatePoint(startingPoint);
-      curve.m_p3 += truckSpline->EvaluatePoint(startingPoint);
-    }
-
-    leafSpline->m_left = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f),
-                                    leafSpline->m_curves.begin()->m_p0 -
-                                        leafSpline->m_curves.back().m_p3);
-  }
-  return sorghum;
-   */
-  return Entity();
-}
-
 void SorghumLayer::OnInspect() {
   if (ImGui::Begin("Sorghum")) {
 #ifdef RAYTRACERFACILITY
@@ -344,58 +290,6 @@ void SorghumLayer::OnInspect() {
       }
     }
 
-    ImGui::Separator();
-
-    FileUtils::OpenFile("Import from Skeleton", "Skeleton", {".txt"},
-                        [this](const std::filesystem::path &path) {
-                          ImportPlant(path, "Sorghum");
-                        });
-    /*
-    if (ImGui::Button("Create field...")) {
-      ImGui::OpenPopup("Sorghum field wizard");
-    }
-    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    if (ImGui::BeginPopupModal("Sorghum field wizard", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      static RectangularSorghumFieldPattern field;
-      ImGui::DragInt2("Size", &field.m_size.x, 1, 1, 10);
-      ImGui::DragFloat2("Distance", &field.m_distances.x, 0.1f, 0.0f, 10.0f);
-      ImGui::DragFloat3("Rotation variance", &field.m_rotationVariation.x, 0.1f,
-                        0.0f, 10.0f);
-      if (ImGui::Button("OK", ImVec2(120, 0))) {
-        std::vector<Entity> candidates;
-        candidates.push_back(
-            ImportPlant(std::filesystem::path("../Resources") /
-                            "Sorghum/skeleton_procedural_1.txt",
-                        "Sorghum 1"));
-        candidates.push_back(
-            ImportPlant(std::filesystem::path("../Resources") /
-                            "Sorghum/skeleton_procedural_2.txt",
-                        "Sorghum 2"));
-        candidates.push_back(
-            ImportPlant(std::filesystem::path("../Resources") /
-                            "Sorghum/skeleton_procedural_3.txt",
-                        "Sorghum 3"));
-        candidates.push_back(
-            ImportPlant(std::filesystem::path("../Resources") /
-                            "Sorghum/skeleton_procedural_4.txt",
-                        "Sorghum 4"));
-        GenerateMeshForAllSorghums();
-
-        CreateGrid(field, candidates);
-        for (auto &i : candidates)
-          Entities::DeleteEntity(Entities::GetCurrentScene(), i);
-        ImGui::CloseCurrentPopup();
-      }
-      ImGui::SetItemDefaultFocus();
-      ImGui::SameLine();
-      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-        ImGui::CloseCurrentPopup();
-      }
-      ImGui::EndPopup();
-    }
-    */
     FileUtils::SaveFile("Export OBJ for all sorghums", "3D Model", {".obj"},
                         [this](const std::filesystem::path &path) {
                           ExportAllSorghumsModel(path.string());

@@ -9,11 +9,11 @@ class SORGHUM_FACTORY_API SorghumStateGenerator : public IAsset {
   unsigned m_version = 0;
 public:
   //Panicle
-  SingleDistribution<glm::vec3> m_panicleSize;
+  SingleDistribution<glm::vec2> m_panicleSize;
   SingleDistribution<float> m_panicleSeedAmount;
   SingleDistribution<float> m_panicleSeedRadius;
   //Stem
-  glm::vec3 m_stemDirection;
+  SingleDistribution<float> m_stemTiltAngle;
   SingleDistribution<float> m_stemLength;
   SingleDistribution<float> m_stemWidth;
   //Leaf
