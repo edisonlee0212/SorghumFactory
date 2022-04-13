@@ -29,7 +29,6 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   void ExportMatrices(const std::filesystem::path& path);
 public:
   RayProperties m_rayProperties = {6, 256};
-  AssetRef m_parameters;
   AssetRef m_labPrefab;
   AssetRef m_dirtPrefab;
   bool m_captureImage = true;
@@ -37,7 +36,7 @@ public:
   bool m_captureMesh = false;
   bool m_captureDepth = true;
   bool m_exportMatrices = true;
-  std::filesystem::path m_currentExportFolder = "Datasets";
+  std::filesystem::path m_currentExportFolder;
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 1;
   int m_turnAngleEnd = 2;
@@ -54,9 +53,8 @@ public:
   float m_cameraMax = 10;
 
 
-  bool IsReady() override;
-  void Start(AutoSorghumGenerationPipeline &pipeline) override;
-  void End(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnStart(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnEnd(AutoSorghumGenerationPipeline &pipeline) override;
 
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;

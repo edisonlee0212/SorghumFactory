@@ -12,14 +12,13 @@ public:
   PointCloudSampleSettings m_settings;
   void Reset(Scripts::AutoSorghumGenerationPipeline &pipeline);
   AssetRef m_positionsField;
-  std::filesystem::path m_currentExportFolder = "Datasets/";
+  std::filesystem::path m_currentExportFolder;
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnInspect() override;
-  void Start(AutoSorghumGenerationPipeline &pipeline) override;
-  void End(AutoSorghumGenerationPipeline &pipeline) override;
-  bool IsReady() override;
+  void OnStart(AutoSorghumGenerationPipeline &pipeline) override;
+  void OnEnd(AutoSorghumGenerationPipeline &pipeline) override;
 
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void Serialize(YAML::Emitter &out) override;

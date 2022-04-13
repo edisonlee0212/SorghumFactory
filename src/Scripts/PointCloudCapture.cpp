@@ -13,7 +13,7 @@ void Scripts::PointCloudCapture::OnBeforeGrowth(
   }
   auto fieldGround = m_ground.GetOrSetPrivateComponent<FieldGround>().lock();
   fieldGround->GenerateMesh(glm::linearRand(0.12f, 0.17f) );
-  auto result = positionsField->InstantiateAroundIndex(pipeline.m_currentIndex % positionsField->m_positions.size(), 2.5f);
+  auto result = positionsField->InstantiateAroundIndex(pipeline.GetSeed() % positionsField->m_positions.size(), 2.5f);
   pipeline.m_currentGrowingSorghum = result.first;
   m_currentSorghumField = result.second;
   if (!pipeline.m_currentGrowingSorghum.IsValid() ||
@@ -32,20 +32,15 @@ void Scripts::PointCloudCapture::OnAfterGrowth(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   Application::GetLayer<SorghumLayer>()->ScanPointCloudLabeled(
       pipeline.m_currentGrowingSorghum, m_currentSorghumField,
-      std::filesystem::absolute(
-          ProjectManager::GetProjectPath().parent_path().parent_path() /
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud" /
-          (std::to_string(pipeline.m_currentIndex) + std::string(".ply"))),
+      m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud" /
+          (pipeline.m_prefix + std::string(".ply")),
       m_settings);
 
   Entities::DeleteEntity(Entities::GetCurrentScene(), m_currentSorghumField);
   pipeline.m_currentGrowingSorghum = m_currentSorghumField = Entity();
-  pipeline.m_currentIndex++;
-  pipeline.m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
+  pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
 }
 void Scripts::PointCloudCapture::OnInspect() {
-  Editor::DragAndDropButton<PositionsField>(m_positionsField, "Position Field");
-  m_settings.OnInspect();
   if (m_positionsField.Get<PositionsField>()) {
     if (ImGui::Button("Instantiate pipeline")) {
       Instantiate();
@@ -53,27 +48,36 @@ void Scripts::PointCloudCapture::OnInspect() {
   } else {
     ImGui::Text("PositionsField Missing!");
   }
+
+  ImGui::Text("Current output folder: %s",
+              m_currentExportFolder.string().c_str());
+  FileUtils::OpenFolder(
+      "Choose output folder...",
+      [&](const std::filesystem::path &path) {
+        m_currentExportFolder = std::filesystem::absolute(path);
+      },
+      false);
+
+  Editor::DragAndDropButton<PositionsField>(m_positionsField, "Position Field");
+  m_settings.OnInspect();
+
 }
 
-void Scripts::PointCloudCapture::Start(
+void Scripts::PointCloudCapture::OnStart(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   std::filesystem::create_directories(
-      std::filesystem::absolute(ProjectManager::GetProjectPath().parent_path().parent_path() /
-                                m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud"));
+      m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() / "PointCloud");
   m_ground = Entities::CreateEntity(Entities::GetCurrentScene(), "Ground");
   auto fieldGround = m_ground.GetOrSetPrivateComponent<FieldGround>().lock();
   m_settings.m_ground = m_ground;
 }
-void Scripts::PointCloudCapture::End(
+void Scripts::PointCloudCapture::OnEnd(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {
   if (m_currentSorghumField.IsValid())
     Entities::DeleteEntity(Entities::GetCurrentScene(), m_currentSorghumField);
   pipeline.m_currentGrowingSorghum = m_currentSorghumField = {};
 
   Entities::DeleteEntity(Entities::GetCurrentScene(), m_ground);
-}
-bool Scripts::PointCloudCapture::IsReady() {
-  return m_positionsField.Get<PositionsField>().get();
 }
 void Scripts::PointCloudCapture::Reset(
     Scripts::AutoSorghumGenerationPipeline &pipeline) {

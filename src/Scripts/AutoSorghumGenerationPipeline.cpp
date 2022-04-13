@@ -15,103 +15,126 @@ using namespace RayTracerFacility;
 using namespace Scripts;
 
 void AutoSorghumGenerationPipeline::Update() {
-  if(m_currentIndex == -1) {
-    m_status = AutoSorghumGenerationPipelineStatus::Idle;
-    return;
-  }
   auto behaviour =
       m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>();
   if (behaviour) {
     switch (m_status) {
-    case AutoSorghumGenerationPipelineStatus::BeforeGrowth:
-      behaviour->OnBeforeGrowth(*this);
+    case AutoSorghumGenerationPipelineStatus::Idle: {
+      if (!m_busy) {
+        break;
+      } else if (m_remainingInstanceAmount > 0) {
+        m_remainingInstanceAmount--;
+        m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
+      } else if (!m_descriptors.empty()) {
+        m_currentUsingDescriptor = m_descriptors.back();
+        m_descriptors.pop_back();
+        m_remainingInstanceAmount = m_generationAmount;
+      } else {
+        UNIENGINE_LOG("Finished!");
+        behaviour->OnEnd(*this);
+        m_busy = false;
+      }
       break;
+    }
+    case AutoSorghumGenerationPipelineStatus::BeforeGrowth: {
+      m_prefix = m_currentUsingDescriptor.Get<SorghumStateGenerator>()
+                     ->GetAssetRecord()
+                     .lock()
+                     ->GetAssetFileName() +
+                 "_" +
+                 std::to_string(m_generationAmount - m_remainingInstanceAmount +
+                                m_startIndex);
+
+      behaviour->OnBeforeGrowth(*this);
+      if (m_status != AutoSorghumGenerationPipelineStatus::BeforeGrowth) {
+        if (!m_currentGrowingSorghum.IsValid()) {
+          UNIENGINE_ERROR("No sorghum created or wrongly created!");
+          m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
+        }
+      }
+      break;
+    }
     case AutoSorghumGenerationPipelineStatus::Growth:
       behaviour->OnGrowth(*this);
+      m_status = AutoSorghumGenerationPipelineStatus::AfterGrowth;
       break;
     case AutoSorghumGenerationPipelineStatus::AfterGrowth:
       behaviour->OnAfterGrowth(*this);
-      if (m_currentIndex > m_endIndex) {
-        m_status = AutoSorghumGenerationPipelineStatus::Idle;
-        m_currentIndex = -1;
-        UNIENGINE_LOG("Finished!");
-        behaviour->End(*this);
-      }
       break;
     }
   }
 }
 
 void AutoSorghumGenerationPipeline::OnInspect() {
-  DropBehaviourButton();
+  ImGui::DragInt("Start Index", &m_startIndex);
+  ImGui::DragInt("Amount per descriptor", &m_generationAmount);
+
   auto behaviour =
       m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>();
-  if (behaviour) {
-    ImGui::DragInt("Start Index", &m_startIndex, 1, 0, m_endIndex);
-    ImGui::DragInt("End Index", &m_endIndex, 1, m_startIndex, 999999);
-
-    if (!Application::IsPlaying()) {
-      ImGui::Text("Application not Playing!");
-    } else if (!behaviour->IsReady()) {
-      ImGui::Text("Pipeline is not ready");
-    } else if (m_status != AutoSorghumGenerationPipelineStatus::Idle) {
-      ImGui::Text("Busy... (Current: %d, total: %d)", m_currentIndex - m_startIndex, m_endIndex - m_startIndex);
-    } else {
+  if (!behaviour) {
+    ImGui::Text("Behaviour missing!");
+  } else if (m_busy) {
+    ImGui::Text("Task dispatched...");
+    ImGui::Text(
+        ("Remaining descriptors: " + std::to_string(m_descriptors.size()))
+            .c_str());
+    ImGui::Text(("Total: " + std::to_string(m_generationAmount) +
+                 ", Remaining: " + std::to_string(m_remainingInstanceAmount))
+                    .c_str());
+    if (ImGui::Button("Force stop")) {
+      m_remainingInstanceAmount = 0;
+      m_descriptors.clear();
+      m_busy = false;
+    }
+  } else {
+    ImGui::Text(("Loaded descriptors: " + std::to_string(m_descriptors.size()))
+                    .c_str());
+    FileUtils::OpenFolder(
+        "Collect descriptors", [&](const std::filesystem::path &path) {
+          auto &projectManager = ProjectManager::GetInstance();
+          if (std::filesystem::exists(path) &&
+              std::filesystem::is_directory(path)) {
+            for (const auto &entry :
+                 std::filesystem::recursive_directory_iterator(path)) {
+              if (!std::filesystem::is_directory(entry.path())) {
+                auto relativePath =
+                    ProjectManager::GetPathRelativeToProject(entry.path());
+                if (entry.path().extension() == ".sorghumstategenerator") {
+                  auto descriptor =
+                      std::dynamic_pointer_cast<SorghumStateGenerator>(
+                          ProjectManager::GetOrCreateAsset(relativePath));
+                  m_descriptors.emplace_back(descriptor);
+                }
+              }
+            }
+          }
+        });
+    if (m_descriptors.empty()) {
+      ImGui::Text("No descriptors!");
+    } else if (Application::IsPlaying()) {
       if (ImGui::Button("Start")) {
-        m_currentIndex = m_startIndex;
-        m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
-        behaviour->Start(*this);
+        m_busy = true;
+        behaviour->OnStart(*this);
+        m_status = AutoSorghumGenerationPipelineStatus::Idle;
       }
+    } else {
+      ImGui::Text("Start Engine first!");
     }
-  } else {
-    ImGui::Text("Pipeline behaviour missing!");
   }
 }
 
-void AutoSorghumGenerationPipeline::DropBehaviourButton() {
-  if (m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>()) {
-    auto behaviour =
-        m_pipelineBehaviour.Get<IAutoSorghumGenerationPipelineBehaviour>();
-    ImGui::Text("Current attached behaviour: ");
-    ImGui::Button(behaviour->GetTitle().c_str());
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-      Editor::GetInstance().m_inspectingAsset = behaviour;
-    }
-    const std::string tag =
-        "##" + behaviour->GetTypeName() +
-        (behaviour ? std::to_string(behaviour->GetHandle()) : "");
-    if (ImGui::BeginPopupContextItem(tag.c_str())) {
-      if (ImGui::Button(("Remove" + tag).c_str())) {
-        m_pipelineBehaviour.Clear();
-      }
-      ImGui::EndPopup();
-    }
-  } else {
-    ImGui::Text("Drop Behaviour");
-    ImGui::SameLine();
-    ImGui::Button("Here");
-    if (ImGui::BeginDragDropTarget()) {
-      if (const ImGuiPayload *payload =
-              ImGui::AcceptDragDropPayload("GeneralDataCapture")) {
-        IM_ASSERT(payload->DataSize == sizeof(std::shared_ptr<IAsset>));
-        std::shared_ptr<IAutoSorghumGenerationPipelineBehaviour> payload_n =
-            std::dynamic_pointer_cast<IAutoSorghumGenerationPipelineBehaviour>(
-                *static_cast<std::shared_ptr<IAsset> *>(payload->Data));
-        m_pipelineBehaviour = payload_n;
-      }
-      ImGui::EndDragDropTarget();
-    }
-  }
-}
 void AutoSorghumGenerationPipeline::CollectAssetRef(
     std::vector<AssetRef> &list) {
-  IPrivateComponent::CollectAssetRef(list);
+  list.push_back(m_pipelineBehaviour);
 }
 void AutoSorghumGenerationPipeline::Serialize(YAML::Emitter &out) {
-  ISerializable::Serialize(out);
+  m_pipelineBehaviour.Save("m_pipelineBehaviour", out);
 }
 void AutoSorghumGenerationPipeline::Deserialize(const YAML::Node &in) {
-  ISerializable::Deserialize(in);
+  m_pipelineBehaviour.Load("m_pipelineBehaviour", in);
+}
+int AutoSorghumGenerationPipeline::GetSeed() const {
+  return m_generationAmount - m_remainingInstanceAmount + m_startIndex;
 }
 
 void IAutoSorghumGenerationPipelineBehaviour::OnBeforeGrowth(
