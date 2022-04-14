@@ -12,6 +12,7 @@ enum class AutoSorghumGenerationPipelineStatus {
 };
 class AutoSorghumGenerationPipeline : public IPrivateComponent {
   int m_remainingInstanceAmount = 0;
+
 public:
   std::string m_prefix;
   int m_startIndex = 1;
@@ -23,7 +24,8 @@ public:
   bool m_busy = false;
   AssetRef m_currentUsingDescriptor;
   std::vector<AssetRef> m_descriptors;
-int GetSeed() const;
+  [[nodiscard]] int GetSeed() const;
+  void OnDestroy() override;
   void Update() override;
   void OnInspect() override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;

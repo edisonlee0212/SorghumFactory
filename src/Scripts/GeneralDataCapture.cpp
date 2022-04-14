@@ -36,7 +36,9 @@ void GeneralDataCapture::OnInspect() {
     ImGui::DragFloat("Denoiser strength", &m_denoiserStrength, 0.01f);
     ImGui::DragFloat("Distance to center", &m_distanceToCenter, 0.01f);
     ImGui::DragFloat("Height", &m_height, 0.01f);
-    ImGui::DragInt3("Turn angle Start/Step/End", &m_turnAngleStart, 0.01f);
+    ImGui::DragFloat("Top distance to center", &m_topDistanceToCenter, 0.01f);
+    ImGui::DragInt3("Turn angle Start/Step/End", &m_turnAngleStart);
+    ImGui::DragInt3("Top turn angle Start/Step/End", &m_topTurnAngleStart);
     ImGui::Separator();
     ImGui::DragFloat("Camera FOV", &m_fov);
     ImGui::DragFloat("Camera gamma", &m_gamma, 0.01f);
@@ -117,11 +119,11 @@ void GeneralDataCapture::OnAfterGrowth(
           ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
            "_mask.png"));
     }
-    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
     pipeline.GetOwner().SetDataComponent(cameraGT);
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
+    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
+         turnAngle += m_topTurnAngleStep) {
       auto sorghumGT =
           pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
@@ -193,11 +195,11 @@ void GeneralDataCapture::OnAfterGrowth(
           ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
            "_depth.hdr"));
     }
-    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
     pipeline.GetOwner().SetDataComponent(cameraGT);
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
+    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
+         turnAngle += m_topTurnAngleStep) {
       auto sorghumGT =
           pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
@@ -264,11 +266,11 @@ void GeneralDataCapture::OnAfterGrowth(
           ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
            "_image.png"));
     }
-    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
     pipeline.GetOwner().SetDataComponent(cameraGT);
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
+    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
+         turnAngle += m_topTurnAngleStep) {
       auto sorghumGT =
           pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
@@ -319,10 +321,10 @@ void GeneralDataCapture::OnAfterGrowth(
                         std::to_string(turnAngle));
     }
 
-    cameraGT.SetPosition(glm::vec3(0, m_distanceToCenter, 0));
+    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    for (float turnAngle = m_turnAngleStart; turnAngle < m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
+    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
+         turnAngle += m_topTurnAngleStep) {
       auto sorghumGT =
           pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
@@ -380,9 +382,15 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
       << m_currentExportFolder.string();
   out << YAML::Key << "m_distanceToCenter" << YAML::Value << m_distanceToCenter;
   out << YAML::Key << "m_height" << YAML::Value << m_height;
+  out << YAML::Key << "m_topDistanceToCenter" << YAML::Value << m_topDistanceToCenter;
   out << YAML::Key << "m_turnAngleStart" << YAML::Value << m_turnAngleStart;
   out << YAML::Key << "m_turnAngleStep" << YAML::Value << m_turnAngleStep;
   out << YAML::Key << "m_turnAngleEnd" << YAML::Value << m_turnAngleEnd;
+
+  out << YAML::Key << "m_topTurnAngleStart" << YAML::Value << m_topTurnAngleStart;
+  out << YAML::Key << "m_topTurnAngleStep" << YAML::Value << m_topTurnAngleStep;
+  out << YAML::Key << "m_topTurnAngleEnd" << YAML::Value << m_topTurnAngleEnd;
+
   out << YAML::Key << "m_fov" << YAML::Value << m_fov;
   out << YAML::Key << "m_gamma" << YAML::Value << m_gamma;
   out << YAML::Key << "m_denoiserStrength" << YAML::Value << m_denoiserStrength;
@@ -415,6 +423,10 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_currentExportFolder = in["m_currentExportFolder"].as<std::string>();
   if (in["m_distanceToCenter"])
     m_distanceToCenter = in["m_distanceToCenter"].as<float>();
+
+  if (in["m_topDistanceToCenter"])
+    m_topDistanceToCenter = in["m_topDistanceToCenter"].as<float>();
+
   if (in["m_height"])
     m_height = in["m_height"].as<float>();
   if (in["m_turnAngleStart"])
@@ -423,6 +435,14 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_turnAngleStep = in["m_turnAngleStep"].as<int>();
   if (in["m_turnAngleEnd"])
     m_turnAngleEnd = in["m_turnAngleEnd"].as<int>();
+
+  if (in["m_topTurnAngleStart"])
+    m_topTurnAngleStart = in["m_topTurnAngleStart"].as<int>();
+  if (in["m_topTurnAngleStep"])
+    m_topTurnAngleStep = in["m_topTurnAngleStep"].as<int>();
+  if (in["m_topTurnAngleEnd"])
+    m_topTurnAngleEnd = in["m_topTurnAngleEnd"].as<int>();
+
   if (in["m_gamma"])
     m_gamma = in["m_gamma"].as<float>();
   if (in["m_fov"])

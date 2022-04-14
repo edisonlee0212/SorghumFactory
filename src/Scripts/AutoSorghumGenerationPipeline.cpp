@@ -42,8 +42,7 @@ void AutoSorghumGenerationPipeline::Update() {
                      .lock()
                      ->GetAssetFileName() +
                  "_" +
-                 std::to_string(m_generationAmount - m_remainingInstanceAmount +
-                                m_startIndex);
+                 std::to_string(GetSeed());
 
       behaviour->OnBeforeGrowth(*this);
       if (m_status != AutoSorghumGenerationPipelineStatus::BeforeGrowth) {
@@ -91,6 +90,8 @@ void AutoSorghumGenerationPipeline::OnInspect() {
                     .c_str());
     FileUtils::OpenFolder(
         "Collect descriptors", [&](const std::filesystem::path &path) {
+          m_descriptors.clear();
+          m_currentUsingDescriptor.Clear();
           auto &projectManager = ProjectManager::GetInstance();
           if (std::filesystem::exists(path) &&
               std::filesystem::is_directory(path)) {
@@ -134,7 +135,12 @@ void AutoSorghumGenerationPipeline::Deserialize(const YAML::Node &in) {
   m_pipelineBehaviour.Load("m_pipelineBehaviour", in);
 }
 int AutoSorghumGenerationPipeline::GetSeed() const {
-  return m_generationAmount - m_remainingInstanceAmount + m_startIndex;
+  return m_generationAmount - m_remainingInstanceAmount + m_startIndex + 1;
+}
+void AutoSorghumGenerationPipeline::OnDestroy() {
+  m_descriptors.clear();
+  m_currentUsingDescriptor.Clear();
+  m_pipelineBehaviour.Clear();
 }
 
 void IAutoSorghumGenerationPipelineBehaviour::OnBeforeGrowth(

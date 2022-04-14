@@ -40,10 +40,16 @@ public:
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 1;
   int m_turnAngleEnd = 2;
+
+  int m_topTurnAngleStart = 0;
+  int m_topTurnAngleStep = 1;
+  int m_topTurnAngleEnd = 2;
+
   float m_gamma = 2.2f;
   float m_fov = 30;
   float m_distanceToCenter = 8.2;
   float m_height = 0.66f;
+  float m_topDistanceToCenter = 8.2;
 
   float m_denoiserStrength = 1.0f;
   glm::ivec2 m_resolution = glm::ivec2(1024, 1024);
