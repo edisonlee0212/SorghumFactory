@@ -4,7 +4,9 @@
 
 #include "FieldGround.hpp"
 #include "glm/gtc/noise.hpp"
-void SorghumFactory::FieldGround::GenerateMesh(float overrideDepth) {
+
+using namespace SorghumFactory;
+void FieldGround::GenerateMesh(float overrideDepth) {
   std::vector<Vertex> vertices;
   std::vector<glm::uvec3> triangles;
   Vertex archetype;
@@ -36,15 +38,17 @@ void SorghumFactory::FieldGround::GenerateMesh(float overrideDepth) {
                              i + 1 + j * n);
     }
   }
+  auto owner = GetOwner();
+  auto scene = GetScene();
   auto meshRenderer =
-      GetOwner().GetOrSetPrivateComponent<MeshRenderer>().lock();
+      scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
   auto mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
   auto material = ProjectManager::CreateTemporaryAsset<Material>();
   mesh->SetVertices(17, vertices, triangles);
   meshRenderer->m_mesh = mesh;
   meshRenderer->m_material = material;
 }
-void SorghumFactory::FieldGround::OnInspect() {
+void FieldGround::OnInspect() {
   static bool autoRefresh = false;
   ImGui::Checkbox("Auto refresh", &autoRefresh);
   bool changed = ImGui::DragFloat2("Scale", &m_scale.x);
@@ -58,9 +62,9 @@ void SorghumFactory::FieldGround::OnInspect() {
     GenerateMesh();
   }
 }
-void SorghumFactory::FieldGround::Serialize(YAML::Emitter &out) {}
-void SorghumFactory::FieldGround::Deserialize(const YAML::Node &in) {}
-void SorghumFactory::FieldGround::OnCreate() {
+void FieldGround::Serialize(YAML::Emitter &out) {}
+void FieldGround::Deserialize(const YAML::Node &in) {}
+void FieldGround::OnCreate() {
   m_scale = glm::vec2(0.02f);
   m_size = glm::ivec2(150);
   m_rowWidth = 8.25f;

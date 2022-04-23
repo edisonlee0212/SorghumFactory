@@ -4,6 +4,8 @@
 #include "LeafData.hpp"
 #include "ProceduralSorghum.hpp"
 #include "SorghumLayer.hpp"
+#include "Graphics.hpp"
+#include "DefaultResources.hpp"
 using namespace SorghumFactory;
 void LeafData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -32,9 +34,11 @@ void LeafData::OnInspect() {
       matrices[i] =
           glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
     }
+    auto owner = GetOwner();
+    auto scene = GetScene();
     Graphics::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
-        GetOwner().GetDataComponent<GlobalTransform>().m_value, nodeSize);
+        scene->GetDataComponent<GlobalTransform>(owner).m_value, nodeSize);
   }
 }
 void LeafData::OnDestroy() {
@@ -85,7 +89,10 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (!sorghumLayer)
     return;
-  auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
+
+  auto owner = GetOwner();
+  auto scene = GetScene();
+  auto leafIndex = scene->GetDataComponent<LeafTag>(owner).m_index;
 
   ProceduralLeafState actualLeft, actualRight;
   float actualA;
@@ -182,7 +189,10 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
   }
 }
 void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
-  auto leafIndex = GetOwner().GetDataComponent<LeafTag>().m_index;
+  auto owner = GetOwner();
+  auto scene = GetScene();
+
+  auto leafIndex = scene->GetDataComponent<LeafTag>(owner).m_index;
 
   ProceduralLeafState actualLeft, actualRight;
   float actualA;

@@ -4,7 +4,8 @@
 
 #include "StemData.hpp"
 #include "SorghumLayer.hpp"
-
+#include "Graphics.hpp"
+#include "DefaultResources.hpp"
 using namespace SorghumFactory;
 void StemData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -35,7 +36,7 @@ void StemData::OnInspect() {
     }
     Graphics::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
-        GetOwner().GetDataComponent<GlobalTransform>().m_value, nodeSize);
+        GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value, nodeSize);
   }
 }
 void StemData::OnDestroy() {

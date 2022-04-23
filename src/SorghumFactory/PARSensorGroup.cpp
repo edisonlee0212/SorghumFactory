@@ -4,6 +4,9 @@
 #ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
+#include "DefaultResources.hpp"
+#include "Graphics.hpp"
+
 using namespace SorghumFactory;
 void SorghumFactory::PARSensorGroup::CalculateIllumination(
     const RayProperties &rayProperties, int seed, float pushNormalDistance) {

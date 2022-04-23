@@ -4,10 +4,12 @@
 
 #include "ObjectRotator.hpp"
 void SorghumFactory::ObjectRotator::FixedUpdate() {
-  auto transform = GetOwner().GetDataComponent<Transform>();
+  auto owner = GetOwner();
+  auto scene = GetScene();
+  auto transform = scene->GetDataComponent<Transform>(owner);
   m_rotation.y += Application::Time().FixedDeltaTime() * m_rotateSpeed;
   transform.SetEulerRotation(glm::radians(m_rotation));
-  GetOwner().SetDataComponent(transform);
+  scene->SetDataComponent(owner, transform);
 }
 
 void SorghumFactory::ObjectRotator::OnInspect() {

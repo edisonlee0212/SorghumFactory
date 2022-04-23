@@ -5,8 +5,9 @@
 #include "LeafData.hpp"
 #include "PanicleData.hpp"
 #include "StemData.hpp"
-#include <SorghumData.hpp>
-#include <SorghumLayer.hpp>
+#include "SorghumData.hpp"
+#include "SorghumLayer.hpp"
+#include "DefaultResources.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
@@ -143,6 +144,8 @@ void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
 
 void SorghumData::GenerateGeometry() {
   SorghumStatePair statePair;
+
+  auto scene = GetScene();
   switch ((SorghumMode)m_mode) {
   case SorghumMode::ProceduralSorghum: {
     auto descriptor = m_descriptor.Get<ProceduralSorghum>();
@@ -164,28 +167,28 @@ void SorghumData::GenerateGeometry() {
   }
 
   // 1. Set owner's spline
-
-  auto children = GetOwner().GetChildren();
+  auto children = scene->GetChildren( GetOwner());
   for (int i = 0; i < children.size(); i++) {
-    Entities::DeleteEntity(Entities::GetCurrentScene(), children[i]);
+    scene->DeleteEntity(children[i]);
   }
   auto stem =
       Application::GetLayer<SorghumLayer>()->CreateSorghumStem(GetOwner());
-  auto stemData = stem.GetOrSetPrivateComponent<StemData>().lock();
+  auto stemData = scene->GetOrSetPrivateComponent<StemData>(stem).lock();
   stemData->FormStem(statePair);
   auto leafSize = statePair.GetLeafSize();
   for (int i = 0; i < leafSize; i++) {
     Entity leaf =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
-    auto leafData = leaf.GetOrSetPrivateComponent<LeafData>().lock();
+    auto leafData = scene->GetOrSetPrivateComponent<LeafData>(leaf).lock();
     leafData->FormLeaf(statePair);
   }
   auto panicle =
       Application::GetLayer<SorghumLayer>()->CreateSorghumPanicle(GetOwner());
-  auto panicleData = panicle.GetOrSetPrivateComponent<PanicleData>().lock();
+  auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(panicle).lock();
   panicleData->FormPanicle(statePair);
 }
 void SorghumData::ApplyGeometry() {
+  auto scene = GetScene();
   auto owner = GetOwner();
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   bool seperated = m_seperated || m_segmentedMask;
@@ -194,10 +197,9 @@ void SorghumData::ApplyGeometry() {
     std::vector<UniEngine::Vertex> vertices;
     std::vector<glm::uvec3> triangles;
     int i = 0;
-    GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
-                                Entity child) {
-      if (m_includeStem && child.HasDataComponent<StemTag>()) {
-        auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
+    scene->ForEachChild(owner, [&](Entity child) {
+      if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
+        auto stemData = scene->GetOrSetPrivateComponent<StemData>(child).lock();
         vertices.insert(vertices.end(), stemData->m_vertices.begin(),
                         stemData->m_vertices.end());
         for (const auto &triangle : stemData->m_triangles) {
@@ -206,8 +208,8 @@ void SorghumData::ApplyGeometry() {
                                  triangle.z + vertexCount);
         }
         vertexCount = vertices.size();
-      } else if (child.HasDataComponent<LeafTag>()) {
-        auto leafData = child.GetOrSetPrivateComponent<LeafData>().lock();
+      } else if (scene->HasDataComponent<LeafTag>(child)) {
+        auto leafData = scene->GetOrSetPrivateComponent<LeafData>(child).lock();
         vertices.insert(vertices.end(), leafData->m_vertices.begin(),
                         leafData->m_vertices.end());
         for (const auto &triangle : leafData->m_triangles) {
@@ -217,10 +219,10 @@ void SorghumData::ApplyGeometry() {
         }
         vertexCount = vertices.size();
 
-      } else if (child.HasDataComponent<PanicleTag>()) {
-        auto panicleData = child.GetOrSetPrivateComponent<PanicleData>().lock();
+      } else if (scene->HasDataComponent<PanicleTag>(child)) {
+        auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
         auto meshRenderer =
-            child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!panicleData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -234,13 +236,13 @@ void SorghumData::ApplyGeometry() {
       i++;
 #ifdef RAYTRACERFACILITY
       if (sorghumLayer->m_enableMLVQ) {
-        auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+        auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(child).lock();
         rtt->Sync();
         rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
       }
 #endif
     });
-    auto meshRenderer = owner.GetOrSetPrivateComponent<MeshRenderer>().lock();
+    auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
     meshRenderer->m_material =
         Application::GetLayer<SorghumLayer>()->m_leafMaterial;
     if (!vertices.empty()) {
@@ -251,7 +253,7 @@ void SorghumData::ApplyGeometry() {
     }
 #ifdef RAYTRACERFACILITY
     if (sorghumLayer->m_enableMLVQ) {
-      auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+      auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
       rtt->Sync();
       rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
     }
@@ -259,12 +261,11 @@ void SorghumData::ApplyGeometry() {
   } else {
 
     int i = 0;
-    GetOwner().ForEachChild([&](const std::shared_ptr<Scene> &scene,
-                                Entity child) {
-      if (m_includeStem && child.HasDataComponent<StemTag>()) {
-        auto stemData = child.GetOrSetPrivateComponent<StemData>().lock();
+    scene->ForEachChild(owner, [&](Entity child) {
+      if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
+        auto stemData = scene->GetOrSetPrivateComponent<StemData>(child).lock();
         auto meshRenderer =
-            child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!stemData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -286,15 +287,15 @@ void SorghumData::ApplyGeometry() {
         }
 #ifdef RAYTRACERFACILITY
         if (sorghumLayer->m_enableMLVQ) {
-          auto rtt = owner.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+          auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
           rtt->Sync();
           rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
         }
 #endif
-      } else if (child.HasDataComponent<LeafTag>()) {
-        auto leafData = child.GetOrSetPrivateComponent<LeafData>().lock();
+      } else if (scene->HasDataComponent<LeafTag>(child)) {
+        auto leafData = scene->GetOrSetPrivateComponent<LeafData>(child).lock();
         auto meshRenderer =
-            child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!leafData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -315,10 +316,10 @@ void SorghumData::ApplyGeometry() {
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 
-      } else if (child.HasDataComponent<PanicleTag>()) {
-        auto panicleData = child.GetOrSetPrivateComponent<PanicleData>().lock();
+      } else if (scene->HasDataComponent<PanicleTag>(child)) {
+        auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
         auto meshRenderer =
-            child.GetOrSetPrivateComponent<MeshRenderer>().lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!panicleData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -332,7 +333,7 @@ void SorghumData::ApplyGeometry() {
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_cullingMode = MaterialCullingMode::Off;
           material->m_albedoColor =
-              glm::vec3(165.0 / 256, 42.0 / 256, 42.0 / 256);
+              glm::vec3(0.0f);
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
         } else {
@@ -342,7 +343,7 @@ void SorghumData::ApplyGeometry() {
       }
 #ifdef RAYTRACERFACILITY
       if (sorghumLayer->m_enableMLVQ) {
-        auto rtt = child.GetOrSetPrivateComponent<MLVQRenderer>().lock();
+        auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(child).lock();
         rtt->Sync();
         rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
       }

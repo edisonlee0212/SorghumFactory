@@ -381,7 +381,7 @@ void SorghumState::Deserialize(const YAML::Node &in) {
 void ProceduralSorghum::OnInspect() {
   if (ImGui::Button("Instantiate")) {
     auto sorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
-    sorghum.SetName(m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
+    Application::GetActiveScene()->SetEntityName(sorghum, m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
   }
   static bool autoSave = true;
   ImGui::Checkbox("Auto save", &autoSave);

@@ -99,20 +99,23 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
     UNIENGINE_ERROR("No matrices generated!");
     return {};
   }
+
+
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  auto scene = sorghumLayer->GetScene();
   if (sorghumLayer) {
     auto fieldAsset = std::dynamic_pointer_cast<SorghumField>(m_self.lock());
-    auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
+    auto field = scene->CreateEntity("Field");
     // Create sorghums here.
     int size = 0;
     for (auto &newSorghum : fieldAsset->m_newSorghums) {
       Entity sorghumEntity = sorghumLayer->CreateSorghum();
-      auto sorghumTransform = sorghumEntity.GetDataComponent<Transform>();
+      auto sorghumTransform = scene->GetDataComponent<Transform>(sorghumEntity);
       sorghumTransform.m_value = newSorghum.second;
       sorghumTransform.SetScale(glm::vec3(m_sorghumSize));
-      sorghumEntity.SetDataComponent(sorghumTransform);
+      scene->SetDataComponent(sorghumEntity, sorghumTransform);
       auto sorghumData =
-          sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
+          scene->GetOrSetPrivateComponent<SorghumData>(sorghumEntity).lock();
       sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
       sorghumData->m_descriptor = newSorghum.first;
       sorghumData->m_seed = size;
@@ -120,7 +123,7 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
       sorghumData->m_includeStem = m_includeStem;
       sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->SetTime(1.0f);
-      sorghumEntity.SetParent(field);
+      scene->SetParent(sorghumEntity, field);
       size++;
       if (size >= m_sizeLimit)
         break;
@@ -129,9 +132,9 @@ Entity SorghumField::InstantiateField(bool semanticMask) {
     Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums();
 
     Application::GetLayer<TransformLayer>()
-        ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
+        ->CalculateTransformGraphForDescendents(scene,
                                                 field);
-    field.SetStatic(true);
+    scene->SetEntityStatic(field, true);
     return field;
   } else {
     UNIENGINE_ERROR("No sorghum layer!");
@@ -300,10 +303,11 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
   if (m_positions.size() <= i)
     return {};
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
+  auto scene = sorghumLayer->GetScene();
   if (sorghumLayer) {
     glm::dvec2 center = m_positions[i];
     auto fieldAsset = std::dynamic_pointer_cast<PositionsField>(m_self.lock());
-    auto field = Entities::CreateEntity(Entities::GetCurrentScene(), "Field");
+    auto field = scene->CreateEntity("Field");
     // Create sorghums here.
     int size = 0;
     Entity centerSorghum;
@@ -313,7 +317,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       Entity sorghumEntity = sorghumLayer->CreateSorghum();
       if (center == position)
         centerSorghum = sorghumEntity;
-      auto sorghumTransform = sorghumEntity.GetDataComponent<Transform>();
+      auto sorghumTransform = scene->GetDataComponent<Transform>(sorghumEntity);
       auto pos =
           glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
       auto rotation = glm::quat(glm::radians(
@@ -322,9 +326,9 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
                                  glm::mat4_cast(rotation) *
                                  glm::scale(glm::vec3(m_sorghumSize));
 
-      sorghumEntity.SetDataComponent(sorghumTransform);
+      scene->SetDataComponent(sorghumEntity, sorghumTransform);
       auto sorghumData =
-          sorghumEntity.GetOrSetPrivateComponent<SorghumData>().lock();
+          scene->GetOrSetPrivateComponent<SorghumData>(sorghumEntity).lock();
       sorghumData->m_descriptor = m_sorghumStateGenerator;
       sorghumData->m_mode = 1;
       sorghumData->m_seperated = m_seperated;
@@ -332,7 +336,7 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
       sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->m_seed = glm::linearRand(0, INT_MAX);
       sorghumData->SetTime(1.0f);
-      sorghumEntity.SetParent(field);
+      scene->SetParent(sorghumEntity, field);
       size++;
       if (size >= m_sizeLimit)
         break;
@@ -341,9 +345,8 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius,
     Application::GetLayer<SorghumLayer>()->GenerateMeshForAllSorghums();
 
     Application::GetLayer<TransformLayer>()
-        ->CalculateTransformGraphForDescendents(Entities::GetCurrentScene(),
-                                                field);
-    field.SetStatic(true);
+        ->CalculateTransformGraphForDescendents(scene, field);
+    scene->SetEntityStatic(field, true);
 
     return {centerSorghum, field};
   } else {

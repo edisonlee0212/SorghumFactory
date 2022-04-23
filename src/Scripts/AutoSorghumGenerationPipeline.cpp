@@ -46,7 +46,7 @@ void AutoSorghumGenerationPipeline::Update() {
 
       behaviour->OnBeforeGrowth(*this);
       if (m_status != AutoSorghumGenerationPipelineStatus::BeforeGrowth) {
-        if (!m_currentGrowingSorghum.IsValid()) {
+        if (!GetScene()->IsEntityValid(m_currentGrowingSorghum)) {
           UNIENGINE_ERROR("No sorghum created or wrongly created!");
           m_status = AutoSorghumGenerationPipelineStatus::BeforeGrowth;
         }

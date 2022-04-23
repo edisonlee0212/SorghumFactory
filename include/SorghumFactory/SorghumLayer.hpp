@@ -98,9 +98,6 @@ public:
                             unsigned &startIndex);
   void ExportAllSorghumsModel(const std::string &filename);
 
-  static void CollectEntities(std::vector<Entity> &entities,
-                              const Entity &walker);
-
   std::shared_ptr<PointCloud>
   ScanPointCloud(const Entity &sorghum, float boundingBoxRadius = 1.0f,
                  glm::vec2 boundingBoxHeightRange = glm::vec2(0, 2),

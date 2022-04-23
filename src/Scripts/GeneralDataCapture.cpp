@@ -57,9 +57,11 @@ void GeneralDataCapture::OnBeforeGrowth(
   pipeline.m_currentGrowingSorghum =
       Application::GetLayer<SorghumLayer>()->CreateSorghum(
           pipeline.m_currentUsingDescriptor.Get<SorghumStateGenerator>());
-  auto sorghumData =
-      pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-          .lock();
+  auto scene = pipeline.GetScene();
+  auto sorghumData = scene
+                         ->GetOrSetPrivateComponent<SorghumData>(
+                             pipeline.m_currentGrowingSorghum)
+                         .lock();
   sorghumData->m_seed = pipeline.GetSeed();
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Growth;
 }
@@ -69,18 +71,21 @@ void GeneralDataCapture::OnGrowth(AutoSorghumGenerationPipeline &pipeline) {
 
 void GeneralDataCapture::OnAfterGrowth(
     AutoSorghumGenerationPipeline &pipeline) {
+  auto scene = pipeline.GetScene();
   auto rayTracerCamera =
-      pipeline.GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
+      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner())
+          .lock();
   m_sorghumInfos.push_back({GlobalTransform(), pipeline.m_prefix});
 
   if (m_captureMask) {
-    if (m_lab.IsValid())
-      m_lab.SetEnabled(false);
-    if (m_dirt.IsValid())
-      m_dirt.SetEnabled(false);
-    auto sorghumData =
-        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-            .lock();
+    if (scene->IsEntityValid(m_lab))
+      scene->SetEnable(m_lab, false);
+    if (scene->IsEntityValid(m_dirt))
+      scene->SetEnable(m_dirt, false);
+    auto sorghumData = scene
+                           ->GetOrSetPrivateComponent<SorghumData>(
+                               pipeline.m_currentGrowingSorghum)
+                           .lock();
     sorghumData->m_seperated = true;
     sorghumData->m_includeStem = true;
     sorghumData->m_segmentedMask = true;
@@ -89,10 +94,8 @@ void GeneralDataCapture::OnAfterGrowth(
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
         RayTracerFacility::EnvironmentalLightingType::Scene;
-    Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
-        glm::vec3(1.0f);
-    Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
-        1.0f;
+    scene->m_environmentSettings.m_backgroundColor = glm::vec3(1.0f);
+    scene->m_environmentSettings.m_ambientLightIntensity = 1.0f;
     RayProperties rayProperties;
     rayProperties.m_samples = 1;
     rayProperties.m_bounces = 1;
@@ -101,16 +104,15 @@ void GeneralDataCapture::OnAfterGrowth(
     GlobalTransform cameraGT;
     cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
     cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
 
     for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
          turnAngle += m_turnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -121,15 +123,14 @@ void GeneralDataCapture::OnAfterGrowth(
     }
     cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
     for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
          turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -141,20 +142,21 @@ void GeneralDataCapture::OnAfterGrowth(
   }
 
   if (m_captureDepth) {
-    if (m_lab.IsValid())
-      m_lab.SetEnabled(true);
-    if (m_dirt.IsValid()) {
-      m_dirt.SetEnabled(true);
-      auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
+    if (scene->IsEntityValid(m_lab))
+      scene->SetEnable(m_lab, true);
+    if (scene->IsEntityValid(m_dirt)) {
+      scene->SetEnable(m_dirt, true);
+      auto dirtGT = scene->GetDataComponent<GlobalTransform>(m_dirt);
       dirtGT.SetRotation(
           dirtGT.GetRotation() *
           glm::quat(
               glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
-      m_dirt.SetDataComponent(dirtGT);
+      scene->SetDataComponent(m_dirt, dirtGT);
     }
-    auto sorghumData =
-        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-            .lock();
+    auto sorghumData = scene
+                           ->GetOrSetPrivateComponent<SorghumData>(
+                               pipeline.m_currentGrowingSorghum)
+                           .lock();
     if (!m_captureMask) {
       sorghumData->m_seperated = true;
       sorghumData->m_includeStem = true;
@@ -168,9 +170,8 @@ void GeneralDataCapture::OnAfterGrowth(
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
         RayTracerFacility::EnvironmentalLightingType::Scene;
-    Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
-        m_backgroundColor;
-    Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
+    scene->m_environmentSettings.m_backgroundColor = m_backgroundColor;
+    scene->m_environmentSettings.m_ambientLightIntensity =
         m_backgroundColorIntensity;
     rayTracerCamera->SetOutputType(OutputType::Depth);
     rayTracerCamera->SetDenoiserStrength(0.0f);
@@ -178,15 +179,14 @@ void GeneralDataCapture::OnAfterGrowth(
     GlobalTransform cameraGT;
     cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
     cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
     for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
          turnAngle += m_turnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -197,15 +197,14 @@ void GeneralDataCapture::OnAfterGrowth(
     }
     cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
     for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
          turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -216,21 +215,22 @@ void GeneralDataCapture::OnAfterGrowth(
     }
   }
   if (m_captureImage) {
-    if (m_lab.IsValid())
-      m_lab.SetEnabled(true);
-    if (m_dirt.IsValid()) {
-      m_dirt.SetEnabled(true);
-      auto dirtGT = m_dirt.GetDataComponent<GlobalTransform>();
+    if (scene->IsEntityValid(m_lab))
+      scene->SetEnable(m_lab, true);
+    if (scene->IsEntityValid(m_dirt)) {
+      scene->SetEnable(m_dirt, true);
+      auto dirtGT = scene->GetDataComponent<GlobalTransform>(m_dirt);
       dirtGT.SetRotation(
           dirtGT.GetRotation() *
           glm::quat(
               glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
-      m_dirt.SetDataComponent(dirtGT);
+      scene->SetDataComponent(m_dirt, dirtGT);
     }
 
-    auto sorghumData =
-        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
-            .lock();
+    auto sorghumData = scene
+                           ->GetOrSetPrivateComponent<SorghumData>(
+                               pipeline.m_currentGrowingSorghum)
+                           .lock();
     sorghumData->m_seperated = true;
     sorghumData->m_includeStem = true;
     sorghumData->m_segmentedMask = false;
@@ -240,24 +240,22 @@ void GeneralDataCapture::OnAfterGrowth(
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
         RayTracerFacility::EnvironmentalLightingType::Scene;
-    Entities::GetCurrentScene()->m_environmentSettings.m_backgroundColor =
-        m_backgroundColor;
-    Entities::GetCurrentScene()->m_environmentSettings.m_ambientLightIntensity =
+    scene->m_environmentSettings.m_backgroundColor = m_backgroundColor;
+    scene->m_environmentSettings.m_ambientLightIntensity =
         m_backgroundColorIntensity;
     rayTracerCamera->SetOutputType(OutputType::Color);
     rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
     GlobalTransform cameraGT;
     cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
     cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
     for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
          turnAngle += m_turnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(m_rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -268,15 +266,14 @@ void GeneralDataCapture::OnAfterGrowth(
     }
     cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    pipeline.GetOwner().SetDataComponent(cameraGT);
+    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
     for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
          turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      pipeline.m_currentGrowingSorghum.SetDataComponent(sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
-          Entities::GetCurrentScene());
+      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
       Application::GetLayer<RayTracerLayer>()->UpdateScene();
       rayTracerCamera->Render(m_rayProperties);
       rayTracerCamera->m_colorTexture->Export(
@@ -288,7 +285,7 @@ void GeneralDataCapture::OnAfterGrowth(
   }
   if (m_captureMesh) {
     auto sorghumData =
-        pipeline.m_currentGrowingSorghum.GetOrSetPrivateComponent<SorghumData>()
+        scene->GetOrSetPrivateComponent<SorghumData>(pipeline.m_currentGrowingSorghum)
             .lock();
     if (!m_captureDepth && !m_captureMask && !m_captureImage) {
       sorghumData->m_seperated = true;
@@ -310,7 +307,7 @@ void GeneralDataCapture::OnAfterGrowth(
     for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
          turnAngle += m_turnAngleStep) {
       auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+          scene->GetDataComponent<GlobalTransform>(pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       m_cameraModels.push_back(cameraGT.m_value);
@@ -326,7 +323,7 @@ void GeneralDataCapture::OnAfterGrowth(
     for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
          turnAngle += m_topTurnAngleStep) {
       auto sorghumGT =
-          pipeline.m_currentGrowingSorghum.GetDataComponent<GlobalTransform>();
+          scene->GetDataComponent<GlobalTransform>(pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       m_cameraModels.push_back(cameraGT.m_value);
       m_treeModels.push_back(sorghumGT.m_value);
@@ -337,20 +334,19 @@ void GeneralDataCapture::OnAfterGrowth(
     }
   }
 
-  if (pipeline.m_currentGrowingSorghum.IsValid())
-    Entities::DeleteEntity(Entities::GetCurrentScene(),
-                           pipeline.m_currentGrowingSorghum);
+  if (scene->IsEntityValid(pipeline.m_currentGrowingSorghum))
+    scene->DeleteEntity(pipeline.m_currentGrowingSorghum);
   pipeline.m_currentGrowingSorghum = {};
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
 }
 void GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
+  auto scene = pipeline.GetScene();
   auto rayTracerCamera =
-      pipeline.GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
+      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner()).lock();
 
   Application::GetLayer<RayTracerLayer>()
       ->m_environmentProperties.m_environmentalLightingType =
       RayTracerFacility::EnvironmentalLightingType::Scene;
-  auto scene = Entities::GetCurrentScene();
   scene->m_environmentSettings.m_environmentType =
       UniEngine::EnvironmentType::Color;
   scene->m_environmentSettings.m_backgroundColor = m_backgroundColor;
@@ -382,12 +378,14 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
       << m_currentExportFolder.string();
   out << YAML::Key << "m_distanceToCenter" << YAML::Value << m_distanceToCenter;
   out << YAML::Key << "m_height" << YAML::Value << m_height;
-  out << YAML::Key << "m_topDistanceToCenter" << YAML::Value << m_topDistanceToCenter;
+  out << YAML::Key << "m_topDistanceToCenter" << YAML::Value
+      << m_topDistanceToCenter;
   out << YAML::Key << "m_turnAngleStart" << YAML::Value << m_turnAngleStart;
   out << YAML::Key << "m_turnAngleStep" << YAML::Value << m_turnAngleStep;
   out << YAML::Key << "m_turnAngleEnd" << YAML::Value << m_turnAngleEnd;
 
-  out << YAML::Key << "m_topTurnAngleStart" << YAML::Value << m_topTurnAngleStart;
+  out << YAML::Key << "m_topTurnAngleStart" << YAML::Value
+      << m_topTurnAngleStart;
   out << YAML::Key << "m_topTurnAngleStep" << YAML::Value << m_topTurnAngleStep;
   out << YAML::Key << "m_topTurnAngleEnd" << YAML::Value << m_topTurnAngleEnd;
 
@@ -461,25 +459,25 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
     m_cameraMax = in["m_cameraMax"].as<float>();
 }
 void GeneralDataCapture::Instantiate() {
-  auto pipelineEntity = Entities::CreateEntity(
-      Entities::GetCurrentScene(), GetAssetRecord().lock()->GetAssetFileName());
+  auto scene = Application::GetActiveScene();
+  auto pipelineEntity = scene->CreateEntity(GetAssetRecord().lock()->GetAssetFileName());
   auto pipeline =
-      pipelineEntity.GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>()
+      scene->GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>(pipelineEntity)
           .lock();
   pipeline->m_pipelineBehaviour =
       std::dynamic_pointer_cast<GeneralDataCapture>(m_self.lock());
 }
 
 void GeneralDataCapture::OnStart(AutoSorghumGenerationPipeline &pipeline) {
+  auto scene = pipeline.GetScene();
   if (m_labPrefab.Get<Prefab>()) {
-    m_lab = m_labPrefab.Get<Prefab>()->ToEntity();
+    m_lab = m_labPrefab.Get<Prefab>()->ToEntity(scene);
   }
   if (m_dirtPrefab.Get<Prefab>()) {
-    m_dirt = m_dirtPrefab.Get<Prefab>()->ToEntity();
+    m_dirt = m_dirtPrefab.Get<Prefab>()->ToEntity(scene);
   }
-
   auto rayTracerCamera =
-      pipeline.GetOwner().GetOrSetPrivateComponent<RayTracerCamera>().lock();
+      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner()).lock();
   rayTracerCamera->SetMainCamera(true);
 
   m_sorghumInfos.clear();
@@ -507,10 +505,11 @@ void GeneralDataCapture::OnStart(AutoSorghumGenerationPipeline &pipeline) {
   }
 }
 void GeneralDataCapture::OnEnd(AutoSorghumGenerationPipeline &pipeline) {
-  if (m_lab.IsValid())
-    Entities::DeleteEntity(Entities::GetCurrentScene(), m_lab);
-  if (m_dirt.IsValid())
-    Entities::DeleteEntity(Entities::GetCurrentScene(), m_dirt);
+  auto scene = pipeline.GetScene();
+  if (scene->IsEntityValid(m_lab))
+    scene->DeleteEntity(m_lab);
+  if (scene->IsEntityValid(m_dirt))
+    scene->DeleteEntity(m_dirt);
 
   if ((m_captureImage || m_captureMask || m_captureDepth) && m_exportMatrices)
     ExportMatrices(m_currentExportFolder /
