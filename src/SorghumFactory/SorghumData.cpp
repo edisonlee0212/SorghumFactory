@@ -71,12 +71,14 @@ void SorghumData::OnInspect() {
 
       ImGui::TreePop();
     }
+    /*
     FileUtils::SaveFile("Export Point cloud", "Point cloud", {".uepc"},
                           [this](const std::filesystem::path &path) {
       auto pointCloud =
           Application::GetLayer<SorghumLayer>()->ScanPointCloud(GetOwner());
       pointCloud->Export(path);
     }, false);
+     */
   }
 }
 

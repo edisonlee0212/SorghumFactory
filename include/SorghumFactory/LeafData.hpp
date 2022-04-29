@@ -13,6 +13,11 @@ class SORGHUM_FACTORY_API LeafData : public IPrivateComponent {
 
   void GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair);
 public:
+  glm::vec3 m_leafSheath;
+  glm::vec3 m_leafTip;
+  float m_branchingAngle;
+  float m_rollAngle;
+  int m_index = 0;
 
   //The "normal" direction of the leaf.
   glm::vec3 m_left;

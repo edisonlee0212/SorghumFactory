@@ -135,7 +135,7 @@ void AutoSorghumGenerationPipeline::Deserialize(const YAML::Node &in) {
   m_pipelineBehaviour.Load("m_pipelineBehaviour", in);
 }
 int AutoSorghumGenerationPipeline::GetSeed() const {
-  return m_generationAmount - m_remainingInstanceAmount + m_startIndex + 1;
+  return m_generationAmount - m_remainingInstanceAmount + m_startIndex - 1;
 }
 void AutoSorghumGenerationPipeline::OnDestroy() {
   m_descriptors.clear();
