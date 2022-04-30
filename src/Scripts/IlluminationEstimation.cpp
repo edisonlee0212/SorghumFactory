@@ -9,6 +9,9 @@
 
 using namespace Scripts;
 void IlluminationEstimationPipeline::OnInspect() {
+  if(ImGui::Button("Instantiate pipeline")){
+
+  }
 
   if (!m_results.empty()) {
     FileUtils::SaveFile(
@@ -18,33 +21,24 @@ void IlluminationEstimationPipeline::OnInspect() {
 
   Editor::DragAndDropButton<SkyIlluminance>(m_skyIlluminance,
                                             "Sky Illuminance");
-
-  auto skyIlluminance = m_skyIlluminance.Get<SkyIlluminance>();
-  if (!skyIlluminance) {
-    ImGui::Text("Sky illuminance missing!");
-    return;
-  } else {
-    m_rayProperties.OnInspect();
-    ImGui::DragFloat("Interval", &m_timeInterval, 0.1f, 0.01f, 100.0f);
-    if (ImGui::Button("Start")) {
-      Clear();
-      m_currentTime = skyIlluminance->m_minTime;
-      m_running = true;
-    }
-  }
+  m_rayProperties.OnInspect();
+  ImGui::DragFloat("Interval", &m_timeInterval, 0.1f, 0.01f, 100.0f);
+}
+void IlluminationEstimationPipeline::OnBeforeProcessing(
+    GeneralAutomatedPipeline &pipeline) {
+}
+void IlluminationEstimationPipeline::OnAfterProcessing(
+    GeneralAutomatedPipeline &pipeline) {
 }
 void IlluminationEstimationPipeline::OnProcessing(
     GeneralAutomatedPipeline &pipeline) {
-  if (!m_running)
-    return;
   auto skyIlluminance = m_skyIlluminance.Get<SkyIlluminance>();
   if (!skyIlluminance) {
-    m_running = false;
     m_currentTime = 0;
+    pipeline.m_status = GeneralAutomatedPipelineStatus::Idle;
     return;
   }
   if (m_currentTime > skyIlluminance->m_maxTime) {
-    m_running = false;
     m_currentTime = 0;
     return;
   }
@@ -56,36 +50,18 @@ void IlluminationEstimationPipeline::OnProcessing(
       ->m_environmentProperties.m_skylightIntensity =
       snapshot.GetSunIntensity();
 
-  auto par1 = m_PARSensorGroup1.Get<PARSensorGroup>();
-  auto par2 = m_PARSensorGroup2.Get<PARSensorGroup>();
-  auto par3 = m_PARSensorGroup3.Get<PARSensorGroup>();
-
-  if (par1 && !par1->m_samplers.empty()) {
-    par1->CalculateIllumination(m_rayProperties, 0, 0.0f);
-    float sum = 0;
-    for (const auto &i : par1->m_samplers) {
-      sum += i.m_energy;
+  m_results.emplace_back(m_currentTime, std::vector<float>());
+  for (auto sensorGroupRef : m_sensorGroups) {
+    auto sensorGroup = sensorGroupRef.Get<PARSensorGroup>();
+    if (sensorGroup && !sensorGroup->m_samplers.empty()) {
+      sensorGroup->CalculateIllumination(m_rayProperties, 0, 0.0f);
+      float sum = 0;
+      for (const auto &i : sensorGroup->m_samplers) {
+        sum += i.m_energy;
+      }
+      sum /= sensorGroup->m_samplers.size();
+      m_results.back().second.push_back(sum);
     }
-    sum /= par1->m_samplers.size();
-    m_PAR1Result.push_back(sum);
-  }
-  if (par2 && !par2->m_samplers.empty()) {
-    par2->CalculateIllumination(m_rayProperties, 0, 0.0f);
-    float sum = 0;
-    for (const auto &i : par2->m_samplers) {
-      sum += i.m_energy;
-    }
-    sum /= par2->m_samplers.size();
-    m_PAR2Result.push_back(sum);
-  }
-  if (par3 && !par3->m_samplers.empty()) {
-    par3->CalculateIllumination(m_rayProperties, 0, 0.0f);
-    float sum = 0;
-    for (const auto &i : par3->m_samplers) {
-      sum += i.m_energy;
-    }
-    sum /= par3->m_samplers.size();
-    m_PAR3Result.push_back(sum);
   }
   m_currentTime += m_timeInterval;
 }
@@ -119,28 +95,42 @@ void IlluminationEstimationPipeline::Deserialize(const YAML::Node &in) {
   m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
   m_skyIlluminance.Load("m_skyIlluminance", in);
   m_sensorGroups.clear();
-  if(in["m_sensorGroups"]){
-    for(const auto& i : in["m_sensorGroups"]){
+  if (in["m_sensorGroups"]) {
+    for (const auto &i : in["m_sensorGroups"]) {
       AssetRef sensor;
       sensor.Deserialize(i);
-      if(sensor.Get<PARSensorGroup>()) m_sensorGroups.push_back(sensor);
+      if (sensor.Get<PARSensorGroup>())
+        m_sensorGroups.push_back(sensor);
     }
   }
 }
-void IlluminationEstimationPipeline::Clear() {
-  m_running = false;
-  m_currentTime = 0;
-  m_results.clear();
-}
+
 void IlluminationEstimationPipeline::ExportCSV(
-    const std::filesystem::path &path) const {
+    const std::filesystem::path &path) {
   std::ofstream ofs;
   ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
   if (ofs.is_open()) {
     std::string output;
-    output += "Illumination\n";
-    for (const auto &i : results) {
-      output += std::to_string(i) + "\n";
+    output += "time,";
+    for (int i = 0; i < m_sensorGroups.size(); i++) {
+      output += m_sensorGroups[i]
+                    .Get<PARSensorGroup>()
+                    ->GetAssetRecord()
+                    .lock()
+                    ->GetAssetFileName();
+      if (i < m_sensorGroups.size() - 1)
+        output += ",";
+    }
+    output += "\n";
+
+    for (const auto &i : m_results) {
+      output += std::to_string(i.first) + ",";
+      for (int j = 0; j < i.second.size(); j++) {
+        output += std::to_string(i.second[j]);
+        if (j < i.second.size() - 1)
+          output += ",";
+      }
+      output += "\n";
     }
     ofs.write(output.c_str(), output.size());
     ofs.flush();
@@ -149,4 +139,11 @@ void IlluminationEstimationPipeline::ExportCSV(
     UNIENGINE_ERROR("Can't open file!");
   }
 }
+void IlluminationEstimationPipeline::OnStart(
+    GeneralAutomatedPipeline &pipeline) {
+  m_results.clear();
+  m_results.resize(m_sensorGroups.size());
+}
+
+
 #endif

@@ -28,8 +28,8 @@ public:
 
 class IGeneralAutomatedPipelineBehaviour : public IAsset {
 public:
-  virtual void OnStart(GeneralAutomatedPipeline &pipeline) = 0;
-  virtual void OnEnd(GeneralAutomatedPipeline &pipeline) = 0;
+  virtual void OnStart(GeneralAutomatedPipeline &pipeline) {};
+  virtual void OnEnd(GeneralAutomatedPipeline &pipeline) {};
   virtual void OnBeforeProcessing(GeneralAutomatedPipeline &pipeline) {};
   virtual void OnProcessing(GeneralAutomatedPipeline &pipeline) {};
   virtual void OnAfterProcessing(GeneralAutomatedPipeline &pipeline) {};
