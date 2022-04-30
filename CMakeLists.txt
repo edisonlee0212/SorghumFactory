@@ -144,7 +144,7 @@ endif ()
 
 add_executable(Application
         "src/app/Application.cpp"
-        )
+        src/Scripts/GeneralAutomatedPipeline.cpp include/Scripts/GeneralAutomatedPipeline.hpp)
 target_include_directories(Application
         PUBLIC
         ${SCRIPTS_INCLUDES_LOCAL}

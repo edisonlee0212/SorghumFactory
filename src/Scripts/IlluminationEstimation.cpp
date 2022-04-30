@@ -6,47 +6,19 @@
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
 #include "SkyIlluminance.hpp"
-void Scripts::IlluminationEstimation::OnInspect() {
-  ImGui::Text("PAR1 Result size: %llu", m_PAR1Result.size());
-  ImGui::Text("PAR2 Result size: %llu", m_PAR2Result.size());
-  ImGui::Text("PAR3 Result size: %llu", m_PAR3Result.size());
-  if (m_running) {
-    ImGui::Text("Running!");
-    if (ImGui::Button("Force stop")) {
-      Clear();
-    }
-    return;
-  }
-  if (!m_PAR1Result.empty()) {
+
+using namespace Scripts;
+void IlluminationEstimationPipeline::OnInspect() {
+
+  if (!m_results.empty()) {
     FileUtils::SaveFile(
-        "Export PAR1 Results", "CSV", {".csv"},
-        [&](const std::filesystem::path &path) {
-          ExportCSV(path, m_PAR1Result);
-        },
-        false);
-  }
-  if (!m_PAR2Result.empty()) {
-    FileUtils::SaveFile(
-        "Export PAR2 Results", "CSV", {".csv"},
-        [&](const std::filesystem::path &path) {
-          ExportCSV(path, m_PAR2Result);
-        },
-        false);
-  }
-  if (!m_PAR3Result.empty()) {
-    FileUtils::SaveFile(
-        "Export PAR3 Results", "CSV", {".csv"},
-        [&](const std::filesystem::path &path) {
-          ExportCSV(path, m_PAR3Result);
-        },
-        false);
+        "Export results", "CSV", {".csv"},
+        [&](const std::filesystem::path &path) { ExportCSV(path); }, false);
   }
 
   Editor::DragAndDropButton<SkyIlluminance>(m_skyIlluminance,
                                             "Sky Illuminance");
-  Editor::DragAndDropButton<PARSensorGroup>(m_PARSensorGroup1, "PAR Group 1");
-  Editor::DragAndDropButton<PARSensorGroup>(m_PARSensorGroup2, "PAR Group 2");
-  Editor::DragAndDropButton<PARSensorGroup>(m_PARSensorGroup3, "PAR Group 3");
+
   auto skyIlluminance = m_skyIlluminance.Get<SkyIlluminance>();
   if (!skyIlluminance) {
     ImGui::Text("Sky illuminance missing!");
@@ -60,9 +32,9 @@ void Scripts::IlluminationEstimation::OnInspect() {
       m_running = true;
     }
   }
-
 }
-void Scripts::IlluminationEstimation::Update() {
+void IlluminationEstimationPipeline::OnProcessing(
+    GeneralAutomatedPipeline &pipeline) {
   if (!m_running)
     return;
   auto skyIlluminance = m_skyIlluminance.Get<SkyIlluminance>();
@@ -83,7 +55,6 @@ void Scripts::IlluminationEstimation::Update() {
   Application::GetLayer<RayTracerLayer>()
       ->m_environmentProperties.m_skylightIntensity =
       snapshot.GetSunIntensity();
-
 
   auto par1 = m_PARSensorGroup1.Get<PARSensorGroup>();
   auto par2 = m_PARSensorGroup2.Get<PARSensorGroup>();
@@ -118,54 +89,63 @@ void Scripts::IlluminationEstimation::Update() {
   }
   m_currentTime += m_timeInterval;
 }
-void Scripts::IlluminationEstimation::CollectAssetRef(
+void IlluminationEstimationPipeline::CollectAssetRef(
     std::vector<AssetRef> &list) {
   list.push_back(m_skyIlluminance);
-  list.push_back(m_PARSensorGroup1);
-  list.push_back(m_PARSensorGroup2);
-  list.push_back(m_PARSensorGroup3);
+  for (const auto &i : m_sensorGroups)
+    list.push_back(i);
 }
-void Scripts::IlluminationEstimation::Serialize(YAML::Emitter &out) {
+void IlluminationEstimationPipeline::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_timeInterval" << YAML::Value << m_timeInterval;
-  out << YAML::Key << "m_rayProperties.m_bounces" << YAML::Value << m_rayProperties.m_bounces;
-  out << YAML::Key << "m_rayProperties.m_samples" << YAML::Value << m_rayProperties.m_samples;
+  out << YAML::Key << "m_rayProperties.m_bounces" << YAML::Value
+      << m_rayProperties.m_bounces;
+  out << YAML::Key << "m_rayProperties.m_samples" << YAML::Value
+      << m_rayProperties.m_samples;
   m_skyIlluminance.Save("m_skyIlluminance", out);
-  m_PARSensorGroup1.Save("m_PARSensorGroup1", out);
-  m_PARSensorGroup2.Save("m_PARSensorGroup2", out);
-  m_PARSensorGroup3.Save("m_PARSensorGroup3", out);
 
+  if (!m_sensorGroups.empty()) {
+    out << YAML::Key << "m_sensorGroups" << YAML::Value << YAML::BeginSeq;
+    for (const auto &i : m_sensorGroups) {
+      out << YAML::BeginMap;
+      i.Serialize(out);
+      out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+  }
 }
-void Scripts::IlluminationEstimation::Deserialize(const YAML::Node &in) {
+void IlluminationEstimationPipeline::Deserialize(const YAML::Node &in) {
   m_timeInterval = in["m_timeInterval"].as<float>();
   m_rayProperties.m_bounces = in["m_rayProperties.m_bounces"].as<float>();
   m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
   m_skyIlluminance.Load("m_skyIlluminance", in);
-  m_PARSensorGroup1.Load("m_PARSensorGroup1", in);
-  m_PARSensorGroup2.Load("m_PARSensorGroup2", in);
-  m_PARSensorGroup3.Load("m_PARSensorGroup3", in);
+  m_sensorGroups.clear();
+  if(in["m_sensorGroups"]){
+    for(const auto& i : in["m_sensorGroups"]){
+      AssetRef sensor;
+      sensor.Deserialize(i);
+      if(sensor.Get<PARSensorGroup>()) m_sensorGroups.push_back(sensor);
+    }
+  }
 }
-void Scripts::IlluminationEstimation::Clear() {
+void IlluminationEstimationPipeline::Clear() {
   m_running = false;
   m_currentTime = 0;
-  m_PAR1Result.clear();
-  m_PAR2Result.clear();
-  m_PAR3Result.clear();
+  m_results.clear();
 }
-void Scripts::IlluminationEstimation::ExportCSV(
-    const std::filesystem::path &path,
-    const std::vector<float> &results) const {
+void IlluminationEstimationPipeline::ExportCSV(
+    const std::filesystem::path &path) const {
   std::ofstream ofs;
   ofs.open(path.c_str(), std::ofstream::out | std::ofstream::trunc);
   if (ofs.is_open()) {
     std::string output;
     output += "Illumination\n";
-    for(const auto& i : results){
+    for (const auto &i : results) {
       output += std::to_string(i) + "\n";
     }
     ofs.write(output.c_str(), output.size());
     ofs.flush();
     ofs.close();
-  }else {
+  } else {
     UNIENGINE_ERROR("Can't open file!");
   }
 }
