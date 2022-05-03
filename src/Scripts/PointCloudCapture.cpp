@@ -25,7 +25,9 @@ void PointCloudCapture::OnBeforeGrowth(
     return;
   }
   auto scene = pipeline.GetScene();
-  m_positionsField.Get<PositionsField>()->m_sorghumStateGenerator = pipeline.m_currentUsingDescriptor.Get<SorghumStateGenerator>();
+  auto positionField = m_positionsField.Get<PositionsField>();
+  positionField->m_sorghumStateGenerator = pipeline.m_currentUsingDescriptor.Get<SorghumStateGenerator>();
+  positionField->m_seperated = true;
   auto fieldGround =
       scene->GetOrSetPrivateComponent<FieldGround>(m_ground).lock();
   fieldGround->GenerateMesh(glm::linearRand(0.12f, 0.17f));
@@ -208,7 +210,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
   std::vector<int> leafPartIndex;
   std::vector<int> plantIndex;
   std::vector<int> isMainPlant;
-  std::vector<uint64_t> entityHandles;
+  std::vector<uint64_t> meshRendererHandles;
   std::vector<glm::vec3> points;
   std::vector<glm::vec3> colors;
   auto scene = pipeline.GetScene();
@@ -286,7 +288,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
       0);
   scene->ForEachChild(pipeline.m_currentGrowingSorghum, [&](Entity child) {
     auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(child);
-    if (meshRenderer.expired() || !scene->HasDataComponent<LeafTag>(child))
+    if (meshRenderer.expired() || !scene->HasPrivateComponent<LeafData>(child))
       return;
     auto handle = meshRenderer.lock()->GetHandle();
     auto index =
@@ -303,7 +305,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
         0);
     scene->ForEachChild(i, [&](Entity child) {
       auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(child);
-      if (meshRenderer.expired() || !scene->HasDataComponent<LeafTag>(child))
+      if (meshRenderer.expired() || !scene->HasPrivateComponent<LeafData>(child))
         return;
       auto handle = meshRenderer.lock()->GetHandle();
       auto index =
@@ -371,7 +373,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
       }
       points.push_back(sample.m_end);
       colors.push_back(sample.m_albedo);
-      entityHandles.push_back(sample.m_handle);
+      meshRendererHandles.push_back(sample.m_handle);
     }
   } else {
     for (const auto &sample : pcSamples) {
@@ -389,7 +391,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
       }
       points.push_back(sample.m_end);
       colors.push_back(sample.m_albedo);
-      entityHandles.push_back(sample.m_handle);
+      meshRendererHandles.push_back(sample.m_handle);
     }
   }
   isGround.resize(points.size());
@@ -411,13 +413,13 @@ void PointCloudCapture::ScanPointCloudLabeled(
         isMainPlant[i] = 0;
         plantIndex[i] = 0;
 
-        if (entityHandles[i] == groundHandle)
+        if (meshRendererHandles[i] == groundHandle)
           isGround[i] = 1;
         else
           isGround[i] = 0;
 
         for (const auto &pair : mainPlantHandles) {
-          if (pair.first.GetValue() == entityHandles[i]) {
+          if (pair.first.GetValue() == meshRendererHandles[i]) {
             leafIndex[i] = pair.second;
             isMainPlant[i] = 1;
             return;
@@ -428,7 +430,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
         for (const auto &leafPairs : plantHandles) {
           j++;
           for (const auto &pair : leafPairs) {
-            if (pair.first.GetValue() == entityHandles[i]) {
+            if (pair.first.GetValue() == meshRendererHandles[i]) {
               leafIndex[i] = pair.second;
               plantIndex[i] = j;
               return;

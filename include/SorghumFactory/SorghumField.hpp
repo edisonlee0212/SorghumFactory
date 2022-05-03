@@ -24,7 +24,7 @@ public:
   float m_sorghumSize = 1.0f;
   std::vector<std::pair<AssetRef, glm::mat4>> m_newSorghums;
   virtual void GenerateMatrices(){};
-  Entity InstantiateField(bool semanticMask);
+  Entity InstantiateField();
 
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
@@ -63,8 +63,7 @@ public:
   glm::dvec2 m_xRange = glm::vec2(0, 0);
   glm::dvec2 m_yRange = glm::vec2(0, 0);
   void GenerateMatrices() override;
-  std::pair<Entity, Entity> InstantiateAroundIndex(unsigned i, float radius,
-                                                   bool semanticMask = false);
+  std::pair<Entity, Entity> InstantiateAroundIndex(unsigned i, float radius);
   void ImportFromFile(const std::filesystem::path &path);
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;

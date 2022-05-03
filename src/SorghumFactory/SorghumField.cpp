@@ -40,10 +40,7 @@ void SorghumField::OnInspect() {
     GenerateMatrices();
   }
   if (ImGui::Button("Instantiate")) {
-    InstantiateField(false);
-  }
-  if (ImGui::Button("Instantiate (mask)")) {
-    InstantiateField(true);
+    InstantiateField();
   }
 
   ImGui::Text("Matrices count: %d", (int)m_newSorghums.size());
@@ -92,7 +89,7 @@ void SorghumField::CollectAssetRef(std::vector<AssetRef> &list) {
     list.push_back(i.first);
   }
 }
-Entity SorghumField::InstantiateField(bool semanticMask) {
+Entity SorghumField::InstantiateField() {
   if (m_newSorghums.empty())
     GenerateMatrices();
   if (m_newSorghums.empty()) {
@@ -298,8 +295,7 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
   }
 }
 std::pair<Entity, Entity>
-PositionsField::InstantiateAroundIndex(unsigned i, float radius,
-                                       bool semanticMask) {
+PositionsField::InstantiateAroundIndex(unsigned i, float radius) {
   if (m_positions.size() <= i)
     return {};
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
