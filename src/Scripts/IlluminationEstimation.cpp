@@ -10,8 +10,17 @@
 using namespace Scripts;
 void IlluminationEstimationPipeline::OnInspect() {
   if(ImGui::Button("Instantiate pipeline")){
-
+    Instantiate();
   }
+
+  ImGui::Text("Current output folder: %s",
+              m_currentExportFolder.string().c_str());
+  FileUtils::OpenFolder(
+      "Choose output folder...",
+      [&](const std::filesystem::path &path) {
+        m_currentExportFolder = std::filesystem::absolute(path);
+      },
+      false);
 
   if (!m_results.empty()) {
     FileUtils::SaveFile(
@@ -23,6 +32,56 @@ void IlluminationEstimationPipeline::OnInspect() {
                                             "Sky Illuminance");
   m_rayProperties.OnInspect();
   ImGui::DragFloat("Interval", &m_timeInterval, 0.1f, 0.01f, 100.0f);
+
+
+  static AssetRef dropSlot;
+  ImGui::Button("Drop PARSensorGroup here...");
+  if(Editor::Droppable<PARSensorGroup>(dropSlot)){
+    if(dropSlot.Get<PARSensorGroup>()){
+      m_sensorGroups.push_back(dropSlot);
+      dropSlot.Clear();
+    }
+  }
+  FileUtils::OpenFolder(
+      "Collect PARSensorGroup", [&](const std::filesystem::path &path) {
+        m_sensorGroups.clear();
+        auto &projectManager = ProjectManager::GetInstance();
+        if (std::filesystem::exists(path) &&
+            std::filesystem::is_directory(path)) {
+          for (const auto &entry :
+               std::filesystem::recursive_directory_iterator(path)) {
+            if (!std::filesystem::is_directory(entry.path())) {
+              auto relativePath =
+                  ProjectManager::GetPathRelativeToProject(entry.path());
+              if (entry.path().extension() == ".parsensorgroup") {
+                auto descriptor =
+                    std::dynamic_pointer_cast<SorghumStateGenerator>(
+                        ProjectManager::GetOrCreateAsset(relativePath));
+                m_sensorGroups.emplace_back(descriptor);
+              }
+            }
+          }
+        }
+      });
+  if(ImGui::TreeNodeEx("PARSensorGroup list", ImGuiTreeNodeFlags_DefaultOpen)){
+    if(m_sensorGroups.empty()) ImGui::Text("None.");
+    else{
+      if(ImGui::Button("Clear")){
+        m_sensorGroups.clear();
+      }else {
+        for (int i = 0; i < m_sensorGroups.size(); i++) {
+          if (Editor::DragAndDropButton<PARSensorGroup>(
+                  m_sensorGroups[i], "No." + std::to_string(i))) {
+            if (!m_sensorGroups[i].Get<PARSensorGroup>()) {
+              m_sensorGroups.erase(m_sensorGroups.begin() + i);
+              i--;
+            }
+          }
+        }
+      }
+    }
+    ImGui::TreePop();
+  }
 }
 void IlluminationEstimationPipeline::OnBeforeProcessing(
     GeneralAutomatedPipeline &pipeline) {
@@ -91,8 +150,8 @@ void IlluminationEstimationPipeline::Serialize(YAML::Emitter &out) {
 }
 void IlluminationEstimationPipeline::Deserialize(const YAML::Node &in) {
   m_timeInterval = in["m_timeInterval"].as<float>();
-  m_rayProperties.m_bounces = in["m_rayProperties.m_bounces"].as<float>();
-  m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<float>();
+  m_rayProperties.m_bounces = in["m_rayProperties.m_bounces"].as<int>();
+  m_rayProperties.m_samples = in["m_rayProperties.m_samples"].as<int>();
   m_skyIlluminance.Load("m_skyIlluminance", in);
   m_sensorGroups.clear();
   if (in["m_sensorGroups"]) {
@@ -144,6 +203,17 @@ void IlluminationEstimationPipeline::OnStart(
   m_results.clear();
   m_results.resize(m_sensorGroups.size());
 }
-
+Entity IlluminationEstimationPipeline::Instantiate() {
+  auto scene = Application::GetActiveScene();
+  auto illuminationEstimationPipelineEntity = scene->CreateEntity("IlluminationEstimationPipeline");
+  auto illuminationEstimationPipeline =
+      scene
+          ->GetOrSetPrivateComponent<GeneralAutomatedPipeline>(
+              illuminationEstimationPipelineEntity)
+          .lock();
+  illuminationEstimationPipeline->m_pipelineBehaviour =
+      std::dynamic_pointer_cast<IlluminationEstimationPipeline>(m_self.lock());
+  return illuminationEstimationPipelineEntity;
+}
 
 #endif

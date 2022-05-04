@@ -142,29 +142,29 @@ endif ()
 # Executables
 # ------------------------------------------------------------------
 
-add_executable(Application
+add_executable(SorghumFramework
         "src/app/Application.cpp"
         src/Scripts/GeneralAutomatedPipeline.cpp include/Scripts/GeneralAutomatedPipeline.hpp)
-target_include_directories(Application
+target_include_directories(SorghumFramework
         PUBLIC
         ${SCRIPTS_INCLUDES_LOCAL}
         )
-target_precompile_headers(Application
+target_precompile_headers(SorghumFramework
         PRIVATE
         ${SORGHUM_FACTORY_PCH_LOCAL}
         )
 if (BUILD_RAY_TRACER_FACILITY)
-    target_link_libraries(Application
+    target_link_libraries(SorghumFramework
             RayTracerFacility
             SorghumFactory
             Scripts
             )
-    target_compile_definitions(Application
+    target_compile_definitions(SorghumFramework
             PRIVATE
             RAYTRACERFACILITY
             )
 else ()
-    target_link_libraries(Application
+    target_link_libraries(SorghumFramework
             uniengine
             SorghumFactory
             Scripts

@@ -11,6 +11,8 @@ class IlluminationEstimationPipeline
   float m_currentTime = 0;
 
 public:
+  std::filesystem::path m_currentExportFolder;
+  Entity Instantiate() override;
   void ExportCSV(const std::filesystem::path &path);
   float m_timeInterval = 5;
   RayProperties m_rayProperties = {8, 1000};

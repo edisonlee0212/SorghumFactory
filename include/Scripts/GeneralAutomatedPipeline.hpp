@@ -28,6 +28,7 @@ public:
 
 class IGeneralAutomatedPipelineBehaviour : public IAsset {
 public:
+  virtual Entity Instantiate() = 0;
   virtual void OnStart(GeneralAutomatedPipeline &pipeline) {};
   virtual void OnEnd(GeneralAutomatedPipeline &pipeline) {};
   virtual void OnBeforeProcessing(GeneralAutomatedPipeline &pipeline) {};
