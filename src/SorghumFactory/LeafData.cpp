@@ -201,7 +201,7 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
     }
   }
 }
-void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
+void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair, bool skeleton) {
   auto scene = GetScene();
 
   ProceduralLeafState actualLeft, actualRight;
@@ -275,6 +275,25 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
     break;
   }
   if(leafLength == 0.0f) return;
+
+  bool modelToRoot = true;
+  if(modelToRoot){
+    float rootToSheath = startingPoint - backDistance;
+    if(rootToSheath > 0){
+      int nodeForRootToSheath = glm::min(2.0f, stemLength * rootToSheath /
+                                                   sorghumLayer->m_verticalSubdivisionMaxUnitLength);
+      for (int i = 0; i < nodeForRootToSheath; i++) {
+        float currentPoint = (float)i / nodeForRootToSheath * rootToSheath;
+        glm::vec3 actualDirection = stemDirection;
+        m_nodes.emplace_back(
+            sorghumStatePair.GetStemPoint(currentPoint),
+            180.0f,
+            (skeleton ? sorghumLayer->m_skeletonWidth : stemWidth), 0.0f, -actualDirection,
+            false, 0.0f, 0.0f);
+      }
+    }
+  }
+
   int nodeForSheath =
       glm::max(2.0f, stemLength * backDistance /
                          sorghumLayer->m_verticalSubdivisionMaxUnitLength);
@@ -284,8 +303,8 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
         glm::mix(stemDirection, direction, (float)i / nodeForSheath);
     m_nodes.emplace_back(
         sorghumStatePair.GetStemPoint(sheathPoint + currentPoint),
-        180.0f - 90.0f * (float)i / nodeForSheath,
-        stemWidth + 0.002f * (float)i / nodeForSheath, 0.0f, -actualDirection,
+        (skeleton ? 180.0f : 180.0f - 90.0f * (float)i / nodeForSheath),
+        (skeleton ? sorghumLayer->m_skeletonWidth : stemWidth + 0.002f * (float)i / nodeForSheath), 0.0f, -actualDirection,
         false, 0.0f, 0.0f);
   }
 
@@ -325,7 +344,7 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair) {
                  actualRight.m_widthAlongLeaf.GetValue(factor), actualA),
         collarFactor);
     float angle = 90.0f - (90.0f - expandAngle) * glm::pow(collarFactor, 2.0f);
-    m_nodes.emplace_back(m_leafTip, angle, width, wavinessAlongLeaf,
+    m_nodes.emplace_back(m_leafTip, (skeleton ? 180.0f : angle), (skeleton ? sorghumLayer->m_skeletonWidth : width), wavinessAlongLeaf,
                          -currentDirection, true, 0.0f, factor);
   }
   GenerateLeafGeometry(sorghumStatePair);

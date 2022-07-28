@@ -65,6 +65,9 @@ public:
 
   float m_verticalSubdivisionMaxUnitLength = 0.01f;
   int m_horizontalSubdivisionStep = 4;
+  float m_skeletonWidth = 0.0025f;
+
+  glm::vec3 m_skeletonColor = glm::vec3(0);
 
   void OnCreate() override;
   Entity CreateSorghum();

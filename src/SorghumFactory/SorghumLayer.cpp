@@ -207,7 +207,7 @@ void SorghumLayer::GenerateMeshForAllSorghums() {
     if (scene->HasPrivateComponent<SorghumData>(plant)) {
       auto sorghumData =
           scene->GetOrSetPrivateComponent<SorghumData>(plant).lock();
-      sorghumData->GenerateGeometry();
+      sorghumData->FormPlant();
       sorghumData->ApplyGeometry();
     }
   }
@@ -244,14 +244,25 @@ void SorghumLayer::OnInspect() {
     }
     if (ImGui::DragFloat("Vertical subdivision max unit length",
                          &m_verticalSubdivisionMaxUnitLength, 0.001f, 0.001f,
-                         1.0f)) {
+                         1.0f, "%.4f")) {
       m_verticalSubdivisionMaxUnitLength =
           glm::max(0.0001f, m_verticalSubdivisionMaxUnitLength);
     }
+
+
+
     if (ImGui::DragInt("Horizontal subdivision step",
                        &m_horizontalSubdivisionStep)) {
       m_horizontalSubdivisionStep = glm::max(2, m_horizontalSubdivisionStep);
     }
+
+    if (ImGui::DragFloat("Skeleton width",
+                         &m_skeletonWidth, 0.001f, 0.001f,
+                         1.0f, "%.4f")) {
+      m_skeletonWidth =
+          glm::max(0.0001f, m_skeletonWidth);
+    }
+    ImGui::ColorEdit3("Skeleton color", &m_skeletonColor.x);
 
     if (Editor::DragAndDropButton<Texture2D>(m_leafAlbedoTexture,
                                              "Replace Leaf Albedo Texture")) {
@@ -531,7 +542,7 @@ Entity SorghumLayer::CreateSorghum(
   sorghumData->m_mode = (int)SorghumMode::ProceduralSorghum;
   sorghumData->m_descriptor = descriptor;
   sorghumData->SetTime(1.0f);
-  sorghumData->GenerateGeometry();
+  sorghumData->FormPlant();
   sorghumData->ApplyGeometry();
   return sorghum;
 }
@@ -547,7 +558,7 @@ Entity SorghumLayer::CreateSorghum(
   sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
   sorghumData->m_descriptor = descriptor;
   sorghumData->SetTime(1.0f);
-  sorghumData->GenerateGeometry();
+  sorghumData->FormPlant();
   sorghumData->ApplyGeometry();
   return sorghum;
 }
@@ -564,7 +575,7 @@ void SorghumLayer::LateUpdate() {
             sorghumData->m_descriptor.Get<ProceduralSorghum>();
         if (proceduralSorghum &&
             proceduralSorghum->GetVersion() != sorghumData->m_recordedVersion) {
-          sorghumData->GenerateGeometry();
+          sorghumData->FormPlant();
           sorghumData->ApplyGeometry();
           continue;
         }
@@ -572,7 +583,7 @@ void SorghumLayer::LateUpdate() {
             sorghumData->m_descriptor.Get<SorghumStateGenerator>();
         if (sorghumStateGenerator && sorghumStateGenerator->GetVersion() !=
                                          sorghumData->m_recordedVersion) {
-          sorghumData->GenerateGeometry();
+          sorghumData->FormPlant();
           sorghumData->ApplyGeometry();
         }
       }

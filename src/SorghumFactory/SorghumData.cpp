@@ -1,13 +1,13 @@
 #ifdef RAYTRACERFACILITY
 #include "MLVQRenderer.hpp"
 #endif
+#include "DefaultResources.hpp"
 #include "IVolume.hpp"
 #include "LeafData.hpp"
 #include "PanicleData.hpp"
-#include "StemData.hpp"
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
-#include "DefaultResources.hpp"
+#include "StemData.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
@@ -28,7 +28,10 @@ void SorghumData::OnInspect() {
   ImGui::Checkbox("Seperated", &m_seperated);
   ImGui::Checkbox("Include stem", &m_includeStem);
   ImGui::Checkbox("Mask", &m_segmentedMask);
-
+  if (ImGui::Checkbox("Skeleton", &m_skeleton)) {
+    FormPlant();
+    ApplyGeometry();
+  }
 
   ImGui::Combo("Mode", &m_mode, SorghumModes, IM_ARRAYSIZE(SorghumModes));
   switch ((SorghumMode)m_mode) {
@@ -39,11 +42,11 @@ void SorghumData::OnInspect() {
     if (descriptor) {
       if (ImGui::SliderFloat("Time", &m_currentTime, 0.0f,
                              descriptor->GetCurrentEndTime())) {
-        GenerateGeometry();
+        FormPlant();
         ApplyGeometry();
       }
       if (ImGui::Button("Apply")) {
-        GenerateGeometry();
+        FormPlant();
         ApplyGeometry();
       }
     }
@@ -55,7 +58,7 @@ void SorghumData::OnInspect() {
     bool changed = ImGui::DragInt("Seed", &m_seed);
     if (descriptor) {
       if (ImGui::Button("Apply") || changed) {
-        GenerateGeometry();
+        FormPlant();
         ApplyGeometry();
       }
     }
@@ -64,10 +67,12 @@ void SorghumData::OnInspect() {
 
   if (m_meshGenerated) {
     if (ImGui::TreeNodeEx("I/O")) {
-      FileUtils::SaveFile("Export OBJ", "3D Model", {".obj"},
-                          [this](const std::filesystem::path &path) {
-                            ExportModel(path.string());
-                          }, false);
+      FileUtils::SaveFile(
+          "Export OBJ", "3D Model", {".obj"},
+          [this](const std::filesystem::path &path) {
+            ExportModel(path.string());
+          },
+          false);
 
       ImGui::TreePop();
     }
@@ -103,7 +108,7 @@ void SorghumData::ExportModel(const std::string &filename,
 void SorghumData::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_mode" << YAML::Value << m_mode;
   out << YAML::Key << "m_seed" << YAML::Value << m_seed;
-
+  out << YAML::Key << "m_skeleton" << YAML::Value << m_skeleton;
   out << YAML::Key << "m_gravityDirection" << YAML::Value << m_gravityDirection;
   out << YAML::Key << "m_currentTime" << YAML::Value << m_currentTime;
   out << YAML::Key << "m_recordedVersion" << YAML::Value << m_recordedVersion;
@@ -127,6 +132,8 @@ void SorghumData::Deserialize(const YAML::Node &in) {
     m_meshGenerated = in["m_meshGenerated"].as<bool>();
   if (in["m_currentTime"])
     m_currentTime = in["m_currentTime"].as<float>();
+  if (in["m_skeleton"])
+    m_skeleton = in["m_skeleton"].as<float>();
   if (in["m_seperated"])
     m_seperated = in["m_seperated"].as<bool>();
   if (in["m_includeStem"])
@@ -144,7 +151,7 @@ void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_descriptor);
 }
 
-void SorghumData::GenerateGeometry() {
+void SorghumData::FormPlant() {
   SorghumStatePair statePair;
 
   auto scene = GetScene();
@@ -169,24 +176,25 @@ void SorghumData::GenerateGeometry() {
   }
 
   // 1. Set owner's spline
-  auto children = scene->GetChildren( GetOwner());
+  auto children = scene->GetChildren(GetOwner());
   for (int i = 0; i < children.size(); i++) {
     scene->DeleteEntity(children[i]);
   }
   auto stem =
       Application::GetLayer<SorghumLayer>()->CreateSorghumStem(GetOwner());
   auto stemData = scene->GetOrSetPrivateComponent<StemData>(stem).lock();
-  stemData->FormStem(statePair);
+  stemData->FormStem(statePair, m_skeleton);
   auto leafSize = statePair.GetLeafSize();
   for (int i = 0; i < leafSize; i++) {
     Entity leaf =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
     auto leafData = scene->GetOrSetPrivateComponent<LeafData>(leaf).lock();
-    leafData->FormLeaf(statePair);
+    leafData->FormLeaf(statePair, m_skeleton);
   }
   auto panicle =
       Application::GetLayer<SorghumLayer>()->CreateSorghumPanicle(GetOwner());
-  auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(panicle).lock();
+  auto panicleData =
+      scene->GetOrSetPrivateComponent<PanicleData>(panicle).lock();
   panicleData->FormPanicle(statePair);
 }
 void SorghumData::ApplyGeometry() {
@@ -222,7 +230,8 @@ void SorghumData::ApplyGeometry() {
         vertexCount = vertices.size();
 
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
-        auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
+        auto panicleData =
+            scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
         auto meshRenderer =
             scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!panicleData->m_vertices.empty()) {
@@ -244,9 +253,18 @@ void SorghumData::ApplyGeometry() {
       }
 #endif
     });
-    auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
-    meshRenderer->m_material =
-        Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+    auto meshRenderer =
+        scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
+
+    if (m_skeleton) {
+      auto material = ProjectManager::CreateTemporaryAsset<Material>();
+      material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+      meshRenderer->m_material = material;
+      material->m_albedoColor = sorghumLayer->m_skeletonColor;
+    } else {
+      meshRenderer->m_material =
+          Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+    }
     if (!vertices.empty()) {
       meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
       meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices, triangles);
@@ -275,6 +293,7 @@ void SorghumData::ApplyGeometry() {
         } else {
           meshRenderer->m_mesh.Clear();
         }
+
         if (m_segmentedMask) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
@@ -283,13 +302,19 @@ void SorghumData::ApplyGeometry() {
           material->m_albedoColor = stemData->m_vertexColor;
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
+        } else if (m_skeleton) {
+          auto material = ProjectManager::CreateTemporaryAsset<Material>();
+          material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+          meshRenderer->m_material = material;
+          material->m_albedoColor = sorghumLayer->m_skeletonColor;
         } else {
           meshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
         if (sorghumLayer->m_enableMLVQ) {
-          auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
+          auto rtt =
+              scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
           rtt->Sync();
           rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
         }
@@ -313,13 +338,19 @@ void SorghumData::ApplyGeometry() {
           material->m_albedoColor = leafData->m_vertexColor;
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
+        } else if (m_skeleton) {
+          auto material = ProjectManager::CreateTemporaryAsset<Material>();
+          material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+          meshRenderer->m_material = material;
+          material->m_albedoColor = sorghumLayer->m_skeletonColor;
         } else {
           meshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
-        auto panicleData = scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
+        auto panicleData =
+            scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
         auto meshRenderer =
             scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
         if (!panicleData->m_vertices.empty()) {
@@ -334,8 +365,7 @@ void SorghumData::ApplyGeometry() {
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_cullingMode = MaterialCullingMode::Off;
-          material->m_albedoColor =
-              glm::vec3(0.0f);
+          material->m_albedoColor = glm::vec3(0.0f);
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
         } else {
@@ -358,5 +388,5 @@ void SorghumData::ApplyGeometry() {
 
 void SorghumData::SetTime(float time) {
   m_currentTime = time;
-  GenerateGeometry();
+  FormPlant();
 }

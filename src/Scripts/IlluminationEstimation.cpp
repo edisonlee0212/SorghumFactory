@@ -6,7 +6,7 @@
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
 #include "SkyIlluminance.hpp"
-
+#include "SorghumStateGenerator.hpp"
 using namespace Scripts;
 void IlluminationEstimationPipeline::OnInspect() {
   if(ImGui::Button("Instantiate pipeline")){

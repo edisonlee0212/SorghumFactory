@@ -31,7 +31,7 @@ public:
   std::vector<glm::uvec3> m_triangles;
   glm::vec4 m_vertexColor = glm::vec4(0, 1, 0, 1);
 
-  void FormLeaf(const SorghumStatePair & sorghumStatePair);
+  void FormLeaf(const SorghumStatePair & sorghumStatePair, bool skeleton = false);
   void Copy(const std::shared_ptr<LeafData> &target);
   void OnInspect() override;
   void OnDestroy() override;

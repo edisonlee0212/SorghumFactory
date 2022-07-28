@@ -3,9 +3,9 @@
 //
 
 #include "StemData.hpp"
-#include "SorghumLayer.hpp"
-#include "Graphics.hpp"
 #include "DefaultResources.hpp"
+#include "Graphics.hpp"
+#include "SorghumLayer.hpp"
 using namespace SorghumFactory;
 void StemData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -36,7 +36,8 @@ void StemData::OnInspect() {
     }
     Graphics::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
-        GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value, nodeSize);
+        GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value,
+        nodeSize);
   }
 }
 void StemData::OnDestroy() {
@@ -154,7 +155,7 @@ void StemData::GenerateStemGeometry() {
     }
   }
 }
-void StemData::FormStem(const SorghumStatePair &sorghumStatePair) {
+void StemData::FormStem(const SorghumStatePair &sorghumStatePair, bool skeleton) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   float length = sorghumStatePair.GetStemLength();
   auto direction = sorghumStatePair.GetStemDirection();
@@ -170,28 +171,29 @@ void StemData::FormStem(const SorghumStatePair &sorghumStatePair) {
                  sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(
                      (float)i / nodeAmount),
                  sorghumStatePair.m_a);
-
+    if(skeleton) stemWidth = sorghumLayer->m_skeletonWidth;
     glm::vec3 position;
     switch ((StateMode)sorghumStatePair.m_mode) {
     case StateMode::Default:
       position = glm::normalize(direction) * unitLength * static_cast<float>(i);
       break;
     case StateMode::CubicBezier:
-      position = glm::mix(sorghumStatePair.m_left.m_stem.m_spline.EvaluatePointFromCurves(
-                              (float)i / nodeAmount),
-                          sorghumStatePair.m_right.m_stem.m_spline.EvaluatePointFromCurves(
-                              (float)i / nodeAmount),
-                          sorghumStatePair.m_a);
-      direction = glm::mix(sorghumStatePair.m_left.m_stem.m_spline.EvaluateAxisFromCurves(
-                               (float)i / nodeAmount),
-                           sorghumStatePair.m_right.m_stem.m_spline.EvaluateAxisFromCurves(
-                               (float)i / nodeAmount),
-                           sorghumStatePair.m_a);
+      position = glm::mix(
+          sorghumStatePair.m_left.m_stem.m_spline.EvaluatePointFromCurves(
+              (float)i / nodeAmount),
+          sorghumStatePair.m_right.m_stem.m_spline.EvaluatePointFromCurves(
+              (float)i / nodeAmount),
+          sorghumStatePair.m_a);
+      direction = glm::mix(
+          sorghumStatePair.m_left.m_stem.m_spline.EvaluateAxisFromCurves(
+              (float)i / nodeAmount),
+          sorghumStatePair.m_right.m_stem.m_spline.EvaluateAxisFromCurves(
+              (float)i / nodeAmount),
+          sorghumStatePair.m_a);
       break;
     }
-    m_nodes.emplace_back(
-        position, 180.0f,
-        stemWidth, 0.0f, -direction, false, 0.0f, (float)i / nodeAmount);
+    m_nodes.emplace_back(position, 180.0f, stemWidth, 0.0f, -direction, false,
+                         0.0f, (float)i / nodeAmount);
   }
   m_left = glm::rotate(glm::vec3(1, 0, 0),
                        glm::radians(glm::linearRand(0.0f, 0.0f)), direction);

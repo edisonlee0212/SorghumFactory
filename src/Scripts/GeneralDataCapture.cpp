@@ -89,7 +89,7 @@ void GeneralDataCapture::OnAfterGrowth(
     sorghumData->m_seperated = true;
     sorghumData->m_includeStem = true;
     sorghumData->m_segmentedMask = true;
-    sorghumData->GenerateGeometry();
+    sorghumData->FormPlant();
     sorghumData->ApplyGeometry();
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
@@ -161,7 +161,7 @@ void GeneralDataCapture::OnAfterGrowth(
       sorghumData->m_seperated = true;
       sorghumData->m_includeStem = true;
       sorghumData->m_segmentedMask = false;
-      sorghumData->GenerateGeometry();
+      sorghumData->FormPlant();
       sorghumData->ApplyGeometry();
     }
     RayProperties rayProperties;
@@ -234,7 +234,7 @@ void GeneralDataCapture::OnAfterGrowth(
     sorghumData->m_seperated = true;
     sorghumData->m_includeStem = true;
     sorghumData->m_segmentedMask = false;
-    sorghumData->GenerateGeometry();
+    sorghumData->FormPlant();
     sorghumData->ApplyGeometry();
 
     Application::GetLayer<RayTracerLayer>()
@@ -291,7 +291,7 @@ void GeneralDataCapture::OnAfterGrowth(
       sorghumData->m_seperated = true;
       sorghumData->m_includeStem = true;
       sorghumData->m_segmentedMask = false;
-      sorghumData->GenerateGeometry();
+      sorghumData->FormPlant();
       sorghumData->ApplyGeometry();
     }
     sorghumData->ExportModel(

@@ -19,7 +19,7 @@ public:
   bool m_meshGenerated = false;
   AssetRef m_descriptor;
   int m_seed = 0;
-
+  bool m_skeleton = false;
   bool m_seperated = true;
   bool m_includeStem = true;
   bool m_segmentedMask = false;
@@ -32,7 +32,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void GenerateGeometry();
+  void FormPlant();
   void ApplyGeometry();
 };
 } // namespace PlantFactory
