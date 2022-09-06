@@ -113,8 +113,10 @@ bool ProceduralStemState::OnInspect(int mode) {
 }
 bool ProceduralLeafState::OnInspect(int mode) {
   bool changed = false;
-  if (ImGui::SliderFloat("Starting point", &m_startingPoint, 0.0f, 1.0f))
+  if (ImGui::InputFloat("Starting point", &m_startingPoint)) {
+    m_startingPoint = glm::clamp(m_startingPoint, 0.0f, 1.0f);
     changed = true;
+  }
   switch ((StateMode)mode) {
   case StateMode::Default:
     if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -123,9 +125,10 @@ bool ProceduralLeafState::OnInspect(int mode) {
       if (ImGui::TreeNodeEx("Angles", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
           changed = true;
-        if (ImGui::SliderFloat("Branching angle", &m_branchingAngle, 0.0f,
-                               180.0f))
+        if (ImGui::InputFloat("Branching angle", &m_branchingAngle)) {
+          m_branchingAngle = glm::clamp(m_branchingAngle, 0.0f, 180.0f);
           changed = true;
+        }
         ImGui::TreePop();
       }
       ImGui::TreePop();
@@ -429,8 +432,7 @@ void ProceduralSorghum::OnInspect() {
           ++tit;
           float nextTime = tit->first - 0.01f;
           float currentTime = it->first;
-          if (ImGui::SliderFloat("Time", &currentTime, previousTime,
-                                 nextTime)) {
+          if (ImGui::InputFloat("Time", &currentTime)) {
             it->first = glm::clamp(currentTime, previousTime, nextTime);
             changed = true;
           }
