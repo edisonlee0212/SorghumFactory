@@ -106,11 +106,10 @@ void StemData::GenerateStemGeometry() {
       auto up = glm::normalize(glm::cross(m_left, front));
       m_segments.emplace_back(
           curve.GetPoint(div), up, front,
-          prev.m_width * (1.0f - div) + curr.m_width * div,
-          prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf,
-          prev.m_surfacePush * glm::pow((1.0f - div), 2.0f) +
-              curr.m_surfacePush * 1.0f - glm::pow((1.0f - div), 2.0f),
-          1.0f, 1.0f);
+          prev.m_stemWidth * (1.0f - div) + curr.m_stemWidth * div,
+          prev.m_leafWidth * (1.0f - div) + curr.m_leafWidth * div,
+          prev.m_theta * (1.0f - div) + curr.m_theta * div, curr.m_isLeaf, 1.0f,
+          1.0f);
     }
   }
   const int vertexIndex = m_vertices.size();
@@ -155,7 +154,8 @@ void StemData::GenerateStemGeometry() {
     }
   }
 }
-void StemData::FormStem(const SorghumStatePair &sorghumStatePair, bool skeleton) {
+void StemData::FormStem(const SorghumStatePair &sorghumStatePair,
+                        bool skeleton) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   float length = sorghumStatePair.GetStemLength();
   auto direction = sorghumStatePair.GetStemDirection();
@@ -171,7 +171,8 @@ void StemData::FormStem(const SorghumStatePair &sorghumStatePair, bool skeleton)
                  sorghumStatePair.m_right.m_stem.m_widthAlongStem.GetValue(
                      (float)i / nodeAmount),
                  sorghumStatePair.m_a);
-    if(skeleton) stemWidth = sorghumLayer->m_skeletonWidth;
+    if (skeleton)
+      stemWidth = sorghumLayer->m_skeletonWidth;
     glm::vec3 position;
     switch ((StateMode)sorghumStatePair.m_mode) {
     case StateMode::Default:
@@ -192,8 +193,8 @@ void StemData::FormStem(const SorghumStatePair &sorghumStatePair, bool skeleton)
           sorghumStatePair.m_a);
       break;
     }
-    m_nodes.emplace_back(position, 180.0f, stemWidth, 0.0f, -direction, false,
-                         0.0f, (float)i / nodeAmount);
+    m_nodes.emplace_back(position, 180.0f, stemWidth, stemWidth, 0.0f,
+                         -direction, false, (float)i / nodeAmount);
   }
   m_left = glm::rotate(glm::vec3(1, 0, 0),
                        glm::radians(glm::linearRand(0.0f, 0.0f)), direction);
