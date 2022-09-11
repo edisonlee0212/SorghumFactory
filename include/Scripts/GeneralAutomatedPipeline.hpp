@@ -1,6 +1,6 @@
 #pragma once
 #include <SorghumLayer.hpp>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 namespace Scripts {
 enum class GeneralAutomatedPipelineStatus {
   Idle,

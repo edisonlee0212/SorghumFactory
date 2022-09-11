@@ -6,7 +6,7 @@
 #include <SorghumStateGenerator.hpp>
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 class SORGHUM_FACTORY_API StemData : public IPrivateComponent {
   void GenerateStemGeometry();
 
@@ -29,4 +29,4 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };
-} // namespace SorghumFactory
+} // namespace PlantArchitect

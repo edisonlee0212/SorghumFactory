@@ -5,7 +5,7 @@
 #include <CUDAModule.hpp>
 using namespace UniEngine;
 using namespace RayTracerFacility;
-namespace SorghumFactory {
+namespace PlantArchitect {
 class SORGHUM_FACTORY_API PARSensorGroup : public IAsset {
 public:
   std::vector<IlluminationSampler<float>> m_samplers;
@@ -14,5 +14,5 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };
-} // namespace SorghumFactory
+} // namespace PlantArchitect
 #endif

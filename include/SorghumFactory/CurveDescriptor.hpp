@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 struct CurveDescriptorSettings {
   float m_speed = 0.01f;
   float m_minMaxControl = true;
@@ -11,8 +11,8 @@ struct CurveDescriptorSettings {
 };
 
 template <class T> struct CurveDescriptor {
-  T m_minValue;
-  T m_maxValue;
+  T m_minValue = 0;
+  T m_maxValue = 1;
   UniEngine::Curve m_curve = UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1});
   CurveDescriptor();
   CurveDescriptor(T min, T max,
@@ -225,4 +225,4 @@ template <class T> T CurveDescriptor<T>::GetValue(float t) const {
   return glm::mix(m_minValue, m_maxValue,
                   glm::clamp(m_curve.GetValue(t), 0.0f, 1.0f));
 }
-}; // namespace SorghumFactory
+}; // namespace PlantArchitect

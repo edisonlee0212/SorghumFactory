@@ -17,7 +17,7 @@
 #include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
 #endif
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 using namespace UniEngine;
 
 void SorghumLayer::OnCreate() {

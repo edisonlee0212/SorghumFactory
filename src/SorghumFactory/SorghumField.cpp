@@ -8,7 +8,7 @@
 #include "SorghumStateGenerator.hpp"
 #include "TransformLayer.hpp"
 #include <SorghumField.hpp>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 void RectangularSorghumFieldPattern::GenerateField(
     std::vector<std::vector<glm::mat4>> &matricesList) {
   const int size = matricesList.size();

@@ -3,7 +3,7 @@
 #include "GeneralAutomatedPipeline.hpp"
 #include "RayTracer.hpp"
 #include <SorghumLayer.hpp>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 using namespace RayTracerFacility;
 namespace Scripts {
 class IlluminationEstimationPipeline

@@ -10,7 +10,7 @@
 #include <Spline.hpp>
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
 struct SORGHUM_FACTORY_API PanicleTag : IDataComponent {};
 struct SORGHUM_FACTORY_API StemTag : IDataComponent {};
@@ -89,4 +89,4 @@ public:
 
 };
 
-} // namespace SorghumFactory
+} // namespace PlantArchitect

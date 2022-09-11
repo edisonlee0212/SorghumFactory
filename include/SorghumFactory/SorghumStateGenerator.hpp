@@ -3,7 +3,7 @@
 #include <sorghum_factory_export.h>
 #include "ProceduralSorghum.hpp"
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 
 class SORGHUM_FACTORY_API SorghumStateGenerator : public IAsset {
   unsigned m_version = 0;
@@ -43,4 +43,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
   [[nodiscard]] SorghumState Generate(unsigned int seed);
 };
-} // namespace SorghumFactory
+} // namespace PlantArchitect

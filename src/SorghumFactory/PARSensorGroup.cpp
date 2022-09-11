@@ -7,8 +7,8 @@
 #include "DefaultResources.hpp"
 #include "Graphics.hpp"
 
-using namespace SorghumFactory;
-void SorghumFactory::PARSensorGroup::CalculateIllumination(
+using namespace PlantArchitect;
+void PlantArchitect::PARSensorGroup::CalculateIllumination(
     const RayProperties &rayProperties, int seed, float pushNormalDistance) {
   if (m_samplers.empty())
     return;

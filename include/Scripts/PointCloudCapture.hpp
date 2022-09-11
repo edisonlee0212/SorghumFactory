@@ -1,7 +1,7 @@
 #pragma once
 #include <AutoSorghumGenerationPipeline.hpp>
 #include <SorghumLayer.hpp>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 namespace Scripts {
 struct PointCloudSampleSettings {
   glm::vec2 m_boundingBoxHeightRange = glm::vec2(-1, 2);

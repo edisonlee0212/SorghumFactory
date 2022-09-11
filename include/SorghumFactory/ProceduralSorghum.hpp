@@ -3,7 +3,7 @@
 #include "ICurve.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 #pragma region States
 enum class StateMode { Default, CubicBezier };
 
@@ -26,7 +26,8 @@ struct ProceduralStemState {
   void Deserialize(const YAML::Node &in);
   bool OnInspect(int mode);
 };
-struct ProceduralLeafState {
+struct  ProceduralLeafState {
+  bool m_dead = false;
   BezierSpline m_spline;
   int m_index = 0;
   float m_startingPoint = 0;
@@ -78,7 +79,7 @@ class ProceduralSorghum : public IAsset {
   std::vector<std::pair<float, SorghumState>> m_sorghumStates;
 public:
   int m_mode = (int)StateMode::Default;
-
+  [[nodiscard]] bool ImportCSV(const std::filesystem::path& filePath);
   [[nodiscard]] unsigned GetVersion() const;
   [[nodiscard]] float GetCurrentStartTime() const;
   [[nodiscard]] float GetCurrentEndTime() const;
@@ -92,4 +93,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
 };
 
-} // namespace SorghumFactory
+} // namespace PlantArchitect

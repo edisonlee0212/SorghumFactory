@@ -4,7 +4,7 @@
 #include <rapidxml.hpp>
 #include <rapidxml_print.hpp>
 #include <rapidxml_utils.hpp>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 
 void TipMenu(const std::string &content) {
   if (ImGui::IsItemHovered()) {

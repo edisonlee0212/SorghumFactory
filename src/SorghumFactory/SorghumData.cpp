@@ -11,7 +11,7 @@
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 
 void SorghumData::OnCreate() {}
 

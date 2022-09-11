@@ -4,7 +4,7 @@
 
 #include "PanicleData.hpp"
 #include "IVolume.hpp"
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 void PanicleData::OnInspect() {
 
 }

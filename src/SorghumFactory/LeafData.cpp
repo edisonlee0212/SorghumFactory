@@ -6,7 +6,7 @@
 #include "Graphics.hpp"
 #include "ProceduralSorghum.hpp"
 #include "SorghumLayer.hpp"
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 void LeafData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (int i = 0; i < m_curves.size(); i++) {
@@ -368,8 +368,15 @@ void LeafData::LeafStateHelper(ProceduralLeafState &left,
   int nextLeafSize = sorghumStatePair.m_right.m_leaves.size();
   if (leafIndex < previousLeafSize) {
     left = sorghumStatePair.m_left.m_leaves[leafIndex];
+    if (left.m_dead)
+      left.m_length = 0;
     if (leafIndex < nextLeafSize) {
-      right = sorghumStatePair.m_right.m_leaves[leafIndex];
+      if (sorghumStatePair.m_right.m_leaves[leafIndex].m_dead ||
+          sorghumStatePair.m_right.m_leaves[leafIndex].m_length == 0)
+        right = left;
+      else {
+        right = sorghumStatePair.m_right.m_leaves[leafIndex];
+      }
     } else {
       right = sorghumStatePair.m_left.m_leaves[leafIndex];
     }

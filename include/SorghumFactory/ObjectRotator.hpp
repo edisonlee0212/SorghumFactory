@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 class SORGHUM_FACTORY_API ObjectRotator : public IPrivateComponent {
 public:
   float m_rotateSpeed;

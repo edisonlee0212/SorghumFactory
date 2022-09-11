@@ -17,7 +17,7 @@
 #include "PointCloudCapture.hpp"
 #include "IlluminationEstimation.hpp"
 using namespace Scripts;
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif

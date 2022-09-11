@@ -6,7 +6,7 @@
 #include "DefaultResources.hpp"
 #include "Graphics.hpp"
 #include "SorghumLayer.hpp"
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 void StemData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (int i = 0; i < m_curves.size(); i++) {
@@ -67,7 +67,7 @@ void StemData::Serialize(YAML::Emitter &out) {
                         m_nodes.size() * sizeof(SplineNode));
   }
 }
-void SorghumFactory::StemData::Deserialize(const YAML::Node &in) {
+void PlantArchitect::StemData::Deserialize(const YAML::Node &in) {
 
   m_left = in["m_left"].as<glm::vec3>();
   if (in["m_curves"]) {

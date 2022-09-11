@@ -4,7 +4,7 @@
 #include <sorghum_factory_export.h>
 #include "ProceduralSorghum.hpp"
 using namespace UniEngine;
-namespace SorghumFactory {
+namespace PlantArchitect {
 struct SORGHUM_FACTORY_API SplineNode {
   glm::vec3 m_position;
   float m_theta;
@@ -19,4 +19,4 @@ struct SORGHUM_FACTORY_API SplineNode {
             bool isLeaf, float range);
   SplineNode();
 };
-} // namespace SorghumFactory
+} // namespace PlantArchitect

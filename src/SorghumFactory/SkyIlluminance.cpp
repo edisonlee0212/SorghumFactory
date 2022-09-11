@@ -10,7 +10,7 @@
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
-using namespace SorghumFactory;SkyIlluminanceSnapshot
+using namespace PlantArchitect;SkyIlluminanceSnapshot
 SkyIlluminanceSnapshotLerp(const SkyIlluminanceSnapshot &l,
                            const SkyIlluminanceSnapshot &r, float a) {
   if (a < 0.0f)

@@ -2,13 +2,13 @@
 // Created by lllll on 1/8/2022.
 //
 #include "ProceduralSorghum.hpp"
-
+#include "rapidcsv.h"
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
 #include "SorghumStateGenerator.hpp"
 #include "Utilities.hpp"
 #include <utility>
-using namespace SorghumFactory;
+using namespace PlantArchitect;
 static const char *StateModes[]{"Default", "Cubic-Bezier"};
 
 SorghumStatePair ProceduralSorghum::Get(float time) const {
@@ -113,104 +113,121 @@ bool ProceduralStemState::OnInspect(int mode) {
 }
 bool ProceduralLeafState::OnInspect(int mode) {
   bool changed = false;
-  if (ImGui::InputFloat("Starting point", &m_startingPoint)) {
-    m_startingPoint = glm::clamp(m_startingPoint, 0.0f, 1.0f);
+  if(ImGui::Checkbox("Dead", &m_dead)){
     changed = true;
   }
-  switch ((StateMode)mode) {
-  case StateMode::Default:
-    if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
-      if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
-        changed = true;
-      if (ImGui::TreeNodeEx("Angles", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f, 999.0f))
+  if(!m_dead) {
+    if (ImGui::InputFloat("Starting point", &m_startingPoint)) {
+      m_startingPoint = glm::clamp(m_startingPoint, 0.0f, 1.0f);
+      changed = true;
+    }
+    switch ((StateMode)mode) {
+    case StateMode::Default:
+      if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::DragFloat("Length", &m_length, 0.01f, 0.0f, 999.0f))
           changed = true;
-        if (ImGui::InputFloat("Branching angle", &m_branchingAngle)) {
-          m_branchingAngle = glm::clamp(m_branchingAngle, 0.0f, 180.0f);
-          changed = true;
+        if (ImGui::TreeNodeEx("Angles", ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::DragFloat("Roll angle", &m_rollAngle, 1.0f, -999.0f,
+                               999.0f))
+            changed = true;
+          if (ImGui::InputFloat("Branching angle", &m_branchingAngle)) {
+            m_branchingAngle = glm::clamp(m_branchingAngle, 0.0f, 180.0f);
+            changed = true;
+          }
+          ImGui::TreePop();
         }
         ImGui::TreePop();
       }
+      break;
+    case StateMode::CubicBezier:
+      if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
+        m_spline.OnInspect();
+        ImGui::TreePop();
+      }
+      break;
+    }
+
+    if (ImGui::TreeNodeEx("Others")) {
+      if (m_widthAlongLeaf.OnInspect("Width"))
+        changed = true;
+      if (m_curlingAlongLeaf.OnInspect("Rolling"))
+        changed = true;
+
+      static CurveDescriptorSettings leafBending = {
+          1.0f, false, true,
+          "The bending of the leaf, controls how leaves bend because of "
+          "gravity. Positive value results in leaf bending towards the "
+          "ground, negative value results in leaf bend towards the sky"};
+
+      if (m_bendingAlongLeaf.OnInspect("Bending along leaf", leafBending)) {
+        changed = true;
+        m_bendingAlongLeaf.m_curve.UnsafeGetValues()[1].y = 0.5f;
+      }
+      if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
+        changed = true;
+
+      if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
+                            0.0f, 999.0f))
+        changed = true;
+      if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x,
+                            0.01f, 0.0f, 999.0f))
+        changed = true;
       ImGui::TreePop();
     }
-    break;
-  case StateMode::CubicBezier:
-    if (ImGui::TreeNodeEx("Geometric", ImGuiTreeNodeFlags_DefaultOpen)) {
-      m_spline.OnInspect();
-      ImGui::TreePop();
-    }
-    break;
-  }
-
-  if (ImGui::TreeNodeEx("Others")) {
-    if (m_widthAlongLeaf.OnInspect("Width"))
-      changed = true;
-    if (m_curlingAlongLeaf.OnInspect("Rolling"))
-      changed = true;
-
-    static CurveDescriptorSettings leafBending = {1.0f, false, true, "The bending of the leaf, controls how leaves bend because of "
-        "gravity. Positive value results in leaf bending towards the "
-        "ground, negative value results in leaf bend towards the sky"};
-
-    if (m_bendingAlongLeaf.OnInspect("Bending along leaf", leafBending)) {
-      changed = true;
-      m_bendingAlongLeaf.m_curve.UnsafeGetValues()[1].y = 0.5f;
-    }
-    if (m_wavinessAlongLeaf.OnInspect("Waviness along leaf"))
-      changed = true;
-
-    if (ImGui::DragFloat2("Waviness frequency", &m_wavinessFrequency.x, 0.01f,
-                          0.0f, 999.0f))
-      changed = true;
-    if (ImGui::DragFloat2("Waviness start period", &m_wavinessPeriodStart.x,
-                          0.01f, 0.0f, 999.0f))
-      changed = true;
-    ImGui::TreePop();
   }
   return changed;
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
-  out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
-  m_spline.Serialize(out);
-  out << YAML::EndMap;
 
+  out << YAML::Key << "m_dead" << YAML::Value << m_dead;
   out << YAML::Key << "m_index" << YAML::Value << m_index;
-  out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
-  out << YAML::Key << "m_length" << YAML::Value << m_length;
-  m_curlingAlongLeaf.Serialize("m_curlingAlongLeaf", out);
-  m_widthAlongLeaf.Serialize("m_widthAlongLeaf", out);
-  out << YAML::Key << "m_rollAngle" << YAML::Value << m_rollAngle;
-  out << YAML::Key << "m_branchingAngle" << YAML::Value << m_branchingAngle;
-  m_bendingAlongLeaf.Serialize("m_bendingAlongLeaf", out);
-  m_wavinessAlongLeaf.Serialize("m_wavinessAlongLeaf", out);
-  out << YAML::Key << "m_wavinessFrequency" << YAML::Value
-      << m_wavinessFrequency;
-  out << YAML::Key << "m_wavinessPeriodStart" << YAML::Value
-      << m_wavinessPeriodStart;
+  if(!m_dead) {
+    out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
+    m_spline.Serialize(out);
+    out << YAML::EndMap;
+
+    out << YAML::Key << "m_startingPoint" << YAML::Value << m_startingPoint;
+    out << YAML::Key << "m_length" << YAML::Value << m_length;
+    m_curlingAlongLeaf.Serialize("m_curlingAlongLeaf", out);
+    m_widthAlongLeaf.Serialize("m_widthAlongLeaf", out);
+    out << YAML::Key << "m_rollAngle" << YAML::Value << m_rollAngle;
+    out << YAML::Key << "m_branchingAngle" << YAML::Value << m_branchingAngle;
+    m_bendingAlongLeaf.Serialize("m_bendingAlongLeaf", out);
+    m_wavinessAlongLeaf.Serialize("m_wavinessAlongLeaf", out);
+    out << YAML::Key << "m_wavinessFrequency" << YAML::Value
+        << m_wavinessFrequency;
+    out << YAML::Key << "m_wavinessPeriodStart" << YAML::Value
+        << m_wavinessPeriodStart;
+  }
 }
 void ProceduralLeafState::Deserialize(const YAML::Node &in) {
-  if (in["m_spline"]) {
-    m_spline.Deserialize(in["m_spline"]);
-  }
   if (in["m_index"])
     m_index = in["m_index"].as<int>();
-  if (in["m_startingPoint"])
-    m_startingPoint = in["m_startingPoint"].as<float>();
-  if (in["m_length"])
-    m_length = in["m_length"].as<float>();
-  if (in["m_rollAngle"])
-    m_rollAngle = in["m_rollAngle"].as<float>();
-  if (in["m_branchingAngle"])
-    m_branchingAngle = in["m_branchingAngle"].as<float>();
-  if (in["m_wavinessFrequency"])
-    m_wavinessFrequency = in["m_wavinessFrequency"].as<glm::vec2>();
-  if (in["m_wavinessPeriodStart"])
-    m_wavinessPeriodStart = in["m_wavinessPeriodStart"].as<glm::vec2>();
+  if (in["m_dead"])
+    m_dead = in["m_dead"].as<bool>();
+  if(!m_dead) {
+    if (in["m_spline"]) {
+      m_spline.Deserialize(in["m_spline"]);
+    }
 
-  m_curlingAlongLeaf.Deserialize("m_curlingAlongLeaf", in);
-  m_bendingAlongLeaf.Deserialize("m_bendingAlongLeaf", in);
-  m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
-  m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
+    if (in["m_startingPoint"])
+      m_startingPoint = in["m_startingPoint"].as<float>();
+    if (in["m_length"])
+      m_length = in["m_length"].as<float>();
+    if (in["m_rollAngle"])
+      m_rollAngle = in["m_rollAngle"].as<float>();
+    if (in["m_branchingAngle"])
+      m_branchingAngle = in["m_branchingAngle"].as<float>();
+    if (in["m_wavinessFrequency"])
+      m_wavinessFrequency = in["m_wavinessFrequency"].as<glm::vec2>();
+    if (in["m_wavinessPeriodStart"])
+      m_wavinessPeriodStart = in["m_wavinessPeriodStart"].as<glm::vec2>();
+
+    m_curlingAlongLeaf.Deserialize("m_curlingAlongLeaf", in);
+    m_bendingAlongLeaf.Deserialize("m_bendingAlongLeaf", in);
+    m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
+    m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
+  }
 }
 ProceduralStemState::ProceduralStemState() {
   m_length = 0.35f;
@@ -218,6 +235,7 @@ ProceduralStemState::ProceduralStemState() {
 }
 
 ProceduralLeafState::ProceduralLeafState() {
+  m_dead = false;
   m_wavinessAlongLeaf = {0.0f, 5.0f, {0.0f, 0.5f, {0, 0}, {1, 1}}};
   m_wavinessFrequency = {30.0f, 30.0f};
   m_wavinessPeriodStart = {0.0f, 0.0f};
@@ -386,10 +404,14 @@ void ProceduralSorghum::OnInspect() {
     auto sorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
     Application::GetActiveScene()->SetEntityName(sorghum, m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
   }
-  static bool autoSave = true;
+  static bool autoSave = false;
   ImGui::Checkbox("Auto save", &autoSave);
 
   bool changed = false;
+  FileUtils::OpenFile("Import CSV", "CSV", {".csv", ".CSV"}, [&](const std::filesystem::path &path){
+        changed = ImportCSV(path);
+      }, false);
+
   if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
     changed = false;
   }
@@ -594,6 +616,68 @@ float ProceduralSorghum::GetCurrentEndTime() const {
 }
 
 unsigned ProceduralSorghum::GetVersion() const { return m_version; }
+bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
+  try {
+    rapidcsv::Document doc(filePath.string());
+    std::vector<std::string> timePoints =
+        doc.GetColumn<std::string>("Time Point");
+    std::vector<float> stemHeights = doc.GetColumn<float>("Stem Height");
+    std::vector<float> stemWidth = doc.GetColumn<float>("Stem Width");
+    std::vector<float> leafIndex = doc.GetColumn<float>("Leaf Number");
+    std::vector<float> leafLength = doc.GetColumn<float>("Leaf Length");
+    std::vector<float> leafWidth = doc.GetColumn<float>("Leaf Width");
+    std::vector<float> leafHeight = doc.GetColumn<float>("Leaf Height");
+    std::vector<float> startingPoint = doc.GetColumn<float>("Start Point");
+    std::vector<float> branchingAngle = doc.GetColumn<float>("Branching Angle");
+    std::vector<float> panicleLength = doc.GetColumn<float>("Panicle Height");
+    std::vector<float> panicleWidth = doc.GetColumn<float>("Panicle Width");
+
+    m_sorghumStates.clear();
+
+    std::map<std::string, std::pair<int, int>> columnIndices;
+    int currentIndex = 0;
+    for(int row = 0; row < timePoints.size(); row++){
+      auto& timePoint = timePoints[row];
+      if(columnIndices.find(timePoint) == columnIndices.end()){
+        columnIndices[timePoint].first = currentIndex;
+        currentIndex++;
+      }
+      if(columnIndices[timePoint].second < leafIndex[row]) columnIndices[timePoint].second = leafIndex[row];
+    }
+
+    m_sorghumStates.resize(currentIndex);
+    for(int row = 0; row < timePoints.size(); row++) {
+      int stateIndex = columnIndices.at(timePoints[row]).first;
+      auto &statePair = m_sorghumStates[stateIndex];
+      auto &state = statePair.second;
+      if (state.m_leaves.empty()) {
+        statePair.first = stateIndex;
+        state.m_name = timePoints[row];
+        state.m_leaves.resize(columnIndices.at(timePoints[row]).second);
+        for(auto& leaf : state.m_leaves) leaf.m_dead = true;
+        state.m_stem.m_length = stemHeights[row] / 100.0f;
+        state.m_stem.m_widthAlongStem.m_minValue = 0.0f;
+        state.m_stem.m_widthAlongStem.m_maxValue = stemWidth[row] * 2.0f;
+      }
+      auto &leaf = state.m_leaves[leafIndex[row] - 1];
+      leaf.m_index = leafIndex[row] - 1;
+      leaf.m_length = leafLength[row] / 100.0f;
+      if (leaf.m_length == 0)
+        leaf.m_dead = true;
+      else {
+        leaf.m_dead = false;
+        leaf.m_rollAngle = leaf.m_index % 2 * 180.0f;
+        leaf.m_widthAlongLeaf.m_maxValue = leafWidth[row] / 100.0f;
+        leaf.m_startingPoint = leafHeight[row] / stemHeights[row];
+        leaf.m_branchingAngle = branchingAngle[row];
+      }
+    }
+
+  } catch(std::exception e){
+    return false;
+  }
+  return true;
+}
 
 glm::vec3 ProceduralStemState::GetPoint(float point) const {
   return m_direction * point * m_length;

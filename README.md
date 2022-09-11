@@ -1,5 +1,5 @@
-# SorghumFactory
-SorghumFactory is an application of UniEngine that provides a procedural sorghum model that will be used for illumination estimation of sorghum field.
+# PlantArchitect
+PlantArchitect is an application of UniEngine that provides a procedural sorghum model that will be used for illumination estimation of sorghum field.
 
 ## Getting Started
 The project is a CMake project. For project editing, code inspections, Visual Studio 2017 or 2019 is recommanded. Simply clone/download the project files and open the folder as project in Visual Studio and you are ready.
