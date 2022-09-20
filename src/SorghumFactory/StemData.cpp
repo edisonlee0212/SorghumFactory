@@ -34,7 +34,7 @@ void StemData::OnInspect() {
       matrices[i] =
           glm::translate(m_nodes[i].m_position) * glm::scale(glm::vec3(1.0f));
     }
-    Graphics::DrawGizmoMeshInstanced(
+    Gizmos::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
         GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value,
         nodeSize);

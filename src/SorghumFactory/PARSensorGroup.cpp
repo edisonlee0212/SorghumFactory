@@ -96,8 +96,8 @@ void PARSensorGroup::OnInspect() {
         results);
     for (const auto &i : results)
       i.wait();
-    Graphics::DrawGizmoRays(color, starts, ends, lineWidth);
-    Graphics::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube,
+    Gizmos::DrawGizmoRays(color, starts, ends, lineWidth);
+    Gizmos::DrawGizmoMeshInstanced(DefaultResources::Primitives::Cube,
                                      pointColor, matrices);
   }
 }

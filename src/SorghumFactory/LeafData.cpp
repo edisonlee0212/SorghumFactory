@@ -36,7 +36,7 @@ void LeafData::OnInspect() {
     }
     auto owner = GetOwner();
     auto scene = GetScene();
-    Graphics::DrawGizmoMeshInstanced(
+    Gizmos::DrawGizmoMeshInstanced(
         DefaultResources::Primitives::Sphere, renderColor, matrices,
         scene->GetDataComponent<GlobalTransform>(owner).m_value, nodeSize);
   }

@@ -298,7 +298,7 @@ void SorghumData::ApplyGeometry() {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           meshRenderer->m_material = material;
-          material->m_cullingMode = MaterialCullingMode::Off;
+          material->m_drawSettings.m_cullFace = false;
           material->m_albedoColor = stemData->m_vertexColor;
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
@@ -334,7 +334,7 @@ void SorghumData::ApplyGeometry() {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-          material->m_cullingMode = MaterialCullingMode::Off;
+          material->m_drawSettings.m_cullFace = false;
           material->m_albedoColor = leafData->m_vertexColor;
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;
@@ -364,7 +364,7 @@ void SorghumData::ApplyGeometry() {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-          material->m_cullingMode = MaterialCullingMode::Off;
+          material->m_drawSettings.m_cullFace = false;
           material->m_albedoColor = glm::vec3(0.0f);
           material->m_roughness = 1.0f;
           material->m_metallic = 0.0f;

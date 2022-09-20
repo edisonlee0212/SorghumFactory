@@ -99,7 +99,7 @@ void SorghumLayer::OnCreate() {
     m_leafMaterial = material;
     material->m_albedoTexture = m_leafAlbedoTexture;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-    material->m_cullingMode = MaterialCullingMode::Off;
+    material->m_drawSettings.m_cullFace = false;
     material->m_albedoColor =
         glm::vec3(113.0f / 255, 169.0f / 255, 44.0f / 255);
     material->m_roughness = 0.8f;
@@ -111,7 +111,7 @@ void SorghumLayer::OnCreate() {
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-    material->m_cullingMode = MaterialCullingMode::Back;
+    material->m_drawSettings.m_cullFaceMode = OpenGLCullFace::Back;
     material->m_albedoColor = glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
     material->m_roughness = 0.5f;
     material->m_metallic = 0.0f;
@@ -122,7 +122,7 @@ void SorghumLayer::OnCreate() {
       auto material = ProjectManager::CreateTemporaryAsset<Material>();
       material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
       i = material;
-      material->m_cullingMode = MaterialCullingMode::Off;
+      material->m_drawSettings.m_cullFace = false;
       material->m_albedoColor =
           glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
       material->m_roughness = 1.0f;
@@ -148,7 +148,7 @@ Entity SorghumLayer::CreateSorghum() {
     auto material = ProjectManager::CreateTemporaryAsset<Material>();
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     mmc->m_material = material;
-    material->m_cullingMode = MaterialCullingMode::Off;
+    material->m_drawSettings.m_cullFace = false;
     material->m_albedoColor = glm::vec3(0, 0, 0);
     material->m_roughness = 1.0f;
     material->m_metallic = 0.0f;
@@ -445,7 +445,7 @@ void SorghumLayer::RenderLightProbes() {
   if (m_probeTransforms.empty() || m_probeColors.empty() ||
       m_probeTransforms.size() != m_probeColors.size())
     return;
-  Graphics::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube,
+  Gizmos::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube,
                                           m_probeColors, m_probeTransforms,
                                           glm::mat4(1.0f), m_lightProbeSize);
 }
