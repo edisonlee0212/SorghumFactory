@@ -242,7 +242,8 @@ void PositionsField::OnInspect() {
   ImGui::DragInt("Index", &index);
   ImGui::DragFloat("Radius", &radius);
   if (ImGui::Button("Instantiate around radius")) {
-    InstantiateAroundIndex(index, radius);
+    glm::dvec2 offset;
+    InstantiateAroundIndex(index, radius, offset);
   }
 }
 void PositionsField::Serialize(YAML::Emitter &out) {
@@ -295,13 +296,13 @@ void PositionsField::ImportFromFile(const std::filesystem::path &path) {
   }
 }
 std::pair<Entity, Entity>
-PositionsField::InstantiateAroundIndex(unsigned i, float radius) {
+PositionsField::InstantiateAroundIndex(unsigned i, float radius, glm::dvec2& offset, float positionVariance) {
   if (m_positions.size() <= i)
     return {};
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   auto scene = sorghumLayer->GetScene();
   if (sorghumLayer) {
-    glm::dvec2 center = m_positions[i];
+    glm::dvec2 center = offset = m_positions[i];
     auto fieldAsset = std::dynamic_pointer_cast<PositionsField>(m_self.lock());
     auto field = scene->CreateEntity("Field");
     // Create sorghums here.
@@ -314,8 +315,9 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius) {
       if (center == position)
         centerSorghum = sorghumEntity;
       auto sorghumTransform = scene->GetDataComponent<Transform>(sorghumEntity);
+      glm::dvec2 posOffset = glm::gaussRand(glm::dvec2(.0f), glm::dvec2(positionVariance));
       auto pos =
-          glm::vec3(position.x - center.x, 0, position.y - center.y) * m_factor;
+          glm::vec3(position.x - center.x + posOffset.x, 0, position.y - center.y + posOffset.y) * m_factor;
       auto rotation = glm::quat(glm::radians(
           glm::vec3(glm::gaussRand(glm::vec3(0.0f), m_rotationVariance))));
       sorghumTransform.m_value = glm::translate(pos) *

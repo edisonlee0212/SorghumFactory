@@ -11,14 +11,24 @@ struct PointCloudSampleSettings {
   float m_boundingBoxRadius = 1.0f;
   float m_adjustmentFactor = 1.2f;
   int m_segmentAmount = 3;
-  Entity m_ground;
+
+  glm::vec2 m_scale = glm::vec2(0.02f);
+  glm::ivec2 m_size = glm::ivec2(150);
+  float m_rowWidth = 0.00f;
+  float m_alleyDepth = 0.15f;
+
+  float m_noiseScale = 20.0f;
+  float m_noiseIntensity = 0.01f;
+
+  float m_positionVariance = 0.4f;
   void OnInspect();
-  void Serialize(const std::string &name, YAML::Emitter &out);
+  void Serialize(const std::string &name, YAML::Emitter &out) const;
   void Deserialize(const std::string &name, const YAML::Node &in);
 };
 class PointCloudCapture : public IAutoSorghumGenerationPipelineBehaviour {
   Entity m_currentSorghumField;
   Entity m_ground;
+  glm::dvec2 m_currentCenter;
   void Instantiate();
 public:
   PointCloudSampleSettings m_settings;
@@ -40,6 +50,6 @@ public:
                              const std::filesystem::path &savePath,
                              const PointCloudSampleSettings &settings);
 
-  void ExportCSV(AutoSorghumGenerationPipeline& pipeline, const std::filesystem::path& path);
+  static void ExportCSV(AutoSorghumGenerationPipeline& pipeline, const std::filesystem::path& path);
 };
 }

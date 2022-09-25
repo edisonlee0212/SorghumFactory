@@ -62,8 +62,30 @@ void FieldGround::OnInspect() {
     GenerateMesh();
   }
 }
-void FieldGround::Serialize(YAML::Emitter &out) {}
-void FieldGround::Deserialize(const YAML::Node &in) {}
+void FieldGround::Serialize(YAML::Emitter &out) {
+  out << YAML::Key << "m_scale" << YAML::Value << m_scale;
+  out << YAML::Key << "m_size" << YAML::Value << m_size;
+  out << YAML::Key << "m_rowWidth" << YAML::Value << m_rowWidth;
+  out << YAML::Key << "m_alleyDepth" << YAML::Value << m_alleyDepth;
+  out << YAML::Key << "m_noiseScale" << YAML::Value << m_noiseScale;
+  out << YAML::Key << "m_noiseIntensity" << YAML::Value << m_noiseIntensity;
+}
+void FieldGround::Deserialize(const YAML::Node &in) {
+  if (in["m_scale"])
+    m_scale = in["m_scale"].as<glm::vec2>();
+  if (in["m_size"])
+    m_size = in["m_size"].as<glm::ivec2>();
+  if (in["m_rowWidth"])
+    m_rowWidth = in["m_rowWidth"].as<float>();
+  if (in["m_alleyDepth"])
+    m_alleyDepth = in["m_alleyDepth"].as<float>();
+  if (in["m_noiseScale"])
+    m_noiseScale = in["m_noiseScale"].as<float>();
+  if (in["m_noiseIntensity"])
+    m_noiseIntensity = in["m_noiseIntensity"].as<float>();
+
+
+}
 void FieldGround::OnCreate() {
   m_scale = glm::vec2(0.02f);
   m_size = glm::ivec2(150);

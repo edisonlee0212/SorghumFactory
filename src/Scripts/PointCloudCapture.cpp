@@ -30,9 +30,18 @@ void PointCloudCapture::OnBeforeGrowth(
   positionField->m_seperated = true;
   auto fieldGround =
       scene->GetOrSetPrivateComponent<FieldGround>(m_ground).lock();
+  fieldGround->m_scale = m_settings.m_scale;
+  fieldGround->m_size = m_settings.m_size;
+  fieldGround->m_rowWidth = m_settings.m_rowWidth;
+  fieldGround->m_alleyDepth = m_settings.m_alleyDepth;
+  fieldGround->m_noiseScale = m_settings.m_noiseScale;
+  fieldGround->m_noiseIntensity = m_settings.m_noiseIntensity;
+  Transform fieldGroundTransform;
+  fieldGroundTransform.SetPosition(glm::vec3(0, glm::linearRand(0.0f, 0.15f), 0));
+  scene->SetDataComponent(m_ground, fieldGroundTransform);
   fieldGround->GenerateMesh(glm::linearRand(0.12f, 0.17f));
   auto result = positionsField->InstantiateAroundIndex(
-      pipeline.GetSeed() % positionsField->m_positions.size(), 2.5f);
+      pipeline.GetSeed() % positionsField->m_positions.size(), 2.5f, m_currentCenter, m_settings.m_positionVariance);
   pipeline.m_currentGrowingSorghum = result.first;
   m_currentSorghumField = result.second;
   if (!scene->IsEntityValid(pipeline.m_currentGrowingSorghum) ||
@@ -96,7 +105,6 @@ void PointCloudCapture::OnStart(AutoSorghumGenerationPipeline &pipeline) {
   m_ground = scene->CreateEntity("Ground");
   auto fieldGround =
       scene->GetOrSetPrivateComponent<FieldGround>(m_ground).lock();
-  m_settings.m_ground = m_ground;
 }
 void PointCloudCapture::OnEnd(AutoSorghumGenerationPipeline &pipeline) {
   auto scene = pipeline.GetScene();
@@ -153,9 +161,18 @@ void PointCloudSampleSettings::OnInspect() {
   } else {
     ImGui::DragFloat("Bounding box radius", &m_boundingBoxRadius, 0.01f);
   }
+  ImGui::DragFloat("Position Variance", &m_positionVariance);
+  if(ImGui::TreeNodeEx("Ground settings", ImGuiTreeNodeFlags_DefaultOpen)){
+    ImGui::DragInt2("Size", &m_size.x);
+    ImGui::DragFloat("Row Width", &m_rowWidth);
+    ImGui::DragFloat("Alley Depth", &m_alleyDepth);
+    ImGui::DragFloat("Noise Scale", &m_noiseScale);
+    ImGui::DragFloat("Noise Intensity", &m_noiseIntensity);
+    ImGui::TreePop();
+  }
 }
 void PointCloudSampleSettings::Serialize(const std::string &name,
-                                         YAML::Emitter &out) {
+                                         YAML::Emitter &out) const {
   out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 
   out << YAML::Key << "m_boundingBoxHeightRange" << YAML::Value
@@ -169,6 +186,15 @@ void PointCloudSampleSettings::Serialize(const std::string &name,
   out << YAML::Key << "m_adjustmentFactor" << YAML::Value << m_adjustmentFactor;
   out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
 
+
+  out << YAML::Key << "m_scale" << YAML::Value << m_scale;
+  out << YAML::Key << "m_size" << YAML::Value << m_size;
+  out << YAML::Key << "m_rowWidth" << YAML::Value << m_rowWidth;
+  out << YAML::Key << "m_alleyDepth" << YAML::Value << m_alleyDepth;
+  out << YAML::Key << "m_noiseScale" << YAML::Value << m_noiseScale;
+  out << YAML::Key << "m_noiseIntensity" << YAML::Value << m_noiseIntensity;
+
+  out << YAML::Key << "m_positionVariance" << YAML::Value << m_positionVariance;
   out << YAML::EndMap;
 }
 void PointCloudSampleSettings::Deserialize(const std::string &name,
@@ -189,6 +215,22 @@ void PointCloudSampleSettings::Deserialize(const std::string &name,
       m_adjustmentFactor = cd["m_adjustmentFactor"].as<float>();
     if (cd["m_segmentAmount"])
       m_segmentAmount = cd["m_segmentAmount"].as<int>();
+
+    if (cd["m_scale"])
+      m_scale = cd["m_scale"].as<glm::vec2>();
+    if (cd["m_size"])
+      m_size = cd["m_size"].as<glm::ivec2>();
+    if (cd["m_rowWidth"])
+      m_rowWidth = cd["m_rowWidth"].as<float>();
+    if (cd["m_alleyDepth"])
+      m_alleyDepth = cd["m_alleyDepth"].as<float>();
+    if (cd["m_noiseScale"])
+      m_noiseScale = cd["m_noiseScale"].as<float>();
+    if (cd["m_noiseIntensity"])
+      m_noiseIntensity = cd["m_noiseIntensity"].as<float>();
+
+    if (cd["m_positionVariance"])
+      m_positionVariance = cd["m_positionVariance"].as<float>();
   }
 }
 
@@ -211,7 +253,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
   std::vector<int> plantIndex;
   std::vector<int> isMainPlant;
   std::vector<uint64_t> meshRendererHandles;
-  std::vector<glm::vec3> points;
+  std::vector<glm::dvec3> points;
   std::vector<glm::vec3> colors;
   auto scene = pipeline.GetScene();
   const auto column = unsigned(planeSize.x / settings.m_pointDistance.x);
@@ -276,7 +318,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
     i.wait();
 
   Handle groundHandle =
-      scene->GetOrSetPrivateComponent<MeshRenderer>(settings.m_ground)
+      scene->GetOrSetPrivateComponent<MeshRenderer>(m_ground)
           .lock()
           ->GetHandle();
   std::vector<std::pair<Handle, int>> mainPlantHandles = {};
@@ -299,7 +341,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
   for (const auto &i : scene->GetChildren(m_currentSorghumField)) {
     if (i.GetIndex() == pipeline.m_currentGrowingSorghum.GetIndex())
       continue;
-    plantHandles.push_back(std::vector<std::pair<Handle, int>>());
+    plantHandles.emplace_back();
     plantHandles.back().emplace_back(
         scene->GetOrSetPrivateComponent<MeshRenderer>(i).lock()->GetHandle(),
         0);
@@ -454,10 +496,24 @@ void PointCloudCapture::ScanPointCloudLabeled(
   if (outstream_ascii.fail()) throw std::runtime_error("failed to open " +
   filename);
   */
+
+
+  std::vector<std::shared_future<void>> results4;
+  Jobs::ParallelFor(
+      points.size(),
+      [&](unsigned i) {
+        points[i].x += m_currentCenter.x;
+        points[i].y += m_currentCenter.y;
+      },
+      results4);
+  for (const auto &i : results4)
+    i.wait();
+
   PlyFile cube_file;
 
+
   cube_file.add_properties_to_element(
-      "vertex", {"x", "z", "y"}, Type::FLOAT32, points.size(),
+      "vertex", {"x", "z", "y"}, Type::FLOAT64, points.size(),
       reinterpret_cast<uint8_t *>(points.data()), Type::INVALID, 0);
   cube_file.add_properties_to_element(
       "color", {"red", "green", "blue"}, Type::FLOAT32, colors.size(),

@@ -63,7 +63,7 @@ public:
   glm::dvec2 m_xRange = glm::vec2(0, 0);
   glm::dvec2 m_yRange = glm::vec2(0, 0);
   void GenerateMatrices() override;
-  std::pair<Entity, Entity> InstantiateAroundIndex(unsigned i, float radius);
+  std::pair<Entity, Entity> InstantiateAroundIndex(unsigned i, float radius, glm::dvec2& offset, float positionVariance = 0.0f);
   void ImportFromFile(const std::filesystem::path &path);
   void OnInspect() override;
   void Serialize(YAML::Emitter &out) override;
