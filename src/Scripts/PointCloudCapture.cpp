@@ -431,7 +431,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
           position.y - plantPosition.y > settings.m_boundingBoxHeightRange.y) {
         continue;
       }
-      points.push_back(sample.m_end);
+      points.emplace_back(sample.m_end.x, sample.m_end.z, sample.m_end.y);
       colors.push_back(sample.m_albedo);
       meshRendererHandles.push_back(sample.m_handle);
     }
@@ -513,7 +513,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
 
 
   cube_file.add_properties_to_element(
-      "vertex", {"x", "z", "y"}, Type::FLOAT64, points.size(),
+      "vertex", {"x", "y", "z"}, Type::FLOAT64, points.size(),
       reinterpret_cast<uint8_t *>(points.data()), Type::INVALID, 0);
   cube_file.add_properties_to_element(
       "color", {"red", "green", "blue"}, Type::FLOAT32, colors.size(),

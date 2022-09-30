@@ -24,7 +24,7 @@ void FieldGround::GenerateMesh(float overrideDepth) {
                                  randomPositionOffset) *
                     m_noiseIntensity;
       archetype.m_position.y += noise;
-      archetype.m_texCoords = glm::vec2((float)i / (2 * m_size.x + 1),
+      archetype.m_texCoord = glm::vec2((float)i / (2 * m_size.x + 1),
                                         (float)j / (2 * m_size.y + 1));
       vertices.push_back(archetype);
     }

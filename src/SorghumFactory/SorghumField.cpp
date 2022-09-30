@@ -48,12 +48,12 @@ void SorghumField::OnInspect() {
 void SorghumField::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_sizeLimit" << YAML::Value << m_sizeLimit;
   out << YAML::Key << "m_sorghumSize" << YAML::Value << m_sorghumSize;
-  out << YAML::Key << "m_newSorghums" << YAML::Value << YAML::BeginSeq;
-
   out << YAML::Key << "m_seperated" << YAML::Value << m_seperated;
   out << YAML::Key << "m_includeStem" << YAML::Value << m_includeStem;
   out << YAML::Key << "m_segmentedMask" << YAML::Value << m_segmentedMask;
 
+
+  out << YAML::Key << "m_newSorghums" << YAML::Value << YAML::BeginSeq;
   for (auto &i : m_newSorghums) {
     out << YAML::BeginMap;
     i.first.Save("SPD", out);

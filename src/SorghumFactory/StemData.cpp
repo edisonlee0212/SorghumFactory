@@ -136,7 +136,7 @@ void StemData::GenerateStemGeometry() {
           (j - sorghumLayer->m_horizontalSubdivisionStep) * angleStep);
       archetype.m_position = glm::vec3(position.x, position.y, position.z);
       float yPos = yStemStep * i;
-      archetype.m_texCoords = glm::vec2(j * xStep, yPos);
+      archetype.m_texCoord = glm::vec2(j * xStep, yPos);
       m_vertices.push_back(archetype);
     }
     if (i != 0) {

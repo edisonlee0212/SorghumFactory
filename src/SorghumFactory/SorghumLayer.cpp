@@ -395,8 +395,8 @@ void SorghumLayer::ObjExportHelper(glm::vec3 position,
     }
 
     for (const auto &vertex : mesh->UnsafeGetVertices()) {
-      data += "vt " + std::to_string(vertex.m_texCoords.x) + " " +
-              std::to_string(vertex.m_texCoords.y) + "\n";
+      data += "vt " + std::to_string(vertex.m_texCoord.x) + " " +
+              std::to_string(vertex.m_texCoord.y) + "\n";
     }
     // data += "s off\n";
     data += "# List of indices for faces vertices, with (x, y, z).\n";

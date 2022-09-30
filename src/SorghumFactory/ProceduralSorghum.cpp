@@ -2,11 +2,11 @@
 // Created by lllll on 1/8/2022.
 //
 #include "ProceduralSorghum.hpp"
-#include "rapidcsv.h"
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
 #include "SorghumStateGenerator.hpp"
 #include "Utilities.hpp"
+#include "rapidcsv.h"
 #include <utility>
 using namespace PlantArchitect;
 static const char *StateModes[]{"Default", "Cubic-Bezier"};
@@ -58,12 +58,15 @@ bool ProceduralPanicleState::OnInspect() {
     changed = true;
   if (ImGui::DragFloat("Seed radius", &m_seedRadius, 0.0001f))
     changed = true;
+  if (changed)
+    m_saved = false;
   return changed;
 }
 void ProceduralPanicleState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_panicleSize" << YAML::Value << m_panicleSize;
   out << YAML::Key << "m_seedAmount" << YAML::Value << m_seedAmount;
   out << YAML::Key << "m_seedRadius" << YAML::Value << m_seedRadius;
+  m_saved = true;
 }
 void ProceduralPanicleState::Deserialize(const YAML::Node &in) {
   if (in["m_panicleSize"])
@@ -72,6 +75,14 @@ void ProceduralPanicleState::Deserialize(const YAML::Node &in) {
     m_seedAmount = in["m_seedAmount"].as<int>();
   if (in["m_seedRadius"])
     m_seedRadius = in["m_seedRadius"].as<float>();
+  m_saved = true;
+}
+
+ProceduralPanicleState::ProceduralPanicleState() {
+  m_panicleSize = glm::vec3(0, 0, 0);
+  m_seedAmount = 0;
+  m_seedRadius = 0.002f;
+  m_saved = false;
 }
 void ProceduralStemState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_direction" << YAML::Value << m_direction;
@@ -80,6 +91,8 @@ void ProceduralStemState::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
   m_spline.Serialize(out);
   out << YAML::EndMap;
+
+  m_saved = true;
 }
 void ProceduralStemState::Deserialize(const YAML::Node &in) {
   if (in["m_spline"]) {
@@ -91,12 +104,14 @@ void ProceduralStemState::Deserialize(const YAML::Node &in) {
   if (in["m_length"])
     m_length = in["m_length"].as<float>();
   m_widthAlongStem.Deserialize("m_widthAlongStem", in);
+
+  m_saved = true;
 }
 bool ProceduralStemState::OnInspect(int mode) {
   bool changed = false;
   switch ((StateMode)mode) {
   case StateMode::Default:
-    //ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
+    // ImGui::DragFloat3("Direction", &m_direction.x, 0.01f);
     if (ImGui::DragFloat("Length", &m_length, 0.01f))
       changed = true;
     break;
@@ -109,14 +124,19 @@ bool ProceduralStemState::OnInspect(int mode) {
   }
   if (m_widthAlongStem.OnInspect("Width along stem"))
     changed = true;
+
+  if (changed)
+    m_saved = false;
   return changed;
 }
 bool ProceduralLeafState::OnInspect(int mode) {
   bool changed = false;
-  if(ImGui::Checkbox("Dead", &m_dead)){
+  if (ImGui::Checkbox("Dead", &m_dead)) {
     changed = true;
+    if (!m_dead && m_length == 0.0f)
+      m_length = 0.35f;
   }
-  if(!m_dead) {
+  if (!m_dead) {
     if (ImGui::InputFloat("Starting point", &m_startingPoint)) {
       m_startingPoint = glm::clamp(m_startingPoint, 0.0f, 1.0f);
       changed = true;
@@ -175,13 +195,15 @@ bool ProceduralLeafState::OnInspect(int mode) {
       ImGui::TreePop();
     }
   }
+  if (changed)
+    m_saved = false;
   return changed;
 }
 void ProceduralLeafState::Serialize(YAML::Emitter &out) {
 
   out << YAML::Key << "m_dead" << YAML::Value << m_dead;
   out << YAML::Key << "m_index" << YAML::Value << m_index;
-  if(!m_dead) {
+  if (!m_dead) {
     out << YAML::Key << "m_spline" << YAML::Value << YAML::BeginMap;
     m_spline.Serialize(out);
     out << YAML::EndMap;
@@ -199,13 +221,15 @@ void ProceduralLeafState::Serialize(YAML::Emitter &out) {
     out << YAML::Key << "m_wavinessPeriodStart" << YAML::Value
         << m_wavinessPeriodStart;
   }
+
+  m_saved = true;
 }
 void ProceduralLeafState::Deserialize(const YAML::Node &in) {
   if (in["m_index"])
     m_index = in["m_index"].as<int>();
   if (in["m_dead"])
     m_dead = in["m_dead"].as<bool>();
-  if(!m_dead) {
+  if (!m_dead) {
     if (in["m_spline"]) {
       m_spline.Deserialize(in["m_spline"]);
     }
@@ -228,10 +252,14 @@ void ProceduralLeafState::Deserialize(const YAML::Node &in) {
     m_widthAlongLeaf.Deserialize("m_widthAlongLeaf", in);
     m_wavinessAlongLeaf.Deserialize("m_wavinessAlongLeaf", in);
   }
+
+  m_saved = true;
 }
 ProceduralStemState::ProceduralStemState() {
   m_length = 0.35f;
   m_widthAlongStem = {0.0f, 0.015f, {0.6f, 0.4f, {0, 0}, {1, 1}}};
+
+  m_saved = false;
 }
 
 ProceduralLeafState::ProceduralLeafState() {
@@ -258,16 +286,28 @@ ProceduralLeafState::ProceduralLeafState() {
   pairs.emplace_back(1, 0.1);
   pairs.emplace_back(0.1, 0.0f);
 
-  m_bendingAlongLeaf = {
-      -180.0f, 180.0f, {0.5f, 0.5, {0, 0}, {1, 1}}};
+  m_bendingAlongLeaf = {-180.0f, 180.0f, {0.5f, 0.5, {0, 0}, {1, 1}}};
   m_curlingAlongLeaf = {0.0f, 90.0f, {0.3f, 0.3f, {0, 0}, {1, 1}}};
   m_length = 0.35f;
   m_branchingAngle = 30.0f;
+
+  m_saved = false;
+}
+void ProceduralLeafState::CopyShape(const ProceduralLeafState &another) {
+  m_spline = another.m_spline;
+  m_widthAlongLeaf.m_curve = another.m_widthAlongLeaf.m_curve;
+  m_curlingAlongLeaf = another.m_curlingAlongLeaf;
+  m_bendingAlongLeaf = another.m_bendingAlongLeaf;
+  m_wavinessAlongLeaf = another.m_wavinessAlongLeaf;
+  m_wavinessPeriodStart = another.m_wavinessPeriodStart;
+  m_wavinessFrequency = another.m_wavinessFrequency;
+
+  m_saved = false;
 }
 
 bool SorghumState::OnInspect(int mode) {
   bool changed = false;
-  if (ImGui::TreeNodeEx("Stem")) {
+  if (ImGui::TreeNodeEx((std::string("Stem")).c_str())) {
     if (m_stem.OnInspect(mode))
       changed = true;
     ImGui::TreePop();
@@ -286,8 +326,9 @@ bool SorghumState::OnInspect(int mode) {
             m_leaves[i] = m_leaves[i - 1];
             m_leaves[i].m_rollAngle =
                 glm::mod(m_leaves[i - 1].m_rollAngle + 180.0f, 360.0f);
-            m_leaves[i].m_startingPoint = m_leaves[i - 1].m_startingPoint + 0.1f;
-          }else{
+            m_leaves[i].m_startingPoint =
+                m_leaves[i - 1].m_startingPoint + 0.1f;
+          } else {
             m_leaves[i] = ProceduralLeafState();
             m_leaves[i].m_rollAngle = 0;
             m_leaves[i].m_startingPoint = 0.1f;
@@ -298,7 +339,9 @@ bool SorghumState::OnInspect(int mode) {
     }
     for (auto &leaf : m_leaves) {
       if (ImGui::TreeNode(
-              ("Leaf No." + std::to_string(leaf.m_index + 1) + (leaf.m_length == 0.0f ? " (Died)" : "")).c_str())) {
+              ("Leaf No." + std::to_string(leaf.m_index + 1) +
+               (leaf.m_length == 0.0f || leaf.m_dead ? " (Dead)" : ""))
+                  .c_str())) {
         if (leaf.OnInspect(mode))
           changed = true;
         ImGui::TreePop();
@@ -307,7 +350,7 @@ bool SorghumState::OnInspect(int mode) {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Panicle")) {
+  if (ImGui::TreeNodeEx((std::string("Panicle")).c_str())) {
     if (m_panicle.OnInspect())
       changed = true;
     ImGui::TreePop();
@@ -321,7 +364,7 @@ bool SorghumState::OnInspect(int mode) {
             UNIENGINE_LOG("Failed to open file!");
             return;
           }
-          changed = false;
+          changed = true;
           // Number of leaves in the file
           int leafCount;
           file >> leafCount;
@@ -354,7 +397,8 @@ bool SorghumState::OnInspect(int mode) {
         },
         false);
   }
-
+  if (changed)
+    m_saved = false;
   return changed;
 }
 
@@ -378,6 +422,8 @@ void SorghumState::Serialize(YAML::Emitter &out) {
     }
     out << YAML::EndSeq;
   }
+
+  m_saved = true;
 }
 void SorghumState::Deserialize(const YAML::Node &in) {
   if (in["m_version"])
@@ -397,20 +443,57 @@ void SorghumState::Deserialize(const YAML::Node &in) {
       m_leaves.push_back(leaf);
     }
   }
+  m_saved = true;
+}
+SorghumState::SorghumState() {
+  m_saved = false;
+  m_name = "Unnamed";
 }
 
 void ProceduralSorghum::OnInspect() {
   if (ImGui::Button("Instantiate")) {
-    auto sorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
-    Application::GetActiveScene()->SetEntityName(sorghum, m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
+    auto sorghum = Application::GetLayer<SorghumLayer>()->CreateSorghum(
+        std::dynamic_pointer_cast<ProceduralSorghum>(m_self.lock()));
+    Application::GetActiveScene()->SetEntityName(
+        sorghum, m_self.lock()->GetAssetRecord().lock()->GetAssetFileName());
   }
   static bool autoSave = false;
   ImGui::Checkbox("Auto save", &autoSave);
-
+  if (!autoSave) {
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+    ImGui::Text("[Auto save disabled!]");
+    ImGui::PopStyleColor();
+  } else {
+    static double lastAutoSaveTime = 0;
+    static float autoSaveInterval = 10;
+    if (ImGui::TreeNodeEx("Auto save settings")) {
+      if (ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
+                           300.0f)) {
+        autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
+      }
+      ImGui::TreePop();
+    }
+    if (lastAutoSaveTime == 0) {
+      lastAutoSaveTime = Application::Time().CurrentTime();
+    } else if (lastAutoSaveTime + autoSaveInterval <
+               Application::Time().CurrentTime()) {
+      lastAutoSaveTime = Application::Time().CurrentTime();
+      if (!m_saved) {
+        Save();
+        UNIENGINE_LOG(GetTypeName() + " autosaved!");
+      }
+    }
+  }
+  if (!m_saved) {
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+    ImGui::Text("[Changed unsaved!]");
+    ImGui::PopStyleColor();
+  }
   bool changed = false;
-  FileUtils::OpenFile("Import CSV", "CSV", {".csv", ".CSV"}, [&](const std::filesystem::path &path){
-        changed = ImportCSV(path);
-      }, false);
+  FileUtils::OpenFile(
+      "Import CSV", "CSV", {".csv", ".CSV"},
+      [&](const std::filesystem::path &path) { changed = ImportCSV(path); },
+      false);
 
   if (ImGui::Combo("Mode", &m_mode, StateModes, IM_ARRAYSIZE(StateModes))) {
     changed = false;
@@ -432,22 +515,42 @@ void ProceduralSorghum::OnInspect() {
     float previousTime = 0.0f;
     int stateIndex = 1;
     for (auto it = m_sorghumStates.begin(); it != m_sorghumStates.end(); ++it) {
-      if (ImGui::TreeNodeEx(("State " + std::to_string(stateIndex) + ": " + it->second.m_name).c_str())) {
+      if (ImGui::TreeNodeEx(
+              ("State " + std::to_string(stateIndex) + ": " + it->second.m_name)
+                  .c_str())) {
         const std::string tag = "##SorghumState" + std::to_string(stateIndex);
-        if (ImGui::BeginPopupContextItem(tag.c_str()))
-        {
-          if (ImGui::BeginMenu(("Rename" + tag).c_str()))
-          {
+        if (ImGui::BeginPopupContextItem(tag.c_str())) {
+          if (ImGui::BeginMenu(("Rename" + tag).c_str())) {
             static char newName[256];
             ImGui::InputText(("New name" + tag).c_str(), newName, 256);
-            if (ImGui::Button(("Confirm" + tag).c_str()))
-            {
+            if (ImGui::Button(("Confirm" + tag).c_str())) {
               it->second.m_name = newName;
               memset(newName, 0, 256);
             }
             ImGui::EndMenu();
           }
           ImGui::EndPopup();
+        }
+        if (stateIndex != 1) {
+          if (ImGui::Button("Copy prev leaves shape")) {
+            for (int i = 0; i < (it - 1)->second.m_leaves.size() &&
+                            i < it->second.m_leaves.size();
+                 i++) {
+              it->second.m_leaves[i].CopyShape((it - 1)->second.m_leaves[i]);
+              it->second.m_saved = false;
+              changed = true;
+            }
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Duplicate prev")) {
+            it->second = (it - 1)->second;
+            it->second.m_saved = false;
+            for (auto &leafState : it->second.m_leaves)
+              leafState.m_saved = false;
+            it->second.m_panicle.m_saved = false;
+            it->second.m_stem.m_saved = false;
+            changed = true;
+          }
         }
         if (it != (--m_sorghumStates.end())) {
           auto tit = it;
@@ -458,17 +561,19 @@ void ProceduralSorghum::OnInspect() {
             it->first = glm::clamp(currentTime, previousTime, nextTime);
             changed = true;
           }
+
         } else {
           float currentTime = it->first;
-          if (ImGui::DragFloat("Time", &currentTime, 0.01f, previousTime,
-                               99999.0f)) {
+          if (ImGui::InputFloat("Time", &currentTime)) {
             it->first = glm::clamp(currentTime, previousTime, 99999.0f);
             changed = true;
           }
         }
+
         if (it->second.OnInspect(m_mode)) {
           changed = true;
         }
+
         ImGui::TreePop();
       }
       previousTime = it->first + 0.01f;
@@ -510,35 +615,6 @@ void ProceduralSorghum::OnInspect() {
   if (changed) {
     m_saved = false;
     m_version++;
-  }
-
-  static double lastAutoSaveTime = 0;
-  static float autoSaveInterval = 5;
-
-  if(autoSave) {
-    if(ImGui::TreeNodeEx("Auto save settings")) {
-      if(ImGui::DragFloat("Time interval", &autoSaveInterval, 1.0f, 2.0f,
-                       300.0f)){
-        autoSaveInterval = glm::clamp(autoSaveInterval, 5.0f, 300.0f);
-      }
-      ImGui::TreePop();
-    }
-    if (lastAutoSaveTime == 0) {
-      lastAutoSaveTime = Application::Time().CurrentTime();
-    } else if (lastAutoSaveTime + autoSaveInterval <
-               Application::Time().CurrentTime()) {
-      lastAutoSaveTime = Application::Time().CurrentTime();
-      if (!m_saved) {
-        Save();
-        UNIENGINE_LOG(GetTypeName() + " autosaved!");
-      }
-    }
-  }else {
-    if(!m_saved){
-      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
-      ImGui::Text("[Changed unsaved!]");
-      ImGui::PopStyleColor();
-    }
   }
 }
 
@@ -616,6 +692,7 @@ float ProceduralSorghum::GetCurrentEndTime() const {
 }
 
 unsigned ProceduralSorghum::GetVersion() const { return m_version; }
+
 bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
   try {
     rapidcsv::Document doc(filePath.string());
@@ -636,17 +713,18 @@ bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
 
     std::map<std::string, std::pair<int, int>> columnIndices;
     int currentIndex = 0;
-    for(int row = 0; row < timePoints.size(); row++){
-      auto& timePoint = timePoints[row];
-      if(columnIndices.find(timePoint) == columnIndices.end()){
+    for (int row = 0; row < timePoints.size(); row++) {
+      auto &timePoint = timePoints[row];
+      if (columnIndices.find(timePoint) == columnIndices.end()) {
         columnIndices[timePoint].first = currentIndex;
         currentIndex++;
       }
-      if(columnIndices[timePoint].second < leafIndex[row]) columnIndices[timePoint].second = leafIndex[row];
+      if (columnIndices[timePoint].second < leafIndex[row])
+        columnIndices[timePoint].second = leafIndex[row];
     }
 
     m_sorghumStates.resize(currentIndex);
-    for(int row = 0; row < timePoints.size(); row++) {
+    for (int row = 0; row < timePoints.size(); row++) {
       int stateIndex = columnIndices.at(timePoints[row]).first;
       auto &statePair = m_sorghumStates[stateIndex];
       auto &state = statePair.second;
@@ -654,7 +732,8 @@ bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
         statePair.first = stateIndex;
         state.m_name = timePoints[row];
         state.m_leaves.resize(columnIndices.at(timePoints[row]).second);
-        for(auto& leaf : state.m_leaves) leaf.m_dead = true;
+        for (auto &leaf : state.m_leaves)
+          leaf.m_dead = true;
         state.m_stem.m_length = stemHeights[row] / 100.0f;
         state.m_stem.m_widthAlongStem.m_minValue = 0.0f;
         state.m_stem.m_widthAlongStem.m_maxValue = stemWidth[row] * 2.0f;
@@ -673,7 +752,19 @@ bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
       }
     }
 
-  } catch(std::exception e){
+    for (auto &sorghumState : m_sorghumStates) {
+      sorghumState.second.m_saved = false;
+      int leafIndex = 0;
+      for (auto &leafState : sorghumState.second.m_leaves) {
+        leafState.m_saved = false;
+        leafState.m_index = leafIndex;
+        leafIndex++;
+      }
+      sorghumState.second.m_stem.m_saved = false;
+      sorghumState.second.m_panicle.m_saved = false;
+    }
+    m_saved = false;
+  } catch (std::exception e) {
     return false;
   }
   return true;

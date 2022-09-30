@@ -11,6 +11,9 @@ struct ProceduralPanicleState {
   glm::vec3 m_panicleSize = glm::vec3(0, 0, 0);
   int m_seedAmount = 0;
   float m_seedRadius = 0.002f;
+
+  bool m_saved = false;
+  ProceduralPanicleState();
   bool OnInspect();
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
@@ -20,27 +23,33 @@ struct ProceduralStemState {
   glm::vec3 m_direction = {0, 1, 0};
   CurveDescriptor<float> m_widthAlongStem;
   float m_length = 0;
+
+  bool m_saved = false;
   ProceduralStemState();
   [[nodiscard]] glm::vec3 GetPoint(float point) const;
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
   bool OnInspect(int mode);
 };
-struct  ProceduralLeafState {
+struct ProceduralLeafState {
   bool m_dead = false;
   BezierSpline m_spline;
   int m_index = 0;
   float m_startingPoint = 0;
-  float m_length = 0;
-  CurveDescriptor<float> m_widthAlongLeaf;
+  float m_length = 0.35f;
   float m_rollAngle = 0;
   float m_branchingAngle = 0;
-  CurveDescriptor<float>  m_curlingAlongLeaf;
-  CurveDescriptor<float>  m_bendingAlongLeaf;
+
+  CurveDescriptor<float> m_widthAlongLeaf;
+  CurveDescriptor<float> m_curlingAlongLeaf;
+  CurveDescriptor<float> m_bendingAlongLeaf;
   CurveDescriptor<float> m_wavinessAlongLeaf;
   glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
   glm::vec2 m_wavinessFrequency = glm::vec2(0.0f);
+
+  bool m_saved = false;
   ProceduralLeafState();
+  void CopyShape(const ProceduralLeafState &another);
   void Serialize(YAML::Emitter &out);
   void Deserialize(const YAML::Node &in);
   bool OnInspect(int mode);
@@ -50,7 +59,10 @@ struct  ProceduralLeafState {
 class SorghumState {
   friend class ProceduralSorghum;
   unsigned m_version = 0;
+
 public:
+  SorghumState();
+  bool m_saved = false;
   std::string m_name = "Unnamed";
   ProceduralPanicleState m_panicle;
   ProceduralStemState m_stem;
@@ -77,9 +89,10 @@ class ProceduralSorghum : public IAsset {
   unsigned m_version = 0;
   friend class SorghumData;
   std::vector<std::pair<float, SorghumState>> m_sorghumStates;
+
 public:
   int m_mode = (int)StateMode::Default;
-  [[nodiscard]] bool ImportCSV(const std::filesystem::path& filePath);
+  [[nodiscard]] bool ImportCSV(const std::filesystem::path &filePath);
   [[nodiscard]] unsigned GetVersion() const;
   [[nodiscard]] float GetCurrentStartTime() const;
   [[nodiscard]] float GetCurrentEndTime() const;
