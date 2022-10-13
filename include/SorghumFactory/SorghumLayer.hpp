@@ -30,8 +30,7 @@ public:
   float m_pushDistance = 0.001f;
   RayTracerFacility::RayProperties m_rayProperties;
 
-  bool m_enableMLVQ = false;
-  int m_MLVQMaterialIndex = 1;
+  bool m_enableCompressedBTF = false;
   std::vector<glm::mat4> m_probeTransforms;
   std::vector<glm::vec4> m_probeColors;
   std::vector<Entity> m_processingEntities;
@@ -59,6 +58,7 @@ public:
 
   AssetRef m_panicleMaterial;
   AssetRef m_leafMaterial;
+  AssetRef m_leafCompressedBTF;
   AssetRef m_leafAlbedoTexture;
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];

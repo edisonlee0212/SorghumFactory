@@ -8,7 +8,7 @@
 #ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
-#include <MLVQRenderer.hpp>
+#include "BTFMeshRenderer.hpp"
 #include <TriangleIlluminationEstimator.hpp>
 using namespace RayTracerFacility;
 #endif

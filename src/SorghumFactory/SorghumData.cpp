@@ -1,5 +1,5 @@
 #ifdef RAYTRACERFACILITY
-#include "MLVQRenderer.hpp"
+#include "BTFMeshRenderer.hpp"
 #endif
 #include "DefaultResources.hpp"
 #include "IVolume.hpp"
@@ -243,15 +243,17 @@ void SorghumData::ApplyGeometry() {
         } else {
           meshRenderer->m_mesh.Clear();
         }
+        /*
+#ifdef RAYTRACERFACILITY
+        auto btfMeshRenderer =
+scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock(); btfMeshRenderer->m_mesh =
+meshRenderer->m_mesh;
+        meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+        btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+#endif
+         */
       }
       i++;
-#ifdef RAYTRACERFACILITY
-      if (sorghumLayer->m_enableMLVQ) {
-        auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(child).lock();
-        rtt->Sync();
-        rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
-      }
-#endif
     });
     auto meshRenderer =
         scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
@@ -272,14 +274,18 @@ void SorghumData::ApplyGeometry() {
       meshRenderer->m_mesh.Clear();
     }
 #ifdef RAYTRACERFACILITY
-    if (sorghumLayer->m_enableMLVQ) {
-      auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
-      rtt->Sync();
-      rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+    auto btfMeshRenderer = scene->GetOrSetPrivateComponent<BTFMeshRenderer>(owner).lock();
+    btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
+    btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+    if (m_skeleton) {
+      meshRenderer->SetEnabled(true);
+      btfMeshRenderer->SetEnabled(false);
+    } else {
+      meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+      btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
     }
 #endif
   } else {
-
     int i = 0;
     scene->ForEachChild(owner, [&](Entity child) {
       if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
@@ -312,11 +318,16 @@ void SorghumData::ApplyGeometry() {
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
-        if (sorghumLayer->m_enableMLVQ) {
-          auto rtt =
-              scene->GetOrSetPrivateComponent<MLVQRenderer>(owner).lock();
-          rtt->Sync();
-          rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
+        auto btfMeshRenderer =
+            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock();
+        btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
+        btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        if (m_skeleton || m_segmentedMask) {
+          meshRenderer->SetEnabled(true);
+          btfMeshRenderer->SetEnabled(false);
+        }else {
+          meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+          btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
         }
 #endif
       } else if (scene->HasDataComponent<LeafTag>(child)) {
@@ -347,7 +358,19 @@ void SorghumData::ApplyGeometry() {
           meshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
-
+#ifdef RAYTRACERFACILITY
+        auto btfMeshRenderer =
+            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock();
+        btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
+        btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        if (m_skeleton || m_segmentedMask) {
+          meshRenderer->SetEnabled(true);
+          btfMeshRenderer->SetEnabled(false);
+        }else {
+          meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+          btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+        }
+#endif
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
         auto panicleData =
             scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
@@ -373,13 +396,6 @@ void SorghumData::ApplyGeometry() {
               Application::GetLayer<SorghumLayer>()->m_panicleMaterial;
         }
       }
-#ifdef RAYTRACERFACILITY
-      if (sorghumLayer->m_enableMLVQ) {
-        auto rtt = scene->GetOrSetPrivateComponent<MLVQRenderer>(child).lock();
-        rtt->Sync();
-        rtt->m_materialIndex = sorghumLayer->m_MLVQMaterialIndex;
-      }
-#endif
       i++;
     });
   }

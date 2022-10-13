@@ -1,6 +1,6 @@
 #ifdef RAYTRACERFACILITY
+#include "BTFMeshRenderer.hpp"
 #include "RayTracerLayer.hpp"
-#include <MLVQRenderer.hpp>
 #include <TriangleIlluminationEstimator.hpp>
 #endif
 #include "ClassRegistry.hpp"
@@ -236,6 +236,37 @@ void SorghumLayer::OnInspect() {
       }
       ImGui::TreePop();
     }
+    if (Editor::DragAndDropButton<CompressedBTF>(
+            m_leafCompressedBTF, "Replace Leaf Compressed BTF")) {
+      auto cbtf = m_leafCompressedBTF.Get<CompressedBTF>();
+      if (cbtf) {
+        std::vector<Entity> sorghumEntities;
+        scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+        for (const auto &i : sorghumEntities) {
+          if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
+            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i).lock()->m_btf =
+                m_leafCompressedBTF;
+          }
+        }
+      }
+    }
+    if (ImGui::Checkbox("Enable BTF", &m_enableCompressedBTF)) {
+      std::vector<Entity> sorghumEntities;
+      scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
+      scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
+      scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+      for (const auto &i : sorghumEntities) {
+        if (scene->HasPrivateComponent<BTFMeshRenderer>(i))
+          scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)
+              .lock()
+              ->SetEnabled(m_enableCompressedBTF);
+        if (scene->HasPrivateComponent<MeshRenderer>(i))
+          scene->GetOrSetPrivateComponent<MeshRenderer>(i).lock()->SetEnabled(
+              !m_enableCompressedBTF);
+      }
+    }
 #endif
     ImGui::Separator();
     ImGui::Checkbox("Auto regenerate sorghum", &m_autoRefreshSorghums);
@@ -249,18 +280,14 @@ void SorghumLayer::OnInspect() {
           glm::max(0.0001f, m_verticalSubdivisionMaxUnitLength);
     }
 
-
-
     if (ImGui::DragInt("Horizontal subdivision step",
                        &m_horizontalSubdivisionStep)) {
       m_horizontalSubdivisionStep = glm::max(2, m_horizontalSubdivisionStep);
     }
 
-    if (ImGui::DragFloat("Skeleton width",
-                         &m_skeletonWidth, 0.001f, 0.001f,
+    if (ImGui::DragFloat("Skeleton width", &m_skeletonWidth, 0.001f, 0.001f,
                          1.0f, "%.4f")) {
-      m_skeletonWidth =
-          glm::max(0.0001f, m_skeletonWidth);
+      m_skeletonWidth = glm::max(0.0001f, m_skeletonWidth);
     }
     ImGui::ColorEdit3("Skeleton color", &m_skeletonColor.x);
 
@@ -271,6 +298,8 @@ void SorghumLayer::OnInspect() {
         m_leafMaterial.Get<Material>()->m_albedoTexture = m_leafAlbedoTexture;
         std::vector<Entity> sorghumEntities;
         scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
           if (scene->HasPrivateComponent<MeshRenderer>(i)) {
             scene->GetOrSetPrivateComponent<MeshRenderer>(i)
@@ -289,6 +318,8 @@ void SorghumLayer::OnInspect() {
         m_leafMaterial.Get<Material>()->m_normalTexture = m_leafNormalTexture;
         std::vector<Entity> sorghumEntities;
         scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
           if (scene->HasPrivateComponent<MeshRenderer>(i)) {
             scene->GetOrSetPrivateComponent<MeshRenderer>(i)
@@ -446,8 +477,8 @@ void SorghumLayer::RenderLightProbes() {
       m_probeTransforms.size() != m_probeColors.size())
     return;
   Gizmos::DrawGizmoMeshInstancedColored(DefaultResources::Primitives::Cube,
-                                          m_probeColors, m_probeTransforms,
-                                          glm::mat4(1.0f), m_lightProbeSize);
+                                        m_probeColors, m_probeTransforms,
+                                        glm::mat4(1.0f), m_lightProbeSize);
 }
 #endif
 
@@ -514,7 +545,9 @@ void SorghumLayer::Update() {
     } else {
       const float timer = Application::Time().CurrentTime();
       auto estimator =
-              scene->GetOrSetPrivateComponent<TriangleIlluminationEstimator>(m_processingEntities[m_processingIndex])
+          scene
+              ->GetOrSetPrivateComponent<TriangleIlluminationEstimator>(
+                  m_processingEntities[m_processingIndex])
               .lock();
       estimator->CalculateIlluminationForDescendents(m_rayProperties, m_seed,
                                                      m_pushDistance);
@@ -538,7 +571,8 @@ Entity SorghumLayer::CreateSorghum(
   }
   auto scene = GetScene();
   Entity sorghum = CreateSorghum();
-  auto sorghumData = scene->GetOrSetPrivateComponent<SorghumData>(sorghum).lock();
+  auto sorghumData =
+      scene->GetOrSetPrivateComponent<SorghumData>(sorghum).lock();
   sorghumData->m_mode = (int)SorghumMode::ProceduralSorghum;
   sorghumData->m_descriptor = descriptor;
   sorghumData->SetTime(1.0f);
@@ -554,7 +588,8 @@ Entity SorghumLayer::CreateSorghum(
   }
   auto scene = GetScene();
   Entity sorghum = CreateSorghum();
-  auto sorghumData = scene->GetOrSetPrivateComponent<SorghumData>(sorghum).lock();
+  auto sorghumData =
+      scene->GetOrSetPrivateComponent<SorghumData>(sorghum).lock();
   sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
   sorghumData->m_descriptor = descriptor;
   sorghumData->SetTime(1.0f);
@@ -570,7 +605,8 @@ void SorghumLayer::LateUpdate() {
     scene->GetEntityArray(m_sorghumQuery, plants);
     for (auto &plant : plants) {
       if (scene->HasPrivateComponent<SorghumData>(plant)) {
-        auto sorghumData = scene->GetOrSetPrivateComponent<SorghumData>(plant).lock();
+        auto sorghumData =
+            scene->GetOrSetPrivateComponent<SorghumData>(plant).lock();
         auto proceduralSorghum =
             sorghumData->m_descriptor.Get<ProceduralSorghum>();
         if (proceduralSorghum &&
@@ -590,5 +626,3 @@ void SorghumLayer::LateUpdate() {
     }
   }
 }
-
-
