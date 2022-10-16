@@ -32,3 +32,6 @@ glm::vec3 LeafSegment::GetPoint(float angle) {
   const auto direction = glm::rotate(m_up, glm::radians(angle), m_front);
   return m_position - m_stemRadius * direction;
 }
+glm::vec3 LeafSegment::GetNormal(float angle) {
+  return glm::normalize(glm::rotate(m_up, glm::radians(angle), m_front));
+}

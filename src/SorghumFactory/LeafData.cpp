@@ -47,6 +47,8 @@ void LeafData::OnDestroy() {
   m_segments.clear();
   m_vertices.clear();
   m_triangles.clear();
+  m_bottomFaceTriangles.clear();
+  m_bottomFaceVertices.clear();
   m_vertexColor = glm::vec4(0, 1, 0, 1);
 }
 void LeafData::Serialize(YAML::Emitter &out) {
@@ -103,20 +105,27 @@ void LeafData::Deserialize(const YAML::Node &in) {
     std::memcpy(m_nodes.data(), nodes.data(), nodes.size());
   }
 }
-void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
+void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair,
+                                    bool isBottomFace, float thickness) {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   if (!sorghumLayer)
     return;
 
-  auto owner = GetOwner();
   auto scene = GetScene();
 
   ProceduralLeafState actualLeft, actualRight;
   float actualA;
   LeafStateHelper(actualLeft, actualRight, actualA, sorghumStatePair, m_index);
 
-  m_vertices.clear();
-  m_triangles.clear();
+  auto *vertices = &m_vertices;
+  auto *triangles = &m_triangles;
+  if (isBottomFace) {
+    vertices = &m_bottomFaceVertices;
+    triangles = &m_bottomFaceTriangles;
+  }
+
+  vertices->clear();
+  triangles->clear();
   m_segments.clear();
 
   if (m_nodes.empty())
@@ -130,6 +139,9 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
   for (int i = 1; i < m_nodes.size(); i++) {
     auto &prev = m_nodes.at(i - 1);
     auto &curr = m_nodes.at(i);
+    if (isBottomFace && !prev.m_isLeaf) {
+      continue;
+    }
     float distance = glm::distance(prev.m_position, curr.m_position);
     BezierCurve curve = BezierCurve(
         prev.m_position, prev.m_position + distance / 5.0f * prev.m_axis,
@@ -157,7 +169,7 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
     }
   }
 
-  const int vertexIndex = m_vertices.size();
+  const int vertexIndex = vertices->size();
   Vertex archetype{};
 #pragma region Semantic mask color
   auto index = m_index + 1;
@@ -183,30 +195,35 @@ void LeafData::GenerateLeafGeometry(const SorghumStatePair &sorghumStatePair) {
         segment.m_theta / sorghumLayer->m_horizontalSubdivisionStep;
     const int vertsCount = sorghumLayer->m_horizontalSubdivisionStep * 2 + 1;
     for (int j = 0; j < vertsCount; j++) {
-      const auto position = segment.GetPoint(
+      auto position = segment.GetPoint(
           (j - sorghumLayer->m_horizontalSubdivisionStep) * angleStep);
+      auto normal = segment.GetNormal(
+          (j - sorghumLayer->m_horizontalSubdivisionStep) * angleStep);
+      if (i != 0 && isBottomFace && j != 0 && j != vertsCount - 1) {
+        position -= normal * thickness;
+      }
       archetype.m_position = glm::vec3(position.x, position.y, position.z);
       float yPos = 0.5f + yLeafStep * i;
       archetype.m_texCoord = glm::vec2(j * xStep, yPos);
-      m_vertices.push_back(archetype);
+      vertices->push_back(archetype);
     }
     if (i != 0) {
       for (int j = 0; j < vertsCount - 1; j++) {
         // Down triangle
-        m_triangles.emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j,
-                                 vertexIndex + (i - 1) * vertsCount + j + 1,
-                                 vertexIndex + (i - 1) * vertsCount + j);
+        triangles->emplace_back(vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                vertexIndex + (i - 1) * vertsCount + j + 1,
+                                vertexIndex + (i - 1) * vertsCount + j);
         // Up triangle
-        m_triangles.emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1,
-                                 vertexIndex + ((i - 1) + 1) * vertsCount + j,
-                                 vertexIndex + ((i - 1) + 1) * vertsCount + j +
-                                     1);
+        triangles->emplace_back(vertexIndex + (i - 1) * vertsCount + j + 1,
+                                vertexIndex + ((i - 1) + 1) * vertsCount + j,
+                                vertexIndex + ((i - 1) + 1) * vertsCount + j +
+                                    1);
       }
     }
   }
 }
-void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair,
-                        bool skeleton) {
+void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair, bool skeleton,
+                        bool doubleFace) {
   auto scene = GetScene();
 
   ProceduralLeafState actualLeft, actualRight;
@@ -356,6 +373,8 @@ void LeafData::FormLeaf(const SorghumStatePair &sorghumStatePair,
                          wavinessAlongLeaf, -currentDirection, true, factor);
   }
   GenerateLeafGeometry(sorghumStatePair);
+  if (!skeleton && doubleFace)
+    GenerateLeafGeometry(sorghumStatePair, true);
 }
 void LeafData::Copy(const std::shared_ptr<LeafData> &target) {
   *this = *target;

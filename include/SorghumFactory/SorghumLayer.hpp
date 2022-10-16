@@ -12,6 +12,7 @@
 using namespace UniEngine;
 namespace PlantArchitect {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafBottomFaceTag : IDataComponent {};
 struct SORGHUM_FACTORY_API PanicleTag : IDataComponent {};
 struct SORGHUM_FACTORY_API StemTag : IDataComponent {};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
@@ -46,9 +47,14 @@ public:
 
 #pragma endregion
 #endif
+
+  bool m_enableBottomFace = false;
   bool m_autoRefreshSorghums = true;
   EntityArchetype m_leafArchetype;
   EntityQuery m_leafQuery;
+  EntityArchetype m_leafBottomFaceArchetype;
+  EntityQuery m_leafBottomFaceQuery;
+
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
   EntityArchetype m_panicleArchetype;
@@ -57,8 +63,12 @@ public:
   EntityQuery m_stemQuery;
 
   AssetRef m_panicleMaterial;
+
+  AssetRef m_leafBottomFaceMaterial;
   AssetRef m_leafMaterial;
+  AssetRef m_leafBottomFaceCompressedBTF;
   AssetRef m_leafCompressedBTF;
+
   AssetRef m_leafAlbedoTexture;
   AssetRef m_leafNormalTexture;
   AssetRef m_segmentedLeafMaterials[25];
@@ -77,7 +87,7 @@ public:
   Entity CreateSorghumStem(const Entity &plantEntity);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPanicle(const Entity &plantEntity);
-  void GenerateMeshForAllSorghums();
+  void GenerateMeshForAllSorghums(bool bottomFace = false);
   void OnInspect() override;
   void Update() override;
   void LateUpdate() override;

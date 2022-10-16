@@ -100,10 +100,22 @@ void SorghumLayer::OnCreate() {
     material->m_albedoTexture = m_leafAlbedoTexture;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_drawSettings.m_cullFace = false;
-    material->m_albedoColor =
+    material->m_materialProperties.m_albedoColor =
         glm::vec3(113.0f / 255, 169.0f / 255, 44.0f / 255);
-    material->m_roughness = 0.8f;
-    material->m_metallic = 0.1f;
+    material->m_materialProperties.m_roughness = 0.8f;
+    material->m_materialProperties.m_metallic = 0.1f;
+  }
+
+  if (!m_leafBottomFaceMaterial.Get<Material>()) {
+    auto material = ProjectManager::CreateTemporaryAsset<Material>();
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    m_leafBottomFaceMaterial = material;
+    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+    material->m_drawSettings.m_cullFace = false;
+    material->m_materialProperties.m_albedoColor =
+        glm::vec3(113.0f / 255, 169.0f / 255, 44.0f / 255);
+    material->m_materialProperties.m_roughness = 0.8f;
+    material->m_materialProperties.m_metallic = 0.1f;
   }
 
   if (!m_panicleMaterial.Get<Material>()) {
@@ -112,9 +124,9 @@ void SorghumLayer::OnCreate() {
     m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_drawSettings.m_cullFaceMode = OpenGLCullFace::Back;
-    material->m_albedoColor = glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
-    material->m_roughness = 0.5f;
-    material->m_metallic = 0.0f;
+    material->m_materialProperties.m_albedoColor = glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
+    material->m_materialProperties.m_roughness = 0.5f;
+    material->m_materialProperties.m_metallic = 0.0f;
   }
 
   for (auto &i : m_segmentedLeafMaterials) {
@@ -123,10 +135,10 @@ void SorghumLayer::OnCreate() {
       material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
       i = material;
       material->m_drawSettings.m_cullFace = false;
-      material->m_albedoColor =
+      material->m_materialProperties.m_albedoColor =
           glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f));
-      material->m_roughness = 1.0f;
-      material->m_metallic = 0.0f;
+      material->m_materialProperties.m_roughness = 1.0f;
+      material->m_materialProperties.m_metallic = 0.0f;
     }
   }
 }
@@ -142,18 +154,6 @@ Entity SorghumLayer::CreateSorghum() {
 #ifdef RAYTRACERFACILITY
   scene->GetOrSetPrivateComponent<TriangleIlluminationEstimator>(entity);
 #endif
-  auto mmc = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
-  // mmc->m_material = m_segmentedLeafMaterials[leafIndex];
-  {
-    auto material = ProjectManager::CreateTemporaryAsset<Material>();
-    material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-    mmc->m_material = material;
-    material->m_drawSettings.m_cullFace = false;
-    material->m_albedoColor = glm::vec3(0, 0, 0);
-    material->m_roughness = 1.0f;
-    material->m_metallic = 0.0f;
-  }
-  mmc->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
   return entity;
 }
 Entity SorghumLayer::CreateSorghumStem(const Entity &plantEntity) {
@@ -168,7 +168,6 @@ Entity SorghumLayer::CreateSorghumStem(const Entity &plantEntity) {
   StemTag tag;
   scene->SetDataComponent(entity, tag);
   scene->SetDataComponent(entity, transform);
-  auto mmc = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
   return entity;
 }
 Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
@@ -182,7 +181,6 @@ Entity SorghumLayer::CreateSorghumLeaf(const Entity &plantEntity,
   auto leafData = scene->GetOrSetPrivateComponent<LeafData>(entity).lock();
   leafData->m_index = leafIndex;
   scene->SetDataComponent(entity, transform);
-  auto mmc = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
   return entity;
 }
 Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
@@ -195,11 +193,10 @@ Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
   auto panicleData =
       scene->GetOrSetPrivateComponent<PanicleData>(entity).lock();
   scene->SetDataComponent(entity, transform);
-  auto mmc = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
   return entity;
 }
 
-void SorghumLayer::GenerateMeshForAllSorghums() {
+void SorghumLayer::GenerateMeshForAllSorghums(bool bottomFace) {
   std::vector<Entity> plants;
   auto scene = GetScene();
   scene->GetEntityArray(m_sorghumQuery, plants);
@@ -207,8 +204,8 @@ void SorghumLayer::GenerateMeshForAllSorghums() {
     if (scene->HasPrivateComponent<SorghumData>(plant)) {
       auto sorghumData =
           scene->GetOrSetPrivateComponent<SorghumData>(plant).lock();
-      sorghumData->FormPlant();
-      sorghumData->ApplyGeometry();
+      sorghumData->FormPlant(bottomFace);
+      sorghumData->ApplyGeometry(bottomFace);
     }
   }
 }
@@ -237,7 +234,7 @@ void SorghumLayer::OnInspect() {
       ImGui::TreePop();
     }
     if (Editor::DragAndDropButton<CompressedBTF>(
-            m_leafCompressedBTF, "Replace Leaf Compressed BTF")) {
+            m_leafCompressedBTF, "Leaf CBTF")) {
       auto cbtf = m_leafCompressedBTF.Get<CompressedBTF>();
       if (cbtf) {
         std::vector<Entity> sorghumEntities;
@@ -252,6 +249,23 @@ void SorghumLayer::OnInspect() {
         }
       }
     }
+    if (Editor::DragAndDropButton<CompressedBTF>(
+            m_leafBottomFaceCompressedBTF, "Leaf Bottom CBTF")) {
+      auto cbtf = m_leafBottomFaceCompressedBTF.Get<CompressedBTF>();
+      if (cbtf) {
+        std::vector<Entity> sorghumEntities;
+        scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+        for (const auto &i : sorghumEntities) {
+          if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
+            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i).lock()->m_btf =
+                m_leafBottomFaceCompressedBTF;
+          }
+        }
+      }
+    }
+
     if (ImGui::Checkbox("Enable BTF", &m_enableCompressedBTF)) {
       std::vector<Entity> sorghumEntities;
       scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
@@ -270,8 +284,9 @@ void SorghumLayer::OnInspect() {
 #endif
     ImGui::Separator();
     ImGui::Checkbox("Auto regenerate sorghum", &m_autoRefreshSorghums);
+    ImGui::Checkbox("Bottom Face", &m_enableBottomFace);
     if (ImGui::Button("Generate mesh for all sorghums")) {
-      GenerateMeshForAllSorghums();
+      GenerateMeshForAllSorghums(m_enableBottomFace);
     }
     if (ImGui::DragFloat("Vertical subdivision max unit length",
                          &m_verticalSubdivisionMaxUnitLength, 0.001f, 0.001f,

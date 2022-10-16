@@ -20,5 +20,7 @@ public:
               float leftHeightFactor = 1.0f, float rightHeightFactor = 1.0f);
 
   glm::vec3 GetPoint(float angle);
+
+  glm::vec3 GetNormal(float angle);
 };
 } // namespace PlantFactory

@@ -737,6 +737,9 @@ bool ProceduralSorghum::ImportCSV(const std::filesystem::path &filePath) {
         state.m_stem.m_length = stemHeights[row] / 100.0f;
         state.m_stem.m_widthAlongStem.m_minValue = 0.0f;
         state.m_stem.m_widthAlongStem.m_maxValue = stemWidth[row] * 2.0f;
+        state.m_panicle.m_panicleSize.x = state.m_panicle.m_panicleSize.z = panicleWidth[row] / 100.0f;
+        state.m_panicle.m_panicleSize.y = panicleLength[row] / 100.0f;
+        state.m_panicle.m_seedAmount = state.m_panicle.m_panicleSize.x * state.m_panicle.m_panicleSize.y * state.m_panicle.m_panicleSize.z / 0.001f;
       }
       auto &leaf = state.m_leaves[leafIndex[row] - 1];
       leaf.m_index = leafIndex[row] - 1;
@@ -809,8 +812,8 @@ glm::vec3 SorghumStatePair::GetStemDirection() const {
   glm::vec3 leftDir, rightDir;
   switch ((StateMode)m_mode) {
   case StateMode::Default:
-    leftDir = m_left.m_stem.m_direction;
-    rightDir = m_right.m_stem.m_direction;
+    leftDir = glm::normalize(m_left.m_stem.m_direction);
+    rightDir = glm::normalize(m_right.m_stem.m_direction);
     break;
   case StateMode::CubicBezier:
     if (!m_left.m_stem.m_spline.m_curves.empty()) {
@@ -832,8 +835,8 @@ glm::vec3 SorghumStatePair::GetStemPoint(float point) const {
   glm::vec3 leftPoint, rightPoint;
   switch ((StateMode)m_mode) {
   case StateMode::Default:
-    leftPoint = m_left.m_stem.m_direction * point * m_left.m_stem.m_length;
-    rightPoint = m_right.m_stem.m_direction * point * m_right.m_stem.m_length;
+    leftPoint = glm::normalize(m_left.m_stem.m_direction) * point * m_left.m_stem.m_length;
+    rightPoint = glm::normalize(m_right.m_stem.m_direction) * point * m_right.m_stem.m_length;
     break;
   case StateMode::CubicBezier:
     if (!m_left.m_stem.m_spline.m_curves.empty()) {

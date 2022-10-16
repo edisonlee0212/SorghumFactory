@@ -11,7 +11,7 @@ namespace PlantArchitect {
 class SORGHUM_FACTORY_API LeafData : public IPrivateComponent {
   void LeafStateHelper(ProceduralLeafState& left, ProceduralLeafState& right, float& a, const SorghumStatePair &sorghumStatePair, int leafIndex);
 
-  void GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair);
+  void GenerateLeafGeometry(const SorghumStatePair & sorghumStatePair, bool isBottomFace = false, float thickness = 0.001f);
 public:
   glm::vec3 m_leafSheath;
   glm::vec3 m_leafTip;
@@ -29,9 +29,12 @@ public:
   std::vector<LeafSegment> m_segments;
   std::vector<Vertex> m_vertices;
   std::vector<glm::uvec3> m_triangles;
+  std::vector<Vertex> m_bottomFaceVertices;
+  std::vector<glm::uvec3> m_bottomFaceTriangles;
+
   glm::vec4 m_vertexColor = glm::vec4(0, 1, 0, 1);
 
-  void FormLeaf(const SorghumStatePair & sorghumStatePair, bool skeleton = false);
+  void FormLeaf(const SorghumStatePair & sorghumStatePair, bool skeleton = false, bool doubleFace = false);
   void Copy(const std::shared_ptr<LeafData> &target);
   void OnInspect() override;
   void OnDestroy() override;

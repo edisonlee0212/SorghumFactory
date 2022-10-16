@@ -23,6 +23,7 @@ public:
   bool m_seperated = true;
   bool m_includeStem = true;
   bool m_segmentedMask = false;
+
   void OnCreate() override;
   void OnDestroy() override;
   void OnInspect() override;
@@ -32,7 +33,7 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void FormPlant();
-  void ApplyGeometry();
+  void FormPlant(bool doubleFace = false);
+  void ApplyGeometry(bool doubleFace = false);
 };
 } // namespace PlantFactory

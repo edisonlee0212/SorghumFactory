@@ -151,7 +151,7 @@ void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
   list.push_back(m_descriptor);
 }
 
-void SorghumData::FormPlant() {
+void SorghumData::FormPlant(bool doubleFace) {
   SorghumStatePair statePair;
 
   auto scene = GetScene();
@@ -189,7 +189,7 @@ void SorghumData::FormPlant() {
     Entity leaf =
         Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
     auto leafData = scene->GetOrSetPrivateComponent<LeafData>(leaf).lock();
-    leafData->FormLeaf(statePair, m_skeleton);
+    leafData->FormLeaf(statePair, m_skeleton, doubleFace);
   }
   auto panicle =
       Application::GetLayer<SorghumLayer>()->CreateSorghumPanicle(GetOwner());
@@ -197,16 +197,17 @@ void SorghumData::FormPlant() {
       scene->GetOrSetPrivateComponent<PanicleData>(panicle).lock();
   panicleData->FormPanicle(statePair);
 }
-void SorghumData::ApplyGeometry() {
+void SorghumData::ApplyGeometry(bool doubleFace) {
   auto scene = GetScene();
   auto owner = GetOwner();
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   bool seperated = m_seperated || m_segmentedMask;
+  auto bottomFace = !m_skeleton && !m_segmentedMask && doubleFace;
   if (!seperated) {
     unsigned vertexCount = 0;
     std::vector<UniEngine::Vertex> vertices;
     std::vector<glm::uvec3> triangles;
-    int i = 0;
+
     scene->ForEachChild(owner, [&](Entity child) {
       if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
         auto stemData = scene->GetOrSetPrivateComponent<StemData>(child).lock();
@@ -232,8 +233,11 @@ void SorghumData::ApplyGeometry() {
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
         auto panicleData =
             scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
+        auto panicleGeometryEntity = scene->CreateEntity("Panicle Geometry");
+        scene->SetParent(panicleGeometryEntity, child);
         auto meshRenderer =
-            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(panicleGeometryEntity)
+                .lock();
         if (!panicleData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -243,55 +247,110 @@ void SorghumData::ApplyGeometry() {
         } else {
           meshRenderer->m_mesh.Clear();
         }
-        /*
-#ifdef RAYTRACERFACILITY
-        auto btfMeshRenderer =
-scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock(); btfMeshRenderer->m_mesh =
-meshRenderer->m_mesh;
-        meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
-        btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
-#endif
-         */
       }
-      i++;
     });
-    auto meshRenderer =
-        scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
+    auto leavesGeometryEntity = scene->CreateEntity("Leaves Geometry");
+    scene->SetParent(leavesGeometryEntity, owner);
+    auto leafTopFaceMeshRenderer =
+        scene->GetOrSetPrivateComponent<MeshRenderer>(leavesGeometryEntity)
+            .lock();
 
     if (m_skeleton) {
       auto material = ProjectManager::CreateTemporaryAsset<Material>();
       material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-      meshRenderer->m_material = material;
-      material->m_albedoColor = sorghumLayer->m_skeletonColor;
+      leafTopFaceMeshRenderer->m_material = material;
+      material->m_materialProperties.m_albedoColor =
+          sorghumLayer->m_skeletonColor;
     } else {
-      meshRenderer->m_material =
+      leafTopFaceMeshRenderer->m_material =
           Application::GetLayer<SorghumLayer>()->m_leafMaterial;
     }
     if (!vertices.empty()) {
-      meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
-      meshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices, triangles);
+      leafTopFaceMeshRenderer->m_mesh =
+          ProjectManager::CreateTemporaryAsset<Mesh>();
+      leafTopFaceMeshRenderer->m_mesh.Get<Mesh>()->SetVertices(17, vertices,
+                                                               triangles);
     } else {
-      meshRenderer->m_mesh.Clear();
+      leafTopFaceMeshRenderer->m_mesh.Clear();
     }
 #ifdef RAYTRACERFACILITY
-    auto btfMeshRenderer = scene->GetOrSetPrivateComponent<BTFMeshRenderer>(owner).lock();
-    btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
-    btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+    auto leafTopFaceBtfMeshRenderer =
+        scene->GetOrSetPrivateComponent<BTFMeshRenderer>(leavesGeometryEntity)
+            .lock();
+    leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
+    leafTopFaceBtfMeshRenderer->m_btf =
+        Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
     if (m_skeleton) {
-      meshRenderer->SetEnabled(true);
-      btfMeshRenderer->SetEnabled(false);
+      leafTopFaceMeshRenderer->SetEnabled(true);
+      leafTopFaceBtfMeshRenderer->SetEnabled(false);
     } else {
-      meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
-      btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+      leafTopFaceMeshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+      leafTopFaceBtfMeshRenderer->SetEnabled(
+          sorghumLayer->m_enableCompressedBTF);
     }
 #endif
+    if (bottomFace) {
+      vertexCount = 0;
+      vertices.clear();
+      triangles.clear();
+      scene->ForEachChild(owner, [&](Entity child) {
+        if (scene->HasDataComponent<LeafTag>(child)) {
+          auto leafData =
+              scene->GetOrSetPrivateComponent<LeafData>(child).lock();
+          vertices.insert(vertices.end(), leafData->m_bottomFaceVertices.begin(),
+                          leafData->m_bottomFaceVertices.end());
+          for (const auto &triangle : leafData->m_bottomFaceTriangles) {
+            triangles.emplace_back(triangle.x + vertexCount,
+                                   triangle.y + vertexCount,
+                                   triangle.z + vertexCount);
+          }
+          vertexCount = vertices.size();
+        }
+      });
+      auto leavesBottomGeometryEntity =
+          scene->CreateEntity("Leaves Bottom Face Geometry");
+      scene->SetParent(leavesBottomGeometryEntity, owner);
+      auto leafBottomFaceMeshRenderer =
+          scene
+              ->GetOrSetPrivateComponent<MeshRenderer>(
+                  leavesBottomGeometryEntity)
+              .lock();
+      if (!vertices.empty()) {
+        leafBottomFaceMeshRenderer->m_mesh =
+            ProjectManager::CreateTemporaryAsset<Mesh>();
+        leafBottomFaceMeshRenderer->m_mesh.Get<Mesh>()->SetVertices(
+            17, vertices, triangles);
+      } else {
+        leafBottomFaceMeshRenderer->m_mesh.Clear();
+      }
+      leafBottomFaceMeshRenderer->m_material =
+          Application::GetLayer<SorghumLayer>()->m_leafBottomFaceMaterial;
+#ifdef RAYTRACERFACILITY
+      auto leafBottomFaceBtfMeshRenderer =
+          scene
+              ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                  leavesBottomGeometryEntity)
+              .lock();
+      leafBottomFaceBtfMeshRenderer->m_mesh =
+          leafBottomFaceMeshRenderer->m_mesh;
+      leafBottomFaceBtfMeshRenderer->m_btf =
+          Application::GetLayer<SorghumLayer>()->m_leafBottomFaceCompressedBTF;
+      leafBottomFaceMeshRenderer->SetEnabled(
+          !sorghumLayer->m_enableCompressedBTF);
+      leafBottomFaceBtfMeshRenderer->SetEnabled(
+          sorghumLayer->m_enableCompressedBTF);
+#endif
+    }
   } else {
     int i = 0;
     scene->ForEachChild(owner, [&](Entity child) {
       if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
         auto stemData = scene->GetOrSetPrivateComponent<StemData>(child).lock();
+        auto stemGeometryEntity = scene->CreateEntity("Stem Geometry");
+        scene->SetParent(stemGeometryEntity, child);
         auto meshRenderer =
-            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(stemGeometryEntity)
+                .lock();
         if (!stemData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -305,77 +364,135 @@ meshRenderer->m_mesh;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           meshRenderer->m_material = material;
           material->m_drawSettings.m_cullFace = false;
-          material->m_albedoColor = stemData->m_vertexColor;
-          material->m_roughness = 1.0f;
-          material->m_metallic = 0.0f;
+          material->m_materialProperties.m_albedoColor =
+              stemData->m_vertexColor;
+          material->m_materialProperties.m_roughness = 1.0f;
+          material->m_materialProperties.m_metallic = 0.0f;
         } else if (m_skeleton) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           meshRenderer->m_material = material;
-          material->m_albedoColor = sorghumLayer->m_skeletonColor;
+          material->m_materialProperties.m_albedoColor =
+              sorghumLayer->m_skeletonColor;
         } else {
           meshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
         auto btfMeshRenderer =
-            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock();
+            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(stemGeometryEntity)
+                .lock();
         btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
-        btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        btfMeshRenderer->m_btf =
+            Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
         if (m_skeleton || m_segmentedMask) {
           meshRenderer->SetEnabled(true);
           btfMeshRenderer->SetEnabled(false);
-        }else {
+        } else {
           meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
           btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
         }
 #endif
       } else if (scene->HasDataComponent<LeafTag>(child)) {
         auto leafData = scene->GetOrSetPrivateComponent<LeafData>(child).lock();
-        auto meshRenderer =
-            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
+        auto leafTopFaceGeometryEntity =
+            scene->CreateEntity("Leaf Top Face Geometry");
+        scene->SetParent(leafTopFaceGeometryEntity, child);
+        auto leafTopFaceMeshRenderer =
+            scene
+                ->GetOrSetPrivateComponent<MeshRenderer>(
+                    leafTopFaceGeometryEntity)
+                .lock();
         if (!leafData->m_vertices.empty()) {
-          meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
-          meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
+          leafTopFaceMeshRenderer->m_mesh =
+              ProjectManager::CreateTemporaryAsset<Mesh>();
+          leafTopFaceMeshRenderer->m_mesh.Get<Mesh>()->SetVertices(
               17, leafData->m_vertices, leafData->m_triangles);
         } else {
-          meshRenderer->m_mesh.Clear();
+          leafTopFaceMeshRenderer->m_mesh.Clear();
         }
         if (m_segmentedMask) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
-          meshRenderer->m_material = material;
+          leafTopFaceMeshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_drawSettings.m_cullFace = false;
-          material->m_albedoColor = leafData->m_vertexColor;
-          material->m_roughness = 1.0f;
-          material->m_metallic = 0.0f;
+          material->m_materialProperties.m_albedoColor =
+              leafData->m_vertexColor;
+          material->m_materialProperties.m_roughness = 1.0f;
+          material->m_materialProperties.m_metallic = 0.0f;
         } else if (m_skeleton) {
           auto material = ProjectManager::CreateTemporaryAsset<Material>();
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
-          meshRenderer->m_material = material;
-          material->m_albedoColor = sorghumLayer->m_skeletonColor;
+          leafTopFaceMeshRenderer->m_material = material;
+          material->m_materialProperties.m_albedoColor =
+              sorghumLayer->m_skeletonColor;
         } else {
-          meshRenderer->m_material =
+          leafTopFaceMeshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
-        auto btfMeshRenderer =
-            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(child).lock();
-        btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
-        btfMeshRenderer->m_btf = Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        auto leafTopFaceBtfMeshRenderer =
+            scene
+                ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                    leafTopFaceGeometryEntity)
+                .lock();
+        leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
+        leafTopFaceBtfMeshRenderer->m_btf =
+            Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
         if (m_skeleton || m_segmentedMask) {
-          meshRenderer->SetEnabled(true);
-          btfMeshRenderer->SetEnabled(false);
-        }else {
-          meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
-          btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+          leafTopFaceMeshRenderer->SetEnabled(true);
+          leafTopFaceBtfMeshRenderer->SetEnabled(false);
+        } else {
+          leafTopFaceMeshRenderer->SetEnabled(
+              !sorghumLayer->m_enableCompressedBTF);
+          leafTopFaceBtfMeshRenderer->SetEnabled(
+              sorghumLayer->m_enableCompressedBTF);
         }
 #endif
+        if (bottomFace) {
+          auto leafBottomFaceGeometryEntity =
+              scene->CreateEntity("Leaf Bottom Face Geometry");
+          scene->SetParent(leafBottomFaceGeometryEntity, child);
+          auto leafBottomFaceMeshRenderer =
+              scene
+                  ->GetOrSetPrivateComponent<MeshRenderer>(
+                      leafBottomFaceGeometryEntity)
+                  .lock();
+          if (!leafData->m_bottomFaceVertices.empty()) {
+            leafBottomFaceMeshRenderer->m_mesh =
+                ProjectManager::CreateTemporaryAsset<Mesh>();
+            leafBottomFaceMeshRenderer->m_mesh.Get<Mesh>()->SetVertices(
+                17, leafData->m_bottomFaceVertices, leafData->m_bottomFaceTriangles);
+          } else {
+            leafBottomFaceMeshRenderer->m_mesh.Clear();
+          }
+          leafBottomFaceMeshRenderer->m_material =
+              Application::GetLayer<SorghumLayer>()->m_leafBottomFaceMaterial;
+#ifdef RAYTRACERFACILITY
+          auto leafBottomFaceBtfMeshRenderer =
+              scene
+                  ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                      leafBottomFaceGeometryEntity)
+                  .lock();
+          leafBottomFaceBtfMeshRenderer->m_mesh =
+              leafBottomFaceMeshRenderer->m_mesh;
+          leafBottomFaceBtfMeshRenderer->m_btf =
+              Application::GetLayer<SorghumLayer>()
+                  ->m_leafBottomFaceCompressedBTF;
+          leafBottomFaceMeshRenderer->SetEnabled(
+              !sorghumLayer->m_enableCompressedBTF);
+          leafBottomFaceBtfMeshRenderer->SetEnabled(
+              sorghumLayer->m_enableCompressedBTF);
+#endif
+        }
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
         auto panicleData =
             scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
+        auto panicleGeometryEntity = scene->CreateEntity("Panicle Geometry");
+        scene->SetParent(panicleGeometryEntity, child);
         auto meshRenderer =
-            scene->GetOrSetPrivateComponent<MeshRenderer>(child).lock();
+            scene->GetOrSetPrivateComponent<MeshRenderer>(panicleGeometryEntity)
+                .lock();
         if (!panicleData->m_vertices.empty()) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
@@ -388,9 +505,9 @@ meshRenderer->m_mesh;
           meshRenderer->m_material = material;
           material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
           material->m_drawSettings.m_cullFace = false;
-          material->m_albedoColor = glm::vec3(0.0f);
-          material->m_roughness = 1.0f;
-          material->m_metallic = 0.0f;
+          material->m_materialProperties.m_albedoColor = glm::vec3(0.0f);
+          material->m_materialProperties.m_roughness = 1.0f;
+          material->m_materialProperties.m_metallic = 0.0f;
         } else {
           meshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_panicleMaterial;
