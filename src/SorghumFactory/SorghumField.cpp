@@ -131,7 +131,6 @@ Entity SorghumField::InstantiateField() {
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(scene,
                                                 field);
-    scene->SetEntityStatic(field, true);
     return field;
   } else {
     UNIENGINE_ERROR("No sorghum layer!");
@@ -344,7 +343,6 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius, glm::dvec2& off
 
     Application::GetLayer<TransformLayer>()
         ->CalculateTransformGraphForDescendents(scene, field);
-    scene->SetEntityStatic(field, true);
 
     return {centerSorghum, field};
   } else {
