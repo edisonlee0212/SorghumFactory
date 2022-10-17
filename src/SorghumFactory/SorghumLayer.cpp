@@ -14,6 +14,7 @@
 #include <SorghumData.hpp>
 #include <SorghumLayer.hpp>
 #ifdef RAYTRACERFACILITY
+#include "CBTFGroup.hpp"
 #include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
 #endif
@@ -25,6 +26,11 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterDataComponent<StemTag>("StemTag");
   ClassRegistry::RegisterDataComponent<LeafTag>("LeafTag");
   ClassRegistry::RegisterDataComponent<SorghumTag>("SorghumTag");
+
+  ClassRegistry::RegisterDataComponent<LeafGeometryTag>("LeafGeometryTag");
+  ClassRegistry::RegisterDataComponent<LeafBottomFaceGeometryTag>("LeafBottomFaceGeometryTag");
+  ClassRegistry::RegisterDataComponent<PanicleGeometryTag>("PanicleGeometryTag");
+  ClassRegistry::RegisterDataComponent<StemGeometryTag>("StemGeometryTag");
 
   ClassRegistry::RegisterPrivateComponent<FieldGround>("FieldGround");
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
@@ -40,6 +46,7 @@ void SorghumLayer::OnCreate() {
 #ifdef RAYTRACERFACILITY
   ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup",
                                                {".parsensorgroup"});
+  ClassRegistry::RegisterAsset<CBTFGroup>("CBTFGroup", {".cbtfg"});
 #endif
   ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance",
                                                {".skyilluminance"});
@@ -85,6 +92,22 @@ void SorghumLayer::OnCreate() {
   m_sorghumQuery = Entities::CreateEntityQuery();
   m_sorghumQuery.SetAllFilters(SorghumTag());
 
+  m_leafGeometryArchetype = Entities::CreateEntityArchetype("Leaf Geometry", LeafGeometryTag());
+  m_leafGeometryQuery = Entities::CreateEntityQuery();
+  m_leafGeometryQuery.SetAllFilters(LeafGeometryTag());
+
+  m_leafBottomFaceGeometryArchetype = Entities::CreateEntityArchetype("Leaf Bottom Face Geometry", LeafBottomFaceGeometryTag());
+  m_leafBottomFaceGeometryQuery = Entities::CreateEntityQuery();
+  m_leafBottomFaceGeometryQuery.SetAllFilters(LeafBottomFaceGeometryTag());
+
+  m_panicleGeometryArchetype = Entities::CreateEntityArchetype("Panicle Geometry", PanicleGeometryTag());
+  m_panicleGeometryQuery = Entities::CreateEntityQuery();
+  m_panicleGeometryQuery.SetAllFilters(PanicleGeometryTag());
+
+  m_stemGeometryArchetype = Entities::CreateEntityArchetype("Stem Geometry", StemGeometryTag());
+  m_stemGeometryQuery = Entities::CreateEntityQuery();
+  m_stemGeometryQuery.SetAllFilters(StemGeometryTag());
+
   if (!m_leafAlbedoTexture.Get<Texture2D>()) {
     auto albedo = ProjectManager::CreateTemporaryAsset<Texture2D>();
     albedo->Import(std::filesystem::absolute(
@@ -124,7 +147,8 @@ void SorghumLayer::OnCreate() {
     m_panicleMaterial = material;
     material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
     material->m_drawSettings.m_cullFaceMode = OpenGLCullFace::Back;
-    material->m_materialProperties.m_albedoColor = glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
+    material->m_materialProperties.m_albedoColor =
+        glm::vec3(255.0 / 255, 210.0 / 255, 0.0 / 255);
     material->m_materialProperties.m_roughness = 0.5f;
     material->m_materialProperties.m_metallic = 0.0f;
   }
@@ -233,34 +257,39 @@ void SorghumLayer::OnInspect() {
       }
       ImGui::TreePop();
     }
-    if (Editor::DragAndDropButton<CompressedBTF>(
-            m_leafCompressedBTF, "Leaf CBTF")) {
-      auto cbtf = m_leafCompressedBTF.Get<CompressedBTF>();
-      if (cbtf) {
+    if (Editor::DragAndDropButton<CBTFGroup>(m_leafCBTFGroup,
+                                             "Leaf CBTFGroup")) {
+      auto group = m_leafCBTFGroup.Get<CBTFGroup>();
+      if (group) {
         std::vector<Entity> sorghumEntities;
-        scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
-        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
-        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafGeometryQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_stemGeometryQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
-          if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
-            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i).lock()->m_btf =
-                m_leafCompressedBTF;
+          auto cBTF = group->GetRandom().Get<CompressedBTF>();
+          if (cBTF) {
+            if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
+              scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)
+                  .lock()
+                  ->m_btf = cBTF;
+            }
           }
         }
       }
     }
-    if (Editor::DragAndDropButton<CompressedBTF>(
-            m_leafBottomFaceCompressedBTF, "Leaf Bottom CBTF")) {
-      auto cbtf = m_leafBottomFaceCompressedBTF.Get<CompressedBTF>();
-      if (cbtf) {
+    if (Editor::DragAndDropButton<CBTFGroup>(m_leafBottomFaceCBTFGroup,
+                                             "Leaf Bottom CBTFGroup")) {
+      auto group = m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
+      if (group) {
         std::vector<Entity> sorghumEntities;
-        scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
-        scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
-        scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+        scene->GetEntityArray(m_leafBottomFaceGeometryQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
-          if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
-            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i).lock()->m_btf =
-                m_leafBottomFaceCompressedBTF;
+          auto cBTF = group->GetRandom().Get<CompressedBTF>();
+          if (cBTF) {
+            if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
+              scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)
+                  .lock()
+                  ->m_btf = cBTF;
+            }
           }
         }
       }
@@ -268,9 +297,9 @@ void SorghumLayer::OnInspect() {
 
     if (ImGui::Checkbox("Enable BTF", &m_enableCompressedBTF)) {
       std::vector<Entity> sorghumEntities;
-      scene->GetEntityArray(m_sorghumQuery, sorghumEntities, false);
-      scene->GetEntityArray(m_leafQuery, sorghumEntities, false);
-      scene->GetEntityArray(m_stemQuery, sorghumEntities, false);
+      scene->GetEntityArray(m_leafGeometryQuery, sorghumEntities, false);
+      scene->GetEntityArray(m_leafBottomFaceGeometryQuery, sorghumEntities, false);
+      scene->GetEntityArray(m_stemGeometryQuery, sorghumEntities, false);
       for (const auto &i : sorghumEntities) {
         if (scene->HasPrivateComponent<BTFMeshRenderer>(i))
           scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)

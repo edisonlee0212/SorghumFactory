@@ -12,9 +12,12 @@
 using namespace UniEngine;
 namespace PlantArchitect {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
-struct SORGHUM_FACTORY_API LeafBottomFaceTag : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafGeometryTag : IDataComponent {};
+struct SORGHUM_FACTORY_API LeafBottomFaceGeometryTag : IDataComponent {};
 struct SORGHUM_FACTORY_API PanicleTag : IDataComponent {};
+struct SORGHUM_FACTORY_API PanicleGeometryTag : IDataComponent {};
 struct SORGHUM_FACTORY_API StemTag : IDataComponent {};
+struct SORGHUM_FACTORY_API StemGeometryTag : IDataComponent {};
 struct SORGHUM_FACTORY_API SorghumTag : IDataComponent {};
 class SorghumStateGenerator;
 
@@ -52,9 +55,6 @@ public:
   bool m_autoRefreshSorghums = true;
   EntityArchetype m_leafArchetype;
   EntityQuery m_leafQuery;
-  EntityArchetype m_leafBottomFaceArchetype;
-  EntityQuery m_leafBottomFaceQuery;
-
   EntityArchetype m_sorghumArchetype;
   EntityQuery m_sorghumQuery;
   EntityArchetype m_panicleArchetype;
@@ -62,12 +62,21 @@ public:
   EntityArchetype m_stemArchetype;
   EntityQuery m_stemQuery;
 
+  EntityArchetype m_leafGeometryArchetype;
+  EntityQuery m_leafGeometryQuery;
+  EntityArchetype m_leafBottomFaceGeometryArchetype;
+  EntityQuery m_leafBottomFaceGeometryQuery;
+  EntityArchetype m_panicleGeometryArchetype;
+  EntityQuery m_panicleGeometryQuery;
+  EntityArchetype m_stemGeometryArchetype;
+  EntityQuery m_stemGeometryQuery;
+
   AssetRef m_panicleMaterial;
 
   AssetRef m_leafBottomFaceMaterial;
   AssetRef m_leafMaterial;
-  AssetRef m_leafBottomFaceCompressedBTF;
-  AssetRef m_leafCompressedBTF;
+  AssetRef m_leafBottomFaceCBTFGroup;
+  AssetRef m_leafCBTFGroup;
 
   AssetRef m_leafAlbedoTexture;
   AssetRef m_leafNormalTexture;

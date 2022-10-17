@@ -1,6 +1,8 @@
 #ifdef RAYTRACERFACILITY
 #include "BTFMeshRenderer.hpp"
 #endif
+#include "CBTFGroup.hpp"
+#include "CompressedBTF.hpp"
 #include "DefaultResources.hpp"
 #include "IVolume.hpp"
 #include "LeafData.hpp"
@@ -153,7 +155,7 @@ void SorghumData::CollectAssetRef(std::vector<AssetRef> &list) {
 
 void SorghumData::FormPlant(bool doubleFace) {
   SorghumStatePair statePair;
-
+  auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   auto scene = GetScene();
   switch ((SorghumMode)m_mode) {
   case SorghumMode::ProceduralSorghum: {
@@ -180,19 +182,16 @@ void SorghumData::FormPlant(bool doubleFace) {
   for (int i = 0; i < children.size(); i++) {
     scene->DeleteEntity(children[i]);
   }
-  auto stem =
-      Application::GetLayer<SorghumLayer>()->CreateSorghumStem(GetOwner());
+  auto stem = sorghumLayer->CreateSorghumStem(GetOwner());
   auto stemData = scene->GetOrSetPrivateComponent<StemData>(stem).lock();
   stemData->FormStem(statePair, m_skeleton);
   auto leafSize = statePair.GetLeafSize();
   for (int i = 0; i < leafSize; i++) {
-    Entity leaf =
-        Application::GetLayer<SorghumLayer>()->CreateSorghumLeaf(GetOwner(), i);
+    Entity leaf = sorghumLayer->CreateSorghumLeaf(GetOwner(), i);
     auto leafData = scene->GetOrSetPrivateComponent<LeafData>(leaf).lock();
     leafData->FormLeaf(statePair, m_skeleton, doubleFace);
   }
-  auto panicle =
-      Application::GetLayer<SorghumLayer>()->CreateSorghumPanicle(GetOwner());
+  auto panicle = sorghumLayer->CreateSorghumPanicle(GetOwner());
   auto panicleData =
       scene->GetOrSetPrivateComponent<PanicleData>(panicle).lock();
   panicleData->FormPanicle(statePair);
@@ -233,7 +232,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
         auto panicleData =
             scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
-        auto panicleGeometryEntity = scene->CreateEntity("Panicle Geometry");
+        auto panicleGeometryEntity = scene->CreateEntity(
+            sorghumLayer->m_panicleGeometryArchetype, "Panicle Geometry");
         scene->SetParent(panicleGeometryEntity, child);
         auto meshRenderer =
             scene->GetOrSetPrivateComponent<MeshRenderer>(panicleGeometryEntity)
@@ -242,14 +242,14 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
           meshRenderer->m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
           meshRenderer->m_mesh.Get<Mesh>()->SetVertices(
               17, panicleData->m_vertices, panicleData->m_triangles);
-          meshRenderer->m_material =
-              Application::GetLayer<SorghumLayer>()->m_panicleMaterial;
+          meshRenderer->m_material = sorghumLayer->m_panicleMaterial;
         } else {
           meshRenderer->m_mesh.Clear();
         }
       }
     });
-    auto leavesGeometryEntity = scene->CreateEntity("Leaves Geometry");
+    auto leavesGeometryEntity = scene->CreateEntity(
+        sorghumLayer->m_leafGeometryArchetype, "Leaves Geometry");
     scene->SetParent(leavesGeometryEntity, owner);
     auto leafTopFaceMeshRenderer =
         scene->GetOrSetPrivateComponent<MeshRenderer>(leavesGeometryEntity)
@@ -262,8 +262,7 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
       material->m_materialProperties.m_albedoColor =
           sorghumLayer->m_skeletonColor;
     } else {
-      leafTopFaceMeshRenderer->m_material =
-          Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+      leafTopFaceMeshRenderer->m_material = sorghumLayer->m_leafMaterial;
     }
     if (!vertices.empty()) {
       leafTopFaceMeshRenderer->m_mesh =
@@ -278,8 +277,10 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
         scene->GetOrSetPrivateComponent<BTFMeshRenderer>(leavesGeometryEntity)
             .lock();
     leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
-    leafTopFaceBtfMeshRenderer->m_btf =
-        Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+    auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
+    if(group) {
+      leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom();
+    }
     if (m_skeleton) {
       leafTopFaceMeshRenderer->SetEnabled(true);
       leafTopFaceBtfMeshRenderer->SetEnabled(false);
@@ -297,7 +298,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
         if (scene->HasDataComponent<LeafTag>(child)) {
           auto leafData =
               scene->GetOrSetPrivateComponent<LeafData>(child).lock();
-          vertices.insert(vertices.end(), leafData->m_bottomFaceVertices.begin(),
+          vertices.insert(vertices.end(),
+                          leafData->m_bottomFaceVertices.begin(),
                           leafData->m_bottomFaceVertices.end());
           for (const auto &triangle : leafData->m_bottomFaceTriangles) {
             triangles.emplace_back(triangle.x + vertexCount,
@@ -308,7 +310,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
         }
       });
       auto leavesBottomGeometryEntity =
-          scene->CreateEntity("Leaves Bottom Face Geometry");
+          scene->CreateEntity(sorghumLayer->m_leafBottomFaceGeometryArchetype,
+                              "Leaves Bottom Face Geometry");
       scene->SetParent(leavesBottomGeometryEntity, owner);
       auto leafBottomFaceMeshRenderer =
           scene
@@ -324,7 +327,7 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
         leafBottomFaceMeshRenderer->m_mesh.Clear();
       }
       leafBottomFaceMeshRenderer->m_material =
-          Application::GetLayer<SorghumLayer>()->m_leafBottomFaceMaterial;
+          sorghumLayer->m_leafBottomFaceMaterial;
 #ifdef RAYTRACERFACILITY
       auto leafBottomFaceBtfMeshRenderer =
           scene
@@ -333,8 +336,10 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
               .lock();
       leafBottomFaceBtfMeshRenderer->m_mesh =
           leafBottomFaceMeshRenderer->m_mesh;
-      leafBottomFaceBtfMeshRenderer->m_btf =
-          Application::GetLayer<SorghumLayer>()->m_leafBottomFaceCompressedBTF;
+      auto group = sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
+      if(group) {
+        leafBottomFaceBtfMeshRenderer->m_btf = group->GetRandom();
+      }
       leafBottomFaceMeshRenderer->SetEnabled(
           !sorghumLayer->m_enableCompressedBTF);
       leafBottomFaceBtfMeshRenderer->SetEnabled(
@@ -346,7 +351,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
     scene->ForEachChild(owner, [&](Entity child) {
       if (m_includeStem && scene->HasDataComponent<StemTag>(child)) {
         auto stemData = scene->GetOrSetPrivateComponent<StemData>(child).lock();
-        auto stemGeometryEntity = scene->CreateEntity("Stem Geometry");
+        auto stemGeometryEntity = scene->CreateEntity(
+            sorghumLayer->m_stemGeometryArchetype, "Stem Geometry");
         scene->SetParent(stemGeometryEntity, child);
         auto meshRenderer =
             scene->GetOrSetPrivateComponent<MeshRenderer>(stemGeometryEntity)
@@ -375,16 +381,17 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
           material->m_materialProperties.m_albedoColor =
               sorghumLayer->m_skeletonColor;
         } else {
-          meshRenderer->m_material =
-              Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+          meshRenderer->m_material = sorghumLayer->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
         auto btfMeshRenderer =
             scene->GetOrSetPrivateComponent<BTFMeshRenderer>(stemGeometryEntity)
                 .lock();
         btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
-        btfMeshRenderer->m_btf =
-            Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
+        if(group) {
+          btfMeshRenderer->m_btf = group->GetRandom();
+        }
         if (m_skeleton || m_segmentedMask) {
           meshRenderer->SetEnabled(true);
           btfMeshRenderer->SetEnabled(false);
@@ -395,8 +402,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
 #endif
       } else if (scene->HasDataComponent<LeafTag>(child)) {
         auto leafData = scene->GetOrSetPrivateComponent<LeafData>(child).lock();
-        auto leafTopFaceGeometryEntity =
-            scene->CreateEntity("Leaf Top Face Geometry");
+        auto leafTopFaceGeometryEntity = scene->CreateEntity(
+            sorghumLayer->m_leafGeometryArchetype, "Leaf Top Face Geometry");
         scene->SetParent(leafTopFaceGeometryEntity, child);
         auto leafTopFaceMeshRenderer =
             scene
@@ -427,8 +434,7 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
           material->m_materialProperties.m_albedoColor =
               sorghumLayer->m_skeletonColor;
         } else {
-          leafTopFaceMeshRenderer->m_material =
-              Application::GetLayer<SorghumLayer>()->m_leafMaterial;
+          leafTopFaceMeshRenderer->m_material = sorghumLayer->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
         auto leafTopFaceBtfMeshRenderer =
@@ -437,8 +443,10 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
                     leafTopFaceGeometryEntity)
                 .lock();
         leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
-        leafTopFaceBtfMeshRenderer->m_btf =
-            Application::GetLayer<SorghumLayer>()->m_leafCompressedBTF;
+        auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
+        if(group) {
+          leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom();
+        }
         if (m_skeleton || m_segmentedMask) {
           leafTopFaceMeshRenderer->SetEnabled(true);
           leafTopFaceBtfMeshRenderer->SetEnabled(false);
@@ -450,8 +458,9 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
         }
 #endif
         if (bottomFace) {
-          auto leafBottomFaceGeometryEntity =
-              scene->CreateEntity("Leaf Bottom Face Geometry");
+          auto leafBottomFaceGeometryEntity = scene->CreateEntity(
+              sorghumLayer->m_leafBottomFaceGeometryArchetype,
+              "Leaf Bottom Face Geometry");
           scene->SetParent(leafBottomFaceGeometryEntity, child);
           auto leafBottomFaceMeshRenderer =
               scene
@@ -462,7 +471,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
             leafBottomFaceMeshRenderer->m_mesh =
                 ProjectManager::CreateTemporaryAsset<Mesh>();
             leafBottomFaceMeshRenderer->m_mesh.Get<Mesh>()->SetVertices(
-                17, leafData->m_bottomFaceVertices, leafData->m_bottomFaceTriangles);
+                17, leafData->m_bottomFaceVertices,
+                leafData->m_bottomFaceTriangles);
           } else {
             leafBottomFaceMeshRenderer->m_mesh.Clear();
           }
@@ -476,9 +486,10 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
                   .lock();
           leafBottomFaceBtfMeshRenderer->m_mesh =
               leafBottomFaceMeshRenderer->m_mesh;
-          leafBottomFaceBtfMeshRenderer->m_btf =
-              Application::GetLayer<SorghumLayer>()
-                  ->m_leafBottomFaceCompressedBTF;
+          auto group = sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
+          if(group) {
+            leafBottomFaceBtfMeshRenderer->m_btf = group->GetRandom();
+          }
           leafBottomFaceMeshRenderer->SetEnabled(
               !sorghumLayer->m_enableCompressedBTF);
           leafBottomFaceBtfMeshRenderer->SetEnabled(
@@ -488,7 +499,8 @@ void SorghumData::ApplyGeometry(bool doubleFace) {
       } else if (scene->HasDataComponent<PanicleTag>(child)) {
         auto panicleData =
             scene->GetOrSetPrivateComponent<PanicleData>(child).lock();
-        auto panicleGeometryEntity = scene->CreateEntity("Panicle Geometry");
+        auto panicleGeometryEntity = scene->CreateEntity(
+            sorghumLayer->m_panicleGeometryArchetype, "Panicle Geometry");
         scene->SetParent(panicleGeometryEntity, child);
         auto meshRenderer =
             scene->GetOrSetPrivateComponent<MeshRenderer>(panicleGeometryEntity)
