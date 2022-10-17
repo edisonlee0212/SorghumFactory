@@ -4,6 +4,7 @@
 #include <Application.hpp>
 #ifdef RAYTRACERFACILITY
 #include <RayTracerLayer.hpp>
+#include "CBTFImporter.hpp"
 #endif
 
 #include <ClassRegistry.hpp>
@@ -16,6 +17,7 @@
 #include <SorghumStateGenerator.hpp>
 #include "PointCloudCapture.hpp"
 #include "IlluminationEstimation.hpp"
+
 using namespace Scripts;
 using namespace PlantArchitect;
 #ifdef RAYTRACERFACILITY
@@ -30,6 +32,7 @@ int main() {
       "IlluminationEstimationPipeline", {".iep"});
   ClassRegistry::RegisterAsset<GeneralDataCapture>("GeneralDataCapture",
                                                    {".gdc"});
+  ClassRegistry::RegisterPrivateComponent<CBTFImporter>("CBTFImporter");
 #endif
   ClassRegistry::RegisterAsset<PointCloudCapture>("PointCloudCapture",
                                                   {".pcc"});
