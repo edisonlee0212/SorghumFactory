@@ -4,7 +4,8 @@
 #include "PointCloudCapture.hpp"
 #include "FieldGround.hpp"
 #include "LeafData.hpp"
-#include <Tinyply.hpp>
+#include "Tinyply.hpp"
+#include "StemData.hpp"
 #ifdef RAYTRACERFACILITY
 #include "PARSensorGroup.hpp"
 #include "RayTracerLayer.hpp"
@@ -321,39 +322,40 @@ void PointCloudCapture::ScanPointCloudLabeled(
       scene->GetOrSetPrivateComponent<MeshRenderer>(m_ground)
           .lock()
           ->GetHandle();
+
   std::vector<std::pair<Handle, int>> mainPlantHandles = {};
   std::vector<std::vector<std::pair<Handle, int>>> plantHandles = {};
-  mainPlantHandles.emplace_back(
-      scene->GetOrSetPrivateComponent<MeshRenderer>(pipeline.m_currentGrowingSorghum)
-          .lock()
-          ->GetHandle(),
-      0);
-  scene->ForEachChild(pipeline.m_currentGrowingSorghum, [&](Entity child) {
-    auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(child);
-    if (meshRenderer.expired() || !scene->HasPrivateComponent<LeafData>(child))
-      return;
-    auto handle = meshRenderer.lock()->GetHandle();
-    auto index =
-        scene->GetOrSetPrivateComponent<LeafData>(child).lock()->m_index + 1;
-    mainPlantHandles.emplace_back(handle, index);
-  });
-
-  for (const auto &i : scene->GetChildren(m_currentSorghumField)) {
-    if (i.GetIndex() == pipeline.m_currentGrowingSorghum.GetIndex())
-      continue;
-    plantHandles.emplace_back();
-    plantHandles.back().emplace_back(
-        scene->GetOrSetPrivateComponent<MeshRenderer>(i).lock()->GetHandle(),
-        0);
-    scene->ForEachChild(i, [&](Entity child) {
-      auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(child);
-      if (meshRenderer.expired() || !scene->HasPrivateComponent<LeafData>(child))
-        return;
-      auto handle = meshRenderer.lock()->GetHandle();
-      auto index =
-          scene->GetOrSetPrivateComponent<LeafData>(child).lock()->m_index + 1;
-      plantHandles.back().emplace_back(handle, index);
-    });
+  for (const auto &sorghum : scene->GetChildren(m_currentSorghumField)) {
+    bool isFocalPlant = sorghum.GetIndex() == pipeline.m_currentGrowingSorghum.GetIndex();
+    if(!isFocalPlant) plantHandles.emplace_back();
+    auto parts = scene->GetChildren(sorghum);
+    for (const auto &part : parts) {
+      if(scene->HasPrivateComponent<StemData>(part)){
+        auto geometries = scene->GetChildren(part);
+        for (const auto &geometry : geometries) {
+          if(scene->HasPrivateComponent<MeshRenderer>(geometry)){
+            if(!isFocalPlant) plantHandles.back().emplace_back(scene->GetOrSetPrivateComponent<MeshRenderer>(geometry).lock()->GetHandle(), 0);
+            else mainPlantHandles.emplace_back(scene->GetOrSetPrivateComponent<MeshRenderer>(geometry).lock()->GetHandle(), 0);
+          }else if(scene->HasPrivateComponent<BTFMeshRenderer>(geometry)){
+            if(!isFocalPlant) plantHandles.back().emplace_back(scene->GetOrSetPrivateComponent<BTFMeshRenderer>(geometry).lock()->GetHandle(), 0);
+            else mainPlantHandles.emplace_back(scene->GetOrSetPrivateComponent<BTFMeshRenderer>(geometry).lock()->GetHandle(), 0);
+          }
+        }
+      }else if(scene->HasPrivateComponent<LeafData>(part)){
+        auto index =
+            scene->GetOrSetPrivateComponent<LeafData>(part).lock()->m_index + 1;
+        auto geometries = scene->GetChildren(part);
+        for (const auto &geometry : geometries) {
+          if(scene->HasPrivateComponent<MeshRenderer>(geometry)){
+            if(!isFocalPlant) plantHandles.back().emplace_back(scene->GetOrSetPrivateComponent<MeshRenderer>(geometry).lock()->GetHandle(), index);
+            else mainPlantHandles.emplace_back(scene->GetOrSetPrivateComponent<MeshRenderer>(geometry).lock()->GetHandle(), index);
+          }else if(scene->HasPrivateComponent<BTFMeshRenderer>(geometry)){
+            if(!isFocalPlant) plantHandles.back().emplace_back(scene->GetOrSetPrivateComponent<BTFMeshRenderer>(geometry).lock()->GetHandle(), index);
+            else mainPlantHandles.emplace_back(scene->GetOrSetPrivateComponent<BTFMeshRenderer>(geometry).lock()->GetHandle(), index);
+          }
+        }
+      }
+    }
   }
 
   CudaModule::SamplePointCloud(
@@ -413,7 +415,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
           position.y - plantPosition.y > settings.m_boundingBoxHeightRange.y) {
         continue;
       }
-      points.push_back(sample.m_end);
+      points.emplace_back(sample.m_end);
       colors.push_back(sample.m_albedo);
       meshRendererHandles.push_back(sample.m_handle);
     }
