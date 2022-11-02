@@ -415,7 +415,7 @@ void PointCloudCapture::ScanPointCloudLabeled(
           position.y - plantPosition.y > settings.m_boundingBoxHeightRange.y) {
         continue;
       }
-      points.emplace_back(sample.m_end);
+      points.emplace_back(sample.m_end.x, sample.m_end.z, sample.m_end.y);
       colors.push_back(sample.m_albedo);
       meshRendererHandles.push_back(sample.m_handle);
     }
