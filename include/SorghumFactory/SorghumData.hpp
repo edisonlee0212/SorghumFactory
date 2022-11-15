@@ -13,6 +13,7 @@ class SORGHUM_FACTORY_API SorghumData : public IPrivateComponent {
   float m_currentTime = 1.0f;
   unsigned m_recordedVersion = 0;
   friend class SorghumLayer;
+  bool m_segmentedMask = false;
 public:
   int m_mode = (int)SorghumMode::ProceduralSorghum;
   glm::vec3 m_gravityDirection = glm::vec3(0, -1, 0);
@@ -22,7 +23,7 @@ public:
   bool m_skeleton = false;
   bool m_seperated = true;
   bool m_includeStem = true;
-  bool m_segmentedMask = false;
+  bool m_bottomFace = false;
 
   void OnCreate() override;
   void OnDestroy() override;
@@ -33,7 +34,9 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
-  void FormPlant(bool doubleFace = false);
-  void ApplyGeometry(bool doubleFace = false);
+  void FormPlant();
+  void ApplyGeometry();
+
+  void SetEnableSegmentedMask(bool value);
 };
 } // namespace PlantFactory

@@ -18,7 +18,6 @@ public:
 public:
   bool m_seperated = false;
   bool m_includeStem = true;
-  bool m_segmentedMask = false;
 
   int m_sizeLimit = 2000;
   float m_sorghumSize = 1.0f;

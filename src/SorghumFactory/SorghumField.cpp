@@ -32,7 +32,6 @@ void RectangularSorghumFieldPattern::GenerateField(
 void SorghumField::OnInspect() {
   ImGui::Checkbox("Seperated", &m_seperated);
   ImGui::Checkbox("Include stem", &m_includeStem);
-  ImGui::Checkbox("Mask", &m_segmentedMask);
 
   ImGui::DragInt("Size limit", &m_sizeLimit, 1, 0, 10000);
   ImGui::DragFloat("Sorghum size", &m_sorghumSize, 0.01f, 0, 10);
@@ -50,7 +49,6 @@ void SorghumField::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_sorghumSize" << YAML::Value << m_sorghumSize;
   out << YAML::Key << "m_seperated" << YAML::Value << m_seperated;
   out << YAML::Key << "m_includeStem" << YAML::Value << m_includeStem;
-  out << YAML::Key << "m_segmentedMask" << YAML::Value << m_segmentedMask;
 
 
   out << YAML::Key << "m_newSorghums" << YAML::Value << YAML::BeginSeq;
@@ -72,8 +70,6 @@ void SorghumField::Deserialize(const YAML::Node &in) {
     m_seperated = in["m_seperated"].as<bool>();
   if (in["m_includeStem"])
     m_includeStem = in["m_includeStem"].as<bool>();
-  if (in["m_segmentedMask"])
-    m_segmentedMask = in["m_segmentedMask"].as<bool>();
 
   m_newSorghums.clear();
   if (in["m_newSorghums"]) {
@@ -118,7 +114,6 @@ Entity SorghumField::InstantiateField() {
       sorghumData->m_seed = size;
       sorghumData->m_seperated = m_seperated;
       sorghumData->m_includeStem = m_includeStem;
-      sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->SetTime(1.0f);
       scene->SetParent(sorghumEntity, field);
       size++;
@@ -330,7 +325,6 @@ PositionsField::InstantiateAroundIndex(unsigned i, float radius, glm::dvec2& off
       sorghumData->m_mode = 1;
       sorghumData->m_seperated = m_seperated;
       sorghumData->m_includeStem = m_includeStem;
-      sorghumData->m_segmentedMask = m_segmentedMask;
       sorghumData->m_seed = glm::linearRand(0, INT_MAX);
       sorghumData->SetTime(1.0f);
       scene->SetParent(sorghumEntity, field);

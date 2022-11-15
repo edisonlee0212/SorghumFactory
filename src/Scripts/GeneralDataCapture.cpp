@@ -76,21 +76,20 @@ void GeneralDataCapture::OnAfterGrowth(
       scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner())
           .lock();
   m_sorghumInfos.push_back({GlobalTransform(), pipeline.m_prefix});
-
+  auto sorghumData = scene
+                         ->GetOrSetPrivateComponent<SorghumData>(
+                             pipeline.m_currentGrowingSorghum)
+                         .lock();
+  sorghumData->m_seperated = true;
+  sorghumData->m_includeStem = true;
+  sorghumData->FormPlant();
+  sorghumData->ApplyGeometry();
   if (m_captureMask) {
     if (scene->IsEntityValid(m_lab))
       scene->SetEnable(m_lab, false);
     if (scene->IsEntityValid(m_dirt))
       scene->SetEnable(m_dirt, false);
-    auto sorghumData = scene
-                           ->GetOrSetPrivateComponent<SorghumData>(
-                               pipeline.m_currentGrowingSorghum)
-                           .lock();
-    sorghumData->m_seperated = true;
-    sorghumData->m_includeStem = true;
-    sorghumData->m_segmentedMask = true;
-    sorghumData->FormPlant();
-    sorghumData->ApplyGeometry();
+    sorghumData->SetEnableSegmentedMask(true);
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
         RayTracerFacility::EnvironmentalLightingType::Scene;
@@ -152,17 +151,6 @@ void GeneralDataCapture::OnAfterGrowth(
           glm::quat(
               glm::vec3(0, glm::linearRand(0.0f, 2.0f * glm::pi<float>()), 0)));
       scene->SetDataComponent(m_dirt, dirtGT);
-    }
-    auto sorghumData = scene
-                           ->GetOrSetPrivateComponent<SorghumData>(
-                               pipeline.m_currentGrowingSorghum)
-                           .lock();
-    if (!m_captureMask) {
-      sorghumData->m_seperated = true;
-      sorghumData->m_includeStem = true;
-      sorghumData->m_segmentedMask = false;
-      sorghumData->FormPlant();
-      sorghumData->ApplyGeometry();
     }
     RayProperties rayProperties;
     rayProperties.m_samples = 1;
@@ -227,15 +215,7 @@ void GeneralDataCapture::OnAfterGrowth(
       scene->SetDataComponent(m_dirt, dirtGT);
     }
 
-    auto sorghumData = scene
-                           ->GetOrSetPrivateComponent<SorghumData>(
-                               pipeline.m_currentGrowingSorghum)
-                           .lock();
-    sorghumData->m_seperated = true;
-    sorghumData->m_includeStem = true;
-    sorghumData->m_segmentedMask = false;
-    sorghumData->FormPlant();
-    sorghumData->ApplyGeometry();
+    sorghumData->SetEnableSegmentedMask(false);
 
     Application::GetLayer<RayTracerLayer>()
         ->m_environmentProperties.m_environmentalLightingType =
@@ -284,16 +264,7 @@ void GeneralDataCapture::OnAfterGrowth(
     }
   }
   if (m_captureMesh) {
-    auto sorghumData =
-        scene->GetOrSetPrivateComponent<SorghumData>(pipeline.m_currentGrowingSorghum)
-            .lock();
-    if (!m_captureDepth && !m_captureMask && !m_captureImage) {
-      sorghumData->m_seperated = true;
-      sorghumData->m_includeStem = true;
-      sorghumData->m_segmentedMask = false;
-      sorghumData->FormPlant();
-      sorghumData->ApplyGeometry();
-    }
+    sorghumData->SetEnableSegmentedMask(false);
     sorghumData->ExportModel(
         (m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
          "Mesh" / (pipeline.m_prefix + ".obj"))

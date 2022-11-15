@@ -220,7 +220,7 @@ Entity SorghumLayer::CreateSorghumPanicle(const Entity &plantEntity) {
   return entity;
 }
 
-void SorghumLayer::GenerateMeshForAllSorghums(bool bottomFace) {
+void SorghumLayer::GenerateMeshForAllSorghums() {
   std::vector<Entity> plants;
   auto scene = GetScene();
   scene->GetEntityArray(m_sorghumQuery, plants);
@@ -228,8 +228,8 @@ void SorghumLayer::GenerateMeshForAllSorghums(bool bottomFace) {
     if (scene->HasPrivateComponent<SorghumData>(plant)) {
       auto sorghumData =
           scene->GetOrSetPrivateComponent<SorghumData>(plant).lock();
-      sorghumData->FormPlant(bottomFace);
-      sorghumData->ApplyGeometry(bottomFace);
+      sorghumData->FormPlant();
+      sorghumData->ApplyGeometry();
     }
   }
 }
@@ -313,9 +313,11 @@ void SorghumLayer::OnInspect() {
 #endif
     ImGui::Separator();
     ImGui::Checkbox("Auto regenerate sorghum", &m_autoRefreshSorghums);
-    ImGui::Checkbox("Bottom Face", &m_enableBottomFace);
+    if(ImGui::Checkbox("Bottom Face", &m_enableBottomFace)){
+      //Enable all sorghum bottom face here.
+    }
     if (ImGui::Button("Generate mesh for all sorghums")) {
-      GenerateMeshForAllSorghums(m_enableBottomFace);
+      GenerateMeshForAllSorghums();
     }
     if (ImGui::DragFloat("Vertical subdivision max unit length",
                          &m_verticalSubdivisionMaxUnitLength, 0.001f, 0.001f,
@@ -636,6 +638,7 @@ Entity SorghumLayer::CreateSorghum(
       scene->GetOrSetPrivateComponent<SorghumData>(sorghum).lock();
   sorghumData->m_mode = (int)SorghumMode::SorghumStateGenerator;
   sorghumData->m_descriptor = descriptor;
+  sorghumData->m_bottomFace = m_enableBottomFace;
   sorghumData->SetTime(1.0f);
   sorghumData->FormPlant();
   sorghumData->ApplyGeometry();

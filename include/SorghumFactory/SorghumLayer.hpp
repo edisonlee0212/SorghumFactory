@@ -96,7 +96,7 @@ public:
   Entity CreateSorghumStem(const Entity &plantEntity);
   Entity CreateSorghumLeaf(const Entity &plantEntity, int leafIndex);
   Entity CreateSorghumPanicle(const Entity &plantEntity);
-  void GenerateMeshForAllSorghums(bool bottomFace = false);
+  void GenerateMeshForAllSorghums();
   void OnInspect() override;
   void Update() override;
   void LateUpdate() override;
