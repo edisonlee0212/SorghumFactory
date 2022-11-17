@@ -16,6 +16,7 @@
 #ifdef RAYTRACERFACILITY
 #include "CBTFGroup.hpp"
 #include "PARSensorGroup.hpp"
+#include "DoubleCBTF.hpp"
 using namespace RayTracerFacility;
 #endif
 using namespace PlantArchitect;
@@ -47,6 +48,7 @@ void SorghumLayer::OnCreate() {
   ClassRegistry::RegisterAsset<PARSensorGroup>("PARSensorGroup",
                                                {".parsensorgroup"});
   ClassRegistry::RegisterAsset<CBTFGroup>("CBTFGroup", {".cbtfg"});
+  ClassRegistry::RegisterAsset<DoubleCBTF>("DoubleCBTF", {".dcbtf"});
 #endif
   ClassRegistry::RegisterAsset<SkyIlluminance>("SkyIlluminance",
                                                {".skyilluminance"});
@@ -265,7 +267,7 @@ void SorghumLayer::OnInspect() {
         scene->GetEntityArray(m_leafGeometryQuery, sorghumEntities, false);
         scene->GetEntityArray(m_stemGeometryQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
-          auto cBTF = group->GetRandom().Get<CompressedBTF>();
+          auto cBTF = group->GetRandom().Get<DoubleCBTF>()->m_top.Get<CompressedBTF>();
           if (cBTF) {
             if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
               scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)
@@ -283,7 +285,7 @@ void SorghumLayer::OnInspect() {
         std::vector<Entity> sorghumEntities;
         scene->GetEntityArray(m_leafBottomFaceGeometryQuery, sorghumEntities, false);
         for (const auto &i : sorghumEntities) {
-          auto cBTF = group->GetRandom().Get<CompressedBTF>();
+          auto cBTF = group->GetRandom().Get<DoubleCBTF>()->m_bottom.Get<CompressedBTF>();
           if (cBTF) {
             if (scene->HasPrivateComponent<BTFMeshRenderer>(i)) {
               scene->GetOrSetPrivateComponent<BTFMeshRenderer>(i)

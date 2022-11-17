@@ -4,13 +4,13 @@
 using namespace UniEngine;
 namespace PlantArchitect {
 
-class CBTFGroup : public IAsset{
+class DoubleCBTF : public IAsset {
 public:
-  std::vector<AssetRef> m_doubleCBTFs;
+  AssetRef m_top;
+  AssetRef m_bottom;
   void OnInspect() override;
   void CollectAssetRef(std::vector<AssetRef> &list) override;
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
-  AssetRef GetRandom() const;
 };
-}
+} // namespace PlantArchitect

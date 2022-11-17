@@ -10,6 +10,7 @@
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
 #include "StemData.hpp"
+#include "DoubleCBTF.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
@@ -279,7 +280,7 @@ void SorghumData::ApplyGeometry() {
     leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
     auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
     if (group) {
-      leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom();
+      leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
     }
     if (m_skeleton) {
       leafTopFaceMeshRenderer->SetEnabled(true);
@@ -339,7 +340,7 @@ void SorghumData::ApplyGeometry() {
       auto bottomFaceGroup =
           sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
       if (bottomFaceGroup) {
-        leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom();
+        leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom().Get<DoubleCBTF>()->m_bottom;
       }
 #endif
       if (bottomFace) {
@@ -403,7 +404,7 @@ void SorghumData::ApplyGeometry() {
         btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
         auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
         if (group) {
-          btfMeshRenderer->m_btf = group->GetRandom();
+          btfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
         }
         if (m_skeleton || m_segmentedMask) {
           meshRenderer->SetEnabled(true);
@@ -458,7 +459,7 @@ void SorghumData::ApplyGeometry() {
         leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
         auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
         if (group) {
-          leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom();
+          leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
         }
         if (m_skeleton || m_segmentedMask) {
           leafTopFaceMeshRenderer->SetEnabled(true);
@@ -502,7 +503,7 @@ void SorghumData::ApplyGeometry() {
           auto bottomFaceGroup =
               sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
           if (bottomFaceGroup) {
-            leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom();
+            leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom().Get<DoubleCBTF>()->m_bottom;
           }
           leafBottomFaceMeshRenderer->SetEnabled(
               !sorghumLayer->m_enableCompressedBTF);
