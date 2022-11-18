@@ -4,13 +4,13 @@
 #include "CBTFGroup.hpp"
 #include "CompressedBTF.hpp"
 #include "DefaultResources.hpp"
+#include "DoubleCBTF.hpp"
 #include "IVolume.hpp"
 #include "LeafData.hpp"
 #include "PanicleData.hpp"
 #include "SorghumData.hpp"
 #include "SorghumLayer.hpp"
 #include "StemData.hpp"
-#include "DoubleCBTF.hpp"
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif
@@ -203,6 +203,16 @@ void SorghumData::ApplyGeometry() {
   auto sorghumLayer = Application::GetLayer<SorghumLayer>();
   bool seperated = m_seperated || m_segmentedMask;
   auto bottomFace = !m_skeleton && !m_segmentedMask && m_bottomFace;
+#ifdef RAYTRACERFACILITY
+  auto leafCBTFGroup = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
+  bool btfAvailable = false;
+  std::shared_ptr<DoubleCBTF> doubleCBTF;
+  if (leafCBTFGroup) {
+    doubleCBTF = leafCBTFGroup->GetRandom().Get<DoubleCBTF>();
+    btfAvailable = true;
+  }
+#endif
+
   if (!seperated) {
     unsigned vertexCount = 0;
     std::vector<UniEngine::Vertex> vertices;
@@ -274,21 +284,21 @@ void SorghumData::ApplyGeometry() {
       leafTopFaceMeshRenderer->m_mesh.Clear();
     }
 #ifdef RAYTRACERFACILITY
-    auto leafTopFaceBtfMeshRenderer =
-        scene->GetOrSetPrivateComponent<BTFMeshRenderer>(leavesGeometryEntity)
-            .lock();
-    leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
-    auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
-    if (group) {
-      leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
-    }
-    if (m_skeleton) {
-      leafTopFaceMeshRenderer->SetEnabled(true);
-      leafTopFaceBtfMeshRenderer->SetEnabled(false);
-    } else {
-      leafTopFaceMeshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
-      leafTopFaceBtfMeshRenderer->SetEnabled(
-          sorghumLayer->m_enableCompressedBTF);
+    if (btfAvailable) {
+      auto leafTopFaceBtfMeshRenderer =
+          scene->GetOrSetPrivateComponent<BTFMeshRenderer>(leavesGeometryEntity)
+              .lock();
+      leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
+      leafTopFaceBtfMeshRenderer->m_btf = doubleCBTF->m_top;
+      if (m_skeleton) {
+        leafTopFaceMeshRenderer->SetEnabled(true);
+        leafTopFaceBtfMeshRenderer->SetEnabled(false);
+      } else {
+        leafTopFaceMeshRenderer->SetEnabled(
+            !sorghumLayer->m_enableCompressedBTF);
+        leafTopFaceBtfMeshRenderer->SetEnabled(
+            sorghumLayer->m_enableCompressedBTF);
+      }
     }
 #endif
     {
@@ -330,33 +340,25 @@ void SorghumData::ApplyGeometry() {
       leafBottomFaceMeshRenderer->m_material =
           sorghumLayer->m_leafBottomFaceMaterial;
 #ifdef RAYTRACERFACILITY
-      auto leafBottomFaceBtfMeshRenderer =
-          scene
-              ->GetOrSetPrivateComponent<BTFMeshRenderer>(
-                  leavesBottomGeometryEntity)
-              .lock();
-      leafBottomFaceBtfMeshRenderer->m_mesh =
-          leafBottomFaceMeshRenderer->m_mesh;
-      auto bottomFaceGroup =
-          sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
-      if (bottomFaceGroup) {
-        leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom().Get<DoubleCBTF>()->m_bottom;
-      }
+      if (btfAvailable) {
+        auto leafBottomFaceBtfMeshRenderer =
+            scene
+                ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                    leavesBottomGeometryEntity)
+                .lock();
+        leafBottomFaceBtfMeshRenderer->m_mesh =
+            leafBottomFaceMeshRenderer->m_mesh;
+        leafBottomFaceBtfMeshRenderer->m_btf = doubleCBTF->m_bottom;
+        if (bottomFace) {
+          leafBottomFaceMeshRenderer->SetEnabled(
+              !sorghumLayer->m_enableCompressedBTF);
+          leafBottomFaceBtfMeshRenderer->SetEnabled(
+              sorghumLayer->m_enableCompressedBTF);
+        } else {
+          leafBottomFaceMeshRenderer->SetEnabled(false);
+          leafBottomFaceBtfMeshRenderer->SetEnabled(false);
 #endif
-      if (bottomFace) {
-        leafBottomFaceMeshRenderer->SetEnabled(true);
-#ifdef RAYTRACERFACILITY
-        leafBottomFaceMeshRenderer->SetEnabled(
-            !sorghumLayer->m_enableCompressedBTF);
-        leafBottomFaceBtfMeshRenderer->SetEnabled(
-            sorghumLayer->m_enableCompressedBTF);
-#endif
-      } else {
-        leafBottomFaceMeshRenderer->SetEnabled(false);
-#ifdef RAYTRACERFACILITY
-        leafBottomFaceMeshRenderer->SetEnabled(false);
-        leafBottomFaceBtfMeshRenderer->SetEnabled(false);
-#endif
+        }
       }
     }
 
@@ -398,20 +400,21 @@ void SorghumData::ApplyGeometry() {
           meshRenderer->m_material = sorghumLayer->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
-        auto btfMeshRenderer =
-            scene->GetOrSetPrivateComponent<BTFMeshRenderer>(stemGeometryEntity)
-                .lock();
-        btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
-        auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
-        if (group) {
-          btfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
-        }
-        if (m_skeleton || m_segmentedMask) {
-          meshRenderer->SetEnabled(true);
-          btfMeshRenderer->SetEnabled(false);
-        } else {
-          meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
-          btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+        if (btfAvailable) {
+          auto btfMeshRenderer =
+              scene
+                  ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                      stemGeometryEntity)
+                  .lock();
+          btfMeshRenderer->m_mesh = meshRenderer->m_mesh;
+          btfMeshRenderer->m_btf = doubleCBTF->m_top;
+          if (m_skeleton || m_segmentedMask) {
+            meshRenderer->SetEnabled(true);
+            btfMeshRenderer->SetEnabled(false);
+          } else {
+            meshRenderer->SetEnabled(!sorghumLayer->m_enableCompressedBTF);
+            btfMeshRenderer->SetEnabled(sorghumLayer->m_enableCompressedBTF);
+          }
         }
 #endif
       } else if (scene->HasDataComponent<LeafTag>(child)) {
@@ -451,24 +454,23 @@ void SorghumData::ApplyGeometry() {
           leafTopFaceMeshRenderer->m_material = sorghumLayer->m_leafMaterial;
         }
 #ifdef RAYTRACERFACILITY
-        auto leafTopFaceBtfMeshRenderer =
-            scene
-                ->GetOrSetPrivateComponent<BTFMeshRenderer>(
-                    leafTopFaceGeometryEntity)
-                .lock();
-        leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
-        auto group = sorghumLayer->m_leafCBTFGroup.Get<CBTFGroup>();
-        if (group) {
-          leafTopFaceBtfMeshRenderer->m_btf = group->GetRandom().Get<DoubleCBTF>()->m_top;
-        }
-        if (m_skeleton || m_segmentedMask) {
-          leafTopFaceMeshRenderer->SetEnabled(true);
-          leafTopFaceBtfMeshRenderer->SetEnabled(false);
-        } else {
-          leafTopFaceMeshRenderer->SetEnabled(
-              !sorghumLayer->m_enableCompressedBTF);
-          leafTopFaceBtfMeshRenderer->SetEnabled(
-              sorghumLayer->m_enableCompressedBTF);
+        if (btfAvailable) {
+          auto leafTopFaceBtfMeshRenderer =
+              scene
+                  ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                      leafTopFaceGeometryEntity)
+                  .lock();
+          leafTopFaceBtfMeshRenderer->m_mesh = leafTopFaceMeshRenderer->m_mesh;
+          leafTopFaceBtfMeshRenderer->m_btf = doubleCBTF->m_top;
+          if (m_skeleton || m_segmentedMask) {
+            leafTopFaceMeshRenderer->SetEnabled(true);
+            leafTopFaceBtfMeshRenderer->SetEnabled(false);
+          } else {
+            leafTopFaceMeshRenderer->SetEnabled(
+                !sorghumLayer->m_enableCompressedBTF);
+            leafTopFaceBtfMeshRenderer->SetEnabled(
+                sorghumLayer->m_enableCompressedBTF);
+          }
         }
 #endif
         {
@@ -493,37 +495,29 @@ void SorghumData::ApplyGeometry() {
           leafBottomFaceMeshRenderer->m_material =
               Application::GetLayer<SorghumLayer>()->m_leafBottomFaceMaterial;
 #ifdef RAYTRACERFACILITY
-          auto leafBottomFaceBtfMeshRenderer =
-              scene
-                  ->GetOrSetPrivateComponent<BTFMeshRenderer>(
-                      leafBottomFaceGeometryEntity)
-                  .lock();
-          leafBottomFaceBtfMeshRenderer->m_mesh =
-              leafBottomFaceMeshRenderer->m_mesh;
-          auto bottomFaceGroup =
-              sorghumLayer->m_leafBottomFaceCBTFGroup.Get<CBTFGroup>();
-          if (bottomFaceGroup) {
-            leafBottomFaceBtfMeshRenderer->m_btf = bottomFaceGroup->GetRandom().Get<DoubleCBTF>()->m_bottom;
-          }
-          leafBottomFaceMeshRenderer->SetEnabled(
-              !sorghumLayer->m_enableCompressedBTF);
-          leafBottomFaceBtfMeshRenderer->SetEnabled(
-              sorghumLayer->m_enableCompressedBTF);
-#endif
-          if (bottomFace) {
-            leafBottomFaceMeshRenderer->SetEnabled(true);
-#ifdef RAYTRACERFACILITY
+          if (btfAvailable) {
+            auto leafBottomFaceBtfMeshRenderer =
+                scene
+                    ->GetOrSetPrivateComponent<BTFMeshRenderer>(
+                        leafBottomFaceGeometryEntity)
+                    .lock();
+            leafBottomFaceBtfMeshRenderer->m_mesh =
+                leafBottomFaceMeshRenderer->m_mesh;
+            leafBottomFaceBtfMeshRenderer->m_btf = doubleCBTF->m_bottom;
             leafBottomFaceMeshRenderer->SetEnabled(
                 !sorghumLayer->m_enableCompressedBTF);
             leafBottomFaceBtfMeshRenderer->SetEnabled(
                 sorghumLayer->m_enableCompressedBTF);
+            if (bottomFace) {
+              leafBottomFaceMeshRenderer->SetEnabled(
+                  !sorghumLayer->m_enableCompressedBTF);
+              leafBottomFaceBtfMeshRenderer->SetEnabled(
+                  sorghumLayer->m_enableCompressedBTF);
+            } else {
+              leafBottomFaceMeshRenderer->SetEnabled(false);
+              leafBottomFaceBtfMeshRenderer->SetEnabled(false);
 #endif
-          } else {
-            leafBottomFaceMeshRenderer->SetEnabled(false);
-#ifdef RAYTRACERFACILITY
-            leafBottomFaceMeshRenderer->SetEnabled(false);
-            leafBottomFaceBtfMeshRenderer->SetEnabled(false);
-#endif
+            }
           }
         }
       } else if (scene->HasDataComponent<PanicleTag>(child)) {

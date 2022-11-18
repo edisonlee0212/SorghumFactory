@@ -75,7 +75,6 @@ public:
 
   AssetRef m_leafBottomFaceMaterial;
   AssetRef m_leafMaterial;
-  AssetRef m_leafBottomFaceCBTFGroup;
   AssetRef m_leafCBTFGroup;
 
   AssetRef m_leafAlbedoTexture;
