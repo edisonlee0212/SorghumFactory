@@ -1,5 +1,4 @@
 #pragma once
-#include "CurveDescriptor.hpp"
 #include "ICurve.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
@@ -21,7 +20,7 @@ struct ProceduralPanicleState {
 struct ProceduralStemState {
   BezierSpline m_spline;
   glm::vec3 m_direction = {0, 1, 0};
-  CurveDescriptor<float> m_widthAlongStem;
+  Plot2D<float> m_widthAlongStem;
   float m_length = 0;
 
   bool m_saved = false;
@@ -40,10 +39,10 @@ struct ProceduralLeafState {
   float m_rollAngle = 0;
   float m_branchingAngle = 0;
 
-  CurveDescriptor<float> m_widthAlongLeaf;
-  CurveDescriptor<float> m_curlingAlongLeaf;
-  CurveDescriptor<float> m_bendingAlongLeaf;
-  CurveDescriptor<float> m_wavinessAlongLeaf;
+  Plot2D<float> m_widthAlongLeaf;
+  Plot2D<float> m_curlingAlongLeaf;
+  Plot2D<float> m_bendingAlongLeaf;
+  Plot2D<float> m_wavinessAlongLeaf;
   glm::vec2 m_wavinessPeriodStart = glm::vec2(0.0f);
   glm::vec2 m_wavinessFrequency = glm::vec2(0.0f);
 

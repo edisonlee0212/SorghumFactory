@@ -37,8 +37,17 @@ void GeneralDataCapture::OnInspect() {
     ImGui::DragFloat("Distance to center", &m_distanceToCenter, 0.01f);
     ImGui::DragFloat("Height", &m_height, 0.01f);
     ImGui::DragFloat("Top distance to center", &m_topDistanceToCenter, 0.01f);
-    ImGui::DragInt3("Turn angle Start/Step/End", &m_turnAngleStart);
-    ImGui::DragInt3("Top turn angle Start/Step/End", &m_topTurnAngleStart);
+    ImGui::Checkbox("Capture Top view", &m_topView);
+    ImGui::Checkbox("Capture Side view", &m_sideView);
+    ImGui::Checkbox("Random angle", &m_randomAngle);
+    if (!m_randomAngle) {
+      if (m_sideView) {
+        ImGui::DragInt3("Turn angle Start/Step/End", &m_turnAngleStart);
+      }
+      if (m_topView) {
+        ImGui::DragInt3("Top turn angle Start/Step/End", &m_topTurnAngleStart);
+      }
+    }
     ImGui::Separator();
     ImGui::DragFloat("Camera FOV", &m_fov);
     ImGui::DragFloat("Camera gamma", &m_gamma, 0.01f);
@@ -84,6 +93,7 @@ void GeneralDataCapture::OnAfterGrowth(
   sorghumData->m_includeStem = true;
   sorghumData->FormPlant();
   sorghumData->ApplyGeometry();
+  int randomTurnAngle = glm::linearRand(0, 359);
   if (m_captureMask) {
     if (scene->IsEntityValid(m_lab))
       scene->SetEnable(m_lab, false);
@@ -101,42 +111,82 @@ void GeneralDataCapture::OnAfterGrowth(
     rayTracerCamera->SetDenoiserStrength(0.0f);
     rayTracerCamera->SetOutputType(OutputType::Albedo);
     GlobalTransform cameraGT;
-    cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
-    cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
 
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Mask" /
-          ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_mask.png"));
+    if (m_sideView) {
+      cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
+      cameraGT.SetRotation(glm::vec3(0, 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
+            ("side_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_mask.png"));
+      } else {
+        for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+             turnAngle += m_turnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
+              ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_mask.png"));
+        }
+      }
     }
-    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
-    cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
-    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
-         turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Mask" /
-          ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_mask.png"));
+    if (m_topView) {
+      cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
+      cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
+            ("top_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_mask.png"));
+      } else {
+        for (int turnAngle = m_topTurnAngleStart;
+             turnAngle <= m_topTurnAngleEnd; turnAngle += m_topTurnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Mask" /
+              ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_mask.png"));
+        }
+      }
     }
   }
 
@@ -165,41 +215,81 @@ void GeneralDataCapture::OnAfterGrowth(
     rayTracerCamera->SetDenoiserStrength(0.0f);
     rayTracerCamera->SetMaxDistance(m_cameraMax);
     GlobalTransform cameraGT;
-    cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
-    cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Depth" /
-          ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_depth.hdr"));
+    if (m_sideView) {
+      cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
+      cameraGT.SetRotation(glm::vec3(0, 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Depth" /
+            ("side_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_depth.hdr"));
+      } else {
+        for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+             turnAngle += m_turnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Depth" /
+              ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_depth.hdr"));
+        }
+      }
     }
-    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
-    cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
-    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
-         turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Depth" /
-          ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_depth.hdr"));
+    if (m_topView) {
+      cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
+      cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Depth" /
+            ("top_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_depth.hdr"));
+      } else {
+        for (int turnAngle = m_topTurnAngleStart;
+             turnAngle <= m_topTurnAngleEnd; turnAngle += m_topTurnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Depth" /
+              ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_depth.hdr"));
+        }
+      }
     }
   }
   if (m_captureImage) {
@@ -226,41 +316,81 @@ void GeneralDataCapture::OnAfterGrowth(
     rayTracerCamera->SetOutputType(OutputType::Color);
     rayTracerCamera->SetDenoiserStrength(m_denoiserStrength);
     GlobalTransform cameraGT;
-    cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
-    cameraGT.SetRotation(glm::vec3(0, 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
-    for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
-         turnAngle += m_turnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(m_rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Image" /
-          ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_image.png"));
+    if (m_sideView) {
+      cameraGT.SetPosition(glm::vec3(0, m_height, m_distanceToCenter));
+      cameraGT.SetRotation(glm::vec3(0, 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(m_rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Image" /
+            ("side_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_image.png"));
+      } else {
+        for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
+             turnAngle += m_turnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(m_rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Image" /
+              ("side_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_image.png"));
+        }
+      }
     }
-    cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
-    cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
-    scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
-    for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
-         turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
-          pipeline.m_currentGrowingSorghum);
-      sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
-      scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
-      Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(scene);
-      Application::GetLayer<RayTracerLayer>()->UpdateScene();
-      rayTracerCamera->Render(m_rayProperties);
-      rayTracerCamera->m_colorTexture->Export(
-          m_currentExportFolder / GetAssetRecord().lock()->GetAssetFileName() /
-          "Image" /
-          ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
-           "_image.png"));
+    if (m_topView) {
+      cameraGT.SetPosition(glm::vec3(0, m_topDistanceToCenter, 0));
+      cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
+      scene->SetDataComponent(pipeline.GetOwner(), cameraGT);
+      if (m_randomAngle) {
+        auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+            pipeline.m_currentGrowingSorghum);
+        sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)randomTurnAngle), 0));
+        scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+        Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+            scene);
+        Application::GetLayer<RayTracerLayer>()->UpdateScene();
+        rayTracerCamera->Render(m_rayProperties);
+        rayTracerCamera->m_colorTexture->Export(
+            m_currentExportFolder /
+            GetAssetRecord().lock()->GetAssetFileName() / "Image" /
+            ("top_" + pipeline.m_prefix + "_" + std::to_string(randomTurnAngle) +
+             "_image.png"));
+      } else {
+        for (int turnAngle = m_topTurnAngleStart;
+             turnAngle <= m_topTurnAngleEnd; turnAngle += m_topTurnAngleStep) {
+          auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+              pipeline.m_currentGrowingSorghum);
+          sorghumGT.SetRotation(
+              glm::vec3(0, glm::radians((float)turnAngle), 0));
+          scene->SetDataComponent(pipeline.m_currentGrowingSorghum, sorghumGT);
+          Application::GetLayer<TransformLayer>()->CalculateTransformGraphs(
+              scene);
+          Application::GetLayer<RayTracerLayer>()->UpdateScene();
+          rayTracerCamera->Render(m_rayProperties);
+          rayTracerCamera->m_colorTexture->Export(
+              m_currentExportFolder /
+              GetAssetRecord().lock()->GetAssetFileName() / "Image" /
+              ("top_" + pipeline.m_prefix + "_" + std::to_string(turnAngle) +
+               "_image.png"));
+        }
+      }
     }
   }
   if (m_captureMesh) {
@@ -277,8 +407,8 @@ void GeneralDataCapture::OnAfterGrowth(
     cameraGT.SetRotation(glm::vec3(0, 0, 0));
     for (int turnAngle = m_turnAngleStart; turnAngle <= m_turnAngleEnd;
          turnAngle += m_turnAngleStep) {
-      auto sorghumGT =
-          scene->GetDataComponent<GlobalTransform>(pipeline.m_currentGrowingSorghum);
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       m_cameraModels.push_back(cameraGT.m_value);
@@ -293,8 +423,8 @@ void GeneralDataCapture::OnAfterGrowth(
     cameraGT.SetRotation(glm::vec3(glm::radians(-90.0f), 0, 0));
     for (int turnAngle = m_topTurnAngleStart; turnAngle <= m_topTurnAngleEnd;
          turnAngle += m_topTurnAngleStep) {
-      auto sorghumGT =
-          scene->GetDataComponent<GlobalTransform>(pipeline.m_currentGrowingSorghum);
+      auto sorghumGT = scene->GetDataComponent<GlobalTransform>(
+          pipeline.m_currentGrowingSorghum);
       sorghumGT.SetRotation(glm::vec3(0, glm::radians((float)turnAngle), 0));
       m_cameraModels.push_back(cameraGT.m_value);
       m_treeModels.push_back(sorghumGT.m_value);
@@ -313,7 +443,8 @@ void GeneralDataCapture::OnAfterGrowth(
 void GeneralDataCapture::SetUpCamera(AutoSorghumGenerationPipeline &pipeline) {
   auto scene = pipeline.GetScene();
   auto rayTracerCamera =
-      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner()).lock();
+      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner())
+          .lock();
 
   Application::GetLayer<RayTracerLayer>()
       ->m_environmentProperties.m_environmentalLightingType =
@@ -351,6 +482,9 @@ void GeneralDataCapture::Serialize(YAML::Emitter &out) {
   out << YAML::Key << "m_height" << YAML::Value << m_height;
   out << YAML::Key << "m_topDistanceToCenter" << YAML::Value
       << m_topDistanceToCenter;
+  out << YAML::Key << "m_topView" << YAML::Value << m_topView;
+  out << YAML::Key << "m_randomAngle" << YAML::Value << m_randomAngle;
+
   out << YAML::Key << "m_turnAngleStart" << YAML::Value << m_turnAngleStart;
   out << YAML::Key << "m_turnAngleStep" << YAML::Value << m_turnAngleStep;
   out << YAML::Key << "m_turnAngleEnd" << YAML::Value << m_turnAngleEnd;
@@ -398,6 +532,13 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
 
   if (in["m_height"])
     m_height = in["m_height"].as<float>();
+
+  if (in["m_randomAngle"])
+    m_randomAngle = in["m_randomAngle"].as<bool>();
+
+  if (in["m_topView"])
+    m_topView = in["m_topView"].as<bool>();
+
   if (in["m_turnAngleStart"])
     m_turnAngleStart = in["m_turnAngleStart"].as<int>();
   if (in["m_turnAngleStep"])
@@ -431,10 +572,12 @@ void GeneralDataCapture::Deserialize(const YAML::Node &in) {
 }
 void GeneralDataCapture::Instantiate() {
   auto scene = Application::GetActiveScene();
-  auto pipelineEntity = scene->CreateEntity(GetAssetRecord().lock()->GetAssetFileName());
-  auto pipeline =
-      scene->GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>(pipelineEntity)
-          .lock();
+  auto pipelineEntity =
+      scene->CreateEntity(GetAssetRecord().lock()->GetAssetFileName());
+  auto pipeline = scene
+                      ->GetOrSetPrivateComponent<AutoSorghumGenerationPipeline>(
+                          pipelineEntity)
+                      .lock();
   pipeline->m_pipelineBehaviour =
       std::dynamic_pointer_cast<GeneralDataCapture>(m_self.lock());
 }
@@ -448,7 +591,8 @@ void GeneralDataCapture::OnStart(AutoSorghumGenerationPipeline &pipeline) {
     m_dirt = m_dirtPrefab.Get<Prefab>()->ToEntity(scene);
   }
   auto rayTracerCamera =
-      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner()).lock();
+      scene->GetOrSetPrivateComponent<RayTracerCamera>(pipeline.GetOwner())
+          .lock();
   rayTracerCamera->SetMainCamera(true);
 
   m_sorghumInfos.clear();
@@ -507,5 +651,4 @@ void GeneralDataCapture::ExportMatrices(const std::filesystem::path &path) {
   fout << out.c_str();
   fout.flush();
 }
-
 #endif

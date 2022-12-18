@@ -1,6 +1,7 @@
 #pragma once
-#include "CurveDescriptor.hpp"
 #include <sorghum_factory_export.h>
+
+#include "Plot2D.hpp"
 #include "ProceduralSorghum.hpp"
 using namespace UniEngine;
 namespace PlantArchitect {
@@ -19,23 +20,23 @@ public:
   //Leaf
   SingleDistribution<float> m_leafAmount;
 
-  MixedDistribution<float> m_leafStartingPoint;
-  MixedDistribution<float> m_leafCurling;
-  MixedDistribution<float> m_leafRollAngle;
-  MixedDistribution<float> m_leafBranchingAngle;
-  MixedDistribution<float> m_leafBending;
-  MixedDistribution<float> m_leafBendingAcceleration;
-  MixedDistribution<float> m_leafBendingSmoothness;
-  MixedDistribution<float> m_leafWaviness;
-  MixedDistribution<float> m_leafWavinessFrequency;
-  MixedDistribution<float> m_leafPeriodStart;
-  MixedDistribution<float> m_leafLength;
-  MixedDistribution<float> m_leafWidth;
+  PlottedDistribution<float> m_leafStartingPoint;
+  PlottedDistribution<float> m_leafCurling;
+  PlottedDistribution<float> m_leafRollAngle;
+  PlottedDistribution<float> m_leafBranchingAngle;
+  PlottedDistribution<float> m_leafBending;
+  PlottedDistribution<float> m_leafBendingAcceleration;
+  PlottedDistribution<float> m_leafBendingSmoothness;
+  PlottedDistribution<float> m_leafWaviness;
+  PlottedDistribution<float> m_leafWavinessFrequency;
+  PlottedDistribution<float> m_leafPeriodStart;
+  PlottedDistribution<float> m_leafLength;
+  PlottedDistribution<float> m_leafWidth;
 
   //Finer control
-  UniEngine::Curve m_widthAlongStem;
-  UniEngine::Curve m_widthAlongLeaf;
-  UniEngine::Curve m_wavinessAlongLeaf;
+  Curve2D m_widthAlongStem;
+  Curve2D m_widthAlongLeaf;
+  Curve2D m_wavinessAlongLeaf;
   [[nodiscard]] unsigned GetVersion() const;
   void OnCreate() override;
   void OnInspect() override;

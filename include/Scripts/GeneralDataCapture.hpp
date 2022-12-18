@@ -27,6 +27,7 @@ class GeneralDataCapture : public IAutoSorghumGenerationPipelineBehaviour {
   std::vector<glm::mat4> m_views;
   std::vector<std::string> m_names;
   void ExportMatrices(const std::filesystem::path& path);
+
 public:
   RayProperties m_rayProperties = {6, 256};
   AssetRef m_labPrefab;
@@ -37,10 +38,12 @@ public:
   bool m_captureDepth = true;
   bool m_exportMatrices = true;
   std::filesystem::path m_currentExportFolder;
+  bool m_randomAngle = false;
+  bool m_sideView = true;
+  bool m_topView = true;
   int m_turnAngleStart = 0;
   int m_turnAngleStep = 1;
   int m_turnAngleEnd = 2;
-
   int m_topTurnAngleStart = 0;
   int m_topTurnAngleStep = 1;
   int m_topTurnAngleEnd = 2;

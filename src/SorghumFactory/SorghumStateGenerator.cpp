@@ -81,7 +81,7 @@ void SorghumStateGenerator::OnInspect() {
                                "The total amount of leaves"))
       changed = true;
 
-    static MixedDistributionSettings leafStartingPoint = {
+    static PlottedDistributionSettings leafStartingPoint = {
         0.01f,
         {0.01f, false, true, ""},
         {0.01f, false, false, ""},
@@ -93,7 +93,7 @@ void SorghumStateGenerator::OnInspect() {
       changed = true;
     }
 
-    static MixedDistributionSettings leafCurling = {0.01f,
+    static PlottedDistributionSettings leafCurling = {0.01f,
                                                     {0.01f, false, true, ""},
                                                     {0.01f, false, false, ""},
                                                     "The leaf curling."};
@@ -102,7 +102,7 @@ void SorghumStateGenerator::OnInspect() {
       changed = true;
     }
 
-    static MixedDistributionSettings leafRollAngle = {
+    static PlottedDistributionSettings leafRollAngle = {
         0.01f,
         {},
         {},
@@ -111,7 +111,7 @@ void SorghumStateGenerator::OnInspect() {
     if (m_leafRollAngle.OnInspect("Roll angle", leafRollAngle))
       changed = true;
 
-    static MixedDistributionSettings leafBranchingAngle = {
+    static PlottedDistributionSettings leafBranchingAngle = {
         0.01f,
         {},
         {},
@@ -119,7 +119,7 @@ void SorghumStateGenerator::OnInspect() {
     if (m_leafBranchingAngle.OnInspect("Branching angle", leafBranchingAngle))
       changed = true;
 
-    static MixedDistributionSettings leafBending = {
+    static PlottedDistributionSettings leafBending = {
         1.0f,
         {1.0f, false, true, ""},
         {},
@@ -129,7 +129,7 @@ void SorghumStateGenerator::OnInspect() {
     if (m_leafBending.OnInspect("Bending", leafBending))
       changed = true;
 
-    static MixedDistributionSettings leafBendingAcceleration = {
+    static PlottedDistributionSettings leafBendingAcceleration = {
         0.01f,
         {0.01f, false, true, ""},
         {},
@@ -139,7 +139,7 @@ void SorghumStateGenerator::OnInspect() {
                                             leafBendingAcceleration))
       changed = true;
 
-    static MixedDistributionSettings leafBendingSmoothness = {
+    static PlottedDistributionSettings leafBendingSmoothness = {
         0.01f,
         {0.01f, false, true, ""},
         {},
@@ -357,57 +357,57 @@ void SorghumStateGenerator::OnCreate() {
   m_leafAmount.m_deviation = 1.0f;
 
   m_leafStartingPoint.m_mean = {0.0f, 1.0f,
-                                UniEngine::Curve(0.1f, 1.0f, {0, 0}, {1, 1})};
+                                Curve2D(0.1f, 1.0f, {0, 0}, {1, 1})};
   m_leafStartingPoint.m_deviation = {
-      0.0f, 1.0f, UniEngine::Curve(0.0f, 0.0f, {0, 0}, {1, 1})};
+      0.0f, 1.0f, Curve2D(0.0f, 0.0f, {0, 0}, {1, 1})};
 
   m_leafCurling.m_mean = {0.0f, 90.0f,
-                          UniEngine::Curve(0.3f, 0.7f, {0, 0}, {1, 1})};
+                          Curve2D(0.3f, 0.7f, {0, 0}, {1, 1})};
   m_leafCurling.m_deviation = {0.0f, 1.0f,
-                               UniEngine::Curve(0.0f, 0.0f, {0, 0}, {1, 1})};
+                               Curve2D(0.0f, 0.0f, {0, 0}, {1, 1})};
   m_leafRollAngle.m_mean = {-1.0f, 1.0f,
-                            UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                            Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafRollAngle.m_deviation = {0.0f, 6.0f,
-                                 UniEngine::Curve(0.3f, 1.0f, {0, 0}, {1, 1})};
+                                 Curve2D(0.3f, 1.0f, {0, 0}, {1, 1})};
 
   m_leafBranchingAngle.m_mean = {0.0f, 55.0f,
-                                 UniEngine::Curve(0.5f, 0.2f, {0, 0}, {1, 1})};
+                                 Curve2D(0.5f, 0.2f, {0, 0}, {1, 1})};
   m_leafBranchingAngle.m_deviation = {
-      0.0f, 3.0f, UniEngine::Curve(0.67f, 0.225f, {0, 0}, {1, 1})};
+      0.0f, 3.0f, Curve2D(0.67f, 0.225f, {0, 0}, {1, 1})};
 
   m_leafBending.m_mean = {-180.0f, 180.0f,
-                          UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                          Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBending.m_deviation = {0.0f, 0.0f,
-                               UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                               Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafBendingAcceleration.m_mean = {
-      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+      0.0f, 1.0f, Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBendingSmoothness.m_mean = {
-      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+      0.0f, 1.0f, Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafBendingAcceleration.m_deviation = {
-      0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+      0.0f, 0.0f, Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafWaviness.m_mean = {0.0f, 20.0f,
-                           UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                           Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafWaviness.m_deviation = {0.0f, 0.0f,
-                                UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                                Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafWavinessFrequency.m_mean = {
-      0.0f, 1.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+      0.0f, 1.0f, Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafWavinessFrequency.m_deviation = {
-      0.0f, 0.0f, UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+      0.0f, 0.0f, Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafLength.m_mean = {0.0f, 2.5f,
-                         UniEngine::Curve(0.165, 0.247, {0, 0}, {1, 1})};
+                         Curve2D(0.165, 0.247, {0, 0}, {1, 1})};
   m_leafLength.m_deviation = {0.0f, 0.0f,
-                              UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                              Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
   m_leafWidth.m_mean = {0.0f, 0.075f,
-                        UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                        Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
   m_leafWidth.m_deviation = {0.0f, 0.0f,
-                             UniEngine::Curve(0.5f, 0.5f, {0, 0}, {1, 1})};
+                             Curve2D(0.5f, 0.5f, {0, 0}, {1, 1})};
 
-  m_widthAlongStem = UniEngine::Curve(1.0f, 0.1f, {0, 0}, {1, 1});
-  m_widthAlongLeaf = UniEngine::Curve(0.5f, 0.1f, {0, 0}, {1, 1});
-  m_wavinessAlongLeaf = UniEngine::Curve(0.0f, 0.5f, {0, 0}, {1, 1});
+  m_widthAlongStem = Curve2D(1.0f, 0.1f, {0, 0}, {1, 1});
+  m_widthAlongLeaf = Curve2D(0.5f, 0.1f, {0, 0}, {1, 1});
+  m_wavinessAlongLeaf = Curve2D(0.0f, 0.5f, {0, 0}, {1, 1});
 }
