@@ -12,14 +12,6 @@ struct PointCloudSampleSettings {
   float m_adjustmentFactor = 1.2f;
   int m_segmentAmount = 3;
 
-  glm::vec2 m_scale = glm::vec2(0.02f);
-  glm::ivec2 m_size = glm::ivec2(150);
-  float m_rowWidth = 0.00f;
-  float m_alleyDepth = 0.15f;
-
-  float m_noiseScale = 20.0f;
-  float m_noiseIntensity = 0.01f;
-
   float m_positionVariance = 0.4f;
   void OnInspect();
   void Serialize(const std::string &name, YAML::Emitter &out) const;
@@ -34,6 +26,7 @@ public:
   PointCloudSampleSettings m_settings;
   void Reset(Scripts::AutoSorghumGenerationPipeline &pipeline);
   AssetRef m_positionsField;
+  AssetRef m_fieldGround;
   std::filesystem::path m_currentExportFolder;
   void OnBeforeGrowth(AutoSorghumGenerationPipeline &pipeline) override;
   void OnGrowth(AutoSorghumGenerationPipeline &pipeline) override;

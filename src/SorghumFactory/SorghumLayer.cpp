@@ -35,7 +35,7 @@ void SorghumLayer::OnCreate() {
       "PanicleGeometryTag");
   ClassRegistry::RegisterDataComponent<StemGeometryTag>("StemGeometryTag");
 
-  ClassRegistry::RegisterPrivateComponent<FieldGround>("FieldGround");
+  ClassRegistry::RegisterAsset<FieldGround>("FieldGround", {".fieldground"});
   ClassRegistry::RegisterPrivateComponent<SorghumData>("SorghumData");
   ClassRegistry::RegisterPrivateComponent<LeafData>("LeafData");
   ClassRegistry::RegisterPrivateComponent<StemData>("StemData");

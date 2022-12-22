@@ -29,18 +29,10 @@ void PointCloudCapture::OnBeforeGrowth(
   auto positionField = m_positionsField.Get<PositionsField>();
   positionField->m_sorghumStateGenerator = pipeline.m_currentUsingDescriptor.Get<SorghumStateGenerator>();
   positionField->m_seperated = true;
-  auto fieldGround =
-      scene->GetOrSetPrivateComponent<FieldGround>(m_ground).lock();
-  fieldGround->m_scale = m_settings.m_scale;
-  fieldGround->m_size = m_settings.m_size;
-  fieldGround->m_rowWidth = m_settings.m_rowWidth;
-  fieldGround->m_alleyDepth = m_settings.m_alleyDepth;
-  fieldGround->m_noiseScale = m_settings.m_noiseScale;
-  fieldGround->m_noiseIntensity = m_settings.m_noiseIntensity;
+  m_ground = m_fieldGround.Get<FieldGround>()->GenerateMesh(glm::linearRand(0.12f, 0.17f));
   Transform fieldGroundTransform;
   fieldGroundTransform.SetPosition(glm::vec3(0, glm::linearRand(0.0f, 0.15f), 0));
   scene->SetDataComponent(m_ground, fieldGroundTransform);
-  fieldGround->GenerateMesh(glm::linearRand(0.12f, 0.17f));
   auto result = positionsField->InstantiateAroundIndex(
       pipeline.GetSeed() % positionsField->m_positions.size(), 2.5f, m_currentCenter, m_settings.m_positionVariance);
   pipeline.m_currentGrowingSorghum = result.first;
@@ -71,6 +63,7 @@ void PointCloudCapture::OnAfterGrowth(AutoSorghumGenerationPipeline &pipeline) {
   scene->DeleteEntity(m_currentSorghumField);
   pipeline.m_currentGrowingSorghum = m_currentSorghumField = Entity();
   pipeline.m_status = AutoSorghumGenerationPipelineStatus::Idle;
+  scene->DeleteEntity(m_ground);
 }
 void PointCloudCapture::OnInspect() {
   if (m_positionsField.Get<PositionsField>()) {
@@ -91,6 +84,7 @@ void PointCloudCapture::OnInspect() {
       false);
 
   Editor::DragAndDropButton<PositionsField>(m_positionsField, "Position Field");
+  Editor::DragAndDropButton<FieldGround>(m_fieldGround, "Field Ground");
   m_settings.OnInspect();
 }
 
@@ -103,9 +97,7 @@ void PointCloudCapture::OnStart(AutoSorghumGenerationPipeline &pipeline) {
       "CSV");
   auto scene = pipeline.GetScene();
 
-  m_ground = scene->CreateEntity("Ground");
-  auto fieldGround =
-      scene->GetOrSetPrivateComponent<FieldGround>(m_ground).lock();
+  
 }
 void PointCloudCapture::OnEnd(AutoSorghumGenerationPipeline &pipeline) {
   auto scene = pipeline.GetScene();
@@ -113,7 +105,7 @@ void PointCloudCapture::OnEnd(AutoSorghumGenerationPipeline &pipeline) {
     scene->DeleteEntity(m_currentSorghumField);
   pipeline.m_currentGrowingSorghum = m_currentSorghumField = {};
 
-  scene->DeleteEntity(m_ground);
+ 
 }
 void PointCloudCapture::Reset(AutoSorghumGenerationPipeline &pipeline) {
   auto scene = pipeline.GetScene();
@@ -163,14 +155,6 @@ void PointCloudSampleSettings::OnInspect() {
     ImGui::DragFloat("Bounding box radius", &m_boundingBoxRadius, 0.01f);
   }
   ImGui::DragFloat("Position Variance", &m_positionVariance);
-  if(ImGui::TreeNodeEx("Ground settings", ImGuiTreeNodeFlags_DefaultOpen)){
-    ImGui::DragInt2("Size", &m_size.x);
-    ImGui::DragFloat("Row Width", &m_rowWidth);
-    ImGui::DragFloat("Alley Depth", &m_alleyDepth);
-    ImGui::DragFloat("Noise Scale", &m_noiseScale);
-    ImGui::DragFloat("Noise Intensity", &m_noiseIntensity);
-    ImGui::TreePop();
-  }
 }
 void PointCloudSampleSettings::Serialize(const std::string &name,
                                          YAML::Emitter &out) const {
@@ -186,14 +170,6 @@ void PointCloudSampleSettings::Serialize(const std::string &name,
       << m_boundingBoxRadius;
   out << YAML::Key << "m_adjustmentFactor" << YAML::Value << m_adjustmentFactor;
   out << YAML::Key << "m_segmentAmount" << YAML::Value << m_segmentAmount;
-
-
-  out << YAML::Key << "m_scale" << YAML::Value << m_scale;
-  out << YAML::Key << "m_size" << YAML::Value << m_size;
-  out << YAML::Key << "m_rowWidth" << YAML::Value << m_rowWidth;
-  out << YAML::Key << "m_alleyDepth" << YAML::Value << m_alleyDepth;
-  out << YAML::Key << "m_noiseScale" << YAML::Value << m_noiseScale;
-  out << YAML::Key << "m_noiseIntensity" << YAML::Value << m_noiseIntensity;
 
   out << YAML::Key << "m_positionVariance" << YAML::Value << m_positionVariance;
   out << YAML::EndMap;
@@ -216,19 +192,6 @@ void PointCloudSampleSettings::Deserialize(const std::string &name,
       m_adjustmentFactor = cd["m_adjustmentFactor"].as<float>();
     if (cd["m_segmentAmount"])
       m_segmentAmount = cd["m_segmentAmount"].as<int>();
-
-    if (cd["m_scale"])
-      m_scale = cd["m_scale"].as<glm::vec2>();
-    if (cd["m_size"])
-      m_size = cd["m_size"].as<glm::ivec2>();
-    if (cd["m_rowWidth"])
-      m_rowWidth = cd["m_rowWidth"].as<float>();
-    if (cd["m_alleyDepth"])
-      m_alleyDepth = cd["m_alleyDepth"].as<float>();
-    if (cd["m_noiseScale"])
-      m_noiseScale = cd["m_noiseScale"].as<float>();
-    if (cd["m_noiseIntensity"])
-      m_noiseIntensity = cd["m_noiseIntensity"].as<float>();
 
     if (cd["m_positionVariance"])
       m_positionVariance = cd["m_positionVariance"].as<float>();
