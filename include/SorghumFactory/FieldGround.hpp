@@ -5,17 +5,17 @@ using namespace UniEngine;
 namespace PlantArchitect {
 	struct NoiseDescriptor
 	{
-		float m_noiseScale = 5.0f;
-		float m_noiseIntensity = 0.025f;
+		float m_noiseScale = 20.0f;
+		float m_noiseIntensity = 0.01f;
 		float m_heightMin = -10;
 		float m_heightMax = 10;
 	};
 	class SORGHUM_FACTORY_API FieldGround : public IAsset {
 	public:
-		glm::vec2 m_scale;
-		glm::ivec2 m_size;
-		float m_rowWidth;
-		float m_alleyDepth;
+		glm::vec2 m_scale = glm::vec2(0.02f);
+		glm::ivec2 m_size = glm::ivec2(150);
+		float m_rowWidth = 0.0f;
+		float m_alleyDepth = 0.15f;
 
 		std::vector<NoiseDescriptor> m_noiseDescriptors;
 		void OnCreate() override;

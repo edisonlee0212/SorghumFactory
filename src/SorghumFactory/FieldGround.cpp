@@ -100,6 +100,12 @@ void FieldGround::Serialize(YAML::Emitter& out) {
 	out << YAML::Key << "m_rowWidth" << YAML::Value << m_rowWidth;
 	out << YAML::Key << "m_alleyDepth" << YAML::Value << m_alleyDepth;
 
+	if (!m_noiseDescriptors.empty())
+	{
+		out << YAML::Key << "m_noiseDescriptors" << YAML::Value
+			<< YAML::Binary((const unsigned char*)m_noiseDescriptors.data(), m_noiseDescriptors.size() * sizeof(NoiseDescriptor));
+	}
+	
 }
 void FieldGround::Deserialize(const YAML::Node& in) {
 	if (in["m_scale"])
@@ -112,11 +118,19 @@ void FieldGround::Deserialize(const YAML::Node& in) {
 		m_alleyDepth = in["m_alleyDepth"].as<float>();
 
 
+	if (in["m_noiseDescriptors"])
+	{
+		const auto &ds = in["m_noiseDescriptors"].as<YAML::Binary>();
+		m_noiseDescriptors.resize(ds.size() / sizeof(NoiseDescriptor));
+		std::memcpy(m_noiseDescriptors.data(), ds.data(), ds.size());
+	}
+
 }
 void FieldGround::OnCreate() {
 	m_scale = glm::vec2(0.02f);
 	m_size = glm::ivec2(150);
-	m_rowWidth = 8.25f;
+	m_rowWidth = 0.0f;
 	m_alleyDepth = 0.15f;
+	m_noiseDescriptors.clear();
 	m_noiseDescriptors.emplace_back();
 }
