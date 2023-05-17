@@ -19,7 +19,7 @@
 #include "PARSensorGroup.hpp"
 using namespace RayTracerFacility;
 #endif
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 using namespace UniEngine;
 
 void SorghumLayer::OnCreate() {

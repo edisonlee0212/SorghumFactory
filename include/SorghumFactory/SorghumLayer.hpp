@@ -10,7 +10,7 @@
 #include <Spline.hpp>
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 struct SORGHUM_FACTORY_API LeafTag : IDataComponent {};
 struct SORGHUM_FACTORY_API LeafGeometryTag : IDataComponent {};
 struct SORGHUM_FACTORY_API LeafBottomFaceGeometryTag : IDataComponent {};
@@ -107,4 +107,4 @@ public:
 
 };
 
-} // namespace PlantArchitect
+} // namespace EcoSysLab

@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 
 class SORGHUM_FACTORY_API RectangularSorghumFieldPattern {
 public:
@@ -88,4 +88,4 @@ inline void LoadListFromBinary(const std::string &name, std::vector<T> &target,
     std::memcpy(target.data(), binaryList.data(), binaryList.size());
   }
 }
-} // namespace PlantArchitect
+} // namespace EcoSysLab

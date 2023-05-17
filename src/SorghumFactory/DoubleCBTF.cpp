@@ -7,7 +7,7 @@
 #include "CompressedBTF.hpp"
 using namespace RayTracerFacility;
 #endif
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 void DoubleCBTF::OnInspect() {
   Editor::DragAndDropButton<CompressedBTF>(m_top, "Top");
   Editor::DragAndDropButton<CompressedBTF>(m_bottom, "Bottom");

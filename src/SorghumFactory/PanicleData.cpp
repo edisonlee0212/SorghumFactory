@@ -4,7 +4,7 @@
 
 #include "PanicleData.hpp"
 #include "IVolume.hpp"
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 void PanicleData::OnInspect() {
 
 }

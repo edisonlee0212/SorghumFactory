@@ -4,7 +4,7 @@
 #include "Plot2D.hpp"
 #include "ProceduralSorghum.hpp"
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 
 class SORGHUM_FACTORY_API SorghumStateGenerator : public IAsset {
   unsigned m_version = 0;
@@ -44,4 +44,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
   [[nodiscard]] SorghumState Generate(unsigned int seed);
 };
-} // namespace PlantArchitect
+} // namespace EcoSysLab

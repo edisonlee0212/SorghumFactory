@@ -19,7 +19,7 @@
 #include "IlluminationEstimation.hpp"
 
 using namespace Scripts;
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 #ifdef RAYTRACERFACILITY
 using namespace RayTracerFacility;
 #endif

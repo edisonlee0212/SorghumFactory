@@ -8,7 +8,7 @@
 #include "Utilities.hpp"
 #include "rapidcsv.h"
 #include <utility>
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 static const char *StateModes[]{"Default", "Cubic-Bezier"};
 
 SorghumStatePair ProceduralSorghum::Get(float time) const {

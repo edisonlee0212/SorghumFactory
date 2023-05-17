@@ -7,8 +7,8 @@
 #include "DefaultResources.hpp"
 #include "Graphics.hpp"
 
-using namespace PlantArchitect;
-void PlantArchitect::PARSensorGroup::CalculateIllumination(
+using namespace EcoSysLab;
+void EcoSysLab::PARSensorGroup::CalculateIllumination(
     const RayProperties &rayProperties, int seed, float pushNormalDistance) {
   if (m_samplers.empty())
     return;

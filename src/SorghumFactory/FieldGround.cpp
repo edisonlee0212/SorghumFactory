@@ -5,7 +5,7 @@
 #include "FieldGround.hpp"
 #include "glm/gtc/noise.hpp"
 
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 Entity FieldGround::GenerateMesh(float overrideDepth) {
 	std::vector<Vertex> vertices;
 	std::vector<glm::uvec3> triangles;

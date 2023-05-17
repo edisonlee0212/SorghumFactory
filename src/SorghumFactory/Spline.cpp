@@ -1,7 +1,7 @@
 #include "Spline.hpp"
 #include "SorghumLayer.hpp"
 
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 
 SplineNode::SplineNode() {}
 SplineNode::SplineNode(glm::vec3 position, float angle, float stemWidth, float leafWidth,

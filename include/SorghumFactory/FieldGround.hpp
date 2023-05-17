@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 	struct NoiseDescriptor
 	{
 		float m_noiseScale = 20.0f;

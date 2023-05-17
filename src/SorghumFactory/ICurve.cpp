@@ -1,8 +1,8 @@
 #include <ICurve.hpp>
 
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 
-void PlantArchitect::ICurve::GetUniformCurve(
+void EcoSysLab::ICurve::GetUniformCurve(
     size_t pointAmount, std::vector<glm::vec3> &points) const {
   float step = 1.0f / (pointAmount - 1);
   for (size_t i = 0; i <= pointAmount; i++) {

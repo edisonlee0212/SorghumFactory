@@ -2,7 +2,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 
 class DoubleCBTF : public IAsset {
 public:
@@ -13,4 +13,4 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };
-} // namespace PlantArchitect
+} // namespace EcoSysLab

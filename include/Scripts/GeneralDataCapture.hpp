@@ -7,7 +7,7 @@
 #include "RayTracerLayer.hpp"
 using namespace RayTracerFacility;
 
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 namespace Scripts {
 struct SorghumInfo{
   GlobalTransform m_sorghum;

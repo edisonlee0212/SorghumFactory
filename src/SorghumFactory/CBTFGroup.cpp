@@ -7,7 +7,7 @@
 #include "DoubleCBTF.hpp"
 #endif
 
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 void CBTFGroup::OnInspect() {
 #ifdef RAYTRACERFACILITY
   AssetRef temp;

@@ -2,7 +2,7 @@
 #include "ICurve.hpp"
 #include <sorghum_factory_export.h>
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 #pragma region States
 enum class StateMode { Default, CubicBezier };
 
@@ -105,4 +105,4 @@ public:
   void Deserialize(const YAML::Node &in) override;
 };
 
-} // namespace PlantArchitect
+} // namespace EcoSysLab

@@ -6,7 +6,7 @@
 #include "Graphics.hpp"
 #include "ProceduralSorghum.hpp"
 #include "SorghumLayer.hpp"
-using namespace PlantArchitect;
+using namespace EcoSysLab;
 void LeafData::OnInspect() {
   if (ImGui::TreeNodeEx("Curves", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (int i = 0; i < m_curves.size(); i++) {

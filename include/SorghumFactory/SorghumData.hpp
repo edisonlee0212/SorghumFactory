@@ -3,7 +3,7 @@
 #include "ProceduralSorghum.hpp"
 #include <SorghumStateGenerator.hpp>
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 enum class SorghumMode{
   ProceduralSorghum,
   SorghumStateGenerator

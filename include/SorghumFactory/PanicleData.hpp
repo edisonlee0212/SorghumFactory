@@ -4,7 +4,7 @@
 #include <sorghum_factory_export.h>
 
 using namespace UniEngine;
-namespace PlantArchitect {
+namespace EcoSysLab {
 class SORGHUM_FACTORY_API PanicleData : public IPrivateComponent {
 public:
   std::vector<Vertex> m_vertices;
@@ -15,4 +15,4 @@ public:
   void Serialize(YAML::Emitter &out) override;
   void Deserialize(const YAML::Node &in) override;
 };
-} // namespace PlantArchitect
+} // namespace EcoSysLab
